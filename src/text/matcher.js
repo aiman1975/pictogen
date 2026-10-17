@@ -209,6 +209,7 @@ const POSSESSIVES = new Set(['his', 'her', 'their', 'its', 'my', 'your', 'our'])
  * A phrase at toks[i] saying which side of a figure we see. Returns { view, len } or null.
  *   back:  from behind (not "from behind the house"), from the back/rear, facing away, turned away, back view, rear view,
  *          with his/her/their back to us/me/you/the camera/the viewer
+ *   side:  from the side, side view, profile view, in profile
  *   front: from the front, front view, facing us/me/you/the camera/the viewer
  */
 function viewPhrase(toks, i) {
@@ -222,6 +223,9 @@ function viewPhrase(toks, i) {
     if (VIEWER.has(e)) return { view: 'back', len: 5 };
     if (e === 'the' && VIEWER.has(toks[i + 5])) return { view: 'back', len: 6 };
   }
+  if (a === 'from' && b === 'the' && c === 'side') return { view: 'side', len: 3 };
+  if ((a === 'side' || a === 'profile') && b === 'view') return { view: 'side', len: 2 };
+  if (a === 'in' && b === 'profile') return { view: 'side', len: 2 };
   if (a === 'from' && b === 'the' && c === 'front') return { view: 'front', len: 3 };
   if (a === 'front' && b === 'view') return { view: 'front', len: 2 };
   if (a === 'facing' && VIEWER.has(b)) return { view: 'front', len: 2 };

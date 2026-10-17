@@ -48,6 +48,8 @@ try {
   const front = await (await post('/api/render-concept', { id: 'boy' })).json();
   const back = await (await post('/api/render-concept', { id: 'boy', view: 'back' })).json();
   check(face.test(front.markup) && !face.test(back.markup), 'POST /api/render-concept honours view: "back"');
+  const side = await (await post('/api/render-concept', { id: 'boy', view: 'side' })).json();
+  check(/class="pg-profile"/.test(side.markup), 'POST /api/render-concept honours view: "side"');
 } finally {
   server.kill();
 }

@@ -353,8 +353,9 @@ export function composeScene(matches, opts = {}) {
     const motion = TRAVEL_MOTIONS.includes(animation) ? animation : null;
     // Approaching / receding figures walk in place while their wrapper carries them through depth.
     const limbs = motion === 'approach' || motion === 'recede' ? 'walk' : animation;
-    // Walking away into the distance shows the figure's back unless the prompt said otherwise.
-    const view = it.m.view ?? (motion === 'recede' ? 'back' : undefined);
+    // Toward the camera we see the face, away from it the back (unless the prompt said otherwise);
+    // walking or running across the scene is drawn in profile by the people themselves.
+    const view = it.m.view ?? (motion === 'recede' ? 'back' : motion === 'approach' ? 'front' : undefined);
     const shapes = drawConcept(it.c, {
       seed: `${seed}:${it.c.id}:${it.k}`,
       color: it.m.color,

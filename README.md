@@ -23,7 +23,7 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
   - **Sticker / Icon Sheet (`icons`)**: Organized grid of matched concepts with captions (great for presentation slides & documentation).
 - 🧠 **Smart Text Matcher**:
   - Handles numbers (*"three apples"*, *"4 dogs"*, *"a dozen eggs"* &rarr; counts, capped at 12 per item).
-  - Views (*"a boy seen from behind"*, *"back view of a girl"*, *"a woman with her back to the camera"*).
+  - Views (*"a boy seen from behind"*, *"back view of a girl"*, *"a man in profile"*, *"side view of a woman"*); walking and running people are drawn in profile.
   - Handles negation (*"a dog and no cats"*, *"a boy without a ball"* &rarr; the negated item is left out).
   - Handles colors (*"a blue bike"* &rarr; bike frame rendered in blue).
   - Handles sizes (*"huge tree"* &rarr; scaled up).
