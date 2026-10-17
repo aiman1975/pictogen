@@ -59,8 +59,12 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [ ] Paths: walking along a road or riverbank and around obstacles, not only straight lines
 
 ### 2. Characters and facial expression
-- [ ] One shared skeleton (hips, knees, elbows, neck) for all rigged figures, so every motion works
-      on every character instead of per-drawing animation classes
+- [x] **One shared skeleton** (`src/concepts/rig.js`): named joints with their own pivots (torso, head,
+      arms/wings/flippers/trunk, legs in trot pairs, tail, ears, eyes, mouth) and a skeleton kind (person,
+      quadruped, bird, fish). Motions are written once against the joints, so all nine hand-drawn
+      animals in all their views now walk, gallop, leap, sit, lie down, wag, flap, wave and blink;
+      tails sway, heads glance and ears twitch when idle
+- [ ] The people on the same joints: a head that turns and nods, knees and elbows
 - [ ] More expressions plus **expression changes over time** ("sad, then happy")
 - [ ] Eye gaze (look at another character, follow a moving object), eyebrows, head tilt
 - [ ] Lip-sync from caption text (map words to mouth shapes), no audio needed

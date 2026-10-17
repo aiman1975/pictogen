@@ -417,6 +417,174 @@ export const ANIMATION_CSS = `
   animation: pgWag 0.35s ease-in-out infinite alternate;
 }
 
+/* Shared skeleton (src/concepts/rig.js). Joints carry their own pivots (style="transform-origin"),
+   so every motion below works on any figure that names its joints; .pg-rig-<kind> varies it by
+   skeleton: a dog gallops, a bird flaps its wings, a penguin waddles. */
+
+/* Idle life: tails sway, heads glance, ears twitch, fish beat their tails */
+@keyframes pgTailSway {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(7deg); }
+}
+@keyframes pgHeadIdle {
+  0%, 62%, 100% { transform: rotate(0deg); }
+  72% { transform: rotate(-5deg); }
+  84% { transform: rotate(3deg); }
+}
+@keyframes pgEarTwitch {
+  0%, 86%, 100% { transform: rotate(0deg); }
+  91% { transform: rotate(-12deg); }
+  96% { transform: rotate(5deg); }
+}
+.pg-tail { animation: pgTailSway 2.4s ease-in-out infinite; }
+.pg-head { animation: pgHeadIdle 6s ease-in-out infinite; }
+.pg-ear { animation: pgEarTwitch 4.6s ease-in-out infinite; }
+
+/* Tails wag when the figure is excited; "wag" moves the tail only, not the whole animal */
+@keyframes pgTailWag {
+  0%, 100% { transform: rotate(-24deg); }
+  50% { transform: rotate(20deg); }
+}
+.pg-anim-wag .pg-tail, .pg-anim-run .pg-tail, .pg-anim-jump .pg-tail, .pg-anim-dance .pg-tail,
+.pg-anim-cheer .pg-tail, .pg-anim-wave .pg-tail {
+  animation: pgTailWag 0.32s ease-in-out infinite;
+}
+.pg-rig.pg-anim-wag { animation: none; }
+.pg-rig-fish .pg-tail { animation: pgTailWag 0.6s ease-in-out infinite; }
+@keyframes pgFinPaddle {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(14deg); }
+}
+.pg-rig-fish .pg-arm-right { animation: pgFinPaddle 0.8s ease-in-out infinite; }
+
+/* Heads nod with each step, droop asleep, tilt in thought */
+@keyframes pgHeadNod {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(4deg); }
+}
+@keyframes pgHeadDroop {
+  0%, 100% { transform: rotate(12deg); }
+  50% { transform: rotate(15deg); }
+}
+.pg-anim-walk .pg-head, .pg-anim-walk-across .pg-head { animation: pgHeadNod 0.4s ease-in-out infinite; }
+.pg-anim-run .pg-head { animation: pgHeadNod 0.225s ease-in-out infinite; }
+.pg-anim-sleep .pg-head { animation: pgHeadDroop 2.4s ease-in-out infinite; }
+.pg-anim-think .pg-head { animation: none; transform: rotate(-8deg); }
+.pg-rig.pg-anim-sleep .pg-face-eyes { animation: none; transform: scaleY(0.12); }
+
+/* Four legs: a gallop that pitches the body, a leap with legs stretched fore and aft, sitting,
+   lying down; seen head-on the legs step up and down */
+@keyframes pgGallopLegL {
+  0%, 100% { transform: rotate(-30deg); }
+  50% { transform: rotate(30deg); }
+}
+@keyframes pgGallopLegR {
+  0%, 100% { transform: rotate(30deg); }
+  50% { transform: rotate(-30deg); }
+}
+@keyframes pgGallopTorso {
+  0%, 100% { transform: rotate(-3deg) translateY(0); }
+  50% { transform: rotate(3deg) translateY(-3px); }
+}
+@keyframes pgLeapFront {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-38deg); }
+}
+@keyframes pgLeapHind {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(38deg); }
+}
+@keyframes pgStepL {
+  0%, 100% { transform: translateY(-3.5px); }
+  50% { transform: translateY(0); }
+}
+@keyframes pgStepR {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3.5px); }
+}
+.pg-rig-quadruped.pg-anim-run .pg-leg-left { animation: pgGallopLegL 0.45s ease-in-out infinite alternate; }
+.pg-rig-quadruped.pg-anim-run .pg-leg-right { animation: pgGallopLegR 0.45s ease-in-out infinite alternate; }
+.pg-rig-quadruped.pg-anim-run .pg-body-torso {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pgGallopTorso 0.45s ease-in-out infinite;
+}
+.pg-rig-quadruped.pg-anim-jump .pg-leg-front { animation: pgLeapFront 0.8s ease-in-out infinite; }
+.pg-rig-quadruped.pg-anim-jump .pg-leg-hind { animation: pgLeapHind 0.8s ease-in-out infinite; }
+.pg-rig-quadruped.pg-anim-dance .pg-leg-left { animation: pgStepL 0.55s ease-in-out infinite; }
+.pg-rig-quadruped.pg-anim-dance .pg-leg-right { animation: pgStepR 0.55s ease-in-out infinite; }
+.pg-rig-quadruped.pg-anim-sit .pg-body-torso {
+  transform-box: fill-box;
+  transform-origin: 20% 100%;
+  transform: rotate(-16deg);
+}
+.pg-rig-quadruped.pg-anim-sit .pg-leg-front { transform: rotate(-6deg); }
+.pg-rig-quadruped.pg-anim-sleep { transform: translateY(13px); }
+.pg-rig-quadruped.pg-anim-sleep .pg-leg-left, .pg-rig-quadruped.pg-anim-sleep .pg-leg-right {
+  transform-box: fill-box;
+  transform-origin: top center;
+  transform: scaleY(0.4);
+}
+.pg-rig-head-on.pg-anim-walk .pg-leg-left, .pg-rig-head-on.pg-anim-walk-across .pg-leg-left { animation: pgStepL 0.8s ease-in-out infinite; }
+.pg-rig-head-on.pg-anim-walk .pg-leg-right, .pg-rig-head-on.pg-anim-walk-across .pg-leg-right { animation: pgStepR 0.8s ease-in-out infinite; }
+.pg-rig-head-on.pg-anim-run .pg-leg-left { animation: pgStepL 0.45s ease-in-out infinite; }
+.pg-rig-head-on.pg-anim-run .pg-leg-right { animation: pgStepR 0.45s ease-in-out infinite; }
+.pg-rig-quadruped.pg-rig-head-on.pg-anim-run .pg-body-torso { animation: pgWalkTorso 0.225s ease-in-out infinite; }
+.pg-rig-quadruped.pg-rig-head-on.pg-anim-jump .pg-leg-front,
+.pg-rig-quadruped.pg-rig-head-on.pg-anim-jump .pg-leg-hind,
+.pg-rig-head-on.pg-anim-jump .pg-leg-left, .pg-rig-head-on.pg-anim-jump .pg-leg-right { animation: pgStepL 0.8s ease-in-out infinite; }
+.pg-rig-quadruped.pg-rig-head-on.pg-anim-sit .pg-body-torso { transform: none; }
+
+/* Wings (and flippers, a trunk) are the arms of the skeleton: birds flap them, wave with one,
+   raise both to cheer; a penguin's flippers and an elephant's trunk use the arm motions as they are */
+@keyframes pgWingNear {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(58deg); }
+}
+@keyframes pgWingFar {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(68deg); }
+}
+@keyframes pgWingWave {
+  0%, 100% { transform: rotate(10deg); }
+  50% { transform: rotate(48deg); }
+}
+@keyframes pgBirdBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes pgFlipperL {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(48deg); }
+}
+@keyframes pgFlipperR {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-48deg); }
+}
+@keyframes pgWaddle {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+.pg-rig.pg-anim-flap { animation: pgBirdBob 0.64s ease-in-out infinite; }
+.pg-rig-bird.pg-anim-flap .pg-arm-right, .pg-rig-bird.pg-anim-fly .pg-arm-right,
+.pg-rig-bird.pg-anim-cheer .pg-arm-right { animation: pgWingNear 0.32s ease-in-out infinite; }
+.pg-rig-bird.pg-anim-flap .pg-arm-left, .pg-rig-bird.pg-anim-fly .pg-arm-left,
+.pg-rig-bird.pg-anim-cheer .pg-arm-left { animation: pgWingFar 0.32s ease-in-out infinite; }
+.pg-rig-bird.pg-anim-wave .pg-arm-right { animation: pgWingWave 0.6s ease-in-out infinite; }
+.pg-rig-bird.pg-rig-head-on.pg-anim-flap .pg-arm-left, .pg-rig-bird.pg-rig-head-on.pg-anim-fly .pg-arm-left,
+.pg-rig-bird.pg-rig-head-on.pg-anim-cheer .pg-arm-left { animation: pgFlipperL 0.3s ease-in-out infinite; }
+.pg-rig-bird.pg-rig-head-on.pg-anim-jump .pg-arm-left { animation: pgFlipperL 0.8s ease-in-out infinite; }
+.pg-rig-bird.pg-rig-head-on.pg-anim-jump .pg-arm-right { animation: pgFlipperR 0.8s ease-in-out infinite; }
+.pg-rig-bird.pg-rig-head-on.pg-anim-flap .pg-arm-right, .pg-rig-bird.pg-rig-head-on.pg-anim-fly .pg-arm-right,
+.pg-rig-bird.pg-rig-head-on.pg-anim-cheer .pg-arm-right { animation: pgFlipperR 0.3s ease-in-out infinite; }
+.pg-rig-bird.pg-rig-head-on.pg-anim-wave .pg-arm-right { animation: pgWave 0.6s ease-in-out infinite alternate; }
+.pg-rig-bird.pg-rig-head-on.pg-anim-walk .pg-body-torso, .pg-rig-bird.pg-rig-head-on.pg-anim-walk-across .pg-body-torso,
+.pg-rig-bird.pg-rig-head-on.pg-anim-run .pg-body-torso {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: pgWaddle 0.8s ease-in-out infinite alternate;
+}
+
 /* Environment Keyframes: Rain, Snow, Stars, Water, Sun Glow, Parallax */
 @keyframes pgRainFall {
   0% { transform: translateY(-50px) translateX(0); opacity: 0; }

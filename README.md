@@ -53,6 +53,8 @@ node serve.js
 ```
 Enjoy an interactive prompt bar, style toggles, live SVG viewport, concept dictionary, and one-click SVG/PNG export!
 
+**Living animals:** the dog, cat, rabbit, lion, elephant, bird, duck, penguin and fish share one skeleton with the people (legs, head, tail, wings), so motions work on all of them: a dog gallops and wags its tail, a bird flaps its wings, a penguin waddles and waves its flipper, an elephant waves its trunk. Idle animals blink, sway their tails and twitch their ears.
+
 **Timeline view:** under a scene that moves, the timeline shows its steps, one lane per figure and one for the camera. Drag on the ruler to scrub. Click a step to change who does what ("walks in" → "runs to the dog", "waves" → "jumps", a feeling, a camera move), move it earlier or later, add a figure to it or delete it. **＋ Step** adds steps, also to a still scene. Edits stay while you change style or seed; **↺ Use the prompt** drops them.
 
 **Video & GIF export:** the 🎞 GIF and 🎬 Video buttons under the canvas render the animated scene, timelines and camera moves included, frame by frame in your browser. Video is MP4 (H.264) where the browser can record it (Chrome, Edge, Safari), otherwise WebM. In 🎬 Clip Studio, **Export Video** renders the whole clip with a title card and each scene's caption. Everything runs locally; nothing is uploaded and nothing needs installing.

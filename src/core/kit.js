@@ -44,6 +44,15 @@ export function createKit() {
         transform: transform || undefined,
       });
     },
+    /**
+     * A joint of the skeleton (see src/concepts/rig.js): shapes that turn together around a pivot
+     * [x, y] in drawing units (the shoulder of a wing, the base of a tail). Without a pivot, a joint
+     * turns around the top centre of its shapes (a leg hanging from its hip).
+     */
+    joint(cls, pivot, fn) {
+      const style = pivot ? `transform-box: view-box; transform-origin: ${pivot[0]}px ${pivot[1]}px` : undefined;
+      this.group({ class: cls, style }, fn);
+    },
     /** Group shapes with optional CSS classes/animations or geometric transforms. */
     group(transformOrOpts, fn) {
       if (!transformOrOpts) {
