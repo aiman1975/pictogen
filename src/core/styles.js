@@ -420,8 +420,9 @@ export const STYLES = {
   },
 };
 
-STYLES.alphabet = STYLES.letterling;
-
+// Distinct styles only; "alphabet" below is an accepted alias, not a 21st style.
 export const STYLE_NAMES = Object.keys(STYLES);
-export const getStyle = (name) => STYLES[name] || STYLES.flat;
+STYLES.alphabet = STYLES.letterling;
+export const isStyle = (name) => Object.hasOwn(STYLES, name);
+export const getStyle = (name) => (isStyle(name) ? STYLES[name] : STYLES.flat);
 

@@ -189,11 +189,65 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
   return d.shapes;
 }
 
+// Styles whose background() is a flat studio backdrop (no horizon) and that draw their own ground shadow.
+const FLAT_BACKDROP_STYLES = ['editorial', 'stickman', 'cute2d', 'whiteboard', 'doodle', 'papercut'];
+// Motions that move the whole figure through the scene (the limbs walk in place inside).
+const TRAVEL_MOTIONS = ['walk-across', 'approach', 'recede'];
+// How far away (in multiples of the front-row distance) an approaching/receding figure starts/ends.
+const FAR_DISTANCE = 4.5;
+
+const r2 = (v) => Math.round(v * 100) / 100;
+const pct = (v) => `${r2(v * 100)}%`;
+
+/**
+ * CSS @keyframes body and duration for a figure travelling through the scene.
+ * Figures are drawn in their own 100x100 box scaled by `sx` (negative when mirrored), so screen
+ * offsets are divided by the scale to get local units; F is the feet point in that box.
+ *   walk-across: off-screen to off-screen in the facing direction at `speed` px/s (shared by everyone
+ *                crossing, so a man and his dog stay together); the delay starts each figure at its
+ *                composed position, so stills look right.
+ *   approach / recede: along a perspective path between the front row and the horizon. Screen size
+ *                and distance below the horizon both scale with 1/distance, so a figure walking
+ *                toward the camera grows slowly at first and quickly at the end.
+ */
+function travelKeyframes(motion, { cx, y, s, sx, F, w, W, hY, speed }) {
+  if (motion === 'walk-across') {
+    const off = w / 2 + 12;
+    const [x0, x1] = sx > 0 ? [-off, W + off] : [W + off, -off];
+    const duration = clamp(Math.abs(x1 - x0) / speed, 4, 16);
+    return {
+      duration: r2(duration),
+      delay: -r2(duration * ((cx - x0) / (x1 - x0))),
+      keyframes: `0% { transform: translateX(${r2((x0 - cx) / sx)}px); } 100% { transform: translateX(${r2((x1 - cx) / sx)}px); }`,
+    };
+  }
+  // The far end of the path heads toward the vanishing point, keeping some of the figure's own offset
+  // so several walkers don't all start from one spot.
+  const vx = W / 2 + (cx - W / 2) * 0.4;
+  const at = (k) => {
+    const dx = (vx + (cx - vx) * k - cx) / sx;
+    const dy = (hY + (y - hY) * k - y) / s;
+    return `transform: translate(${r2(F.x + dx)}px, ${r2(F.y + dy)}px) scale(${r2(k * 1000) / 1000}) translate(${-F.x}px, ${-F.y}px);`;
+  };
+  const steps = 12;
+  const [move0, move1] = motion === 'approach' ? [0, 0.7] : [0.05, 0.85];
+  let keyframes = '';
+  for (let i = 0; i <= steps; i++) {
+    const u = i / steps;
+    const dist = motion === 'approach' ? FAR_DISTANCE + (1 - FAR_DISTANCE) * u : 1 + (FAR_DISTANCE - 1) * u;
+    keyframes += `${pct(move0 + (move1 - move0) * u)} { ${at(1 / dist)} } `;
+  }
+  keyframes += motion === 'approach'
+    ? `100% { ${at(1)} } 0% { opacity: 0; } 4% { opacity: 1; } 94% { opacity: 1; } 100% { opacity: 0; }`
+    : `0% { ${at(1)} } 100% { ${at(1 / FAR_DISTANCE)} } 0% { opacity: 0; } 5% { opacity: 1; } 85% { opacity: 1; } 95% { opacity: 0; } 100% { opacity: 0; }`;
+  return { duration: 6, delay: 0, keyframes };
+}
+
 /** Lays out a row of items horizontally; sets it.cx and possibly shrinks it.h. */
 function layoutRow(list, W, maxH, rng) {
   if (!list.length) return;
   list.forEach((it) => { it.h = Math.min(it.h, maxH); it.w = it.h * (it.c.width ?? 0.8); });
-  const baseGap = (a, b) => (a.c.id === b.c.id ? W * 0.004 : W * 0.035);
+  const baseGap = (a, b) => (a.c.id === b.c.id ? W * 0.03 : W * 0.035);
   const gaps = list.slice(1).map((it, i) => baseGap(list[i], it));
   const avail = W * 0.92;
   const gapSum = gaps.reduce((s, g) => s + g, 0);
@@ -234,6 +288,8 @@ export function composeScene(matches, opts = {}) {
   items.splice(maxItems);
 
   const env = detectEnv(items, words);
+  // A figure walking toward or away from the camera: the ground must not scroll sideways under it.
+  if (items.some((it) => ['approach', 'recede'].includes(it.m.animation))) env.parallax = false;
   const pal = palette(env);
   const hY = H * (env.water ? 0.58 : 0.62);
 
@@ -249,14 +305,31 @@ export function composeScene(matches, opts = {}) {
 
   const groups = { background: [], sky: [], air: [], back: [], water: [], underwater: [], front: [] };
 
+  for (const it of items) it.h = it.c.scale * unit * (it.m.size || 1);
+  // With no tree/house/mountain to give a sense of real size, small subjects (a cat, apples)
+  // would be specks on the grass: zoom everything in together so the tallest grounded one
+  // stands about 40% of the frame, keeping their sizes relative to each other.
+  const grounded = items.filter((it) => !['sky', 'air', 'background'].includes(it.c.placement));
+  if (!hasLandscape && grounded.length) {
+    const zoom = clamp((H * 0.4) / Math.max(...grounded.map((it) => it.h)), 1, 3);
+    items.forEach((it) => { it.h *= zoom; });
+  }
+
   for (const it of items) {
-    it.h = it.c.scale * unit * (it.m.size || 1);
     const pl = it.c.placement || 'ground';
     if (groups[pl] && pl !== 'front' && pl !== 'back') groups[pl].push(it);
     else if (it.c.scale >= 1.4) groups.back.push(it);
     else groups.front.push(it);
   }
   const hasGround = groups.back.length + groups.front.length > 0;
+
+  const uid = newUid();
+  // Landscape backdrops have a horizon to give depth; flat studio backdrops draw their own shadows.
+  const landscape = !env.room && !FLAT_BACKDROP_STYLES.includes(style);
+  const shadows = landscape && style !== 'outline';
+  const motionCss = [];
+  // Everyone walking across keeps the pace of the tallest walker (about 0.9 body heights a second).
+  const acrossSpeed = Math.max(45, 0.9 * Math.max(0, ...items.filter((it) => it.m.animation === 'walk-across').map((it) => it.h)));
 
   const out = [];
   const place = (it, cx, y, anchor = 'bottom') => {
@@ -277,25 +350,43 @@ export function composeScene(matches, opts = {}) {
       else if (it.c.id === 'dog') animation = 'wag';
     }
     const expression = it.m.expression || 'happy';
+    const motion = TRAVEL_MOTIONS.includes(animation) ? animation : null;
+    // Approaching / receding figures walk in place while their wrapper carries them through depth.
+    const limbs = motion === 'approach' || motion === 'recede' ? 'walk' : animation;
+    // Walking away into the distance shows the figure's back unless the prompt said otherwise.
+    const view = it.m.view ?? (motion === 'recede' ? 'back' : undefined);
     const shapes = drawConcept(it.c, {
       seed: `${seed}:${it.c.id}:${it.k}`,
       color: it.m.color,
       vary: vary || it.k > 0,
       expression,
-      animation,
+      animation: limbs,
+      view,
       style,
     });
-    const isAcross = animation === 'walk-across';
     let wrappedContent = shapesToSvg(shapes, style, { olk });
-    if (animation && animation !== 'blink' && !wrappedContent.includes(`pg-anim-${animation}`)) {
-      wrappedContent = `<g class="pg-anim-${animation}">${wrappedContent}</g>`;
+    if (limbs && limbs !== 'blink' && !wrappedContent.includes(`pg-anim-${limbs}`)) {
+      wrappedContent = `<g class="pg-anim-${limbs}">${wrappedContent}</g>`;
     }
-    if (isAcross) {
-      wrappedContent = `<g class="pg-motion-across">${wrappedContent}</g>`;
+    wrappedContent = `<g class="pg-figure">${wrappedContent}</g>`;
+    if (shadows && anchor === 'bottom' && !['background', 'water'].includes(it.c.placement)) {
+      // Contact shadow on the ground: outside the figure's own animation, so it stays put when jumping.
+      const rx = 50 * (it.c.width ?? 0.8) * 0.72;
+      wrappedContent = `<ellipse class="pg-shadow" cx="50" cy="${base}" rx="${r2(rx)}" ry="${r2(Math.max(3, rx * 0.13))}" fill="#000000" opacity="0.16"/>${wrappedContent}`;
+    }
+    if (motion) {
+      const name = `${uid}m${out.length}`;
+      const { keyframes, duration, delay } = travelKeyframes(motion, {
+        cx, y, s, sx: flip ? -s : s, F: { x: 50, y: base }, w: it.w ?? it.h * (it.c.width ?? 0.8), W, hY, speed: acrossSpeed,
+      });
+      motionCss.push(`@keyframes ${name} { ${keyframes} }`);
+      const cls = motion === 'walk-across' ? 'pg-motion-across' : `pg-motion-${motion}`;
+      wrappedContent = `<g class="${cls}" style="animation: ${name} ${duration}s linear ${delay}s infinite;">${wrappedContent}</g>`;
     }
     const animAttr = animation ? ` data-animation="${animation}"` : '';
     const exprAttr = expression ? ` data-expression="${expression}"` : '';
-    out.push(`<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}"${animAttr}${exprAttr} transform="${tr.replace(/(\d+\.\d{3})\d+/g, '$1')}" style="cursor: grab;">${wrappedContent}</g>`);
+    const viewAttr = view ? ` data-view="${view}"` : '';
+    out.push(`<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}"${animAttr}${exprAttr}${viewAttr} transform="${tr.replace(/(\d+\.\d{3})\d+/g, '$1')}" style="cursor: grab;">${wrappedContent}</g>`);
   };
 
   // background objects (mountains, rainbows): large, behind everything, sitting on the horizon
@@ -345,17 +436,32 @@ export function composeScene(matches, opts = {}) {
   groups.underwater.forEach((it) => place(it, it.cx, hY + (waterBottom - hY) * (0.55 + rng() * 0.2), 'center'));
 
   if (groups.front.length) {
-    layoutRow(groups.front, W, H * 0.75, rng);
-    if (groups.front.length === 1 && !hasLandscape) {
-      groups.front[0].cx = W / 2;
+    const front = groups.front;
+    const rowWidth = front.reduce((sum, it) => sum + Math.min(it.h, H * 0.75) * (it.c.width ?? 0.8), 0) + (front.length - 1) * W * 0.03;
+    if (landscape && front.length >= 4 && rowWidth > W * 0.92) {
+      // Too many to fit in one row: put every other item in a second row further back, smaller and
+      // nearer the horizon, instead of shrinking everyone into a thin line.
+      const FAR = 0.7;
+      const far = front.filter((_, i) => i % 2 === 1);
+      const near = front.filter((_, i) => i % 2 === 0);
+      far.forEach((it) => { it.h *= FAR; });
+      layoutRow(far, W, H * 0.75 * FAR, rng);
+      far.forEach((it) => place(it, it.cx, hY + (frontY - hY) * FAR));
+      layoutRow(near, W, H * 0.75, rng);
+      near.forEach((it) => place(it, it.cx, frontY));
+    } else {
+      layoutRow(front, W, H * 0.75, rng);
+      if (front.length === 1 && !hasLandscape) {
+        front[0].cx = W / 2;
+      }
+      front.forEach((it) => place(it, it.cx, frontY));
     }
-    groups.front.forEach((it) => place(it, it.cx, frontY));
   }
 
-  const uid = newUid();
   const fx = styleWrap(style, uid, out.join(''), { scale: W / 260, freq: 0.02, blur: W / 450 });
   const bgSvg = shapesToSvg(background(W, H, hY, env, pal, rng, hasGround, style), style);
   const content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${fx.g}`;
   getStyle(style); // (style validated)
-  return svgDoc({ width: W, height: H, viewBox: `0 0 ${W} ${H}`, defs: fx.defs, content });
+  const motionDefs = motionCss.length ? `<style><![CDATA[${motionCss.join('\n')}]]></style>` : '';
+  return svgDoc({ width: W, height: H, viewBox: `0 0 ${W} ${H}`, defs: fx.defs + motionDefs, content });
 }

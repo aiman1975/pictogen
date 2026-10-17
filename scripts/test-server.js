@@ -35,7 +35,7 @@ try {
 
   check((await post('/api/generate', { text: 123, width: 'abc' })).status === 200, 'non-string text and bad width are tolerated');
   check((await post('/api/generate', 'null')).status === 200, 'a JSON null body falls back to defaults');
-  check((await post('/api/generate', '{oops')).status === 500, 'malformed JSON is a 500 with an error message');
+  check((await post('/api/generate', '{oops')).status === 400, 'malformed JSON is a 400');
 
   const big = await post('/api/generate', 'x'.repeat(2 * 1024 * 1024)).catch(() => null);
   check(!big || big.status === 413, 'oversized body is rejected');
@@ -43,6 +43,11 @@ try {
 
   check((await fetch(`${base}/api/svg?text=apple&mode=card`)).headers.get('content-type').startsWith('image/svg+xml'), 'GET /api/svg serves SVG');
   check((await fetch(`${base}/api/icon?id=no_such_concept`)).status === 404, 'unknown icon is 404');
+
+  const face = /class="pg-face-(?:eyes|mouth)"/;
+  const front = await (await post('/api/render-concept', { id: 'boy' })).json();
+  const back = await (await post('/api/render-concept', { id: 'boy', view: 'back' })).json();
+  check(face.test(front.markup) && !face.test(back.markup), 'POST /api/render-concept honours view: "back"');
 } finally {
   server.kill();
 }

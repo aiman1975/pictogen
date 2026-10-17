@@ -88,7 +88,10 @@ export function loadFluentConcepts() {
     // Root word alias ("acoustic guitar" -> "guitar") only when it is unambiguous.
     const words = label.split(' ');
     const last = words[words.length - 1];
-    if (!variant && words.length > 1 && !SETTING_LAST_WORDS.has(last)) {
+    // A plural last word whose singular is its own icon ("nest with eggs" -> "eggs", but "egg"
+    // exists) stays the plural of that icon, so "three eggs" draws eggs rather than a nest.
+    const pluralOfIcon = [last.replace(/s$/, ''), last.replace(/es$/, '')].some((w) => w !== last && icons[w]);
+    if (!variant && words.length > 1 && !SETTING_LAST_WORDS.has(last) && !pluralOfIcon) {
       const canonical = CANONICAL_LAST_WORD[last];
       if (canonical ? canonical === key : lastWordUse[last] <= MAX_SHARED_LAST_WORD) aliases.add(last);
     }

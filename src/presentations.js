@@ -371,6 +371,7 @@ export function renderIsometric(matches, opts = {}) {
       color: m.color,
       expression: m.expression,
       animation: m.animation,
+      view: m.view,
       seed: `${seed}:${c.id}:${i}`,
     });
     const markup = shapesToSvg(shapes, style);

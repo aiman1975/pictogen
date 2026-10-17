@@ -6,9 +6,9 @@
 //   node cli.js "dog cat bird fish" --mode icons --style neon -o animals.svg
 //   node cli.js --export-all ./dist/library
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
-import { generate, listConcepts, renderIcon, renderCard, STYLE_NAMES } from './src/index.js';
+import { generate, listConcepts, renderIcon, renderCard, STYLE_NAMES, isStyle } from './src/index.js';
 
 const args = process.argv.slice(2);
 
@@ -94,6 +94,8 @@ if (exportDir) {
       count++;
     }
   }
+  // The library icons are Microsoft's MIT-licensed Fluent Emoji: their notice must travel with them.
+  copyFileSync(new URL('./THIRD_PARTY_NOTICES.md', import.meta.url), join(target, 'THIRD_PARTY_NOTICES.md'));
   console.log(`Successfully exported ${count} SVG icons!`);
   process.exit(0);
 }
@@ -109,7 +111,7 @@ for (const [name, v] of [['width', width], ['height', height]]) {
     process.exit(1);
   }
 }
-if (!STYLE_NAMES.includes(style)) {
+if (!isStyle(style)) {
   console.error(`Error: unknown style "${style}". Available: ${STYLE_NAMES.join(', ')}`);
   process.exit(1);
 }
@@ -133,6 +135,9 @@ console.log(`Prompt  : "${text}"`);
 console.log(`Matched : ${result.matches.map((m) => `${m.id}${m.color ? ` (${m.color})` : ''} ×${m.count}`).join(', ') || 'none'}`);
 if (result.unknown.length) {
   console.log(`Unknown : ${result.unknown.join(', ')}`);
+}
+if (result.excluded.length) {
+  console.log(`Left out: ${result.excluded.join(', ')}`);
 }
 
 if (output) {

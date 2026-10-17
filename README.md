@@ -22,11 +22,14 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
   - **Flashcard (`card`)**: Large friendly typography and hero icon on tinted card (ideal for kids' flashcards & language learning).
   - **Sticker / Icon Sheet (`icons`)**: Organized grid of matched concepts with captions (great for presentation slides & documentation).
 - 🧠 **Smart Text Matcher**:
-  - Handles numbers (*"three apples"* &rarr; count = 3).
+  - Handles numbers (*"three apples"*, *"4 dogs"*, *"a dozen eggs"* &rarr; counts, capped at 12 per item).
+  - Views (*"a boy seen from behind"*, *"back view of a girl"*, *"a woman with her back to the camera"*).
+  - Handles negation (*"a dog and no cats"*, *"a boy without a ball"* &rarr; the negated item is left out).
   - Handles colors (*"a blue bike"* &rarr; bike frame rendered in blue).
   - Handles sizes (*"huge tree"* &rarr; scaled up).
   - Handles plurals & irregular forms (*"geese"*, *"leaves"*, *"bicycles"*).
   - Semantic aliases (*"schoolboy"* &rarr; boy, *"automobile"* &rarr; car, *"nemo"* &rarr; fish).
+  - Motion and depth (*"a boy walking towards us"* &rarr; walks from the horizon toward the camera, growing with perspective; *"a girl walking away into the distance"* &rarr; seen from behind, shrinking toward the horizon; *"a man and a dog walking across the park"* &rarr; both walk, at the same pace).
 - 🧩 **Extensible Library**: ~70 hand-drawn concepts (recolorable, with expressions & motion) plus ~3,170 Fluent Emoji library icons (MIT). The hand-drawn core:
   - **Vehicles**: `bike`, `car`, `bus`, `boat`, `plane`
   - **Nature**: `tree`, `neem`, `flower`, `mountain`, `grass`
@@ -108,8 +111,15 @@ export default [
 ];
 ```
 
-Run the test suite (smoke test, SVG well-formedness, animations, presentation modes, story engine):
+Run the test suite (smoke test, SVG well-formedness, animations, presentation modes, story engine, depth & motion, CLI, server):
 ```bash
 npm test
 ```
-`scripts/test-tts.js` and the `.ps1` audio scripts use Windows PowerShell voices and only run on Windows.
+`scripts/generate-showcase-audio.js` regenerates the showcase narration in `public/audio/` with the operating system's own voice engine: PowerShell voices on Windows, `say` on macOS, or `espeak-ng`/`espeak` on Linux (`sudo apt install espeak-ng`). `node scripts/test-tts.js` checks that an engine is available.
+
+---
+
+## Roadmap & Licensing
+
+- **Roadmap:** [`docs/ROADMAP.md`](docs/ROADMAP.md): the text-to-clip plan (depth, characters, environments, timeline, video export).
+- **License:** PictoGen is MIT-licensed ([`LICENSE`](LICENSE)). Bundled third-party material (Microsoft Fluent Emoji, MIT; Nunito and JetBrains Mono fonts, SIL OFL 1.1) is listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), and the full audit is in [`docs/LICENSE_AUDIT.md`](docs/LICENSE_AUDIT.md).
