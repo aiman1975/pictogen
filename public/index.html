@@ -307,6 +307,14 @@
       border-color: var(--primary);
       color: var(--primary);
     }
+    .btn-action:disabled,
+    .btn-action:disabled:hover {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--text);
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
 
     .movable-hint-bar {
       background: #eff6ff;
@@ -885,6 +893,8 @@
             </span>
           </div>
           <div class="canvas-actions">
+            <button class="btn-action" id="btn-undo" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
+            <button class="btn-action" id="btn-redo" title="Redo (Ctrl+Shift+Z / Ctrl+Y)" disabled>↷ Redo</button>
             <button class="btn-action" id="btn-reset" title="Reset positions to default layout">↩ Reset Positions</button>
             <button class="btn-action" id="btn-copy-svg">📋 Copy SVG</button>
             <button class="btn-action" id="btn-download-svg">💾 Download SVG</button>
@@ -1013,6 +1023,7 @@
           <ul style="font-size: 0.82rem; color: var(--text-muted); padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem;">
             <li><strong>Movable:</strong> Drag any boy, bike, tree, animal, or sun to compose custom story scenes or slide layouts.</li>
             <li><strong>Keyboard:</strong> Use Arrow Keys to nudge selected items, or Backspace/Delete to remove.</li>
+            <li><strong>Undo / Redo:</strong> Ctrl+Z (⌘Z) undoes canvas edits; Ctrl+Shift+Z or Ctrl+Y redoes them.</li>
             <li><strong>High-Res Exports:</strong> Both SVG and PNG exports preserve your custom positions exactly.</li>
           </ul>
         </div>
@@ -1052,6 +1063,7 @@
 
   <div id="toast" class="toast">Copied to clipboard!</div>
 
+  <script src="/history.js"></script>
   <script>
     let state = {
       prompt: 'a boy riding a blue bike under the sun and tree',
@@ -1184,6 +1196,76 @@
     let isDragging = false;
     let dragStartSvgPt = { x: 0, y: 0 };
     let dragStartTransform = { tx: 0, ty: 0, sx: 1, sy: 1 };
+    let dragBefore = null;
+
+    // ==========================================
+    // Undo / Redo (canvas edits only; see /history.js)
+    // ==========================================
+
+    const editHistory = new EditHistory({ limit: 50, mergeWindowMs: 1000 });
+    const btnUndo = document.getElementById('btn-undo');
+    const btnRedo = document.getElementById('btn-redo');
+    let generating = 0;
+
+    // Canvas markup without the transient selection/drag highlight, so restoring never leaves a stale selection.
+    function takeSnapshot() {
+      if (!svgViewport.querySelector('svg')) return null;
+      const clone = svgViewport.cloneNode(true);
+      clone.querySelectorAll('.movable-item.selected, .movable-item.dragging').forEach(el => el.classList.remove('selected', 'dragging'));
+      return clone.innerHTML;
+    }
+
+    function historyEnabled() {
+      return state.mode !== 'story' && generating === 0;
+    }
+
+    function updateHistoryButtons() {
+      const on = historyEnabled();
+      btnUndo.disabled = !(on && editHistory.canUndo);
+      btnRedo.disabled = !(on && editHistory.canRedo);
+    }
+
+    // Record `before` as an undo step if the canvas actually changed since it was taken.
+    function recordEdit(before, key = null) {
+      if (before == null || !historyEnabled()) return;
+      const after = takeSnapshot();
+      if (after == null || after === before) return;
+      editHistory.record(before, key);
+      updateHistoryButtons();
+    }
+
+    function restoreSnapshot(markup) {
+      isDragging = false;
+      dragBefore = null;
+      deselectItem();
+      svgViewport.innerHTML = markup;
+      initMovableObjects();
+      state.svg = svgViewport.innerHTML;
+    }
+
+    function undoEdit() {
+      const current = takeSnapshot();
+      if (!historyEnabled() || current == null) return;
+      const prev = editHistory.undo(current);
+      if (prev != null) restoreSnapshot(prev);
+      updateHistoryButtons();
+    }
+
+    function redoEdit() {
+      const current = takeSnapshot();
+      if (!historyEnabled() || current == null) return;
+      const next = editHistory.redo(current);
+      if (next != null) restoreSnapshot(next);
+      updateHistoryButtons();
+    }
+
+    function clearHistory() {
+      editHistory.clear();
+      updateHistoryButtons();
+    }
+
+    btnUndo.addEventListener('click', undoEdit);
+    btnRedo.addEventListener('click', redoEdit);
 
     function showToast(msg) {
       toast.textContent = msg;
@@ -1231,7 +1313,20 @@
       return false;
     }
 
-    async function runGenerate() {
+    // A new drawing starts a fresh history; Reset Positions passes keepHistory so the reset itself can be undone.
+    async function runGenerate({ keepHistory = false } = {}) {
+      if (!keepHistory) clearHistory();
+      generating++;
+      updateHistoryButtons();
+      try {
+        await renderGeneration();
+      } finally {
+        generating--;
+        updateHistoryButtons();
+      }
+    }
+
+    async function renderGeneration() {
       state.prompt = promptInput.value.trim() || 'apple';
       state.vary = optVary.checked;
       deselectItem();
@@ -1505,6 +1600,7 @@
         item.addEventListener('pointerdown', (e) => {
           if (state.mode === 'coloring') return;
           e.stopPropagation();
+          dragBefore = takeSnapshot();
           isDragging = true;
           selectItem(item);
           item.classList.add('dragging');
@@ -1522,9 +1618,11 @@
           if (el.classList.contains('pg-hit')) return;
           el.addEventListener('click', (e) => {
             e.stopPropagation();
+            const before = takeSnapshot();
             el.setAttribute('fill', activeColor);
             el.style.fill = activeColor;
             state.svg = svgViewport.innerHTML;
+            recordEdit(before);
             showToast('Painted shape with ' + activeColor);
           });
         });
@@ -1558,6 +1656,8 @@
         selectedItem.classList.remove('dragging');
         isDragging = false;
         state.svg = svgViewport.innerHTML;
+        recordEdit(dragBefore);
+        dragBefore = null;
         updateToolbarPosition();
       }
     });
@@ -1572,57 +1672,74 @@
     // Object Toolbar button actions
     document.getElementById('tb-scale-up').addEventListener('click', () => {
       if (!selectedItem) return;
+      const before = takeSnapshot();
       const t = parseTransform(selectedItem);
       applyTransform(selectedItem, { ...t, sx: t.sx * 1.15, sy: t.sy * 1.15 });
+      recordEdit(before);
       updateToolbarPosition();
     });
 
     document.getElementById('tb-scale-down').addEventListener('click', () => {
       if (!selectedItem) return;
+      const before = takeSnapshot();
       const t = parseTransform(selectedItem);
       applyTransform(selectedItem, { ...t, sx: t.sx * 0.85, sy: t.sy * 0.85 });
+      recordEdit(before);
       updateToolbarPosition();
     });
 
     document.getElementById('tb-flip').addEventListener('click', () => {
       if (!selectedItem) return;
+      const before = takeSnapshot();
       const t = parseTransform(selectedItem);
       // Flip horizontally relative to standard 100 width
       applyTransform(selectedItem, { ...t, sx: -t.sx, tx: t.tx + (t.sx > 0 ? 100 * t.sx : -100 * Math.abs(t.sx)) });
+      recordEdit(before);
       updateToolbarPosition();
     });
 
     document.getElementById('tb-front').addEventListener('click', () => {
       if (!selectedItem || !selectedItem.parentNode) return;
+      const before = takeSnapshot();
       selectedItem.parentNode.appendChild(selectedItem);
       state.svg = svgViewport.innerHTML;
+      recordEdit(before);
       updateToolbarPosition();
       showToast('Brought to front');
     });
 
     document.getElementById('tb-back').addEventListener('click', () => {
       if (!selectedItem || !selectedItem.parentNode) return;
+      const before = takeSnapshot();
       selectedItem.parentNode.insertBefore(selectedItem, selectedItem.parentNode.firstChild);
       state.svg = svgViewport.innerHTML;
+      recordEdit(before);
       updateToolbarPosition();
       showToast('Sent to back');
     });
 
-    document.getElementById('tb-delete').addEventListener('click', () => {
+    function deleteSelectedItem() {
       if (!selectedItem) return;
+      const before = takeSnapshot();
       const name = selectedItem.dataset.id || 'Item';
       selectedItem.remove();
       deselectItem();
       state.svg = svgViewport.innerHTML;
+      recordEdit(before);
       showToast(`Removed ${name}`);
-    });
+    }
+
+    document.getElementById('tb-delete').addEventListener('click', deleteSelectedItem);
 
     // Facial expression & motion switching
+    // Both re-render the item on the server. The item is captured up front: the selection (or, after an
+    // undo or a new drawing, the whole canvas) may change while the request is in flight.
     async function setItemExpression(targetExpr) {
-      if (!selectedItem) return;
-      const id = selectedItem.dataset.id;
-      const curAnim = selectedItem.dataset.animation || 'blink';
-      const curSeed = `${state.seed}:${id}:${selectedItem.dataset.k || 0}`;
+      const item = selectedItem;
+      if (!item) return;
+      const id = item.dataset.id;
+      const curAnim = item.dataset.animation || 'blink';
+      const curSeed = `${state.seed}:${id}:${item.dataset.k || 0}`;
 
       try {
         const res = await fetch('/api/render-concept', {
@@ -1637,16 +1754,18 @@
           }),
         });
         const data = await res.json();
-        if (data.markup) {
-          selectedItem.dataset.expression = targetExpr;
-          const motionWrapper = selectedItem.querySelector('.pg-motion-across');
+        if (data.markup && item.isConnected) {
+          const before = takeSnapshot();
+          item.dataset.expression = targetExpr;
+          const motionWrapper = item.querySelector('.pg-motion-across');
           if (motionWrapper) {
             motionWrapper.innerHTML = data.markup;
           } else {
-            selectedItem.innerHTML = data.markup;
+            item.innerHTML = data.markup;
           }
-          addHitArea(selectedItem);
+          addHitArea(item);
           state.svg = svgViewport.innerHTML;
+          recordEdit(before);
           updateToolbarPosition();
           showToast(`Expression: ${targetExpr}`);
         }
@@ -1656,12 +1775,11 @@
     }
 
     async function setItemAnimation(targetAnim) {
-      if (!selectedItem) return;
-      const id = selectedItem.dataset.id;
-      const curExpr = selectedItem.dataset.expression || 'happy';
-      const curSeed = `${state.seed}:${id}:${selectedItem.dataset.k || 0}`;
-
-      selectedItem.dataset.animation = targetAnim;
+      const item = selectedItem;
+      if (!item) return;
+      const id = item.dataset.id;
+      const curExpr = item.dataset.expression || 'happy';
+      const curSeed = `${state.seed}:${id}:${item.dataset.k || 0}`;
 
       try {
         const res = await fetch('/api/render-concept', {
@@ -1676,19 +1794,23 @@
           }),
         });
         const data = await res.json();
-        if (data.markup) {
+        if (data.markup && item.isConnected) {
+          const before = takeSnapshot();
+          item.dataset.animation = targetAnim;
           if (targetAnim === 'walk-across') {
-            selectedItem.innerHTML = `<g class="pg-motion-across">${data.markup}</g>`;
+            item.innerHTML = `<g class="pg-motion-across">${data.markup}</g>`;
           } else {
-            selectedItem.innerHTML = data.markup;
+            item.innerHTML = data.markup;
           }
-          addHitArea(selectedItem);
+          addHitArea(item);
+          state.svg = svgViewport.innerHTML;
+          recordEdit(before);
+          updateToolbarPosition();
+          showToast(`Motion: ${targetAnim}`);
         }
-      } catch (e) {}
-
-      state.svg = svgViewport.innerHTML;
-      updateToolbarPosition();
-      showToast(`Motion: ${targetAnim}`);
+      } catch (err) {
+        console.error('Failed to update motion:', err);
+      }
     }
 
     document.querySelectorAll('.tb-expr-btn').forEach(btn => {
@@ -1705,34 +1827,46 @@
       });
     });
 
-    // Keyboard navigation for selected object
+    // Keyboard: undo/redo shortcuts, then nudging/deleting the selected object
     window.addEventListener('keydown', (e) => {
-      if (!selectedItem) return;
       if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return;
 
+      const key = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && (key === 'z' || (key === 'y' && !e.shiftKey))) {
+        e.preventDefault();
+        if (key === 'z' && !e.shiftKey) undoEdit();
+        else redoEdit();
+        return;
+      }
+
+      if (!selectedItem) return;
       const step = e.shiftKey ? 10 : 2;
       const t = parseTransform(selectedItem);
+      // Consecutive nudges of the same object (within the merge window) form a single undo step.
+      const nudge = (next) => {
+        const before = takeSnapshot();
+        applyTransform(selectedItem, next);
+        recordEdit(before, selectedItem);
+      };
 
       if (e.key === 'ArrowLeft') {
-        applyTransform(selectedItem, { ...t, tx: t.tx - step });
+        nudge({ ...t, tx: t.tx - step });
         updateToolbarPosition();
         e.preventDefault();
       } else if (e.key === 'ArrowRight') {
-        applyTransform(selectedItem, { ...t, tx: t.tx + step });
+        nudge({ ...t, tx: t.tx + step });
         updateToolbarPosition();
         e.preventDefault();
       } else if (e.key === 'ArrowUp') {
-        applyTransform(selectedItem, { ...t, ty: t.ty - step });
+        nudge({ ...t, ty: t.ty - step });
         updateToolbarPosition();
         e.preventDefault();
       } else if (e.key === 'ArrowDown') {
-        applyTransform(selectedItem, { ...t, ty: t.ty + step });
+        nudge({ ...t, ty: t.ty + step });
         updateToolbarPosition();
         e.preventDefault();
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        selectedItem.remove();
-        deselectItem();
-        state.svg = svgViewport.innerHTML;
+        deleteSelectedItem();
         e.preventDefault();
       }
     });
@@ -1831,6 +1965,7 @@
       storyState.startTime = Date.now();
 
       deselectItem();
+      clearHistory();
       svgViewport.innerHTML = sc.svg;
 
       const genre = storyState.genre || state.genre || 'kids';
@@ -1996,8 +2131,11 @@
     });
 
     // Reset layout button
-    document.getElementById('btn-reset').addEventListener('click', () => {
-      runGenerate();
+    // Reset layout button: regenerates the drawing, but as an undoable step back to the edited layout
+    document.getElementById('btn-reset').addEventListener('click', async () => {
+      const before = state.mode === 'story' ? null : takeSnapshot();
+      await runGenerate({ keepHistory: before != null });
+      recordEdit(before);
       showToast('Positions reset to default');
     });
 

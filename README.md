@@ -108,7 +108,7 @@ export default [
 ];
 ```
 
-Run the test suite (smoke test, SVG well-formedness, animations, presentation modes, story engine):
+Run the test suite (smoke test, SVG well-formedness, animations, presentation modes, story engine, studio undo history):
 ```bash
 npm test
 ```
