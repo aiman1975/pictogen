@@ -1,7 +1,7 @@
 // Text -> concepts. Fully offline: tokenization, plural handling, aliases, multi-word phrases,
 // color/size/count modifiers and (optional) typo tolerance.
 
-import { listConcepts, registryVersion } from '../concepts/index.js';
+import { listConcepts, getConcept, registryVersion } from '../concepts/index.js';
 import { COLOR_WORDS } from '../core/color.js';
 
 export const STOPWORDS = new Set(
@@ -238,7 +238,13 @@ export function parseText(text, { fuzzy = false } = {}) {
     }
 
     const hasNextConcept = next && (SIZE_WORDS[next] || COLOR_WORDS[next] || EXPRESSION_WORDS[next] || conceptAt(toks, i + 1, idx));
-    const isModifierAdjective = (COLOR_WORDS[t] || EXPRESSION_WORDS[t] || MOTION_WORDS[t]) && hasNextConcept;
+    let isModifierAdjective = (COLOR_WORDS[t] || EXPRESSION_WORDS[t] || MOTION_WORDS[t]) && hasNextConcept;
+    // "black circle" / "white flag" name a library icon outright; "red apple" stays a recolored handmade apple.
+    if (isModifierAdjective) {
+      const whole = conceptAt(toks, i, idx);
+      const rest = conceptAt(toks, i + 1, idx);
+      if (whole && whole.len >= 2 && !whole.animation && rest && getConcept(rest.id)?.isLibrary) isModifierAdjective = false;
+    }
     const isStopword = STOPWORDS.has(t);
 
     const hit = (isModifierAdjective || isStopword) ? null : conceptAt(toks, i, idx);

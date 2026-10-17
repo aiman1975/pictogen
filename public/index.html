@@ -102,12 +102,12 @@
     .btn-link:hover { color: var(--primary); }
 
     main {
-      max-width: 1240px;
-      margin: 1.5rem auto;
+      max-width: 1480px;
+      margin: 1.25rem auto;
       padding: 0 1.5rem;
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 1.5rem;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.25rem;
     }
 
     /* Prompt section */
@@ -284,6 +284,7 @@
     }
     .canvas-actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.5rem;
     }
     .btn-action {
@@ -372,8 +373,7 @@
       font-size: 12px;
       transform: translate(-50%, -100%);
       margin-top: -12px;
-      min-width: 280px;
-      max-width: 90vw;
+      width: min(360px, calc(100% - 16px)); /* fixed width: height must not change when it moves */
     }
     .object-toolbar-row {
       display: flex;
@@ -565,6 +565,98 @@
       text-transform: uppercase;
     }
 
+    /* Studio layout: controls | canvas | inspector, so the drawing stays above the fold */
+    .studio-grid {
+      display: grid;
+      grid-template-columns: 290px minmax(0, 1fr) 280px;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    .controls-panel {
+      position: sticky;
+      top: 84px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+    .controls-panel .pill-btn { font-size: 0.8rem; padding: 0.35rem 0.6rem; }
+    .pill-subhead {
+      flex-basis: 100%;
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.35rem;
+    }
+    .pill-subhead:first-child { margin-top: 0; }
+    @media (max-width: 1280px) {
+      .studio-grid { grid-template-columns: 290px minmax(0, 1fr); }
+      .inspector-card { grid-column: 2; }
+    }
+    @media (max-width: 900px) {
+      .studio-grid { grid-template-columns: minmax(0, 1fr); }
+      .inspector-card { grid-column: auto; }
+      .controls-panel { order: 2; position: static; max-height: none; }
+      .inspector-card { order: 3; }
+      header { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
+      .brand-badge { display: none; }
+      main { padding: 0 0.75rem; }
+      .svg-viewport { min-height: 240px; padding: 0.75rem; }
+      .prompt-box { flex-wrap: wrap; }
+      .prompt-input { min-width: 0; }
+      .dict-search { width: 100%; }
+    }
+
+    .examples summary {
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      margin-top: 0.75rem;
+      user-select: none;
+    }
+    .examples summary span { font-weight: 600; text-transform: none; }
+    .examples .chip-label { flex-basis: 100%; margin-top: 0.35rem; }
+
+    /* Dictionary filters */
+    .dict-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .segmented { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+    .segmented button {
+      background: var(--surface);
+      border: none;
+      border-right: 1px solid var(--border);
+      padding: 0.35rem 0.75rem;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .segmented button:last-child { border-right: none; }
+    .segmented button.active { background: var(--text); color: #fff; }
+    .pill-count { font-size: 0.72rem; font-weight: 700; opacity: 0.65; }
+    .dict-status { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-left: auto; }
+    .setting-chip {
+      display: inline-block;
+      background: #ecfdf5;
+      color: #047857;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin: 4px 4px 0 0;
+    }
+    .movable-item { touch-action: none; }
+
     .toast {
       position: fixed;
       bottom: 24px;
@@ -623,95 +715,37 @@
         </button>
       </div>
 
-      <div class="sample-chips">
-        <span class="chip-label">🔤 Alphabet Pals:</span>
-        <button class="chip" data-prompt="LOVE" data-mode="alphabet">💖 Word Pals (LOVE)</button>
-        <button class="chip" data-prompt="C is for cat" data-mode="alphabet">🐱 Phonics (C is for Cat)</button>
-        <button class="chip" data-prompt="A B C" data-mode="alphabet">🔤 ABC Friends</button>
-        <button class="chip" data-prompt="a jumping letter a under the sun" data-style="letterling" data-mode="scene">🦘 Jumping Letter A</button>
-        <span class="chip-label">🎬 Cartoon Animations & Scenarios:</span>
-        <button class="chip" data-prompt="a jumping boy under the bright sun" data-style="stickman" data-mode="scene">🦘 Jumping Boy</button>
-        <button class="chip" data-prompt="a dancing girl and a laughing boy under the starry night" data-style="cute2d" data-mode="scene">💃 Dancing under Stars</button>
-        <button class="chip" data-prompt="a red car driving on a rainy street" data-style="flat" data-mode="scene">🌧 Rainy Street Driving</button>
-        <button class="chip" data-prompt="a happy boy running on cartoon parallax road" data-style="cartoon" data-mode="scene">🏃 Parallax Cartoon Run</button>
-        <button class="chip" data-prompt="a happy dog wagging tail at the beach" data-style="flat" data-mode="scene">🏖 Beach Wave Rolling</button>
-        <button class="chip" data-prompt="a sleeping boy under the starry night" data-style="cute2d" data-mode="scene">😴 Starry Night Sleep</button>
-        <span class="chip-label">Roadmap Styles:</span>
-        <button class="chip" data-prompt="boy" data-style="stickman" data-mode="scene">👑 Stick Figure</button>
-        <button class="chip" data-prompt="confused boy pointing in a room with chair and window" data-style="stickman" data-mode="scene">🏠 4-Quadrant Room</button>
-        <button class="chip" data-prompt="boy, man and woman" data-style="editorial" data-mode="scene">🎭 Editorial Silhouettes</button>
-        <button class="chip" data-prompt="boy and girl" data-style="cute2d" data-mode="scene">🌸 Cute 2D Kawaii</button>
-        <button class="chip" data-prompt="a boy discovers an apple tree" data-mode="comic">📰 Comic Strip</button>
-        <button class="chip" data-prompt="skeptical boy pointing in a room with chair and window" data-style="whiteboard" data-mode="scene">📋 Whiteboard</button>
-        <button class="chip" data-prompt="a boy and a woman" data-style="geometric" data-mode="scene">📐 Geometric Bauhaus</button>
-        <button class="chip" data-prompt="confused boy thumbsup with box and chair" data-style="doodle" data-mode="scene">✏️ Sketchbook Doodle</button>
-        <button class="chip" data-prompt="boy, girl, man and woman" data-style="papercut" data-mode="scene">✂️ Craft Papercut</button>
-        <button class="chip" data-prompt="a blue bicycle with gears and handlebars" data-mode="callout" data-style="blueprint">🔍 Bike Callout</button>
-        <button class="chip" data-prompt="apple, bike, tree, sun, coffee, book" data-mode="knolling">🎒 Gear Knolling</button>
-        <button class="chip" data-prompt="sad boy and laughing boy" data-mode="split">⚖️ Sad vs Laughing</button>
-        <button class="chip" data-prompt="tree, house and car on a sunny day" data-mode="isometric">📐 2.5D Diorama</button>
-      </div>
-
-      <!-- Controls -->
-      <div class="controls-grid">
-        <div class="control-group">
-          <label>Visual Style (20 Styles)</label>
-          <div class="pill-group" id="styles-group">
-            <button class="pill-btn active" data-style="flat">🎨 Flat</button>
-            <button class="pill-btn" data-style="letterling">🔤 Letterling</button>
-            <button class="pill-btn" data-style="stickman">👑 Stickman</button>
-            <button class="pill-btn" data-style="cute2d">🌸 Cute 2D</button>
-            <button class="pill-btn" data-style="comic">📰 Comic</button>
-            <button class="pill-btn" data-style="whiteboard">📋 Whiteboard</button>
-            <button class="pill-btn" data-style="geometric">📐 Geometric</button>
-            <button class="pill-btn" data-style="doodle">✏️ Doodle</button>
-            <button class="pill-btn" data-style="editorial">🎭 Editorial</button>
-            <button class="pill-btn" data-style="papercut">✂️ Papercut</button>
-            <button class="pill-btn" data-style="cartoon">🖍 Cartoon</button>
-            <button class="pill-btn" data-style="outline">✒ Outline</button>
-            <button class="pill-btn" data-style="pastel">🌸 Pastel</button>
-            <button class="pill-btn" data-style="silhouette">👤 Silhouette</button>
-            <button class="pill-btn" data-style="sketch">✏ Sketch</button>
-            <button class="pill-btn" data-style="neon">⚡ Neon</button>
-            <button class="pill-btn" data-style="blueprint">📐 Blueprint</button>
-            <button class="pill-btn" data-style="chalkboard">🏫 Chalkboard</button>
-            <button class="pill-btn" data-style="vintage">📜 Vintage</button>
-            <button class="pill-btn" data-style="pixel">👾 Pixel</button>
-          </div>
+      <details class="examples" id="examples">
+        <summary>✨ EXAMPLES <span>— 23 ready-made prompts (click one to load its mode &amp; style)</span></summary>
+        <div class="sample-chips">
+          <span class="chip-label">🔤 Alphabet Pals:</span>
+          <button class="chip" data-prompt="LOVE" data-mode="alphabet">💖 Word Pals (LOVE)</button>
+          <button class="chip" data-prompt="C is for cat" data-mode="alphabet">🐱 Phonics (C is for Cat)</button>
+          <button class="chip" data-prompt="A B C" data-mode="alphabet">🔤 ABC Friends</button>
+          <button class="chip" data-prompt="a jumping letter a under the sun" data-style="letterling" data-mode="scene">🦘 Jumping Letter A</button>
+          <span class="chip-label">🎬 Cartoon Animations & Scenarios:</span>
+          <button class="chip" data-prompt="a jumping boy under the bright sun" data-style="stickman" data-mode="scene">🦘 Jumping Boy</button>
+          <button class="chip" data-prompt="a dancing girl and a laughing boy under the starry night" data-style="cute2d" data-mode="scene">💃 Dancing under Stars</button>
+          <button class="chip" data-prompt="a red car driving on a rainy street" data-style="flat" data-mode="scene">🌧 Rainy Street Driving</button>
+          <button class="chip" data-prompt="a happy boy running on cartoon parallax road" data-style="cartoon" data-mode="scene">🏃 Parallax Cartoon Run</button>
+          <button class="chip" data-prompt="a happy dog wagging tail at the beach" data-style="flat" data-mode="scene">🏖 Beach Wave Rolling</button>
+          <button class="chip" data-prompt="a sleeping boy under the starry night" data-style="cute2d" data-mode="scene">😴 Starry Night Sleep</button>
+          <span class="chip-label">🎨 Style Showcases:</span>
+          <button class="chip" data-prompt="boy" data-style="stickman" data-mode="scene">👑 Stick Figure</button>
+          <button class="chip" data-prompt="confused boy pointing in a room with chair and window" data-style="stickman" data-mode="scene">🏠 4-Quadrant Room</button>
+          <button class="chip" data-prompt="boy, man and woman" data-style="editorial" data-mode="scene">🎭 Editorial Silhouettes</button>
+          <button class="chip" data-prompt="boy and girl" data-style="cute2d" data-mode="scene">🌸 Cute 2D Kawaii</button>
+          <button class="chip" data-prompt="a boy discovers an apple tree" data-mode="comic">📰 Comic Strip</button>
+          <button class="chip" data-prompt="skeptical boy pointing in a room with chair and window" data-style="whiteboard" data-mode="scene">📋 Whiteboard</button>
+          <button class="chip" data-prompt="a boy and a woman" data-style="geometric" data-mode="scene">📐 Geometric Bauhaus</button>
+          <button class="chip" data-prompt="confused boy thumbsup with box and chair" data-style="doodle" data-mode="scene">✏️ Sketchbook Doodle</button>
+          <button class="chip" data-prompt="boy, girl, man and woman" data-style="papercut" data-mode="scene">✂️ Craft Papercut</button>
+          <button class="chip" data-prompt="a blue bicycle with gears and handlebars" data-mode="callout" data-style="blueprint">🔍 Bike Callout</button>
+          <button class="chip" data-prompt="apple, bike, tree, sun, coffee, book" data-mode="knolling">🎒 Gear Knolling</button>
+          <button class="chip" data-prompt="sad boy and laughing boy" data-mode="split">⚖️ Sad vs Laughing</button>
+          <button class="chip" data-prompt="tree, house and car on a sunny day" data-mode="isometric">📐 2.5D Diorama</button>
         </div>
-
-        <div class="control-group">
-          <label>Layout & Presentation Mode (13 Modes)</label>
-          <div class="pill-group" id="modes-group">
-            <button class="pill-btn active" data-mode="scene">🌄 Scene</button>
-            <button class="pill-btn" data-mode="alphabet">🔤 Alphabet Pals</button>
-            <button class="pill-btn" data-mode="stickman">👑 Stickman Studio</button>
-            <button class="pill-btn" data-mode="comic">📰 Comic Strip</button>
-            <button class="pill-btn" data-mode="callout">🔍 Callout / Specs</button>
-            <button class="pill-btn" data-mode="knolling">🎒 Knolling Flat-Lay</button>
-            <button class="pill-btn" data-mode="split">⚖️ Before vs After</button>
-            <button class="pill-btn" data-mode="isometric">📐 2.5D Diorama</button>
-            <button class="pill-btn" data-mode="waffle">📊 Waffle Chart</button>
-            <button class="pill-btn" data-mode="coloring">🖍 Coloring Book</button>
-            <button class="pill-btn" data-mode="story">🎬 Clip Studio</button>
-            <button class="pill-btn" data-mode="card">🏷 Flashcard</button>
-            <button class="pill-btn" data-mode="icons">🗂 Sticker Sheet</button>
-          </div>
-        </div>
-
-        <div class="control-group">
-          <label>Options & Variation</label>
-          <div class="options-row">
-            <label class="toggle-label">
-              <input type="checkbox" id="opt-vary" />
-              <span>Randomize palettes (clothes, skin, fruits)</span>
-            </label>
-            <button class="btn-action" id="btn-seed">
-              <span>🎲 Shuffle Seed (<span id="seed-val">1</span>)</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      </details>
 
       <!-- Animated Clip Presets & Aspect Ratio Row (visible in Story mode) -->
       <div id="story-presets-row" style="display: none; margin-top: 1.25rem; padding: 1rem 1.25rem; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius-sm);">
@@ -768,8 +802,77 @@
       </div>
     </section>
 
-    <!-- Canvas & Inspector Display -->
-    <section class="display-layout">
+    <!-- Controls, Canvas & Inspector -->
+    <div class="studio-grid">
+      <!-- Controls -->
+      <aside class="card controls-panel" aria-label="Drawing controls">
+        <div class="control-group">
+          <label>Layout Mode (13)</label>
+          <div class="pill-group" id="modes-group">
+            <div class="pill-subhead">Illustrate</div>
+            <button class="pill-btn active" data-mode="scene">🌄 Scene</button>
+            <button class="pill-btn" data-mode="comic">📰 Comic Strip</button>
+            <button class="pill-btn" data-mode="stickman">👑 Stickman Studio</button>
+            <button class="pill-btn" data-mode="isometric">📐 2.5D Diorama</button>
+            <div class="pill-subhead">Present</div>
+            <button class="pill-btn" data-mode="callout">🔍 Callout / Specs</button>
+            <button class="pill-btn" data-mode="knolling">🎒 Knolling Flat-Lay</button>
+            <button class="pill-btn" data-mode="split">⚖️ Before vs After</button>
+            <button class="pill-btn" data-mode="waffle">📊 Waffle Chart</button>
+            <button class="pill-btn" data-mode="icons">🗂 Sticker Sheet</button>
+            <div class="pill-subhead">Learn</div>
+            <button class="pill-btn" data-mode="alphabet">🔤 Alphabet Pals</button>
+            <button class="pill-btn" data-mode="card">🏷 Flashcard</button>
+            <button class="pill-btn" data-mode="coloring">🖍 Coloring Book</button>
+            <div class="pill-subhead">Animate</div>
+            <button class="pill-btn" data-mode="story">🎬 Clip Studio</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Visual Style (20)</label>
+          <div class="pill-group" id="styles-group">
+            <div class="pill-subhead">Classic</div>
+            <button class="pill-btn active" data-style="flat">🎨 Flat</button>
+            <button class="pill-btn" data-style="cartoon">🖍 Cartoon</button>
+            <button class="pill-btn" data-style="outline">✒ Outline</button>
+            <button class="pill-btn" data-style="pastel">🌸 Pastel</button>
+            <button class="pill-btn" data-style="silhouette">👤 Silhouette</button>
+            <button class="pill-btn" data-style="sketch">✏ Sketch</button>
+            <button class="pill-btn" data-style="neon">⚡ Neon</button>
+            <div class="pill-subhead">Illustration</div>
+            <button class="pill-btn" data-style="cute2d">🌸 Cute 2D</button>
+            <button class="pill-btn" data-style="comic">📰 Comic</button>
+            <button class="pill-btn" data-style="doodle">✏️ Doodle</button>
+            <button class="pill-btn" data-style="editorial">🎭 Editorial</button>
+            <button class="pill-btn" data-style="papercut">✂️ Papercut</button>
+            <button class="pill-btn" data-style="geometric">📐 Geometric</button>
+            <button class="pill-btn" data-style="whiteboard">📋 Whiteboard</button>
+            <div class="pill-subhead">Retro &amp; Technical</div>
+            <button class="pill-btn" data-style="blueprint">📐 Blueprint</button>
+            <button class="pill-btn" data-style="chalkboard">🏫 Chalkboard</button>
+            <button class="pill-btn" data-style="vintage">📜 Vintage</button>
+            <button class="pill-btn" data-style="pixel">👾 Pixel</button>
+            <div class="pill-subhead">Characters</div>
+            <button class="pill-btn" data-style="stickman">👑 Stickman</button>
+            <button class="pill-btn" data-style="letterling">🔤 Letterling</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Options & Variation</label>
+          <div class="options-row">
+            <label class="toggle-label">
+              <input type="checkbox" id="opt-vary" />
+              <span>Randomize palettes (clothes, skin, fruits)</span>
+            </label>
+            <button class="btn-action" id="btn-seed">
+              <span>🎲 Shuffle Seed (<span id="seed-val">1</span>)</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
       <!-- Main Canvas -->
       <div class="canvas-card">
         <div class="canvas-header">
@@ -892,6 +995,11 @@
           </div>
         </div>
 
+        <div id="setting-section" style="display: none;">
+          <div class="section-title">Scene Backdrop</div>
+          <div id="setting-list"></div>
+        </div>
+
         <div id="unknown-section" style="display: none;">
           <div class="section-title">Unrecognized Words</div>
           <div id="unknown-list"></div>
@@ -909,7 +1017,7 @@
           </ul>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- Concept Dictionary Section -->
     <section class="dictionary-section" id="dictionary">
@@ -923,17 +1031,20 @@
         </div>
       </div>
 
-      <div class="pill-group" id="cat-filters" style="margin-bottom: 1rem;">
-        <button class="pill-btn active" data-cat="all">All</button>
-        <button class="pill-btn" data-cat="sky">Sky</button>
-        <button class="pill-btn" data-cat="nature">Nature</button>
-        <button class="pill-btn" data-cat="people">People</button>
-        <button class="pill-btn" data-cat="animals">Animals</button>
-        <button class="pill-btn" data-cat="wildlife">Wildlife</button>
-        <button class="pill-btn" data-cat="vehicles">Vehicles</button>
-        <button class="pill-btn" data-cat="food">Food</button>
-        <button class="pill-btn" data-cat="objects">Objects</button>
+      <div class="dict-toolbar">
+        <div class="segmented" id="source-filter" role="group" aria-label="Concept source">
+          <button class="active" data-source="all">All</button>
+          <button data-source="handmade" title="Hand-drawn concepts: recolorable, with expressions &amp; motion">✋ Hand-drawn</button>
+          <button data-source="library" title="Fluent Emoji library icons (fixed colors)">📦 Emoji library</button>
+        </div>
+        <label class="toggle-label" title="Most people &amp; gesture icons come in 5 skin tones">
+          <input type="checkbox" id="opt-variants" />
+          <span>Show skin-tone variants</span>
+        </label>
+        <span class="dict-status" id="dict-status"></span>
       </div>
+
+      <div class="pill-group" id="cat-filters" style="margin-bottom: 1rem;"></div>
 
       <div class="dict-grid" id="dict-grid"></div>
     </section>
@@ -953,8 +1064,15 @@
       svg: '',
       concepts: [],
       filteredCategory: 'all',
+      filteredSource: 'all',
+      showVariants: false,
       searchQuery: '',
     };
+
+    // Prompt text, story captions and concept names are user-controlled: escape before innerHTML.
+    function escHtml(v) {
+      return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
 
     const promptInput = document.getElementById('prompt-input');
     const btnGenerate = document.getElementById('btn-generate');
@@ -1085,10 +1203,39 @@
       }
     }
 
+    // Shareable links: ?text=...&style=...&mode=...&seed=... reproduce the same picture.
+    function syncUrl() {
+      const q = new URLSearchParams({ text: state.prompt, style: state.style, mode: state.mode });
+      if (state.seed !== 1) q.set('seed', state.seed);
+      if (state.vary) q.set('vary', '1');
+      history.replaceState(null, '', '?' + q.toString());
+    }
+
+    function restoreFromUrl() {
+      const q = new URLSearchParams(location.search);
+      const pick = (group, attr, value) => {
+        const btn = document.querySelector(`#${group} .pill-btn[data-${attr}="${CSS.escape(value)}"]`);
+        if (!btn) return false;
+        document.querySelectorAll(`#${group} .pill-btn`).forEach(b => b.classList.toggle('active', b === btn));
+        return true;
+      };
+      if (q.get('style') && pick('styles-group', 'style', q.get('style'))) state.style = q.get('style');
+      if (q.get('text')) promptInput.value = state.prompt = q.get('text');
+      if (q.get('seed')) { state.seed = parseInt(q.get('seed'), 10) || 1; seedVal.textContent = state.seed; }
+      if (q.get('vary') === '1') optVary.checked = true;
+      const mode = q.get('mode');
+      if (mode && mode !== 'scene') {
+        const btn = document.querySelector(`#modes-group .pill-btn[data-mode="${CSS.escape(mode)}"]`);
+        if (btn) { btn.click(); return true; } // the mode handler sets up its panels and generates
+      }
+      return false;
+    }
+
     async function runGenerate() {
       state.prompt = promptInput.value.trim() || 'apple';
       state.vary = optVary.checked;
       deselectItem();
+      syncUrl();
 
       if (state.mode === 'story') {
         storyPlayerBar.style.display = 'block';
@@ -1138,11 +1285,11 @@
 
           const allMatches = data.scenes.flatMap(s => s.matches || []);
           matchBadgeCount.textContent = allMatches.length;
-          matchesList.innerHTML = `<div style="font-size:0.85rem; font-weight:800; color:#1e40af; margin-bottom:0.4rem;">🎬 ${data.title} (${data.scenes.length} Scenes)</div>` +
+          matchesList.innerHTML = `<div style="font-size:0.85rem; font-weight:800; color:#1e40af; margin-bottom:0.4rem;">🎬 ${escHtml(data.title)} (${data.scenes.length} Scenes)</div>` +
             data.scenes.map((s, i) => `
               <div class="match-item" style="cursor:pointer;" onclick="goToStoryScene(${i})">
                 <span class="match-id">Scene ${i+1}</span>
-                <span style="font-size:0.75rem; color:#64748b;">${s.prompt.slice(0, 32)}...</span>
+                <span style="font-size:0.75rem; color:#64748b;">${escHtml(s.prompt.length > 32 ? s.prompt.slice(0, 32) + '…' : s.prompt)}</span>
               </div>
             `).join('');
 
@@ -1194,7 +1341,7 @@
             <div class="match-item">
               <div>
                 ${m.color ? `<span class="match-color-swatch" style="background:${m.color}"></span>` : ''}
-                <span class="match-id">${m.id}</span>
+                <span class="match-id">${escHtml(m.id.replace(/_/g, ' '))}</span>
                 ${m.color ? `<span style="font-size:0.75rem; color:#64748b;">(${m.color})</span>` : ''}
                 ${m.expression ? `<span style="font-size:0.72rem; background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:999px; margin-left:4px; font-weight:700;">${m.expression}</span>` : ''}
                 ${m.animation ? `<span style="font-size:0.72rem; background:#dbeafe; color:#1e40af; padding:1px 6px; border-radius:999px; margin-left:4px; font-weight:700;">${m.animation}</span>` : ''}
@@ -1207,9 +1354,17 @@
         // Render unknown words
         if (data.unknown && data.unknown.length > 0) {
           unknownSection.style.display = 'block';
-          unknownList.innerHTML = data.unknown.map(u => `<span class="unknown-badge">${u}</span>`).join(' ');
+          unknownList.innerHTML = data.unknown.map(u => `<span class="unknown-badge">${escHtml(u)}</span>`).join(' ');
         } else {
           unknownSection.style.display = 'none';
+        }
+
+        const settingSection = document.getElementById('setting-section');
+        if (data.setting && data.setting.length > 0) {
+          settingSection.style.display = 'block';
+          document.getElementById('setting-list').innerHTML = data.setting.map(w => `<span class="setting-chip">${escHtml(w)}</span>`).join('');
+        } else {
+          settingSection.style.display = 'none';
         }
 
         initMovableObjects();
@@ -1224,6 +1379,26 @@
 
     function getSvgElement() {
       return svgViewport.querySelector('svg');
+    }
+
+    // Line-art objects (bikes, stick figures) are mostly empty space: add an invisible hit area
+    // over the drawn bounds so they can be grabbed anywhere. Stripped again on export.
+    function addHitArea(item) {
+      if (item.querySelector(':scope > .pg-hit')) return;
+      const box = item.getBBox();
+      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      hit.setAttribute('class', 'pg-hit');
+      for (const [k, v] of Object.entries({ x: box.x, y: box.y, width: box.width, height: box.height })) hit.setAttribute(k, v);
+      hit.setAttribute('fill', 'transparent');
+      item.insertBefore(hit, item.firstChild);
+    }
+
+    // The canvas SVG as it should be exported: user edits kept, editor-only hit areas removed.
+    function exportSvgMarkup() {
+      const clone = getSvgElement().cloneNode(true);
+      clone.querySelectorAll('.pg-hit').forEach(el => el.remove());
+      clone.querySelectorAll('.movable-item.selected, .movable-item.dragging').forEach(el => el.classList.remove('selected', 'dragging'));
+      return new XMLSerializer().serializeToString(clone);
     }
 
     function screenToSvgCoords(svg, clientX, clientY) {
@@ -1256,18 +1431,9 @@
         objectToolbar.style.display = 'none';
         return;
       }
-      const rect = selectedItem.getBoundingClientRect();
-      const parentRect = svgViewport.getBoundingClientRect();
+      toolbarItemName.textContent = (selectedItem.dataset.id || 'Item').replace(/_/g, ' ');
 
-      const top = rect.top - parentRect.top;
-      const left = rect.left + rect.width / 2 - parentRect.left;
-
-      objectToolbar.style.display = 'flex';
-      objectToolbar.style.top = `${top}px`;
-      objectToolbar.style.left = `${left}px`;
-      toolbarItemName.textContent = selectedItem.dataset.id || 'Item';
-
-      // Check if figure supports facial expressions
+      // Rows first: they change the toolbar's height, which the placement below depends on.
       const isPerson = ['boy', 'girl', 'man', 'woman'].includes(selectedItem.dataset.id) || selectedItem.querySelector('.pg-face-eyes') !== null;
       const exprRow = document.getElementById('tb-row-expression');
       if (exprRow) exprRow.style.display = isPerson ? 'flex' : 'none';
@@ -1283,6 +1449,28 @@
       document.querySelectorAll('.tb-anim-btn').forEach(btn => {
         btn.classList.toggle('active-pill', btn.dataset.anim === curAnim);
       });
+
+      // Union of the static hit area and the live (possibly pulsing/bouncing) drawing.
+      const live = selectedItem.getBoundingClientRect();
+      const hitBox = (selectedItem.querySelector(':scope > .pg-hit') || selectedItem).getBoundingClientRect();
+      const rect = {
+        top: Math.min(live.top, hitBox.top), bottom: Math.max(live.bottom, hitBox.bottom),
+        left: Math.min(live.left, hitBox.left), width: Math.max(live.right, hitBox.right) - Math.min(live.left, hitBox.left),
+      };
+      // The toolbar is positioned inside .canvas-card (its offsetParent), not inside the viewport.
+      objectToolbar.style.display = 'flex';
+      const parentRect = objectToolbar.offsetParent.getBoundingClientRect();
+      const tbW = objectToolbar.offsetWidth;
+      const tbH = objectToolbar.offsetHeight;
+
+      // Above the object when there is room, otherwise below it; always fully inside the card.
+      const spaceAbove = rect.top - parentRect.top;
+      const top = spaceAbove >= tbH + 16 ? spaceAbove : rect.bottom - parentRect.top + tbH + 24;
+      const center = rect.left + rect.width / 2 - parentRect.left;
+      const left = Math.min(Math.max(center, tbW / 2 + 8), parentRect.width - tbW / 2 - 8);
+
+      objectToolbar.style.top = `${top}px`;
+      objectToolbar.style.left = `${left}px`;
     }
 
     function selectItem(el) {
@@ -1312,7 +1500,10 @@
 
       const items = svg.querySelectorAll('.movable-item');
       items.forEach(item => {
-        item.addEventListener('mousedown', (e) => {
+        addHitArea(item);
+        // Pointer events cover mouse, touch and pen; in coloring mode a click paints instead of dragging.
+        item.addEventListener('pointerdown', (e) => {
+          if (state.mode === 'coloring') return;
           e.stopPropagation();
           isDragging = true;
           selectItem(item);
@@ -1328,6 +1519,7 @@
         svg.style.cursor = 'crosshair';
         svg.querySelectorAll('path, circle, rect, polygon, ellipse').forEach(el => {
           if (el.tagName.toLowerCase() === 'rect' && el.getAttribute('width') == svg.viewBox.baseVal.width) return;
+          if (el.classList.contains('pg-hit')) return;
           el.addEventListener('click', (e) => {
             e.stopPropagation();
             el.setAttribute('fill', activeColor);
@@ -1342,7 +1534,7 @@
     }
 
     // Global drag listener on window for smooth dragging even outside canvas
-    window.addEventListener('mousemove', (e) => {
+    window.addEventListener('pointermove', (e) => {
       if (!isDragging || !selectedItem) return;
       const svg = getSvgElement();
       if (!svg) return;
@@ -1361,7 +1553,7 @@
       updateToolbarPosition();
     });
 
-    window.addEventListener('mouseup', () => {
+    window.addEventListener('pointerup', () => {
       if (isDragging && selectedItem) {
         selectedItem.classList.remove('dragging');
         isDragging = false;
@@ -1371,7 +1563,7 @@
     });
 
     // Deselect if clicking on empty background
-    svgViewport.addEventListener('mousedown', (e) => {
+    svgViewport.addEventListener('pointerdown', (e) => {
       if (!e.target.closest('.movable-item') && !e.target.closest('.object-toolbar')) {
         deselectItem();
       }
@@ -1453,6 +1645,7 @@
           } else {
             selectedItem.innerHTML = data.markup;
           }
+          addHitArea(selectedItem);
           state.svg = svgViewport.innerHTML;
           updateToolbarPosition();
           showToast(`Expression: ${targetExpr}`);
@@ -1489,6 +1682,7 @@
           } else {
             selectedItem.innerHTML = data.markup;
           }
+          addHitArea(selectedItem);
         }
       } catch (e) {}
 
@@ -1646,36 +1840,36 @@
             <div>
               <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
                 <span style="background:#dc2626; color:#fff; font-size:0.72rem; font-weight:900; padding:2px 7px; border-radius:4px; letter-spacing:0.05em;">🔴 BREAKING NEWS</span>
-                <span style="font-size:0.75rem; font-weight:800; color:#94a3b8; text-transform:uppercase;">${sc.tag || 'UPDATE'}</span>
+                <span style="font-size:0.75rem; font-weight:800; color:#94a3b8; text-transform:uppercase;">${escHtml(sc.tag) || 'UPDATE'}</span>
               </div>
-              <div style="font-size:1.15rem; font-weight:900; color:#ffffff; letter-spacing:-0.01em; margin-bottom:0.25rem;">${sc.headline || ''}</div>
-              <div style="font-size:0.92rem; color:#e2e8f0; border-left:2px solid #ef4444; padding-left:8px; line-height:1.4;">${sc.caption}</div>
+              <div style="font-size:1.15rem; font-weight:900; color:#ffffff; letter-spacing:-0.01em; margin-bottom:0.25rem;">${escHtml(sc.headline) || ''}</div>
+              <div style="font-size:0.92rem; color:#e2e8f0; border-left:2px solid #ef4444; padding-left:8px; line-height:1.4;">${escHtml(sc.caption)}</div>
             </div>
           `;
         } else if (genre === 'documentary') {
           storyLowerThird.innerHTML = `
             <div>
               <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
-                <span style="font-size:0.72rem; font-weight:900; color:#38bdf8; background:rgba(56,189,248,0.15); padding:2px 7px; border-radius:4px; letter-spacing:0.05em;">${sc.tag || 'SCIENCE'}</span>
-                <span style="font-size:1.05rem; font-weight:800; color:#f1f5f9;">${sc.headline || ''}</span>
+                <span style="font-size:0.72rem; font-weight:900; color:#38bdf8; background:rgba(56,189,248,0.15); padding:2px 7px; border-radius:4px; letter-spacing:0.05em;">${escHtml(sc.tag) || 'SCIENCE'}</span>
+                <span style="font-size:1.05rem; font-weight:800; color:#f1f5f9;">${escHtml(sc.headline) || ''}</span>
               </div>
-              <div style="font-size:0.95rem; color:#cbd5e1; line-height:1.45;">${sc.caption}</div>
+              <div style="font-size:0.95rem; color:#cbd5e1; line-height:1.45;">${escHtml(sc.caption)}</div>
             </div>
           `;
         } else if (genre === 'howto') {
           storyLowerThird.innerHTML = `
             <div>
               <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
-                <span style="background:#10b981; color:#064e3b; font-size:0.72rem; font-weight:900; padding:2px 8px; border-radius:999px;">${sc.tag || 'STEP'}</span>
-                <span style="font-size:1.08rem; font-weight:800; color:#ffffff;">${sc.headline || ''}</span>
+                <span style="background:#10b981; color:#064e3b; font-size:0.72rem; font-weight:900; padding:2px 8px; border-radius:999px;">${escHtml(sc.tag) || 'STEP'}</span>
+                <span style="font-size:1.08rem; font-weight:800; color:#ffffff;">${escHtml(sc.headline) || ''}</span>
               </div>
-              <div style="font-size:0.95rem; color:#cbd5e1; line-height:1.4;">${sc.caption}</div>
+              <div style="font-size:0.95rem; color:#cbd5e1; line-height:1.4;">${escHtml(sc.caption)}</div>
             </div>
           `;
         } else {
           storyLowerThird.innerHTML = `
             <div style="font-size:1.2rem; font-weight:800; color:#f8fafc; text-align:center; line-height:1.4; text-shadow:0 2px 4px rgba(0,0,0,0.5);">
-              ${sc.caption}
+              ${escHtml(sc.caption)}
             </div>
           `;
         }
@@ -1813,23 +2007,67 @@
 
     let visibleCount = 60;
 
-    function renderDictionary() {
-      const q = state.searchQuery.toLowerCase();
-      const filtered = state.concepts.filter(c => {
-        const matchCat = state.filteredCategory === 'all' || c.category === state.filteredCategory;
-        const matchQuery = !q || c.id.includes(q) || (c.tags && c.tags.some(t => t.includes(q))) || (c.aliases && c.aliases.some(a => a.includes(q)));
-        return matchCat && matchQuery;
-      });
+    const CATEGORY_LABELS = {
+      people_body: 'People & Body', smileys_emotion: 'Smileys & Emotion', animals_nature: 'Animals & Nature',
+      food_drink: 'Food & Drink', travel_places: 'Travel & Places',
+    };
+    const categoryLabel = (cat) => CATEGORY_LABELS[cat] || cat.replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
 
+    // Everything except the category itself, so the category pills can show live counts.
+    function matchesNonCategoryFilters(c) {
+      const q = state.searchQuery.toLowerCase();
+      if (!state.showVariants && c.variantOf) return false;
+      if (state.filteredSource === 'handmade' && c.library) return false;
+      if (state.filteredSource === 'library' && !c.library) return false;
+      if (!q) return true;
+      return c.id.includes(q.replace(/\s+/g, '_')) || (c.label || '').toLowerCase().includes(q) ||
+        (c.tags || []).some(t => t.includes(q)) || (c.aliases || []).some(a => a.includes(q));
+    }
+
+    function renderCategoryFilters(pool) {
+      const counts = {};
+      for (const c of pool) counts[c.category] = (counts[c.category] || 0) + 1;
+      // Hand-drawn categories first (in registry order), then library categories by size.
+      const order = [...new Set(state.concepts.map(c => c.category))]
+        .sort((x, y) => {
+          const hx = state.concepts.some(c => c.category === x && !c.library), hy = state.concepts.some(c => c.category === y && !c.library);
+          return hx !== hy ? (hx ? -1 : 1) : (counts[y] || 0) - (counts[x] || 0);
+        });
+      const cats = ['all', ...order];
+      if (state.filteredCategory !== 'all' && !counts[state.filteredCategory]) state.filteredCategory = 'all';
+      const box = document.getElementById('cat-filters');
+      box.innerHTML = cats.map(cat => {
+        const n = cat === 'all' ? pool.length : (counts[cat] || 0);
+        return `<button class="pill-btn ${cat === state.filteredCategory ? 'active' : ''}" data-cat="${escHtml(cat)}" ${n ? '' : 'disabled style="opacity:.4"'}>
+          ${cat === 'all' ? 'All' : escHtml(categoryLabel(cat))} <span class="pill-count">${n}</span></button>`;
+      }).join('');
+      box.querySelectorAll('.pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.filteredCategory = btn.dataset.cat;
+          visibleCount = 60;
+          renderDictionary();
+        });
+      });
+    }
+
+    function renderDictionary() {
+      const pool = state.concepts.filter(matchesNonCategoryFilters);
+      renderCategoryFilters(pool);
+      const filtered = pool.filter(c => state.filteredCategory === 'all' || c.category === state.filteredCategory);
       const visible = filtered.slice(0, visibleCount);
 
+      const statusEl = document.getElementById('dict-status');
+      statusEl.textContent = filtered.length
+        ? `Showing ${visible.length} of ${filtered.length} (${state.concepts.length} total)`
+        : 'No concepts match — try another word, source or category.';
+
       let html = visible.map(c => `
-        <div class="dict-item" data-id="${c.id}" title="Click to add '${c.id}' to prompt">
+        <div class="dict-item" data-id="${escHtml(c.id)}" title="Click to add '${escHtml(c.label || c.id)}' to prompt">
           <div class="dict-item-svg">
-            <img loading="lazy" src="/api/svg?text=${encodeURIComponent(c.id)}&style=${encodeURIComponent(state.style || 'flat')}&mode=scene&seed=1" alt="${c.id}" style="width:100%;height:100%;object-fit:contain;" />
+            <img loading="lazy" src="/api/icon?id=${encodeURIComponent(c.id)}&style=${encodeURIComponent(state.style || 'flat')}" alt="${escHtml(c.label || c.id)}" style="width:100%;height:100%;object-fit:contain;" />
           </div>
-          <div class="dict-item-label">${c.label || c.id}</div>
-          <div class="dict-item-cat">${c.category}</div>
+          <div class="dict-item-label">${escHtml(c.label || c.id)}</div>
+          <div class="dict-item-cat">${c.library ? '📦 ' : '✋ '}${escHtml(categoryLabel(c.category))}</div>
         </div>
       `).join('');
 
@@ -1839,7 +2077,6 @@
             <button id="btn-show-more" class="btn-action" style="margin: 0 auto; padding: 0.6rem 1.4rem; font-size: 0.9rem;">
               🔽 Show More (${filtered.length - visibleCount} more concepts)
             </button>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Showing ${visibleCount} of ${filtered.length} concepts</p>
           </div>
         `;
       }
@@ -1857,10 +2094,11 @@
       document.querySelectorAll('.dict-item').forEach(el => {
         el.addEventListener('click', () => {
           const id = el.dataset.id;
+          const word = id.replace(/_/g, ' ');
           if (promptInput.value.trim()) {
-            promptInput.value += ', ' + id;
+            promptInput.value += ', ' + word;
           } else {
-            promptInput.value = id;
+            promptInput.value = word;
           }
           runGenerate();
           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1937,20 +2175,30 @@
       });
     });
 
-    // Category filter pills
-    document.querySelectorAll('#cat-filters .pill-btn').forEach(btn => {
+    // Source filter (hand-drawn vs emoji library) and skin-tone variants toggle
+    document.querySelectorAll('#source-filter button').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('#cat-filters .pill-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.filteredCategory = btn.dataset.cat;
+        document.querySelectorAll('#source-filter button').forEach(b => b.classList.toggle('active', b === btn));
+        state.filteredSource = btn.dataset.source;
+        visibleCount = 60;
         renderDictionary();
       });
     });
-
-    // Search dictionary
-    dictSearch.addEventListener('input', (e) => {
-      state.searchQuery = e.target.value.trim();
+    document.getElementById('opt-variants').addEventListener('change', (e) => {
+      state.showVariants = e.target.checked;
+      visibleCount = 60;
       renderDictionary();
+    });
+
+    // Search dictionary (debounced: 3,000+ concepts re-render on each keystroke otherwise)
+    let searchTimer = null;
+    dictSearch.addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        state.searchQuery = e.target.value.trim();
+        visibleCount = 60;
+        renderDictionary();
+      }, 150);
     });
 
     // Seed dice
@@ -2000,7 +2248,7 @@
     document.getElementById('btn-copy-svg').addEventListener('click', async () => {
       const svg = svgViewport.querySelector('svg');
       if (!svg) return;
-      const svgCode = svg.outerHTML;
+      const svgCode = exportSvgMarkup();
       try {
         await navigator.clipboard.writeText(svgCode);
         showToast('SVG copied with custom positions!');
@@ -2013,7 +2261,7 @@
     document.getElementById('btn-download-svg').addEventListener('click', () => {
       const svg = svgViewport.querySelector('svg');
       if (!svg) return;
-      const svgCode = svg.outerHTML;
+      const svgCode = exportSvgMarkup();
       const blob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -2032,7 +2280,7 @@
       const w = bbox && bbox.width ? bbox.width * 2 : 1280;
       const h = bbox && bbox.height ? bbox.height * 2 : 720;
 
-      const svgCode = svgEl.outerHTML;
+      const svgCode = exportSvgMarkup();
       const img = new Image();
       const svgBlob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(svgBlob);
@@ -2062,7 +2310,7 @@
 
     // Initial load: render canvas immediately
     renderStoryPresets(state.genre);
-    runGenerate();
+    if (!restoreFromUrl()) runGenerate();
     setTimeout(loadConcepts, 150);
   </script>
 </body>

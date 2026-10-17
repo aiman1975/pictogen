@@ -549,7 +549,7 @@ export function styleWrap(styleName, uid, inner, fx = {}) {
 }
 
 export function svgDoc({ width, height, viewBox, defs = '', content, title }) {
-  const animDefs = defs.includes('pgWalkLegL') ? '' : `<style id="pg-animation-styles">${ANIMATION_CSS}</style>`;
+  const animDefs = defs.includes('pgWalkLegL') ? '' : `<style id="pg-animation-styles"><![CDATA[${ANIMATION_CSS}]]></style>`;
   const allDefs = (defs || '') + animDefs;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(width)}" height="${Math.round(height)}" viewBox="${viewBox}">` +

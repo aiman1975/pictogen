@@ -3,7 +3,7 @@ import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generate, listConcepts, getConcept, drawConcept, shapesToSvg, STYLE_NAMES, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './src/index.js';
+import { generate, listConcepts, getConcept, drawConcept, shapesToSvg, renderIcon, STYLE_NAMES, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './src/index.js';
 import { getShowcaseData } from './src/showcase.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -38,6 +38,8 @@ const server = http.createServer((req, res) => {
       aliases: c.aliases,
       scale: c.scale,
       placement: c.placement,
+      library: Boolean(c.isLibrary),
+      variantOf: c.variantOf,
     }));
     res.writeHead(200, {
       'Content-Type': 'application/json',
@@ -184,6 +186,29 @@ const server = http.createServer((req, res) => {
       'Content-Type': 'image/svg+xml; charset=utf-8',
       'Cache-Control': 'public, max-age=86400',
       'Content-Disposition': 'inline; filename="pictogen.svg"',
+    });
+    res.end(svg);
+    return;
+  }
+
+  // API: Single concept thumbnail (GET /api/icon?id=apple&style=flat) – used by the dictionary grid
+  if (pathname === '/api/icon' && req.method === 'GET') {
+    const id = url.searchParams.get('id');
+    const style = STYLE_NAMES.includes(url.searchParams.get('style')) ? url.searchParams.get('style') : 'flat';
+    if (!getConcept(id)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Unknown concept');
+      return;
+    }
+    const cacheKey = `icon:${id}:${style}`;
+    let svg = svgCache.get(cacheKey);
+    if (!svg) {
+      svg = renderIcon(id, { style, size: 96 });
+      if (svgCache.size < 5000) svgCache.set(cacheKey, svg);
+    }
+    res.writeHead(200, {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=86400',
     });
     res.end(svg);
     return;
