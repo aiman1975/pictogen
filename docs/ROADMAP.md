@@ -84,7 +84,9 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] Walking toward / away from the camera inside a timeline ("a boy walks toward us, then waves,
       then walks away into the distance"; "comes closer"; "a dog runs from far away"), mixed with
       every other action and followed by the camera through depth
-- [ ] Timelines: simultaneous actions with different timing ("while")
+- [x] Two things at once: "while he waves, a dog runs to him", "meanwhile", "at the same time";
+      gestures last as long as the other action, and the camera can move while the actors act
+- [ ] Timelines: "when" / "after" / "before" clauses ("when the dog arrives, the boy jumps")
 - [x] Camera: zoom in / close-up on someone, zoom out, pan left/right or to something, follow a
       character (a tracking shot). As beats in a timeline ("then the camera zooms in on him") or on
       their own, looping smoothly; the view never shows past the edge of the scene

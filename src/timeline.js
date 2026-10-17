@@ -4,8 +4,25 @@
 import { parseText, tokenize, MOTION_WORDS, EXPRESSION_WORDS } from './text/matcher.js';
 import { getConcept } from './concepts/index.js';
 
-// "then", "after that", "afterwards", "finally" split a prompt into beats (not "next": "next to").
-const SEQUENCE_RE = /\b(?:then|after that|afterwards?|finally)\b/i;
+// "then", "after that", "afterwards", "finally" split a prompt into beats (not "next": "next to");
+// "while", "meanwhile" and "at the same time" put actions side by side in one beat.
+const SEQUENCE_RE = /\b(?:then|after that|afterwards?|finally|while|meanwhile|at the same time|simultaneously)\b/i;
+const TOGETHER_RE = /\b(?:meanwhile|at the same time|simultaneously)\b[,\s]*/i;
+
+/**
+ * Splits a clause with two things happening at once into its two parts, in the order written:
+ *   "while he waves, a dog runs to him"   -> ["he waves", "a dog runs to him"], main = the second
+ *   "a dog runs to him while he waves"    -> ["a dog runs to him", "he waves"], main = the first
+ *   "a boy waves, meanwhile a dog runs in" -> both, main = the first
+ * The main clause wins if both give the same figure something to do. Returns null otherwise.
+ */
+function splitTogether(clause) {
+  const lead = clause.match(/^\s*while\b\s*([^,]+),(.+)$/i);
+  if (lead) return { parts: [lead[1], lead[2]], main: 1 };
+  const mid = clause.match(/^(.+?)\bwhile\b(.+)$/i) || clause.match(/^(.+?)(?:\bmeanwhile\b|\bat the same time\b|\bsimultaneously\b)(.+)$/i);
+  if (mid && /[a-z]/i.test(mid[1]) && /[a-z]/i.test(mid[2])) return { parts: [mid[1], mid[2]], main: 0 };
+  return null;
+}
 const BEAT_SPLIT_RE = /[.;!?]+|,?\s*\b(?:and then|then|after that|afterwards?|finally)\b[,\s]*/i;
 
 /** True when a prompt describes things happening one after another. */
@@ -115,7 +132,7 @@ const expressionOf = (t) => EXPRESSION_VERBS[t] || stems(t).map((w) => EXPRESSIO
 export function parseTimeline(text) {
   if (!hasSequence(text)) return null;
   const clauses = String(text).split(BEAT_SPLIT_RE).map((c) => (c || '').trim()).filter((c) => /[a-z]/i.test(c));
-  if (clauses.length < 2) return null;
+  if (clauses.length < 2 && !clauses.some(splitTogether)) return null;
 
   const mentioned = new Map(); // concept id -> first match (colour, expression...)
   const actorIds = [];
@@ -133,7 +150,9 @@ export function parseTimeline(text) {
     return lastActorWhere(others);
   };
 
-  for (const clause of clauses) {
+  // One clause -> { text, actions, camera? } (or null for "the camera follows ..."), keeping track of
+  // who has been mentioned and who acted last
+  const readClause = (clause) => {
     const cam = cameraAction(clause);
     if (cam) {
       // Who the camera looks at: a pronoun ("follows him") or something named ("zooms in on the dog")
@@ -143,9 +162,8 @@ export function parseTimeline(text) {
         const hit = parseText(cam.target).matches[0];
         if (hit) { id = hit.id; remember(hit); }
       }
-      if (cam.type === 'follow') follow = id || lastSubjects[0] || actorIds[0] || null;
-      else beats.push({ text: clause, actions: [], camera: { ...cam, target: id } });
-      continue;
+      if (cam.type === 'follow') { follow = id || lastSubjects[0] || actorIds[0] || null; return null; }
+      return { text: clause, actions: [], camera: { ...cam, target: id } };
     }
     const toks = tokenize(clause);
     // The first verb that makes something happen
@@ -218,7 +236,33 @@ export function parseTimeline(text) {
       }
       lastSubjects = subjectIds;
     }
-    beats.push({ text: clause, actions });
+    return { text: clause, actions };
+  };
+
+  for (const clause of clauses) {
+    const together = splitTogether(clause);
+    if (together) {
+      // Two things at once: read both (in the order written, so pronouns resolve), main clause first
+      const read = together.parts.map((part) => readClause(part.trim()));
+      const [main, other] = together.main === 0 ? read : [read[1], read[0]];
+      beats.push({
+        text: clause,
+        actions: [...(main?.actions || []), ...(other?.actions || [])],
+        ...((main?.camera || other?.camera) ? { camera: main?.camera || other?.camera } : {}),
+      });
+    } else if (TOGETHER_RE.test(clause) && clause.search(TOGETHER_RE) === 0 && beats.length) {
+      // "Meanwhile, a dog runs in": alongside the previous beat
+      const beat = readClause(clause.replace(TOGETHER_RE, ''));
+      const prev = beats[beats.length - 1];
+      if (beat) {
+        prev.actions.push(...beat.actions);
+        if (beat.camera && !prev.camera) prev.camera = beat.camera;
+        prev.text += ` / ${clause}`;
+      }
+    } else {
+      const beat = readClause(clause);
+      if (beat) beats.push(beat);
+    }
   }
 
   // Targets that are not actors are props; an actor's first mention keeps its colour/expression words

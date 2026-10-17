@@ -300,7 +300,7 @@ function playTimeline(timeline, slots, props, W) {
   let t = 0;
   const camera = [];
   for (const beat of timeline.beats) {
-    if (beat.camera) {
+    if (beat.camera && !beat.actions.length) {
       // A camera beat: everyone holds still while the camera moves
       const d = CAMERA_SECONDS[beat.camera.type] ?? 1.6;
       camera.push({ ...beat.camera, t0: t, t1: t + d });
@@ -309,9 +309,12 @@ function playTimeline(timeline, slots, props, W) {
       continue;
     }
     const acting = new Map();
+    const busy = new Set(); // one action per figure per beat: the main clause's ("waves while sitting" -> waves)
     for (const a of beat.actions) {
       const group = [];
       keysOf(a.actor).forEach((key, n) => {
+      if (busy.has(key)) return;
+      busy.add(key);
       const st = state.get(key), slot = slots.get(key);
       if (a.expression) st.expression = a.expression;
       const wasPresent = st.present;
@@ -373,7 +376,13 @@ function playTimeline(timeline, slots, props, W) {
         acting.set(g.key, { ...g, d: g.d + delay, delay });
       });
     }
-    const beatLen = Math.max(0.5, ...[...acting.values()].map((a) => a.d));
+    let beatLen = Math.max(0.5, ...[...acting.values()].map((a) => a.d));
+    if (beat.camera) {
+      // A camera move alongside the actions ("the camera zooms in while she waves")
+      const d = CAMERA_SECONDS[beat.camera.type] ?? 1.6;
+      camera.push({ ...beat.camera, t0: t, t1: t + d });
+      beatLen = Math.max(beatLen, d);
+    }
     for (const [id, st] of state) {
       const act = acting.get(id);
       const track = tracks.get(id);
@@ -382,7 +391,8 @@ function playTimeline(timeline, slots, props, W) {
         const t0 = t + act.delay;
         const m = act.move;
         if (act.delay && act.wasPresent) track.push({ t0: t, t1: t0, x0: m.x0, x1: m.x0, k0: m.k0, k1: m.k0, pose: pose(id) });
-        t1 = t + act.d;
+        // A gesture lasts as long as the beat: the boy keeps waving while the dog runs up to him
+        t1 = m ? t + act.d : t + beatLen;
         track.push({ t0, t1, x0: m ? m.x0 : st.x, x1: m ? m.x1 : st.x, k0: m ? m.k0 : st.k, k1: m ? m.k1 : st.k, pose: act.shown });
       }
       if (st.present && t1 < t + beatLen) track.push({ t0: t1, t1: t + beatLen, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });

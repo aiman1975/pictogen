@@ -124,6 +124,34 @@ const cks = offsets(closer.svg.match(new RegExp(`@keyframes ${moveName(cg)} \\{ 
 check(Math.max(...cks) > 1.1, `"comes closer" from the front row is a step toward the camera (scale up to ${Math.max(...cks)})`);
 check(!wellFormedError(there.svg) && !wellFormedError(closer.svg), 'depth timelines are well-formed XML');
 
+// 2d. Two things at once: "while", "meanwhile", "at the same time"
+for (const [t, want] of [
+  ['a boy walks in, then while he waves, a dog runs to him', 'boy:enter | dog:moveTo>boy+boy:pose/wave'],
+  ['a dog runs in while a boy waves', 'dog:enter+boy:pose/wave'],
+  ['a boy walks in. then he waves. meanwhile a dog runs to him', 'boy:enter | boy:pose/wave+dog:moveTo>boy'],
+  ['a boy dances, at the same time a girl jumps', 'boy:pose/dance+girl:pose/jump'],
+  ['while a boy waves, a dog runs to him', 'dog:moveTo>boy+boy:pose/wave'],
+]) check(actions(t) === want, `"${t}"\n        -> ${want}${actions(t) === want ? '' : `\n   got  ${actions(t)}`}`);
+
+const together = generate('a boy walks in, then while he waves, a dog runs to him');
+const oneAfter = generate('a boy walks in, then he waves, then a dog runs to him');
+check(together.duration < oneAfter.duration - 1, `"while" overlaps the actions instead of adding them up (${together.duration}s vs ${oneAfter.duration}s one after another)`);
+// The wave lasts until the dog has arrived: the boy's waving pose stays on at least until the dog stops
+const wb = actor(together.svg, 'boy'), wd = actor(together.svg, 'dog');
+const kfOf = (svg, name) => svg.match(new RegExp(`@keyframes ${name} \\{ (.*?) \\}\\s*\\}`))?.[1] ?? '';
+const waveName = wb.match(/class="pg-timeline-pose" data-anim="wave"[^>]*style="animation: (\S+) /)?.[1];
+const waveOn = [...kfOf(together.svg, waveName).matchAll(/([\d.]+)% \{ opacity: (\d)/g)].map((m) => [+m[1], +m[2]]);
+const waveEnd = waveOn.find(([, o], i) => o === 0 && i > 0 && waveOn[i - 1][1] === 1)?.[0];
+const dogFrames = offsets(kfOf(together.svg, moveName(wd)));
+const dogArrives = dogFrames.find((f) => Math.abs(f.dx) < 0.01)?.pct;
+check(waveEnd !== undefined && dogArrives !== undefined && waveEnd >= dogArrives, `the boy keeps waving until the dog has run up to him (wave ends at ${waveEnd}%, dog arrives at ${dogArrives}%)`);
+const sitting = actor(generate('a boy waves while sitting').svg, 'boy');
+check(sitting.includes('data-anim="wave"') && !sitting.includes('data-anim="sit"'), 'the main clause wins when both give the same figure something to do ("waves while sitting")');
+const zoomWave = generate('a girl walks in, then the camera zooms in on her while she waves');
+const zoomThenWave = generate('a girl walks in, then the camera zooms in on her, then she waves');
+check(zoomWave.svg.includes('pg-camera') && zoomWave.duration < zoomThenWave.duration - 1, `the camera can move while the actors act (${zoomWave.duration}s vs ${zoomThenWave.duration}s one after another)`);
+check(!wellFormedError(together.svg) && !wellFormedError(zoomWave.svg), '"while" timelines are well-formed XML');
+
 // 3. Clips: a sequenced scene lasts as long as its timeline
 const story = composeStory([{ prompt, caption: 'x', duration: 3 }]);
 check(story.scenes[0].duration >= r.duration, `a clip scene lasts as long as its timeline (${story.scenes[0].duration}s >= ${r.duration}s)`);
