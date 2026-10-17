@@ -56,6 +56,38 @@ check(gap > near && gap < near + W * 0.12, `the dog ends up beside the boy (${ga
 // The boy turns: profile while walking, facing us while waving (a pose variant per view)
 check(boy.includes('class="pg-profile"') && /class="pg-face-eyes"/.test(boy.replace(/<g class="pg-profile">[\s\S]*?<\/g><\/g><\/g>/, '')), 'walking in profile, then facing us');
 
+// 2b. Several of one kind: each is its own figure, they act together, walk in one after another
+// (the one going furthest first) and line up beside a group target
+const group = generate('two boys walk in, then they wave, then three dogs run to them');
+const figures = (id) => [...group.svg.matchAll(new RegExp(`data-id="${id}" data-k="(\\d)"[^>]*data-actor="${id}"`, 'g'))].map((m) => actor2(group.svg, id, +m[1]));
+function actor2(svg, id, k) {
+  const start = svg.indexOf(`data-id="${id}" data-k="${k}"`);
+  const open = svg.lastIndexOf('<g', start);
+  let depth = 0, end = open;
+  const re = /<g[\s>]|<\/g>/g;
+  re.lastIndex = open;
+  for (let m; (m = re.exec(svg));) { depth += m[0] === '</g>' ? -1 : 1; if (!depth) { end = re.lastIndex; break; } }
+  return svg.slice(open, end);
+}
+const boys = figures('boy'), dogs = figures('dog');
+check(boys.length === 2 && dogs.length === 3, `"two boys" and "three dogs" are 2 + 3 figures (got ${boys.length} + ${dogs.length})`);
+check(boys.every((b) => b.includes('pg-anim-wave')), 'both boys wave ("they wave")');
+const homes = (figs) => figs.map(homeOf).sort((a, b) => a - b);
+const bh = homes(boys), dh = homes(dogs);
+check(Math.min(...dh) > Math.max(...bh), `the dogs line up beside the boys, not between them (boys at ${bh.map((x) => x.toFixed(0))}, dogs at ${dh.map((x) => x.toFixed(0))})`);
+const spaced = (xs, minGap) => xs.every((x, i) => i === 0 || x - xs[i - 1] >= minGap);
+check(spaced(dh, 20) && spaced(bh, 20), 'figures of a group end up side by side, not on top of each other');
+// Entering one after another: the boys' moves start at different times, the furthest-going first
+const startPct = (fig) => {
+  const body = group.svg.match(new RegExp(`@keyframes ${moveName(fig)} \\{ (.*?) \\}\\s*\\}`))?.[1] ?? '';
+  const frames = [...body.matchAll(/([\d.]+)% \{ transform: translateX\((-?[\d.]+)px\)/g)].map((m) => [+m[1], +m[2]]);
+  const i = frames.findIndex(([, x], j) => j < frames.length - 1 && frames[j + 1][1] !== x);
+  return frames[i]?.[0];
+};
+const leadFirst = [...boys].sort((a, b) => homeOf(b) - homeOf(a)).map(startPct);
+check(leadFirst[0] < leadFirst[1], `the boy walking furthest sets off first (${leadFirst.map((p) => p + '%').join(' then ')})`);
+check(!wellFormedError(group.svg), 'the group timeline is well-formed XML');
+
 // 3. Clips: a sequenced scene lasts as long as its timeline
 const story = composeStory([{ prompt, caption: 'x', duration: 3 }]);
 check(story.scenes[0].duration >= r.duration, `a clip scene lasts as long as its timeline (${story.scenes[0].duration}s >= ${r.duration}s)`);

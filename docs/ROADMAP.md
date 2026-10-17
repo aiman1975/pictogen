@@ -74,8 +74,11 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       per-actor timeline: enter, move to someone or something, gesture, change expression, leave.
       Subjects carry over between beats, pronouns resolve, and figures turn (profile while walking,
       facing us while gesturing)
-- [ ] Timelines: several figures of one kind ("two boys walk in"), walking toward/away from the
-      camera inside a timeline, simultaneous actions with different timing ("while")
+- [x] Several figures of one kind in a timeline ("two boys walk in, then they wave, then three dogs
+      run to them"): each is its own figure, they walk in single file (the one going furthest leads)
+      and line up beside a group they walk to
+- [ ] Timelines: walking toward/away from the camera inside a timeline, simultaneous actions with
+      different timing ("while")
 - [x] Camera: zoom in / close-up on someone, zoom out, pan left/right or to something, follow a
       character (a tracking shot). As beats in a timeline ("then the camera zooms in on him") or on
       their own, looping smoothly; the view never shows past the edge of the scene

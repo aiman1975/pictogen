@@ -60,7 +60,7 @@ export function generate(text, opts = {}) {
   const timeline = mode === 'scene' ? parseTimeline(text) : null;
   if (timeline) {
     matches = [
-      ...timeline.actors.map(({ id, match }) => ({ ...match, id, count: 1, animation: undefined, actor: true })),
+      ...timeline.actors.map(({ id, match }) => ({ ...match, id, count: match.count ?? 1, animation: undefined, actor: true })),
       ...timeline.props.filter((m) => !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)),
     ];
   }

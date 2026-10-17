@@ -80,7 +80,8 @@ const expressionOf = (t) => EXPRESSION_VERBS[t] || stems(t).map((w) => EXPRESSIO
  *   follow: concept id the camera follows through the whole clip ("the camera follows the dog")
  *     type: 'enter' (walks/runs in from off-screen), 'exit' (leaves), 'moveTo' (walks/runs to target),
  *           'pose' (waves, jumps, dances...), 'expr' (smiles, cries...), 'appear' (just shows up)
- *   actors: [{ id, match }]  concepts that act (one figure each, keyed by concept id)
+ *   actors: [{ id, match }]  concepts that act, keyed by concept id; match.count figures of each
+ *                            ("two boys walk in" -> two boys, both doing what "the boys" do)
  *   props:  [match]          everything else mentioned (trees, the sun...), drawn as usual
  */
 export function parseTimeline(text) {
