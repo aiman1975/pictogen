@@ -249,6 +249,7 @@ function travelKeyframes(motion, { cx, y, s, sx, F, w, W, hY, speed }) {
 const GESTURE_SECONDS = { sit: 2.6, sleep: 2.6, think: 2.4 };
 const HOLD_SECONDS = 1.6; // the final arrangement stays on screen before the clip loops
 const STAGGER_SECONDS = 0.35; // a group walking in sets off one after another
+const NEAR_K = 1.22; // "comes closer" from the front row: a step toward the camera
 
 /**
  * Plays the beats out for each actor: where it is (x over time) and which pose it shows.
@@ -256,7 +257,8 @@ const STAGGER_SECONDS = 0.35; // a group walking in sets off one after another
  *   an action for "boy" applies to every boy, and a group entering or walking somewhere goes one
  *   after another so they don't overlap
  * props: concept id -> { cx, w } (things actors can walk to)
- * Returns { T, tracks: figure key -> [{ t0, t1, x0, x1, pose }], camera: [{ type, target, t0, t1 }] }
+ * Returns { T, tracks: figure key -> [{ t0, t1, x0, x1, k0, k1, pose }], camera: [{ type, target, t0, t1 }] }
+ * (x across the front row, k the depth scale: 1 front row, 1 / FAR_DISTANCE at the horizon)
  * with times in seconds.
  */
 function playTimeline(timeline, slots, props, W) {
@@ -265,8 +267,10 @@ function playTimeline(timeline, slots, props, W) {
   for (const [key, slot] of slots) {
     const first = timeline.beats.findIndex((b) => b.actions.some((a) => a.actor === slot.id));
     const firstAction = timeline.beats[first]?.actions.find((a) => a.actor === slot.id);
-    const onStage = first === 0 && !['enter', 'moveTo'].includes(firstAction?.type);
-    state.set(key, { x: slot.cx, present: onStage, facing: 1, expression: slot.it.m.expression, isPerson: slot.it.c.category === 'people' });
+    // On stage from the start, unless its first beat brings it in (from the side or from the horizon)
+    const onStage = first === 0 && !['enter', 'moveTo', 'approach'].includes(firstAction?.type);
+    // x: place across the front row; k: depth as a scale (1 = front row, 1 / FAR_DISTANCE = horizon)
+    state.set(key, { x: slot.cx, k: 1, present: onStage, facing: 1, expression: slot.it.m.expression, isPerson: slot.it.c.category === 'people' });
     tracks.set(key, []);
   }
   const keysOf = (id) => [...slots.keys()].filter((key) => slots.get(key).id === id);
@@ -300,7 +304,7 @@ function playTimeline(timeline, slots, props, W) {
       // A camera beat: everyone holds still while the camera moves
       const d = CAMERA_SECONDS[beat.camera.type] ?? 1.6;
       camera.push({ ...beat.camera, t0: t, t1: t + d });
-      for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + d, x0: st.x, x1: st.x, pose: pose(id) });
+      for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + d, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
       t += d;
       continue;
     }
@@ -311,11 +315,24 @@ function playTimeline(timeline, slots, props, W) {
       const st = state.get(key), slot = slots.get(key);
       if (a.expression) st.expression = a.expression;
       const wasPresent = st.present;
+      if (!st.present) st.k = 1; // (re)appearing figures start in the front row
       let move = null, d = 0, shown = null;
-      if (a.type === 'enter' || a.type === 'moveTo' || a.type === 'exit') {
+      if (a.type === 'approach' || a.type === 'recede') {
+        // Toward the camera (from the horizon if not there yet, else a step closer) or away into the
+        // distance, where it is gone. Time follows the distance walked, in front-row distances.
+        const k0 = wasPresent ? st.k : 1 / FAR_DISTANCE;
+        const k1 = a.type === 'recede' ? 1 / FAR_DISTANCE : wasPresent && st.k >= 0.99 ? NEAR_K : 1;
+        d = clamp(Math.abs(1 / k1 - 1 / k0) * (a.gait === 'run' ? 0.6 : 1.15), 1, 6);
+        move = { x0: st.x, x1: st.x, k0, k1 };
+        const facing = slot.it.m.view ?? (a.type === 'approach' ? 'front' : 'back');
+        shown = { anim: a.gait, ...pose(key), view: facing, mirror: false };
+        st.k = k1;
+        st.present = a.type === 'approach';
+      } else if (a.type === 'enter' || a.type === 'moveTo' || a.type === 'exit') {
         let x0 = st.x, x1;
         if (a.type === 'exit') {
-          x1 = off(key, st.x < W / 2 ? -1 : 1);
+          // Off the side of the screen, wherever its depth puts it
+          x1 = W / 2 + (off(key, st.x < W / 2 ? -1 : 1) - W / 2) / st.k;
         } else if (a.type === 'moveTo' && posOf(a.target)) {
           const tgt = posOf(a.target);
           // Come in from the side with more room, or approach from the side you are on;
@@ -330,7 +347,9 @@ function playTimeline(timeline, slots, props, W) {
         const speed = (a.gait === 'run' ? 2 : 0.95) * slot.h;
         d = clamp(Math.abs(x1 - x0) / speed, 0.6, 6);
         st.facing = x1 < x0 ? -1 : 1;
-        move = { x0, x1 };
+        // Walking somewhere brings a figure back to the front row as it goes
+        move = { x0, x1, k0: st.k, k1: a.type === 'exit' ? st.k : 1 };
+        if (a.type !== 'exit') st.k = 1;
         st.present = true;
         shown = { anim: a.gait, ...pose(key), view: slot.it.m.view ?? (st.isPerson ? 'side' : undefined), mirror: st.facing < 0 };
         st.x = x1;
@@ -361,15 +380,16 @@ function playTimeline(timeline, slots, props, W) {
       let t1 = t;
       if (act?.shown) {
         const t0 = t + act.delay;
-        if (act.delay && act.wasPresent) track.push({ t0: t, t1: t0, x0: act.move.x0, x1: act.move.x0, pose: pose(id) });
+        const m = act.move;
+        if (act.delay && act.wasPresent) track.push({ t0: t, t1: t0, x0: m.x0, x1: m.x0, k0: m.k0, k1: m.k0, pose: pose(id) });
         t1 = t + act.d;
-        track.push({ t0, t1, x0: act.move ? act.move.x0 : st.x, x1: act.move ? act.move.x1 : st.x, pose: act.shown });
+        track.push({ t0, t1, x0: m ? m.x0 : st.x, x1: m ? m.x1 : st.x, k0: m ? m.k0 : st.k, k1: m ? m.k1 : st.k, pose: act.shown });
       }
-      if (st.present && t1 < t + beatLen) track.push({ t0: t1, t1: t + beatLen, x0: st.x, x1: st.x, pose: pose(id) });
+      if (st.present && t1 < t + beatLen) track.push({ t0: t1, t1: t + beatLen, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
     }
     t += beatLen;
   }
-  for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + HOLD_SECONDS, x0: st.x, x1: st.x, pose: pose(id) });
+  for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + HOLD_SECONDS, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
   return { T: t + HOLD_SECONDS, tracks, camera };
 }
 
@@ -379,14 +399,16 @@ function playTimeline(timeline, slots, props, W) {
 
 const CAMERA_SECONDS = { zoomIn: 1.6, zoomOut: 1.6, pan: 3, panTo: 2 };
 
-/** Where an actor is at time t (seconds), from its timeline track. */
-function xAt(track, t) {
+/**
+ * Where an actor is at time t (seconds), from its timeline track: { x, k } (front-row x, depth scale).
+ * Depth changes follow the perspective curve (distance 1/k changes linearly), like the keyframes.
+ */
+function posAt(track, t) {
   if (!track.length) return null;
-  if (t <= track[0].t0) return track[0].x0;
-  for (const seg of track) {
-    if (t <= seg.t1) return seg.t1 > seg.t0 ? seg.x0 + (seg.x1 - seg.x0) * ((t - seg.t0) / (seg.t1 - seg.t0)) : seg.x1;
-  }
-  return track[track.length - 1].x1;
+  const at = (seg, u) => ({ x: seg.x0 + (seg.x1 - seg.x0) * u, k: 1 / (1 / seg.k0 + (1 / seg.k1 - 1 / seg.k0) * u) });
+  if (t <= track[0].t0) return at(track[0], 0);
+  for (const seg of track) if (t <= seg.t1) return at(seg, seg.t1 > seg.t0 ? (t - seg.t0) / (seg.t1 - seg.t0) : 1);
+  return at(track[track.length - 1], 1);
 }
 
 /**
@@ -618,7 +640,8 @@ export function composeScene(matches, opts = {}) {
   // One timeline actor: a wrapper moved by keyframes, and one drawing per pose, switched on and off
   // in step with the beats. With animation off (still exports) the last on-screen pose shows in place.
   const renderActor = ({ it, y, s, base, olk, w }, track, T, name) => {
-    const onScreen = track.filter((seg) => seg.x1 > -w / 2 && seg.x1 < W + w / 2);
+    // Still renders show the last pose the figure had on screen, in the front row
+    const onScreen = track.filter((seg) => seg.x1 > -w / 2 && seg.x1 < W + w / 2 && seg.k1 > 0.5);
     const last = onScreen[onScreen.length - 1] || track[track.length - 1];
     const home = last ? last.x1 : 0;
     const at = (sec) => pct(sec / T);
@@ -631,17 +654,41 @@ export function composeScene(matches, opts = {}) {
       variants.get(key).windows.push(seg);
     }
 
-    // Position: translateX in the figure's own units, linear between the beats' key points
-    let posFrames = '', lastPct = -1;
+    // Position in the figure's own units: across the front row, and into depth on a perspective path
+    // (scaled about its feet, moved toward the horizon); depth moves are sampled so the size grows
+    // as 1/distance. Every keyframe has the same transform list so the browser interpolates it.
+    const F = { x: 50, y: base };
+    const place = (x, k) => {
+      const dx = (W / 2 + (x - W / 2) * k - home) / s, dy = (hY + (y - hY) * k - y) / s;
+      return `transform: translate(${r2(F.x + dx)}px, ${r2(F.y + dy)}px) scale(${r2(k * 1000) / 1000}) translate(${-F.x}px, ${-F.y}px);`;
+    };
+    const points = [];
     for (const seg of track) {
-      for (const [sec, x] of [[seg.t0, seg.x0], [seg.t1, seg.x1]]) {
-        let pc = Math.max(r2((sec / T) * 100), lastPct === -1 ? 0 : lastPct);
-        if (pc === lastPct) pc = r2(pc + 0.01);
-        posFrames += `${pc}% { transform: translateX(${r2((x - home) / s)}px); } `;
-        lastPct = pc;
+      const steps = Math.abs(seg.k1 - seg.k0) > 1e-6 ? 12 : 1;
+      for (let j = 0; j <= steps; j++) {
+        const u = j / steps;
+        points.push([seg.t0 + (seg.t1 - seg.t0) * u, seg.x0 + (seg.x1 - seg.x0) * u, 1 / (1 / seg.k0 + (1 / seg.k1 - 1 / seg.k0) * u)]);
       }
     }
-    motionCss.push(`@keyframes ${name}p { ${track.length && track[0].t0 > 0 ? `0% { transform: translateX(${r2((track[0].x0 - home) / s)}px); } ` : ''}${posFrames}}`);
+    let posFrames = track.length && track[0].t0 > 0 ? `0% { ${place(track[0].x0, track[0].k0)} } ` : '', lastPct = -1;
+    for (const [sec, x, k] of points) {
+      let pc = Math.max(r2((sec / T) * 100), lastPct === -1 ? 0 : lastPct);
+      if (pc === lastPct) pc = r2(pc + 0.01);
+      if (pc > 100) break;
+      posFrames += `${pc}% { ${place(x, k)} } `;
+      lastPct = pc;
+    }
+    // Hold the last place to the end of the loop (a figure that has left must not drift back)
+    if (points.length && lastPct < 100) posFrames += `100% { ${place(points[points.length - 1][1], points[points.length - 1][2])} } `;
+    motionCss.push(`@keyframes ${name}p { ${posFrames}}`);
+    // The shadow shows while the figure is on stage at all (before it arrives and after it leaves, not)
+    let shadowFrames = `0% { opacity: ${track[0]?.t0 === 0 ? 1 : 0}; } `;
+    track.forEach((seg, j) => {
+      shadowFrames += `${at(seg.t0)} { opacity: 1; } `;
+      const next = track[j + 1];
+      if (!next || next.t0 > seg.t1 + 1e-6) shadowFrames += `${at(seg.t1)} { opacity: 0; } `;
+    });
+    motionCss.push(`@keyframes ${name}s { ${shadowFrames}}`);
 
     let poses = '', i = 0;
     for (const [key, { pose }] of variants) {
@@ -669,7 +716,7 @@ export function composeScene(matches, opts = {}) {
       i++;
     }
     const rx = 50 * (it.c.width ?? 0.8) * 0.72;
-    const shadow = shadows ? `<ellipse class="pg-shadow" cx="50" cy="${base}" rx="${r2(rx)}" ry="${r2(Math.max(3, rx * 0.13))}" fill="#000000" opacity="0.16"/>` : '';
+    const shadow = shadows ? `<g style="animation: ${name}s ${r2(T)}s step-end infinite;"><ellipse class="pg-shadow" cx="50" cy="${base}" rx="${r2(rx)}" ry="${r2(Math.max(3, rx * 0.13))}" fill="#000000" opacity="0.16"/></g>` : '';
     const tr = `translate(${r2(home - 50 * s)} ${r2(y - base * s)}) scale(${r2(s * 1000) / 1000})`;
     return `<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}" data-actor="${it.c.id}"${it.m.color ? ` data-color="${it.m.color}"` : ''} transform="${tr}" style="cursor: grab;"><g class="pg-timeline-move" style="animation: ${name}p ${r2(T)}s linear infinite;">${shadow}${poses}</g></g>`;
   };
@@ -749,7 +796,8 @@ export function composeScene(matches, opts = {}) {
     const key = `${id}#0`; // a group: its first member
     if (tracks?.has(key)) {
       const slot = actorSlots.get(key);
-      return { x: xAt(tracks.get(key), t) ?? slot.cx, y: slot.y - slot.h * 0.55, h: slot.h };
+      const { x, k } = posAt(tracks.get(key), t) ?? { x: slot.cx, k: 1 };
+      return { x: W / 2 + (x - W / 2) * k, y: hY + (slot.y - hY) * k - slot.h * k * 0.55, h: slot.h * k };
     }
     const p = propsAt.get(id);
     return p ? { x: p.cx, y: p.anchor === 'bottom' ? p.y - p.h * 0.55 : p.y, h: p.h } : null;

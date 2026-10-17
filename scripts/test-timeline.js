@@ -43,7 +43,10 @@ const kf = (name) => r.svg.match(new RegExp(`@keyframes ${name} \\{ (.*?) \\}\\s
 const moveName = (fig) => fig.match(/class="pg-timeline-move" style="animation: (\S+) /)[1];
 const scaleOf = (fig) => +fig.match(/scale\(([\d.]+)\)/)[1];
 const homeOf = (fig) => { const [, x] = fig.match(/translate\((-?[\d.]+) /); return +x + 50 * scaleOf(fig); };
-const firstX = (fig) => +kf(moveName(fig)).match(/translateX\((-?[\d.]+)px\)/)[1] * scaleOf(fig);
+// Position keyframes are translate(50 + dx, base + dy) scale(k) translate(-50, -base): dx is the offset
+const offsets = (body) => [...body.matchAll(/([\d.]+)% \{ transform: translate\((-?[\d.]+)px, (-?[\d.]+)px\) scale\(([\d.]+)\)/g)]
+  .map(([, pct, x, y, k]) => ({ pct: +pct, dx: +x - 50, y: +y, k: +k }));
+const firstX = (fig) => offsets(kf(moveName(fig)))[0].dx * scaleOf(fig);
 const W = 640;
 check(homeOf(boy) + firstX(boy) < 0 || homeOf(boy) + firstX(boy) > W, `the boy starts off-screen (x=${(homeOf(boy) + firstX(boy)).toFixed(0)})`);
 check(homeOf(dog) + firstX(dog) < 0 || homeOf(dog) + firstX(dog) > W, `the dog starts off-screen (x=${(homeOf(dog) + firstX(dog)).toFixed(0)})`);
@@ -85,13 +88,41 @@ check(spaced(dh, 20) && spaced(bh, 20), 'figures of a group end up side by side,
 // Entering one after another: the boys' moves start at different times, the furthest-going first
 const startPct = (fig) => {
   const body = group.svg.match(new RegExp(`@keyframes ${moveName(fig)} \\{ (.*?) \\}\\s*\\}`))?.[1] ?? '';
-  const frames = [...body.matchAll(/([\d.]+)% \{ transform: translateX\((-?[\d.]+)px\)/g)].map((m) => [+m[1], +m[2]]);
+  const frames = offsets(body).map((o) => [o.pct, o.dx]);
   const i = frames.findIndex(([, x], j) => j < frames.length - 1 && frames[j + 1][1] !== x);
   return frames[i]?.[0];
 };
 const leadFirst = [...boys].sort((a, b) => homeOf(b) - homeOf(a)).map(startPct);
 check(leadFirst[0] < leadFirst[1], `the boy walking furthest sets off first (${leadFirst.map((p) => p + '%').join(' then ')})`);
 check(!wellFormedError(group.svg), 'the group timeline is well-formed XML');
+
+// 2c. Toward and away from the camera inside a timeline
+for (const [t, want] of [
+  ['a boy walks toward us, then waves, then walks away into the distance', 'boy:approach | boy:pose/wave | boy:recede'],
+  ['a dog runs from far away, then it sits', 'dog:approach | dog:pose/sit'],
+  ['a girl walks in, then she comes closer, then she walks off', 'girl:enter | girl:approach | girl:exit'],
+  ['a woman approaches, then she walks away from the camera', 'woman:approach | woman:recede'],
+  ['a boy walks in, then walks toward the tree', 'boy:enter | boy:moveTo>tree'],
+]) check(actions(t) === want, `"${t}"\n        -> ${want}${actions(t) === want ? '' : `\n   got  ${actions(t)}`}`);
+check(!generate('a man walks toward the camera, then he waves').matches.some((m) => m.id === 'camera'), '"toward the camera" does not draw a camera');
+
+const there = generate('a boy walks toward us, then waves, then walks away into the distance');
+const tb = actor(there.svg, 'boy');
+const depthBody = there.svg.match(new RegExp(`@keyframes ${moveName(tb)} \\{ (.*?) \\}\\s*\\}`))[1];
+const ks = offsets(depthBody).map((o) => o.k);
+check(ks[0] < 0.25 && Math.max(...ks) === 1 && ks[ks.length - 1] < 0.25, `the boy comes from the horizon to full size and goes back (scale ${ks[0]} -> ${Math.max(...ks)} -> ${ks[ks.length - 1]})`);
+check(/100% \{ transform/.test(depthBody), 'a figure that has left holds its place to the end of the loop');
+const poseViews = [...tb.matchAll(/class="pg-timeline-pose"([^>]*)>/g)].map((m) => m[1]);
+check(poseViews.some((a) => /data-anim="walk"/.test(a) && /data-view="front"/.test(a)) && poseViews.some((a) => /data-anim="walk"/.test(a) && /data-view="back"/.test(a)),
+  'walking toward us shows the face, walking away the back');
+const shadowAnim = tb.match(/<g style="animation: (\S+) [\d.]+s step-end infinite;"><ellipse class="pg-shadow"/)?.[1];
+const shadowKf = shadowAnim && there.svg.match(new RegExp(`@keyframes ${shadowAnim} \\{ (.*?) \\}\\s*\\}`))[1];
+check(shadowKf && /opacity: 0;\s*\}?\s*$/.test(shadowKf), "the shadow goes with the figure when it has walked away");
+const closer = generate('a girl walks in, then she comes closer');
+const cg = actor(closer.svg, 'girl');
+const cks = offsets(closer.svg.match(new RegExp(`@keyframes ${moveName(cg)} \\{ (.*?) \\}\\s*\\}`))[1]).map((o) => o.k);
+check(Math.max(...cks) > 1.1, `"comes closer" from the front row is a step toward the camera (scale up to ${Math.max(...cks)})`);
+check(!wellFormedError(there.svg) && !wellFormedError(closer.svg), 'depth timelines are well-formed XML');
 
 // 3. Clips: a sequenced scene lasts as long as its timeline
 const story = composeStory([{ prompt, caption: 'x', duration: 3 }]);

@@ -69,6 +69,32 @@ export function extractCamera(text) {
   return { text: rest.replace(/\s+([,.;!?])/g, '$1').replace(/^[\s,.;]+|[\s,]+$/g, ''), moves };
 }
 
+// ---------------------------------------------------------------------------------------------
+// Depth: "walks toward us", "comes closer", "comes from far away" / "walks away into the distance"
+
+const VIEWER = new Set(['us', 'me', 'you', 'camera', 'viewer']);
+
+/** A depth move in the words right after a verb: { type: 'approach' | 'recede', len } or null. */
+function depthOf(toks) {
+  const [a, b, c, d] = toks;
+  if ((a === 'toward' || a === 'towards') && VIEWER.has(b)) return { type: 'approach', len: 2 };
+  if ((a === 'toward' || a === 'towards') && b === 'the' && VIEWER.has(c)) return { type: 'approach', len: 3 };
+  if (a === 'closer' || a === 'nearer') return { type: 'approach', len: 1 };
+  if (a === 'up' && b === 'close') return { type: 'approach', len: 2 };
+  if (a === 'from' && b === 'afar') return { type: 'approach', len: 2 };
+  if (a === 'from' && b === 'far') return { type: 'approach', len: c === 'away' ? 3 : 2 };
+  if (a === 'from' && b === 'the' && c === 'distance') return { type: 'approach', len: 3 };
+  const into = (i) => toks[i] === 'into' && toks[i + 1] === 'the' && toks[i + 2] === 'distance';
+  if (into(0)) return { type: 'recede', len: 3 };
+  if ((a === 'off' || a === 'away') && into(1)) return { type: 'recede', len: 4 };
+  if (a === 'away') {
+    if (b === 'from' && VIEWER.has(c)) return { type: 'recede', len: 3 };
+    if (b === 'from' && c === 'the' && VIEWER.has(d)) return { type: 'recede', len: 4 };
+    return { type: 'recede', len: 1 };
+  }
+  return null;
+}
+
 const stems = (t) => [t, t.replace(/ies$/, 'y'), t.replace(/es$/, ''), t.replace(/s$/, ''), t.replace(/ing$/, ''), t.replace(/ing$/, 'e')];
 const motionOf = (t) => stems(t).map((w) => MOTION_WORDS[w]).find(Boolean);
 const expressionOf = (t) => EXPRESSION_VERBS[t] || stems(t).map((w) => EXPRESSION_WORDS[w]).find(Boolean);
@@ -78,7 +104,9 @@ const expressionOf = (t) => EXPRESSION_VERBS[t] || stems(t).map((w) => EXPRESSIO
  *   beats:  [{ text, actions: [{ actor, type, gait?, anim?, expression?, target? }], camera? }]
  *     camera: { type: 'zoomIn' | 'zoomOut' | 'pan' | 'panTo', target?: concept id, dir? } - a camera beat
  *   follow: concept id the camera follows through the whole clip ("the camera follows the dog")
- *     type: 'enter' (walks/runs in from off-screen), 'exit' (leaves), 'moveTo' (walks/runs to target),
+ *     type: 'enter' (walks/runs in from off-screen), 'exit' (leaves, walks off), 'moveTo' (walks/runs to target),
+ *           'approach' (walks toward the camera, from the horizon if not there yet), 'recede' (walks away
+ *           into the distance and is gone),
  *           'pose' (waves, jumps, dances...), 'expr' (smiles, cries...), 'appear' (just shows up)
  *   actors: [{ id, match }]  concepts that act, keyed by concept id; match.count figures of each
  *                            ("two boys walk in" -> two boys, both doing what "the boys" do)
@@ -123,11 +151,16 @@ export function parseTimeline(text) {
     // The first verb that makes something happen
     let v = toks.findIndex((t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || motionOf(t) || expressionOf(t));
     const before = v >= 0 ? toks.slice(0, v) : toks;
-    const after = v >= 0 ? toks.slice(v + 1) : [];
+    let after = v >= 0 ? toks.slice(v + 1) : [];
+    // Toward or away from the camera (not a target: "toward the camera" must not draw a camera)
+    const verbMotion = v >= 0 ? motionOf(toks[v]) : null;
+    const depthWords = v >= 0 ? depthOf(after) : null;
+    const depth = depthWords?.type || (verbMotion === 'approach' || verbMotion === 'recede' ? verbMotion : null);
+    if (depthWords) after = after.slice(depthWords.len);
 
     // Target: "to him", "towards the boy", "up to the tree"
     let target = null, targetAt = -1;
-    const toAt = after.findIndex((t) => t === 'to' || t === 'toward' || t === 'towards');
+    const toAt = depth ? -1 : after.findIndex((t) => t === 'to' || t === 'toward' || t === 'towards');
     if (toAt >= 0) {
       const rest = after.slice(toAt + 1).filter((t) => t !== 'the' && t !== 'a' && t !== 'an');
       if (['him', 'her', 'it', 'them'].includes(rest[0])) target = rest[0];
@@ -159,10 +192,11 @@ export function parseTimeline(text) {
       const gait = motion === 'run' ? 'run' : 'walk';
       const targetId = target && !mentioned.has(target) && !['him', 'her', 'it', 'them'].includes(target) ? null : target;
       const intoScene = next === 'in' && (!next2 || !DETERMINERS.has(next2)) || next === 'into' && next2 === 'the' && toks[v + 3] === 'scene';
-      const outOfScene = EXIT_VERBS.has(verb) || (motion && ['out', 'off', 'away'].includes(next));
+      const outOfScene = EXIT_VERBS.has(verb) || (motion && ['out', 'off'].includes(next));
       for (const actor of subjectIds) {
         let type, extra = {};
-        if (outOfScene) type = 'exit';
+        if (depth) type = depth; // walks toward us / away into the distance
+        else if (outOfScene) type = 'exit';
         else if (targetId) {
           const tid = ['him', 'her', 'it', 'them'].includes(targetId) ? resolvePronoun(targetId, [actor]) : targetId;
           type = tid && tid !== actor ? 'moveTo' : 'pose';
