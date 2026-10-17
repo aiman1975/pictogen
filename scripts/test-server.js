@@ -50,6 +50,8 @@ try {
   check(face.test(front.markup) && !face.test(back.markup), 'POST /api/render-concept honours view: "back"');
   const side = await (await post('/api/render-concept', { id: 'boy', view: 'side' })).json();
   check(/class="pg-profile"/.test(side.markup), 'POST /api/render-concept honours view: "side"');
+  const tq = await (await post('/api/render-concept', { id: 'boy', view: 'three-quarter' })).json();
+  check(tq.markup.includes('scale(0.78 1)'), 'POST /api/render-concept honours view: "three-quarter"');
 } finally {
   server.kill();
 }

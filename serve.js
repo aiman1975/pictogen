@@ -113,7 +113,7 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: `Unknown concept: ${id}` }));
         return;
       }
-      const shapes = drawConcept(c, { seed, color, vary, expression, animation, style, view: ['front', 'side', 'back'].includes(view) ? view : undefined });
+      const shapes = drawConcept(c, { seed, color, vary, expression, animation, style, view: ['front', 'three-quarter', 'side', 'back'].includes(view) ? view : undefined });
       const markup = shapesToSvg(shapes, style);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ id, expression, animation, markup }));

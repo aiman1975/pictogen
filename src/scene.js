@@ -271,9 +271,18 @@ function playTimeline(timeline, slots, props, W) {
   }
   const keysOf = (id) => [...slots.keys()].filter((key) => slots.get(key).id === id);
   const off = (id, side) => (side < 0 ? -slots.get(id).w / 2 - 12 : W + slots.get(id).w / 2 + 12);
-  const pose = (id, extra = {}) => {
-    const st = state.get(id), view = slots.get(id).it.m.view;
-    return { expression: st.expression, view: view ?? (st.isPerson ? 'front' : undefined), mirror: !st.isPerson && st.facing < 0, ...extra };
+  // Standing people face the camera, or turn three-quarters toward someone of another kind nearby
+  // (the boy turns to the dog that ran up to him); animals keep facing the way they last went.
+  const pose = (key, extra = {}) => {
+    const st = state.get(key), slot = slots.get(key), view = slot.it.m.view;
+    if (!st.isPerson) return { expression: st.expression, view, mirror: st.facing < 0, ...extra };
+    let near = null;
+    for (const [other, o] of state) {
+      if (!o.present || slots.get(other).id === slot.id || Math.abs(o.x - st.x) > W * 0.4) continue;
+      if (!near || Math.abs(o.x - st.x) < Math.abs(near.x - st.x)) near = o;
+    }
+    if (view || !near) return { expression: st.expression, view: view ?? 'front', mirror: false, ...extra };
+    return { expression: st.expression, view: 'three-quarter', mirror: near.x < st.x, ...extra };
   };
   // Where something is: a prop, or the span a group of actors covers ("runs to them" -> beside all of them)
   const posOf = (id) => {

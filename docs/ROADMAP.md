@@ -49,7 +49,11 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       so the limb swing reads as a stride; stylized styles turn the face toward the walking direction
 - [x] Front and back views for the dog, cat, rabbit and lion (and the penguin's back): animals
       running toward the camera face it, walking away they show their back and tail
-- [ ] Three-quarter views, and turning between views during a clip
+- [x] **Three-quarter views** of the four people (face turned and narrowed, a nose on the turned side,
+      the woman's near strand of hair behind the face). In timelines, standing people turn
+      three-quarters toward someone of another kind nearby; prompts can ask for it ("3/4 view")
+- [x] Turning during a clip: profile while walking, three-quarters or front while standing
+- [ ] Three-quarter views for animals; head turns without turning the body
 - [ ] Re-sort draw order while a figure travels (now drawn in front for the whole path)
 - [ ] Atmospheric perspective: lighter, lower-contrast far objects
 - [ ] Paths: walking along a road or riverbank and around obstacles, not only straight lines

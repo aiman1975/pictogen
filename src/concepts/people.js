@@ -16,7 +16,19 @@ const PROFILE_MOTIONS = ['walk', 'run', 'walk-across'];
 export const viewOf = (p) => p.opts.view || (PROFILE_MOTIONS.includes(p.opts.animation) ? 'side' : 'front');
 const fromBehind = (p) => viewOf(p) === 'back';
 /** Stylized faces slide toward the facing direction in profile: a simple turned-head look. */
-const faceX = (p) => 50 + (viewOf(p) === 'side' ? 7 : 0);
+const faceX = (p) => 50 + ({ side: 7, 'three-quarter': 4 }[viewOf(p)] ?? 0);
+const turned = (p) => viewOf(p) === 'three-quarter';
+
+/**
+ * The face, turned when the figure is seen three-quarters (opts.view 'three-quarter', facing right):
+ * features slide toward the facing side and squeeze together, as the far half of the face turns away.
+ */
+function drawFace(d, p, cx, cy) {
+  if (!turned(p)) return drawFacialExpression(d, p, cx, cy);
+  d.group(`translate(${cx + 5} 0) scale(0.78 1) translate(${-cx} 0)`, () => drawFacialExpression(d, p, cx, cy));
+  // A nose on the turned side makes the turn read at a glance
+  d.path(`M${cx + 9.5} ${cy + 0.5} Q${cx + 11.5} ${cy + 3.5} ${cx + 8.6} ${cy + 4.2}`, { kind: 'line', stroke: INK, sw: 1.1, opacity: 0.55 });
+}
 
 /**
  * Draws expressive facial features (eyes, brows, mouth, cheeks) based on expression.
@@ -971,8 +983,8 @@ export default [
           d.rect(46, 37, 8, 8, { fill: skin });
           d.path('M36 50 Q36 43 43 43 L57 43 Q64 43 64 50 L64 70 Q64 72 62 72 L38 72 Q36 72 36 70 Z', { fill: shirt });
 
-          d.circle(35.5, 28, 3.5, { fill: skin });
-          d.circle(64.5, 28, 3.5, { fill: skin });
+          d.circle(turned(p) ? 37 : 35.5, 28, 3.5, { fill: skin });
+          if (!turned(p)) d.circle(64.5, 28, 3.5, { fill: skin });
           d.circle(50, 27, 15, { fill: skin });
           if (fromBehind(p)) {
             // Back of the head: hair down to the nape, a crown swirl
@@ -980,7 +992,7 @@ export default [
             d.path('M47 19 Q50 16 53 19', { kind: 'line', stroke: INK, sw: 1, opacity: 0.35 });
           } else {
             d.path('M35 26 C35 13 44 10 51 10 C59 10 66 14 65.5 25 C62 21 57 19 52 21 C48 18 41 19 35 26 Z', { fill: p.c('hair') });
-            drawFacialExpression(d, p, 50, 28);
+            drawFace(d, p, 50, 28);
           }
         });
       });
@@ -1050,7 +1062,7 @@ export default [
             d.line(50, 13, 50, 25, { stroke: INK, sw: 1, opacity: 0.3, kind: 'line' });
           } else {
             d.path('M36 28 C36 12 44 11 50 11 C56 11 64 12 64 28 C60 22 56 20 50 20 C44 20 40 22 36 28 Z', { fill: p.c('hair'), kind: 'body' });
-            drawFacialExpression(d, p, 50, 28);
+            drawFace(d, p, 50, 28);
           }
         });
       });
@@ -1116,7 +1128,7 @@ export default [
             d.path('M37 23 C37 11 44 10 50 10 C56 10 63 11 63 23 C63 29 60 32 56 33 L44 33 C40 32 37 29 37 23 Z', { fill: p.c('hair') });
           } else {
             d.path('M37 22 C37 11 44 9 50 9 C56 9 63 11 63 22 C59 18 55 16 50 16 C45 16 41 18 37 22 Z', { fill: p.c('hair') });
-            drawFacialExpression(d, p, 50, 24);
+            drawFace(d, p, 50, 24);
           }
         });
       });
@@ -1177,8 +1189,11 @@ export default [
             // Back of the head: long hair falling over the shoulders
             d.path('M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L66 45 C66 49 60 50 50 50 C40 50 34 49 34 45 Z', { fill: p.c('hair') });
           } else {
-            d.path('M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L67 46 C67 48 63 48 62 43 L62 26 C57 18 53 18 50 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z', { fill: p.c('hair') });
-            drawFacialExpression(d, p, 50, 24);
+            // Turned three-quarters, the near strand falls behind the face: only the far one shows
+            d.path(turned(p)
+              ? 'M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 C61 19 56 17 52 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z'
+              : 'M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L67 46 C67 48 63 48 62 43 L62 26 C57 18 53 18 50 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z', { fill: p.c('hair') });
+            drawFace(d, p, 50, 24);
           }
         });
       });

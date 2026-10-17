@@ -56,6 +56,20 @@ check(!/class="pg-profile"/.test(shapesToSvg(drawConcept('girl', { seed: 1, anim
 const across = generate('a man and a woman walking across the park').svg;
 check(/class="pg-profile"/.test(item(across, 'man')) && /class="pg-profile"/.test(item(across, 'woman')), 'people walking across a scene are in profile');
 
+// 1b'. Three-quarter views: the face turned (shifted and narrowed), limbs kept, distinct from front and side
+const tqIssues = [];
+for (const id of PEOPLE) {
+  for (const style of STYLE_NAMES) {
+    const front = shapesToSvg(drawConcept(id, { style, seed: 1 }), style);
+    const side = shapesToSvg(drawConcept(id, { style, seed: 1, view: 'side' }), style);
+    const tq = shapesToSvg(drawConcept(id, { style, seed: 1, view: 'three-quarter' }), style);
+    if (hasFace(front) && (tq === front || tq === side)) tqIssues.push(`${id}/${style}: not distinct`);
+    if (hasFace(front) && !hasFace(tq)) tqIssues.push(`${id}/${style}: lost its face`);
+    if (/pg-leg-left/.test(front) && !/pg-leg-left/.test(tq)) tqIssues.push(`${id}/${style}: lost its legs`);
+  }
+}
+check(!tqIssues.length, `three-quarter views turn the face and keep the body (${PEOPLE.length} × ${STYLE_NAMES.length})${tqIssues.length ? ': ' + tqIssues.join(', ') : ''}`);
+
 // 1c. Animals: front and back views for the four-legged ones (side is their default drawing)
 const INK = '#263238';
 const animalIssues = [];
@@ -89,6 +103,9 @@ for (const [t, want] of [
   ['a boy seen from the side', 'boy:side'],
   ['side view of a girl', 'girl:side'],
   ['a man in profile', 'man:side'],
+  ['a three-quarter view of a girl', 'girl:three-quarter'],
+  ['a boy in 3/4 view', 'boy:three-quarter'],
+  ['a half turned woman', 'woman:three-quarter'],
   ['a girl walking away facing us', 'girl:front'],
   ['a dog behind a tree', 'dog:- tree:-'],
   ['a boy waving from behind the house', 'boy:- house:-'],

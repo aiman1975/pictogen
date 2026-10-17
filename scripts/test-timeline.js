@@ -56,6 +56,11 @@ check(gap > near && gap < near + W * 0.12, `the dog ends up beside the boy (${ga
 // The boy turns: profile while walking, facing us while waving (a pose variant per view)
 check(boy.includes('class="pg-profile"') && /class="pg-face-eyes"/.test(boy.replace(/<g class="pg-profile">[\s\S]*?<\/g><\/g><\/g>/, '')), 'walking in profile, then facing us');
 
+// Once the dog has run up, the boy turns three-quarters toward it (his turned face is narrowed)
+check(boy.includes('scale(0.78 1)'), 'the boy turns three-quarters toward the dog that ran up to him');
+const alone = generate('a girl walks in, then waves');
+check(!alone.svg.includes('scale(0.78 1)'), 'with nobody else around, a standing figure faces the camera');
+
 // 2b. Several of one kind: each is its own figure, they act together, walk in one after another
 // (the one going furthest first) and line up beside a group target
 const group = generate('two boys walk in, then they wave, then three dogs run to them');
