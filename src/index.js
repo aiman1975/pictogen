@@ -5,7 +5,11 @@ import { composeScene, ENV_WORDS } from './scene.js';
 
 // Words that set the scene's backdrop (night, rain, beach...) rather than draw an object.
 const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
+// Time-of-day / weather words: in a scene the backdrop already shows them, so a library icon
+// they happen to match ("sunset" -> city-at-sunset emoji) would be a stray object on the ground.
+const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...ENV_WORDS.snow, ...ENV_WORDS.rain]);
 import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/render.js';
+import { getConcept } from './concepts/index.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
 export { STYLES, STYLE_NAMES } from './core/styles.js';
@@ -29,9 +33,16 @@ export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateS
  * opts.size   pixel size of individual icons in `images`
  */
 export function generate(text, opts = {}) {
-  const { mode = 'scene', style = 'flat', width = 640, height = 360, seed = 1, vary = false, fuzzy = false, size = 256 } = opts;
+  const { mode = 'scene', style = 'flat', seed = 1, vary = false, fuzzy = false, size = 256 } = opts;
+  const dim = (v, d) => (Number.isFinite(+v) && +v > 0 ? +v : d);
+  const width = dim(opts.width, 640), height = dim(opts.height, 360);
+  text = String(text ?? '');
   const parsed = parseText(text, { fuzzy });
-  const { matches } = parsed;
+  let { matches } = parsed;
+  const backdrop = mode === 'scene'
+    ? matches.filter((m) => ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)
+    : [];
+  if (backdrop.length) matches = matches.filter((m) => !backdrop.includes(m));
   const common = { style, seed, vary, width, height, text };
   let svg;
   if (mode === 'icons') {
@@ -67,7 +78,9 @@ export function generate(text, opts = {}) {
     id: m.id, word: m.word, count: m.count, color: m.color, expression: m.expression, animation: m.animation,
     svg: renderIcon(m.id, { ...common, color: m.color, expression: m.expression, animation: m.animation, size }),
   }));
-  const setting = mode === 'scene' ? parsed.unknown.filter((w) => SETTING_WORDS.has(w)) : [];
+  const setting = mode === 'scene'
+    ? [...backdrop.map((m) => m.word), ...parsed.unknown.filter((w) => SETTING_WORDS.has(w))]
+    : [];
   const unknown = parsed.unknown.filter((w) => !setting.includes(w));
-  return { svg, ...parsed, unknown, setting, images };
+  return { svg, ...parsed, matches, unknown, setting, images };
 }

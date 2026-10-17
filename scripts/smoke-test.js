@@ -20,15 +20,19 @@ for (const c of concepts) {
   if (!['sky', 'air', 'ground', 'water', 'underwater', 'background'].includes(c.placement)) fail(`${c.id}: bad placement ${c.placement}`);
 }
 
-// alias collisions
+// alias collisions (expected between the hand-drawn core and the emoji library; set VERBOSE=1 to list them)
 const owner = new Map();
+let collisions = 0;
 for (const c of concepts) {
   for (const a of [c.id.replace(/_/g, ' '), ...(c.aliases || [])]) {
     const k = a.toLowerCase();
-    if (owner.has(k) && owner.get(k) !== c.id) console.warn(`! alias "${k}" used by ${owner.get(k)} and ${c.id} (first wins)`);
-    else owner.set(k, c.id);
+    if (owner.has(k) && owner.get(k) !== c.id) {
+      collisions++;
+      if (process.env.VERBOSE) console.warn(`! alias "${k}" used by ${owner.get(k)} and ${c.id} (first wins)`);
+    } else owner.set(k, c.id);
   }
 }
+if (collisions) console.log(`${collisions} alias collisions (first wins; VERBOSE=1 to list)`);
 
 const samples = [
   'A boy riding a bike under the sun',
@@ -66,6 +70,18 @@ const expectIds = {
 for (const [t, want] of Object.entries(expectIds)) {
   if (ids(t) !== want) fail(`parse: "${t}" -> "${want}" (got "${ids(t)}")`);
 }
+// numerals are counts, not keycap icons
+const counts = (t) => parseText(t).matches.map((m) => `${m.id}x${m.count}`).join(',');
+for (const [t, want] of [['3 dogs', 'dogx3'], ['2 cats and 4 dogs', 'catx2,dogx4'], ['0 cats', 'catx1'], ['99 balloons', 'balloonx12'], ['keycap 3', 'keycap_3x1']]) {
+  if (counts(t) !== want) fail(`parse: "${t}" -> "${want}" (got "${counts(t)}")`);
+}
+
+// in a scene, time-of-day words paint the backdrop rather than drawing their emoji on the ground
+const dusk = generate('three dogs at sunset');
+if (dusk.matches.map((m) => m.id).join() !== 'dog' || dusk.setting.join() !== 'sunset') fail(`generate: "sunset" should be setting (got matches=${dusk.matches.map((m) => m.id)} setting=${dusk.setting})`);
+if (generate('sunset', { mode: 'card' }).matches[0]?.id !== 'sunset') fail('generate: "sunset" card still shows the sunset icon');
+if (bad(generate(42).svg) || bad(generate('a boy', { width: 'abc', height: -1 }).svg)) fail('generate: non-string text / bad size produce bad output');
+
 const g = generate('a boy at the beach on a rainy night');
 if (g.unknown.length || g.setting.join() !== 'beach,rainy,night') fail(`generate: backdrop words reported as setting (got unknown=${g.unknown} setting=${g.setting})`);
 

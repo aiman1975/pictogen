@@ -31,7 +31,14 @@ function hasFlag(flag) {
   return false;
 }
 
-if (hasFlag('--help') || hasFlag('-h') || (args.length === 0 && !args.includes('--export-all'))) {
+const MODES = ['scene', 'comic', 'stickman', 'callout', 'knolling', 'split', 'isometric', 'waffle', 'coloring', 'icons', 'card', 'alphabet'];
+
+// `-h` doubles as --height, so it only means help when no number follows it.
+const hIndex = args.indexOf('-h');
+const shortHelp = hIndex >= 0 && !/^\d+(\.\d+)?$/.test(args[hIndex + 1] ?? '');
+if (shortHelp) args.splice(hIndex, 1);
+
+if (hasFlag('--help') || shortHelp || args.length === 0) {
   console.log(`
 PictoGen - Offline Text-to-Vector Image Generator
 
@@ -40,11 +47,12 @@ Usage:
   node cli.js --export-all <dir>
 
 Options:
-  -o, --output <file>    Output SVG file path (default: prints to stdout or out.svg)
-  -s, --style <style>    Style: flat, cartoon, outline, pastel, silhouette, sketch, neon (default: flat)
-  -m, --mode <mode>      Mode: scene, icons, card (default: scene)
+  -o, --output <file>    Output SVG file path (default: out.svg)
+  -s, --style <style>    Style (default: flat): ${STYLE_NAMES.join(', ')}
+  -m, --mode <mode>      Mode (default: scene): ${MODES.join(', ')}
   -w, --width <num>      Scene width in px (default: 640)
   -h, --height <num>     Scene height in px (default: 360)
+  --help                 Show this help (also -h with no number after it)
   --seed <val>           Seed for deterministic RNG
   --vary                 Randomize colors/clothing/palettes
   --fuzzy                Enable typo tolerance
@@ -95,6 +103,20 @@ const style = getOpt('-s') || getOpt('--style') || 'flat';
 const mode = getOpt('-m') || getOpt('--mode') || 'scene';
 const width = +(getOpt('-w') || getOpt('--width') || 640);
 const height = +(getOpt('-h') || getOpt('--height') || 360);
+for (const [name, v] of [['width', width], ['height', height]]) {
+  if (!Number.isFinite(v) || v <= 0) {
+    console.error(`Error: ${name} must be a positive number.`);
+    process.exit(1);
+  }
+}
+if (!STYLE_NAMES.includes(style)) {
+  console.error(`Error: unknown style "${style}". Available: ${STYLE_NAMES.join(', ')}`);
+  process.exit(1);
+}
+if (![...MODES, 'spelling', 'letterling', 'letters'].includes(mode)) {
+  console.error(`Error: unknown mode "${mode}". Available: ${MODES.join(', ')}`);
+  process.exit(1);
+}
 const seed = getOpt('--seed') || 1;
 const vary = hasFlag('--vary');
 const fuzzy = hasFlag('--fuzzy');

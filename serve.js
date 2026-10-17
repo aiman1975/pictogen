@@ -1,7 +1,7 @@
 // Minimal zero-dependency HTTP server for PictoGen Web Studio.
 import http from 'node:http';
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve, extname } from 'node:path';
+import { readFileSync, statSync } from 'node:fs';
+import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generate, listConcepts, getConcept, drawConcept, shapesToSvg, renderIcon, STYLE_NAMES, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './src/index.js';
 import { getShowcaseData } from './src/showcase.js';
@@ -23,6 +23,31 @@ const MIME = {
 };
 
 const svgCache = new Map();
+const MAX_BODY = 1024 * 1024;
+
+// Reads a JSON request body (capped at MAX_BODY) and hands the parsed payload to `handle`.
+// Errors thrown by `handle` become a 500 JSON response.
+function withJsonBody(req, res, handle) {
+  let body = '';
+  req.on('data', (chunk) => {
+    if (res.headersSent) return;
+    body += chunk;
+    if (body.length > MAX_BODY) {
+      res.writeHead(413, { 'Content-Type': 'application/json', Connection: 'close' });
+      res.end(JSON.stringify({ error: 'Request body too large' }));
+      req.destroy();
+    }
+  });
+  req.on('end', () => {
+    try {
+      const payload = JSON.parse(body || '{}');
+      handle(payload && typeof payload === 'object' ? payload : {});
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+  });
+}
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -51,54 +76,38 @@ const server = http.createServer((req, res) => {
 
   // API: Generate SVG from text
   if (pathname === '/api/generate' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk) => { body += chunk; });
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(body || '{}');
-        const text = payload.text || 'apple';
-        const opts = {
-          style: payload.style || 'flat',
-          mode: payload.mode || 'scene',
-          width: payload.width || 640,
-          height: payload.height || 360,
-          seed: payload.seed || 1,
-          vary: Boolean(payload.vary),
-          fuzzy: Boolean(payload.fuzzy),
-        };
-        const result = generate(text, opts);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(result));
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
-      }
+    withJsonBody(req, res, (payload) => {
+      const text = payload.text || 'apple';
+      const opts = {
+        style: payload.style || 'flat',
+        mode: payload.mode || 'scene',
+        width: payload.width || 640,
+        height: payload.height || 360,
+        seed: payload.seed || 1,
+        vary: Boolean(payload.vary),
+        fuzzy: Boolean(payload.fuzzy),
+      };
+      const result = generate(text, opts);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
     });
     return;
   }
 
   // API: Render single concept with custom expression / animation
   if (pathname === '/api/render-concept' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk) => { body += chunk; });
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(body || '{}');
-        const { id, style = 'flat', expression = 'happy', animation, color, vary, seed = 1 } = payload;
-        const c = getConcept(id);
-        if (!c) {
-          res.writeHead(404, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: `Unknown concept: ${id}` }));
-          return;
-        }
-        const shapes = drawConcept(c, { seed, color, vary, expression, animation, style });
-        const markup = shapesToSvg(shapes, style);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ id, expression, animation, markup }));
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
+    withJsonBody(req, res, (payload) => {
+      const { id, style = 'flat', expression = 'happy', animation, color, vary, seed = 1 } = payload;
+      const c = getConcept(id);
+      if (!c) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: `Unknown concept: ${id}` }));
+        return;
       }
+      const shapes = drawConcept(c, { seed, color, vary, expression, animation, style });
+      const markup = shapesToSvg(shapes, style);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ id, expression, animation, markup }));
     });
     return;
   }
@@ -112,56 +121,40 @@ const server = http.createServer((req, res) => {
 
   // API: Generate multi-scene animated clip (Kids, Documentary, News, How-To)
   if (pathname === '/api/story/generate' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk) => { body += chunk; });
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(body || '{}');
-        const text = payload.text || 'puppy-friend';
-        const opts = {
-          style: payload.style || 'flat',
-          genre: payload.genre || 'kids',
-          aspect: payload.aspect || '16:9',
-          seed: payload.seed || 1,
-          vary: Boolean(payload.vary),
-          title: payload.title,
-        };
-        const story = composeStory(text, opts);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(story));
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
-      }
+    withJsonBody(req, res, (payload) => {
+      const text = payload.text || 'puppy-friend';
+      const opts = {
+        style: payload.style || 'flat',
+        genre: payload.genre || 'kids',
+        aspect: payload.aspect || '16:9',
+        seed: payload.seed || 1,
+        vary: Boolean(payload.vary),
+        title: payload.title,
+      };
+      const story = composeStory(text, opts);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(story));
     });
     return;
   }
 
   // API: Export story as standalone offline HTML player
   if (pathname === '/api/story/export-html' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk) => { body += chunk; });
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(body || '{}');
-        const story = composeStory(payload.text || 'puppy-friend', {
-          style: payload.style || 'flat',
-          genre: payload.genre || 'kids',
-          aspect: payload.aspect || '16:9',
-          seed: payload.seed || 1,
-          vary: Boolean(payload.vary),
-          title: payload.title,
-        });
-        const html = generateStoryHtml(story);
-        res.writeHead(200, {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${(story.title || 'clip').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.html"`,
-        });
-        res.end(html);
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
-      }
+    withJsonBody(req, res, (payload) => {
+      const story = composeStory(payload.text || 'puppy-friend', {
+        style: payload.style || 'flat',
+        genre: payload.genre || 'kids',
+        aspect: payload.aspect || '16:9',
+        seed: payload.seed || 1,
+        vary: Boolean(payload.vary),
+        title: payload.title,
+      });
+      const html = generateStoryHtml(story);
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${(story.title || 'clip').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.html"`,
+      });
+      res.end(html);
     });
     return;
   }
@@ -223,13 +216,15 @@ const server = http.createServer((req, res) => {
 
   // Static file serving from public/
   let filePath = resolve(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname === '/showcase' ? 'showcase.html' : '.' + pathname);
-  if (!filePath.startsWith(PUBLIC_DIR)) {
+  if (filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + sep)) {
     res.writeHead(403);
     res.end('Forbidden');
     return;
   }
 
-  if (existsSync(filePath)) {
+  let isFile = false;
+  try { isFile = statSync(filePath).isFile(); } catch { /* missing */ }
+  if (isFile) {
     const ext = extname(filePath);
     const mime = MIME[ext] || 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': mime });
