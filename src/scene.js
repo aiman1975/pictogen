@@ -243,6 +243,93 @@ function travelKeyframes(motion, { cx, y, s, sx, F, w, W, hY, speed }) {
   return { duration: 6, delay: 0, keyframes };
 }
 
+// ---------------------------------------------------------------------------------------------
+// Timelines: actors that do several things one after another (see src/timeline.js for the beats).
+
+const GESTURE_SECONDS = { sit: 2.6, sleep: 2.6, think: 2.4 };
+const HOLD_SECONDS = 1.6; // the final arrangement stays on screen before the clip loops
+
+/**
+ * Plays the beats out for each actor: where it is (x over time) and which pose it shows.
+ * slots: actor id -> { it, cx, w, h } (its place in the composed scene)
+ * props: concept id -> { cx, w } (things actors can walk to)
+ * Returns { T, tracks: actor id -> [{ t0, t1, x0, x1, pose }] } with times in seconds.
+ */
+function playTimeline(timeline, slots, props, W) {
+  const state = new Map();
+  const tracks = new Map();
+  for (const [id, slot] of slots) {
+    const first = timeline.beats.findIndex((b) => b.actions.some((a) => a.actor === id));
+    const firstAction = timeline.beats[first]?.actions.find((a) => a.actor === id);
+    const onStage = first === 0 && !['enter', 'moveTo'].includes(firstAction?.type);
+    state.set(id, { x: slot.cx, present: onStage, facing: 1, expression: slot.it.m.expression, isPerson: slot.it.c.category === 'people' });
+    tracks.set(id, []);
+  }
+  const off = (id, side) => (side < 0 ? -slots.get(id).w / 2 - 12 : W + slots.get(id).w / 2 + 12);
+  const pose = (id, extra = {}) => {
+    const st = state.get(id), view = slots.get(id).it.m.view;
+    return { expression: st.expression, view: view ?? (st.isPerson ? 'front' : undefined), mirror: !st.isPerson && st.facing < 0, ...extra };
+  };
+  const posOf = (id) => (state.has(id) && state.get(id).present ? { cx: state.get(id).x, w: slots.get(id).w } : props.get(id) || (slots.has(id) && { cx: slots.get(id).cx, w: slots.get(id).w }));
+
+  let t = 0;
+  for (const beat of timeline.beats) {
+    const acting = new Map();
+    for (const a of beat.actions) {
+      if (!slots.has(a.actor)) continue;
+      const st = state.get(a.actor), slot = slots.get(a.actor);
+      if (a.expression) st.expression = a.expression;
+      let move = null, d = 0, shown = null;
+      if (a.type === 'enter' || a.type === 'moveTo' || a.type === 'exit') {
+        let x0 = st.x, x1;
+        if (a.type === 'exit') {
+          x1 = off(a.actor, st.x < W / 2 ? -1 : 1);
+        } else if (a.type === 'moveTo' && posOf(a.target)) {
+          const tgt = posOf(a.target);
+          // Come in from the side with more room, or approach from the side you are on
+          const side = st.present ? Math.sign(st.x - tgt.cx) || 1 : tgt.cx < W / 2 ? 1 : -1;
+          if (!st.present) x0 = off(a.actor, side);
+          x1 = clamp(tgt.cx + side * (tgt.w / 2 + slot.w / 2 + W * 0.04), slot.w / 2, W - slot.w / 2);
+        } else {
+          if (!st.present) x0 = off(a.actor, slot.cx < W / 2 ? -1 : 1);
+          x1 = slot.cx;
+        }
+        const speed = (a.gait === 'run' ? 2 : 0.95) * slot.h;
+        d = clamp(Math.abs(x1 - x0) / speed, 0.6, 6);
+        st.facing = x1 < x0 ? -1 : 1;
+        move = { x0, x1 };
+        st.present = true;
+        shown = { anim: a.gait, ...pose(a.actor), view: slot.it.m.view ?? (st.isPerson ? 'side' : undefined), mirror: st.facing < 0 };
+        st.x = x1;
+        if (a.type === 'exit') st.present = false;
+      } else if (a.type === 'pose') {
+        st.present = true;
+        d = GESTURE_SECONDS[a.anim] ?? 2;
+        shown = pose(a.actor, { anim: a.anim });
+      } else {
+        // 'expr' / 'appear'
+        d = st.present ? 1.4 : 0.8;
+        st.present = true;
+      }
+      acting.set(a.actor, { d, move, shown });
+    }
+    const beatLen = Math.max(0.5, ...[...acting.values()].map((a) => a.d));
+    for (const [id, st] of state) {
+      const act = acting.get(id);
+      const track = tracks.get(id);
+      let t1 = t;
+      if (act?.shown) {
+        t1 = t + act.d;
+        track.push({ t0: t, t1, x0: act.move ? act.move.x0 : st.x, x1: act.move ? act.move.x1 : st.x, pose: act.shown });
+      }
+      if (st.present && t1 < t + beatLen) track.push({ t0: t1, t1: t + beatLen, x0: st.x, x1: st.x, pose: pose(id) });
+    }
+    t += beatLen;
+  }
+  for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + HOLD_SECONDS, x0: st.x, x1: st.x, pose: pose(id) });
+  return { T: t + HOLD_SECONDS, tracks };
+}
+
 /** Lays out a row of items horizontally; sets it.cx and possibly shrinks it.h. */
 function layoutRow(list, W, maxH, rng) {
   if (!list.length) return;
@@ -287,9 +374,11 @@ export function composeScene(matches, opts = {}) {
   }
   items.splice(maxItems);
 
+  const { timeline } = opts;
   const env = detectEnv(items, words);
-  // A figure walking toward or away from the camera: the ground must not scroll sideways under it.
-  if (items.some((it) => ['approach', 'recede'].includes(it.m.animation))) env.parallax = false;
+  // A figure walking toward or away from the camera, or a timeline where actors walk and stop:
+  // the ground must not scroll sideways under them.
+  if (timeline || items.some((it) => ['approach', 'recede'].includes(it.m.animation))) env.parallax = false;
   const pal = palette(env);
   const hY = H * (env.water ? 0.58 : 0.62);
 
@@ -332,9 +421,17 @@ export function composeScene(matches, opts = {}) {
   const acrossSpeed = Math.max(45, 0.9 * Math.max(0, ...items.filter((it) => it.m.animation === 'walk-across').map((it) => it.h)));
 
   const out = [];
+  const actorSlots = new Map(); // timeline actors: drawn last, once every position is known
+  const propsAt = new Map(); // where things are, for "walks to the tree"
   const place = (it, cx, y, anchor = 'bottom') => {
     const s = it.h / 100;
     const base = anchor === 'bottom' ? it.c.baseline ?? 96 : 50;
+    const w = it.w ?? it.h * (it.c.width ?? 0.8);
+    if (timeline && it.m.actor && !actorSlots.has(it.c.id)) {
+      actorSlots.set(it.c.id, { it, cx, y, s, base, w, h: it.h, olk: clamp(W / 280 / (2.4 * s), 0.35, 4) });
+      return;
+    }
+    if (!propsAt.has(it.c.id)) propsAt.set(it.c.id, { cx, w });
     const x0 = cx - 50 * s, y0 = y - base * s;
     const flip = it.k % 2 === 1 && it.c.flippable !== false;
     const tr = flip ? `translate(${x0 + 100 * s} ${y0}) scale(${-s} ${s})` : `translate(${x0} ${y0}) scale(${s})`;
@@ -388,6 +485,61 @@ export function composeScene(matches, opts = {}) {
     const exprAttr = expression ? ` data-expression="${expression}"` : '';
     const viewAttr = view ? ` data-view="${view}"` : '';
     out.push(`<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}"${animAttr}${exprAttr}${viewAttr} transform="${tr.replace(/(\d+\.\d{3})\d+/g, '$1')}" style="cursor: grab;">${wrappedContent}</g>`);
+  };
+
+  // One timeline actor: a wrapper moved by keyframes, and one drawing per pose, switched on and off
+  // in step with the beats. With animation off (still exports) the last on-screen pose shows in place.
+  const renderActor = ({ it, y, s, base, olk, w }, track, T, name) => {
+    const onScreen = track.filter((seg) => seg.x1 > -w / 2 && seg.x1 < W + w / 2);
+    const last = onScreen[onScreen.length - 1] || track[track.length - 1];
+    const home = last ? last.x1 : 0;
+    const at = (sec) => pct(sec / T);
+    const variants = new Map();
+    for (const seg of track) {
+      const p = seg.pose;
+      const key = `${p.anim}|${p.expression}|${p.view}|${p.mirror}`;
+      if (!variants.has(key)) variants.set(key, { pose: p, windows: [] });
+      seg.variant = key;
+      variants.get(key).windows.push(seg);
+    }
+
+    // Position: translateX in the figure's own units, linear between the beats' key points
+    let posFrames = '', lastPct = -1;
+    for (const seg of track) {
+      for (const [sec, x] of [[seg.t0, seg.x0], [seg.t1, seg.x1]]) {
+        let pc = Math.max(r2((sec / T) * 100), lastPct === -1 ? 0 : lastPct);
+        if (pc === lastPct) pc = r2(pc + 0.01);
+        posFrames += `${pc}% { transform: translateX(${r2((x - home) / s)}px); } `;
+        lastPct = pc;
+      }
+    }
+    motionCss.push(`@keyframes ${name}p { ${track.length && track[0].t0 > 0 ? `0% { transform: translateX(${r2((track[0].x0 - home) / s)}px); } ` : ''}${posFrames}}`);
+
+    let poses = '', i = 0;
+    for (const [key, { pose }] of variants) {
+      // Visibility: on during this pose's windows, off otherwise (step-end holds each value)
+      let frames = `0% { opacity: ${track[0]?.t0 === 0 && track[0].variant === key ? 1 : 0}; } `;
+      track.forEach((seg, j) => {
+        frames += `${at(seg.t0)} { opacity: ${seg.variant === key ? 1 : 0}; } `;
+        const next = track[j + 1];
+        if (!next || next.t0 > seg.t1 + 1e-6) frames += `${at(seg.t1)} { opacity: 0; } `;
+      });
+      motionCss.push(`@keyframes ${name}v${i} { ${frames}}`);
+      const shapes = drawConcept(it.c, {
+        seed: `${seed}:${it.c.id}:0`, color: it.m.color, vary, style,
+        expression: pose.expression || 'happy', animation: pose.anim, view: pose.view,
+      });
+      let svg = shapesToSvg(shapes, style, { olk });
+      if (pose.anim && !svg.includes(`pg-anim-${pose.anim}`)) svg = `<g class="pg-anim-${pose.anim}">${svg}</g>`;
+      if (pose.mirror) svg = `<g transform="translate(100 0) scale(-1 1)">${svg}</g>`;
+      const still = last && last.variant === key;
+      poses += `<g class="pg-timeline-pose" opacity="${still ? 1 : 0}" style="animation: ${name}v${i} ${r2(T)}s step-end infinite;"><g class="pg-figure">${svg}</g></g>`;
+      i++;
+    }
+    const rx = 50 * (it.c.width ?? 0.8) * 0.72;
+    const shadow = shadows ? `<ellipse class="pg-shadow" cx="50" cy="${base}" rx="${r2(rx)}" ry="${r2(Math.max(3, rx * 0.13))}" fill="#000000" opacity="0.16"/>` : '';
+    const tr = `translate(${r2(home - 50 * s)} ${r2(y - base * s)}) scale(${r2(s * 1000) / 1000})`;
+    return `<g class="movable-item" data-id="${it.c.id}" data-k="0" data-label="${it.c.label || it.c.id}" data-actor="${it.c.id}" transform="${tr}" style="cursor: grab;"><g class="pg-timeline-move" style="animation: ${name}p ${r2(T)}s linear infinite;">${shadow}${poses}</g></g>`;
   };
 
   // background objects (mountains, rainbows): large, behind everything, sitting on the horizon
@@ -457,6 +609,12 @@ export function composeScene(matches, opts = {}) {
       }
       front.forEach((it) => place(it, it.cx, frontY));
     }
+  }
+
+  if (timeline && actorSlots.size) {
+    const { T, tracks } = playTimeline(timeline, actorSlots, propsAt, W);
+    timeline.duration = r2(T);
+    for (const [id, slot] of actorSlots) out.push(renderActor(slot, tracks.get(id), T, `${uid}a${id}`));
   }
 
   const fx = styleWrap(style, uid, out.join(''), { scale: W / 260, freq: 0.02, blur: W / 450 });

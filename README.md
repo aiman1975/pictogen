@@ -30,6 +30,7 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
   - Handles plurals & irregular forms (*"geese"*, *"leaves"*, *"bicycles"*).
   - Semantic aliases (*"schoolboy"* &rarr; boy, *"automobile"* &rarr; car, *"nemo"* &rarr; fish).
   - Motion and depth (*"a boy walking towards us"* &rarr; walks from the horizon toward the camera, growing with perspective; *"a girl walking away into the distance"* &rarr; seen from behind, shrinking toward the horizon; *"a man and a dog walking across the park"* &rarr; both walk, at the same pace).
+  - Several actions in one scene (*"a boy walks in, then waves, then a dog runs to him"*, *"a girl walks in, then smiles, then she jumps, finally she leaves"*) &rarr; a timeline: actors enter, walk or run to someone, gesture, change expression and leave, turning to face the way they go.
 - 🧩 **Extensible Library**: ~70 hand-drawn concepts (recolorable, with expressions & motion) plus ~3,170 Fluent Emoji library icons (MIT). The hand-drawn core:
   - **Vehicles**: `bike`, `car`, `bus`, `boat`, `plane`
   - **Nature**: `tree`, `neem`, `flower`, `mountain`, `grass`

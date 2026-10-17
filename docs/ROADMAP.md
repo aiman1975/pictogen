@@ -68,8 +68,12 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [ ] Props that react: trees sway in wind, water ripples around a swimmer
 
 ### 4. Clip engine (timeline)
-- [ ] **Beats within a scene**: "a boy walks in, then waves, then a dog runs to him" becomes a
-      per-actor timeline (enter, act, react, exit) instead of one looping motion per figure
+- [x] **Beats within a scene**: "a boy walks in, then waves, then a dog runs to him" becomes a
+      per-actor timeline: enter, move to someone or something, gesture, change expression, leave.
+      Subjects carry over between beats, pronouns resolve, and figures turn (profile while walking,
+      facing us while gesturing)
+- [ ] Timelines: several figures of one kind ("two boys walk in"), walking toward/away from the
+      camera inside a timeline, simultaneous actions with different timing ("while")
 - [ ] Camera: push-in, pan, follow a character, cut to a close-up
 - [ ] Scene transitions (cut, fade, wipe) and caption timing tied to the beats
 - [ ] Recurring characters: the same boy looks the same in every scene (seeded identity)

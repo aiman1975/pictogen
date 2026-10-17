@@ -10,6 +10,7 @@ const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
 const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...ENV_WORDS.snow, ...ENV_WORDS.rain]);
 import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/render.js';
 import { getConcept } from './concepts/index.js';
+import { parseTimeline } from './timeline.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
 export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
@@ -17,12 +18,15 @@ export { renderIcon, renderCard, renderSheet, drawConcept, shapesToSvg } from '.
 export { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 export { parseText, tokenize } from './text/matcher.js';
 export { composeScene } from './scene.js';
+export { parseTimeline, hasSequence } from './timeline.js';
 export { listConcepts, getConcept, registerConcept } from './concepts/index.js';
 export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './story.js';
 
 /**
- * generate(text, opts) -> { svg, matches, unknown, setting, tokens, images }
+ * generate(text, opts) -> { svg, matches, unknown, setting, tokens, images, duration?, beats? }
  *   setting: words that changed the scene backdrop (night, rain, beach...) instead of drawing an object
+ *   duration, beats: for a scene told as a sequence ("a boy walks in, then waves, then a dog runs to
+ *     him"), the clip length in seconds and the actions of each beat (see src/timeline.js)
  *
  * opts.mode   'scene' (default) | 'comic' | 'stickman' | 'callout' | 'knolling' | 'split' | 'isometric' | 'waffle' | 'coloring' | 'icons' | 'card'
  * opts.style  'flat' | 'cartoon' | 'cute2d' | 'comic' | 'whiteboard' | 'geometric' | 'doodle' | 'editorial' | 'papercut' | 'stickman' | 'outline' | 'pastel' | 'silhouette' | 'sketch' | 'neon' | 'blueprint' | 'chalkboard' | 'vintage' | 'pixel'
@@ -43,6 +47,14 @@ export function generate(text, opts = {}) {
     ? matches.filter((m) => ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)
     : [];
   if (backdrop.length) matches = matches.filter((m) => !backdrop.includes(m));
+  // Several things happening one after another: actors follow a timeline of beats
+  const timeline = mode === 'scene' ? parseTimeline(text) : null;
+  if (timeline) {
+    matches = [
+      ...timeline.actors.map(({ id, match }) => ({ ...match, id, count: 1, animation: undefined, actor: true })),
+      ...timeline.props.filter((m) => !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)),
+    ];
+  }
   const common = { style, seed, vary, width, height, text };
   let svg;
   if (mode === 'icons') {
@@ -72,7 +84,7 @@ export function generate(text, opts = {}) {
   } else if (mode === 'alphabet' || mode === 'spelling' || mode === 'letterling' || mode === 'letters') {
     svg = renderAlphabet(matches, common);
   } else {
-    svg = composeScene(matches, { ...common, words: parsed.tokens });
+    svg = composeScene(matches, { ...common, words: parsed.tokens, timeline });
   }
   const images = matches.map((m) => ({
     id: m.id, word: m.word, count: m.count, color: m.color, expression: m.expression, animation: m.animation, view: m.view,
@@ -82,5 +94,6 @@ export function generate(text, opts = {}) {
     ? [...backdrop.map((m) => m.word), ...parsed.unknown.filter((w) => SETTING_WORDS.has(w))]
     : [];
   const unknown = parsed.unknown.filter((w) => !setting.includes(w));
-  return { svg, ...parsed, matches, unknown, setting, images };
+  const clip = timeline?.duration ? { duration: timeline.duration, beats: timeline.beats } : {};
+  return { svg, ...parsed, matches, unknown, setting, images, ...clip };
 }

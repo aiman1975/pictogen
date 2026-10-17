@@ -462,7 +462,8 @@ export function composeStory(storyInput, opts = {}) {
       tag: sc.tag || (detectedGenre === 'howto' ? `STEP ${i + 1}` : detectedGenre === 'news' ? 'UPDATE' : detectedGenre === 'documentary' ? `CHAPTER ${i + 1}` : undefined),
       headline: sc.headline || '',
       caption: sc.caption || sc.prompt,
-      duration: sc.duration || 5.0,
+      // A scene told as a sequence ("walks in, then waves...") lasts at least as long as its timeline
+      duration: Math.max(sc.duration || 5.0, result.duration || 0),
       svg: result.svg,
       matches: result.matches,
     };
