@@ -2,7 +2,7 @@
 // Smoke test: every concept renders in every style without NaN/undefined, scenes/cards/sheets render,
 // aliases don't collide, and a few parsing expectations hold.
 
-import { listConcepts, renderIcon, renderCard, STYLE_NAMES, generate, parseText } from '../src/index.js';
+import { listConcepts, renderIcon, renderCard, STYLE_NAMES, isStyle, generate, parseText } from '../src/index.js';
 
 let fails = 0;
 const fail = (msg) => { fails++; console.error('✗ ' + msg); };
@@ -75,6 +75,23 @@ const counts = (t) => parseText(t).matches.map((m) => `${m.id}x${m.count}`).join
 for (const [t, want] of [['3 dogs', 'dogx3'], ['2 cats and 4 dogs', 'catx2,dogx4'], ['0 cats', 'catx1'], ['99 balloons', 'balloonx12'], ['keycap 3', 'keycap_3x1']]) {
   if (counts(t) !== want) fail(`parse: "${t}" -> "${want}" (got "${counts(t)}")`);
 }
+
+// number words, multipliers and negation
+for (const [t, want] of [
+  ['one hundred birds', 'birdx12'], ['a dozen eggs', 'eggx12'], ['two eggs', 'eggx2'], ['eleven cats', 'catx11'],
+  ['no cats', ''], ['a dog and no cats', 'dogx1'], ['zero apples and two dogs', 'dogx2'], ['a girl without a ball', 'girlx1'],
+  ['no big red apples and three bananas', 'bananax3'], ['no, draw a cat', 'catx1'],
+]) {
+  if (counts(t) !== want) fail(`parse: "${t}" -> "${want}" (got "${counts(t)}")`);
+}
+if (parseText('a dog and no cats').excluded.join() !== 'cats') fail('parse: "no cats" reported as excluded');
+
+// "alphabet" is an alias of the letterling style, not a style of its own
+if (STYLE_NAMES.length !== 20 || STYLE_NAMES.includes('alphabet') || !isStyle('alphabet') || isStyle('constructor')) fail(`styles: expected 20 distinct styles (got ${STYLE_NAMES.length})`);
+
+// a scene with no landscape zooms in so a lone small animal is not a speck
+const catScale = +generate('a cat').svg.match(/data-id="cat"[^>]*transform="translate\([^)]*\) scale\(([\d.]+)/)[1];
+if (!(catScale * 100 > 360 * 0.3)) fail(`scene: lone cat should stand at least 30% of the frame (scale ${catScale})`);
 
 // in a scene, time-of-day words paint the backdrop rather than drawing their emoji on the ground
 const dusk = generate('three dogs at sunset');

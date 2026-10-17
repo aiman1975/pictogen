@@ -35,7 +35,7 @@ try {
 
   check((await post('/api/generate', { text: 123, width: 'abc' })).status === 200, 'non-string text and bad width are tolerated');
   check((await post('/api/generate', 'null')).status === 200, 'a JSON null body falls back to defaults');
-  check((await post('/api/generate', '{oops')).status === 500, 'malformed JSON is a 500 with an error message');
+  check((await post('/api/generate', '{oops')).status === 400, 'malformed JSON is a 400');
 
   const big = await post('/api/generate', 'x'.repeat(2 * 1024 * 1024)).catch(() => null);
   check(!big || big.status === 413, 'oversized body is rejected');

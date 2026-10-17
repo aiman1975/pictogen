@@ -12,7 +12,7 @@ import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/r
 import { getConcept } from './concepts/index.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
-export { STYLES, STYLE_NAMES } from './core/styles.js';
+export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
 export { renderIcon, renderCard, renderSheet, drawConcept, shapesToSvg } from './core/render.js';
 export { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 export { parseText, tokenize } from './text/matcher.js';

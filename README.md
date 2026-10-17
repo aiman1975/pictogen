@@ -22,7 +22,8 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
   - **Flashcard (`card`)**: Large friendly typography and hero icon on tinted card (ideal for kids' flashcards & language learning).
   - **Sticker / Icon Sheet (`icons`)**: Organized grid of matched concepts with captions (great for presentation slides & documentation).
 - 🧠 **Smart Text Matcher**:
-  - Handles numbers (*"three apples"* &rarr; count = 3).
+  - Handles numbers (*"three apples"*, *"4 dogs"*, *"a dozen eggs"* &rarr; counts, capped at 12 per item).
+  - Handles negation (*"a dog and no cats"*, *"a boy without a ball"* &rarr; the negated item is left out).
   - Handles colors (*"a blue bike"* &rarr; bike frame rendered in blue).
   - Handles sizes (*"huge tree"* &rarr; scaled up).
   - Handles plurals & irregular forms (*"geese"*, *"leaves"*, *"bicycles"*).
@@ -112,4 +113,4 @@ Run the test suite (smoke test, SVG well-formedness, animations, presentation mo
 ```bash
 npm test
 ```
-`scripts/test-tts.js` and the `.ps1` audio scripts use Windows PowerShell voices and only run on Windows.
+`scripts/generate-showcase-audio.js` regenerates the showcase narration in `public/audio/` with the operating system's own voice engine: PowerShell voices on Windows, `say` on macOS, or `espeak-ng`/`espeak` on Linux (`sudo apt install espeak-ng`). `node scripts/test-tts.js` checks that an engine is available.

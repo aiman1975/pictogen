@@ -193,7 +193,7 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
 function layoutRow(list, W, maxH, rng) {
   if (!list.length) return;
   list.forEach((it) => { it.h = Math.min(it.h, maxH); it.w = it.h * (it.c.width ?? 0.8); });
-  const baseGap = (a, b) => (a.c.id === b.c.id ? W * 0.004 : W * 0.035);
+  const baseGap = (a, b) => (a.c.id === b.c.id ? W * 0.03 : W * 0.035);
   const gaps = list.slice(1).map((it, i) => baseGap(list[i], it));
   const avail = W * 0.92;
   const gapSum = gaps.reduce((s, g) => s + g, 0);
@@ -249,8 +249,17 @@ export function composeScene(matches, opts = {}) {
 
   const groups = { background: [], sky: [], air: [], back: [], water: [], underwater: [], front: [] };
 
+  for (const it of items) it.h = it.c.scale * unit * (it.m.size || 1);
+  // With no tree/house/mountain to give a sense of real size, small subjects (a cat, apples)
+  // would be specks on the grass: zoom everything in together so the tallest grounded one
+  // stands about 40% of the frame, keeping their sizes relative to each other.
+  const grounded = items.filter((it) => !['sky', 'air', 'background'].includes(it.c.placement));
+  if (!hasLandscape && grounded.length) {
+    const zoom = clamp((H * 0.4) / Math.max(...grounded.map((it) => it.h)), 1, 3);
+    items.forEach((it) => { it.h *= zoom; });
+  }
+
   for (const it of items) {
-    it.h = it.c.scale * unit * (it.m.size || 1);
     const pl = it.c.placement || 'ground';
     if (groups[pl] && pl !== 'front' && pl !== 'back') groups[pl].push(it);
     else if (it.c.scale >= 1.4) groups.back.push(it);

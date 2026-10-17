@@ -28,6 +28,10 @@ try {
   r = run('a boy', '-m', 'bogus');
   check(r.status === 1 && /unknown mode/.test(r.stderr), 'unknown mode is rejected');
 
+  check(run('a cat', '-s', 'alphabet', '-o', 'a.svg').status === 0, 'style alias "alphabet" is accepted');
+  r = run('a dog and no cats', '-o', 'n.svg');
+  check(r.stdout.includes('Left out: cats'), 'negated concepts are reported');
+
   r = run('3 dogs', '-m', 'icons', '-s', 'cartoon', '-o', 'dogs.svg');
   check(r.status === 0 && r.stdout.includes('dog ×3'), 'prompt with a numeral reports the count');
   check(readFileSync(join(dir, 'dogs.svg'), 'utf8').startsWith('<svg'), 'writes the SVG to -o');

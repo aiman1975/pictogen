@@ -3,7 +3,7 @@ import http from 'node:http';
 import { readFileSync, statSync } from 'node:fs';
 import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generate, listConcepts, getConcept, drawConcept, shapesToSvg, renderIcon, STYLE_NAMES, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './src/index.js';
+import { generate, listConcepts, getConcept, drawConcept, shapesToSvg, renderIcon, STYLE_NAMES, isStyle, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './src/index.js';
 import { getShowcaseData } from './src/showcase.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -26,7 +26,7 @@ const svgCache = new Map();
 const MAX_BODY = 1024 * 1024;
 
 // Reads a JSON request body (capped at MAX_BODY) and hands the parsed payload to `handle`.
-// Errors thrown by `handle` become a 500 JSON response.
+// Malformed JSON is a 400; errors thrown by `handle` become a 500 JSON response.
 function withJsonBody(req, res, handle) {
   let body = '';
   req.on('data', (chunk) => {
@@ -39,8 +39,15 @@ function withJsonBody(req, res, handle) {
     }
   });
   req.on('end', () => {
+    let payload;
     try {
-      const payload = JSON.parse(body || '{}');
+      payload = JSON.parse(body || '{}');
+    } catch (err) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: `Invalid JSON: ${err.message}` }));
+      return;
+    }
+    try {
       handle(payload && typeof payload === 'object' ? payload : {});
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -187,7 +194,7 @@ const server = http.createServer((req, res) => {
   // API: Single concept thumbnail (GET /api/icon?id=apple&style=flat) – used by the dictionary grid
   if (pathname === '/api/icon' && req.method === 'GET') {
     const id = url.searchParams.get('id');
-    const style = STYLE_NAMES.includes(url.searchParams.get('style')) ? url.searchParams.get('style') : 'flat';
+    const style = isStyle(url.searchParams.get('style')) ? url.searchParams.get('style') : 'flat';
     if (!getConcept(id)) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Unknown concept');
