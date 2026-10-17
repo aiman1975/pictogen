@@ -300,12 +300,14 @@ function playTimeline(timeline, slots, props, W) {
 
   let t = 0;
   const camera = [];
+  const beatTimes = []; // when each beat starts and ends (the studio's timeline view)
   for (const beat of timeline.beats) {
     if (beat.camera && !beat.actions.length) {
       // A camera beat: everyone holds still while the camera moves
       const d = CAMERA_SECONDS[beat.camera.type] ?? 1.6;
       camera.push({ ...beat.camera, t0: t, t1: t + d });
       for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + d, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
+      beatTimes.push({ t0: r2(t), t1: r2(t + d) });
       t += d;
       continue;
     }
@@ -398,10 +400,11 @@ function playTimeline(timeline, slots, props, W) {
       }
       if (st.present && t1 < t + beatLen) track.push({ t0: t1, t1: t + beatLen, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
     }
+    beatTimes.push({ t0: r2(t), t1: r2(t + beatLen) });
     t += beatLen;
   }
   for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + HOLD_SECONDS, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
-  return { T: t + HOLD_SECONDS, tracks, camera };
+  return { T: t + HOLD_SECONDS, tracks, camera, beatTimes };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -814,8 +817,9 @@ export function composeScene(matches, opts = {}) {
     return p ? { x: p.cx, y: p.anchor === 'bottom' ? p.y - p.h * 0.55 : p.y, h: p.h } : null;
   };
   if (timeline && actorSlots.size) {
-    const { T, tracks, camera: events } = playTimeline(timeline, actorSlots, propsAt, W);
+    const { T, tracks, camera: events, beatTimes } = playTimeline(timeline, actorSlots, propsAt, W);
     timeline.duration = r2(T);
+    timeline.beatTimes = beatTimes;
     for (const [key, slot] of actorSlots) out.push(renderActor(slot, tracks.get(key), T, `${uid}a${key.replace('#', '_')}`));
     if (events.length || timeline.follow) {
       const followed = timeline.follow && tracks.get(`${timeline.follow}#0`);

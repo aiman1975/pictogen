@@ -10,7 +10,7 @@ const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
 const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...ENV_WORDS.snow, ...ENV_WORDS.rain]);
 import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/render.js';
 import { getConcept } from './concepts/index.js';
-import { parseTimeline, extractCamera } from './timeline.js';
+import { parseTimeline, extractCamera, editTimeline } from './timeline.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
 export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
@@ -18,7 +18,7 @@ export { renderIcon, renderCard, renderSheet, drawConcept, shapesToSvg } from '.
 export { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 export { parseText, tokenize } from './text/matcher.js';
 export { composeScene } from './scene.js';
-export { parseTimeline, hasSequence, cameraAction, extractCamera } from './timeline.js';
+export { parseTimeline, hasSequence, cameraAction, extractCamera, editTimeline, POSE_ANIMS, ACTION_TYPES, CAMERA_TYPES } from './timeline.js';
 export { listConcepts, getConcept, registerConcept } from './concepts/index.js';
 export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './story.js';
 
@@ -56,8 +56,14 @@ export function generate(text, opts = {}) {
     ? matches.filter((m) => ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)
     : [];
   if (backdrop.length) matches = matches.filter((m) => !backdrop.includes(m));
-  // Several things happening one after another: actors follow a timeline of beats
-  const timeline = mode === 'scene' ? parseTimeline(text) : null;
+  // Several things happening one after another: actors follow a timeline of beats - the prompt's,
+  // or the beats as edited in the studio (opts.beats), which can also bring a still scene to life
+  let timeline = mode === 'scene' ? parseTimeline(text) : null;
+  const cast = timeline
+    ? [...timeline.actors.map(({ id, match }) => ({ ...match, id, count: match.count ?? 1, animation: undefined })), ...timeline.props]
+    : matches.map((m) => ({ ...m, animation: undefined }));
+  const edited = mode === 'scene' && Array.isArray(opts.beats);
+  if (edited) timeline = editTimeline(opts.beats, cast.filter((m) => !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)), timeline);
   if (timeline) {
     matches = [
       ...timeline.actors.map(({ id, match }) => ({ ...match, id, count: match.count ?? 1, animation: undefined, actor: true })),
@@ -111,6 +117,13 @@ export function generate(text, opts = {}) {
     ? [...backdrop.map((m) => m.word), ...parsed.unknown.filter((w) => SETTING_WORDS.has(w))]
     : [];
   const unknown = parsed.unknown.filter((w) => !setting.includes(w));
-  const clip = timeline?.duration ? { duration: timeline.duration, beats: timeline.beats } : common.duration ? { duration: common.duration } : {};
-  return { svg, ...parsed, matches, unknown, setting, images, ...clip };
+  const clip = timeline?.duration
+    ? { duration: timeline.duration, beats: timeline.beats.map((b, i) => ({ ...b, ...timeline.beatTimes?.[i] })) }
+    : common.duration ? { duration: common.duration } : {};
+  // Who and what a timeline can use (the studio's timeline editor)
+  const castOut = mode === 'scene'
+    ? cast.filter((m) => getConcept(m.id) && !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary))
+      .map((m) => ({ id: m.id, label: getConcept(m.id).label || m.id, person: getConcept(m.id).category === 'people' }))
+    : [];
+  return { svg, ...parsed, matches, unknown, setting, images, ...clip, cast: castOut, ...(edited ? { edited: true } : {}) };
 }

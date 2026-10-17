@@ -112,7 +112,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [ ] Visual regression tests: render reference prompts to PNG and compare against approved images
 - [ ] A license check in CI so no unlicensed asset gets in (see `docs/LICENSE_AUDIT.md`)
 - [ ] Performance budget for clips with many figures
-- [ ] Studio UI: a timeline view, per-figure motion picker including approach/recede
+- [x] Studio **timeline view**: one lane per figure plus the camera, a playhead that scrubs; click a
+      step to change who does what (walk in, run to someone, toward us, away, gestures, feelings, camera
+      moves), move steps earlier or later, add or delete them, or add a first step to a still scene
+- [ ] Timeline view: drag to retime a step, undo/redo, save edited clips into Clip Studio
 
 ## Known issues to fix along the way
 - The bicycle drawing loses its wheels at small sizes

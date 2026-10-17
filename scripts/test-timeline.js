@@ -1,5 +1,5 @@
 // Scene timelines: several actions one after another ("a boy walks in, then waves, then a dog runs to him").
-import { parseTimeline, hasSequence, generate, composeStory, getConcept } from '../src/index.js';
+import { parseTimeline, hasSequence, generate, composeStory, getConcept, editTimeline, parseText } from '../src/index.js';
 import { wellFormedError } from './xml-check.js';
 
 let fails = 0;
@@ -189,6 +189,23 @@ check(jumpStarts !== undefined && cueArrives !== undefined && Math.abs(jumpStart
 const standPose = cb.match(/class="pg-timeline-pose"[^>]*style="animation: (\S+) /)[1];
 check(/^0% \{ opacity: 1/.test(kfOf(cue.svg, standPose)), 'the boy is on stage from the start, waiting for the dog');
 check(!wellFormedError(cue.svg), '"when" timelines are well-formed XML');
+
+// 2f. Edited timelines (the studio's timeline view)
+const cast = parseText('a boy, a dog and a tree').matches;
+const ed = editTimeline([
+  { actions: [{ actor: 'boy', type: 'enter', gait: 'run' }, { actor: 'boy', type: 'pose', anim: 'wave' }] },
+  { actions: [{ actor: 'dog', type: 'moveTo', target: 'tree' }, { actor: 'cat', type: 'enter' }, { actor: 'boy', type: 'moveTo', target: 'boy' }] },
+  { actions: [{ actor: 'boy', type: 'pose', anim: 'explode' }, { actor: 'dog', type: 'expr' }], camera: { type: 'zoomIn', target: 'nobody' } },
+  { actions: [{ actor: 'dog', type: 'expr', expression: 'sad' }], camera: { type: 'panTo' } },
+], cast);
+const edSummary = ed.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.target ? '>' + a.target : ''}${a.expression ? '~' + a.expression : ''}`).join('+') + (b.camera ? ` [${b.camera.type}${b.camera.target ? '>' + b.camera.target : ''}]` : '')).join(' | ');
+check(edSummary === 'boy:enter | dog:moveTo>tree |  [zoomIn] | dog:expr~sad', `edited steps keep what fits and drop the rest (${edSummary})`);
+check(ed.actors.map((a) => a.id).join() === 'boy,dog' && ed.props.map((m) => m.id).join() === 'tree', 'figures that act become actors, the rest stay props');
+check(editTimeline([{ actions: [{ actor: 'cat', type: 'enter' }] }], cast) === null && editTimeline('junk', cast) === null, 'nothing left to play -> no timeline');
+const reordered = generate('a boy walks in, then waves, then a dog runs to him', { beats: [
+  { actions: [{ actor: 'dog', type: 'enter', gait: 'run' }] }, { actions: [{ actor: 'boy', type: 'moveTo', target: 'dog' }] },
+] });
+check(reordered.edited && reordered.beats.length === 2 && reordered.beats[1].t0 === reordered.beats[0].t1 && !wellFormedError(reordered.svg), 'generate() plays edited steps back to back');
 
 // 3. Clips: a sequenced scene lasts as long as its timeline
 const story = composeStory([{ prompt, caption: 'x', duration: 3 }]);

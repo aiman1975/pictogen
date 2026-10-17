@@ -1,6 +1,7 @@
 // Studio editing in a real browser (skipped without Playwright): expression changes reach every pose
 // of a timeline actor, redrawn figures keep their colour and look, timeline actors keep their
-// motions, and dragging follows the pointer exactly - also inside a zoomed camera.
+// motions, dragging follows the pointer exactly - also inside a zoomed camera - and the timeline
+// view edits, reorders and scrubs the steps.
 import { spawn, execSync } from 'node:child_process';
 import { createServer } from 'node:net';
 import { createRequire } from 'node:module';
@@ -115,6 +116,58 @@ try {
   const zoom = await page.evaluate(() => new DOMMatrix(getComputedStyle(document.querySelector('.pg-camera')).transform).a);
   const zoomed = await dragBy('.movable-item[data-id="boy"]', 100);
   check(zoom > 1.3 && Math.abs(zoomed - 100) < 3, `zoomed in ${zoom.toFixed(2)}x: the boy still moves exactly with the pointer (${zoomed.toFixed(1)}px for 100px)`);
+
+  // 4. Timeline view: lanes per figure, editing a step redraws the clip, steps reorder, edits can be
+  // dropped, a still scene gets its first step, and the ruler scrubs
+  const rerender = async (job) => {
+    await page.evaluate(() => { window.__before = window.pictogenStudio.getState().result; });
+    await job();
+    await page.waitForFunction(() => window.pictogenStudio.getState().result !== window.__before);
+    await page.waitForTimeout(200);
+  };
+  const tl = () => page.evaluate(() => ({
+    hidden: document.getElementById('timeline-panel').hidden,
+    lanes: [...document.querySelectorAll('#timeline-panel .tl-label')].map((l) => l.textContent.trim()).filter(Boolean),
+    steps: document.querySelectorAll('#timeline-panel [data-step]').length,
+    edited: !!document.querySelector('#timeline-panel .tl-edited'),
+    beats: window.pictogenTimeline.getBeats().map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}`).join('+')).join(' | '),
+  }));
+  await draw('a boy walks in, then waves, then a dog runs to him');
+  let view = await tl();
+  check(!view.hidden && view.steps === 3 && view.lanes.join() === 'Steps,boy,dog', `the timeline shows 3 steps and a lane per figure (${view.lanes.join(', ')})`);
+  await page.click('.tl-block[data-actor="boy"][data-beat="1"]');
+  await rerender(() => page.selectOption('#tl-editor select[data-field="does"]', 'pose:jump'));
+  view = await tl();
+  const boyAnims = await page.evaluate(() => [...document.querySelectorAll('.movable-item[data-actor="boy"] .pg-timeline-pose')].map((p) => p.dataset.anim).filter(Boolean));
+  check(view.edited && view.beats === 'boy:enter | boy:pose/jump | dog:moveTo' && boyAnims.includes('jump') && !boyAnims.includes('wave'), `changing "waves" to "jumps" redraws the clip (${boyAnims.join(', ')})`);
+  await page.click('.tl-block[data-step="2"]');
+  await rerender(() => page.click('#tl-editor [data-do="earlier"]'));
+  view = await tl();
+  check(view.beats === 'boy:enter | dog:moveTo | boy:pose/jump', `a step moves earlier (${view.beats})`);
+  await rerender(() => page.click('#timeline-panel [data-do="revert"]'));
+  view = await tl();
+  check(!view.edited && view.beats === 'boy:enter | boy:pose/wave | dog:moveTo', 'edits can be dropped for the prompt\'s own steps');
+
+  await draw('a boy and a dog in the park');
+  view = await tl();
+  check(!view.hidden && view.steps === 0, 'a still scene shows an empty timeline');
+  await rerender(() => page.click('#timeline-panel [data-do="add-step"]'));
+  view = await tl();
+  const moving = await page.evaluate(() => document.querySelectorAll('.pg-timeline-pose').length);
+  check(view.steps === 1 && view.beats === 'boy:pose/wave' && moving > 0, `"＋ Step" brings a still scene to life (${view.beats})`);
+  await rerender(() => page.click('#tl-editor [data-do="close"]').then(() => page.click('.tl-block[data-step="0"]')).then(() => page.click('#tl-editor [data-do="add-action"]')));
+  view = await tl();
+  check(view.beats === 'boy:pose/wave+dog:pose/jump', `another figure can act in the same step (${view.beats})`);
+
+  const ruler = await page.$('#tl-ruler');
+  const rb = await ruler.boundingBox();
+  await page.mouse.click(rb.x + rb.width / 2, rb.y + rb.height / 2);
+  const scrub = await page.evaluate(() => {
+    const anims = document.querySelector('#svg-viewport svg').getAnimations({ subtree: true });
+    const T = window.pictogenStudio.getState().result.duration * 1000;
+    return { paused: anims.length > 0 && anims.every((a) => a.playState === 'paused'), at: anims[0]?.currentTime / T };
+  });
+  check(scrub.paused && Math.abs(scrub.at - 0.5) < 0.03, `clicking the ruler pauses the clip at that moment (${(scrub.at * 100).toFixed(1)}%)`);
 
   check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
 } finally {

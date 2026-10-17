@@ -44,6 +44,14 @@ try {
   check((await fetch(`${base}/api/svg?text=apple&mode=card`)).headers.get('content-type').startsWith('image/svg+xml'), 'GET /api/svg serves SVG');
   check((await fetch(`${base}/api/icon?id=no_such_concept`)).status === 404, 'unknown icon is 404');
 
+  const edit = await (await post('/api/generate', { text: 'a boy and a dog in the park', beats: [
+    { actions: [{ actor: 'dog', type: 'moveTo', target: 'boy', gait: 'run' }] },
+    { actions: [{ actor: 'boy', type: 'pose', anim: 'wave' }, { actor: 'ghost', type: 'pose', anim: 'wave' }, { actor: 'boy', type: 'pose', anim: '<script>' }] },
+  ] })).json();
+  check(edit.edited && edit.beats?.length === 2 && edit.beats[1].actions.length === 1 && edit.duration > 0 && edit.beats[1].t1 > edit.beats[0].t1,
+    'POST /api/generate plays edited steps, timed, dropping unknown figures and gestures');
+  check(edit.cast.map((c) => c.id).join() === 'boy,dog', 'the result lists who can act (cast)');
+
   const face = /class="pg-face-(?:eyes|mouth)"/;
   const front = await (await post('/api/render-concept', { id: 'boy' })).json();
   const back = await (await post('/api/render-concept', { id: 'boy', view: 'back' })).json();

@@ -306,6 +306,77 @@
       color: var(--primary);
     }
 
+    /* Timeline view (public/js/timeline-view.js) */
+    .timeline-panel {
+      --tl-move: #dbeafe; --tl-move-ink: #1e40af;
+      --tl-gesture: #fef3c7; --tl-gesture-ink: #92400e;
+      --tl-feeling: #fce7f3; --tl-feeling-ink: #9d174d;
+      --tl-leave: #e2e8f0; --tl-leave-ink: #334155;
+      --tl-camera: #ede9fe; --tl-camera-ink: #5b21b6;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 0.75rem 1rem 1rem;
+      font-size: 0.8rem;
+    }
+    .timeline-panel[hidden] { display: none; }
+    .tl-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+    .tl-title { font-weight: 800; color: var(--text); margin-right: auto; }
+    .tl-time { font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-size: 0.75rem; min-width: 7.5em; }
+    .tl-btn {
+      border: 1px solid var(--border); background: var(--surface); color: var(--text);
+      border-radius: 6px; padding: 3px 9px; font: inherit; font-weight: 700; cursor: pointer;
+    }
+    .tl-btn:hover { background: var(--surface-subtle); }
+    .tl-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .tl-btn.primary:hover { background: var(--primary-hover); }
+    .tl-btn.danger { color: #b91c1c; }
+    .tl-edited { color: #92400e; background: #fef3c7; border-radius: 999px; padding: 1px 8px; font-weight: 700; font-size: 0.72rem; }
+    .tl-grid { display: grid; grid-template-columns: 84px 1fr; row-gap: 4px; }
+    .tl-label { font-weight: 700; color: var(--text-muted); align-self: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 6px; text-transform: capitalize; }
+    .tl-lane { position: relative; height: 30px; background: var(--surface-subtle); border-radius: 6px; }
+    .tl-lane.tl-ruler { height: 26px; background: none; cursor: ew-resize; touch-action: none; }
+    .tl-hold { position: absolute; top: 0; bottom: 0; right: 0; border-radius: 0 6px 6px 0;
+      background: repeating-linear-gradient(135deg, transparent 0 5px, rgb(148 163 184 / 0.18) 5px 10px); }
+    .tl-step {
+      position: absolute; top: 0; bottom: 0; display: flex; align-items: center; gap: 2px; padding: 0 3px;
+      border-left: 1px solid var(--border); font-weight: 800; color: var(--text-muted); font-size: 0.72rem; overflow: hidden;
+    }
+    .tl-step:first-child { border-left: none; }
+    .tl-step-name { margin-right: auto; white-space: nowrap; }
+    .tl-step button {
+      border: none; background: none; cursor: pointer; padding: 0 3px; font: inherit; color: var(--text-muted); border-radius: 4px; line-height: 1.4;
+    }
+    .tl-step button:hover { background: var(--border); color: var(--text); }
+    .tl-step button:disabled { opacity: 0.3; cursor: default; background: none; }
+    .tl-block {
+      position: absolute; top: 3px; bottom: 3px; border: 1px solid transparent; border-radius: 5px; padding: 0 6px;
+      font: inherit; font-weight: 700; text-align: left; cursor: pointer; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    }
+    .tl-block.move { background: var(--tl-move); color: var(--tl-move-ink); }
+    .tl-block.gesture { background: var(--tl-gesture); color: var(--tl-gesture-ink); }
+    .tl-block.feeling { background: var(--tl-feeling); color: var(--tl-feeling-ink); }
+    .tl-block.leave { background: var(--tl-leave); color: var(--tl-leave-ink); }
+    .tl-block.camera { background: var(--tl-camera); color: var(--tl-camera-ink); }
+    .tl-block:hover { filter: brightness(0.96); }
+    .tl-block.selected { border-color: currentColor; box-shadow: 0 0 0 2px rgb(37 99 235 / 0.25); }
+    .tl-playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #ef4444; pointer-events: none; }
+    .tl-playhead::before { content: ''; position: absolute; top: 0; left: -4px; border: 5px solid transparent; border-top-color: #ef4444; }
+    .tl-body { position: relative; }
+    .tl-overlay { position: absolute; top: 0; bottom: 0; left: 84px; right: 0; pointer-events: none; }
+    .tl-empty { color: var(--text-muted); padding: 0.4rem 0 0.2rem; }
+    .tl-editor {
+      margin-top: 0.7rem; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface-subtle); display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: center;
+    }
+    .tl-editor label { display: flex; align-items: center; gap: 0.35rem; font-weight: 700; color: var(--text-muted); }
+    .tl-editor select { font: inherit; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); max-width: 11rem; }
+    .tl-editor .tl-editor-title { font-weight: 800; color: var(--text); }
+    .tl-editor .tl-spacer { margin-left: auto; display: flex; gap: 0.4rem; }
+    @media (max-width: 640px) {
+      .tl-grid { grid-template-columns: 58px 1fr; }
+      .tl-overlay { left: 58px; }
+      .tl-step button { padding: 0 1px; }
+    }
     .movable-hint-bar {
       background: #eff6ff;
       border-bottom: 1px solid #bfdbfe;
@@ -946,6 +1017,9 @@
           </div>
         </div>
 
+        <!-- Timeline view: the scene's steps per figure, editable (scene mode; public/js/timeline-view.js) -->
+        <div class="timeline-panel" id="timeline-panel" hidden></div>
+
         <!-- Animated Clip Player & Lower-Third Bar (active when mode === 'story') -->
         <div id="story-player-bar" style="display: none; background: #0f172a; color: #fff; border-top: 1px solid var(--border);">
           <!-- Top clip info bar -->
@@ -1068,6 +1142,8 @@
       filteredSource: 'all',
       showVariants: false,
       searchQuery: '',
+      beats: null, // steps as edited in the timeline view, for beatsFor (the prompt they belong to)
+      beatsFor: null,
     };
 
     // Prompt text, story captions and concept names are user-controlled: escape before innerHTML.
@@ -1236,6 +1312,7 @@
       state.prompt = promptInput.value.trim() || 'apple';
       state.vary = optVary.checked;
       deselectItem();
+      if (state.mode !== 'scene') window.pictogenTimeline?.update(null);
       syncUrl();
 
       if (state.mode === 'story') {
@@ -1327,10 +1404,12 @@
             mode: state.mode,
             vary: state.vary,
             seed: state.seed,
+            ...(state.mode === 'scene' && state.beats && state.beatsFor === state.prompt ? { beats: state.beats } : {}),
           }),
         });
         const data = await res.json();
         state.svg = data.svg;
+        state.result = data;
         state.duration = data.duration || null; // timelines and camera moves report their length
         svgViewport.innerHTML = data.svg;
 
@@ -1370,6 +1449,7 @@
         }
 
         initMovableObjects();
+        window.pictogenTimeline?.update(state.mode === 'scene' ? data : null);
       } catch (err) {
         svgViewport.innerHTML = `<div style="color: #ef4444; font-weight: 700;">Error: ${err.message}</div>`;
       }
@@ -1680,7 +1760,7 @@
       if (!selectedItem) return;
       if (selectedItem.dataset.actor) {
         // Its motions come from the prompt's timeline; replacing them here would break the sequence
-        showToast('This figure follows the timeline: change its actions in the prompt');
+        showToast('This figure follows the timeline: change its steps in the timeline below');
         return;
       }
       const item = selectedItem;
@@ -2327,8 +2407,9 @@
     setTimeout(loadConcepts, 150);
 
     // For the video export module below
-    window.pictogenStudio = { getSvgElement, getState: () => state, getStory: () => storyState, showToast };
+    window.pictogenStudio = { getSvgElement, getState: () => state, getStory: () => storyState, showToast, regenerate: () => runGenerate() };
   </script>
+  <script type="module" src="/js/timeline-view.js"></script>
   <script type="module">
     import { exportGif, exportVideo, videoFormat, mountOffscreen, download } from '/js/video-export.js';
     window.pictogenVideo = { exportGif, exportVideo, videoFormat, mountOffscreen };

@@ -95,6 +95,8 @@ const server = http.createServer((req, res) => {
         seed: payload.seed || 1,
         vary: Boolean(payload.vary),
         fuzzy: Boolean(payload.fuzzy),
+        // Steps as edited in the studio's timeline view (checked by generate)
+        ...(Array.isArray(payload.beats) ? { beats: payload.beats } : {}),
       };
       const result = generate(text, opts);
       res.writeHead(200, { 'Content-Type': 'application/json' });

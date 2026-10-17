@@ -383,3 +383,57 @@ export function parseTimeline(text) {
   // The first clause can just set the stage: "a boy and a dog in the park, then ..." -> both present
   return { beats, actors, props, ...(follow ? { follow } : {}) };
 }
+
+// ---------------------------------------------------------------------------------------------
+// Edited timelines (the studio's timeline view): beats as the user arranged them, checked against
+// what the scene has.
+
+/** Gestures a figure can do in place (the 'pose' action's anim). */
+export const POSE_ANIMS = ['wave', 'jump', 'dance', 'cheer', 'point', 'thumbsup', 'hold', 'think', 'talk', 'sit', 'sleep', 'fly', 'swim', 'spin', 'sway', 'float', 'rock', 'flap', 'wag'];
+export const ACTION_TYPES = ['enter', 'moveTo', 'approach', 'recede', 'exit', 'pose', 'expr', 'appear'];
+export const CAMERA_TYPES = ['zoomIn', 'zoomOut', 'pan', 'panTo'];
+const EXPRESSIONS = new Set(Object.values(EXPRESSION_WORDS));
+
+/**
+ * editTimeline(beats, cast, base?) -> a timeline like parseTimeline's, or null when nothing happens.
+ *   beats: [{ actions: [{ actor, type, gait?, anim?, target?, expression? }], camera? }] as edited
+ *   cast:  matches the scene can use as actors or targets (the prompt's figures and things)
+ *   base:  the prompt's own timeline, if any (keeps "the camera follows ...")
+ * Anything that does not fit is dropped: unknown figures, actions, gestures or feelings, a walk
+ * to nobody, a second action for the same figure in one beat.
+ */
+export function editTimeline(beats, cast, base = null) {
+  const byId = new Map(cast.map((m) => [m.id, m]));
+  const known = (id) => typeof id === 'string' && byId.has(id);
+  const clean = [];
+  for (const beat of Array.isArray(beats) ? beats.slice(0, 40) : []) {
+    const actions = [];
+    for (const a of Array.isArray(beat?.actions) ? beat.actions.slice(0, 24) : []) {
+      if (!a || !known(a.actor) || !ACTION_TYPES.includes(a.type) || actions.some((b) => b.actor === a.actor)) continue;
+      const action = { actor: a.actor, type: a.type, gait: a.gait === 'run' ? 'run' : 'walk' };
+      if (a.type === 'pose') {
+        if (!POSE_ANIMS.includes(a.anim)) continue;
+        action.anim = a.anim;
+      }
+      if (a.type === 'moveTo') {
+        if (!known(a.target) || a.target === a.actor) continue;
+        action.target = a.target;
+      }
+      if (EXPRESSIONS.has(a.expression)) action.expression = a.expression;
+      if (a.type === 'expr' && !action.expression) continue;
+      actions.push(action);
+    }
+    const c = beat?.camera;
+    // (a pan to nothing is no camera move)
+    const camera = c && CAMERA_TYPES.includes(c.type) && !(c.type === 'panTo' && !known(c.target))
+      ? { type: c.type, target: known(c.target) ? c.target : null, ...(c.type === 'pan' ? { dir: c.dir < 0 ? -1 : 1 } : {}) }
+      : null;
+    if (actions.length || camera) clean.push({ text: typeof beat.text === 'string' ? beat.text.slice(0, 200) : '', actions, ...(camera ? { camera } : {}) });
+  }
+  const actorIds = [...new Set(clean.flatMap((b) => b.actions.map((a) => a.actor)))];
+  if (!actorIds.length) return null;
+  const actors = actorIds.map((id) => ({ id, match: byId.get(id) }));
+  const props = cast.filter((m) => !actorIds.includes(m.id));
+  const follow = base?.follow && actorIds.includes(base.follow) ? base.follow : null;
+  return { beats: clean, actors, props, ...(follow ? { follow } : {}) };
+}
