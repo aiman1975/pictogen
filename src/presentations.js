@@ -107,7 +107,7 @@ export function renderCallout(matches, opts = {}) {
       <g transform="translate(${fmt(labelX)} ${fmt(labelY - 14)})">
         <rect x="${isRight ? 0 : -130}" y="0" width="130" height="28" rx="4" fill="${isDark ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.92)'}" stroke="${accentColor}" stroke-width="1.2"/>
         <text x="${isRight ? 6 : -124}" y="10" font-family="${FONT}" font-size="7.5" font-weight="900" fill="${accentColor}" letter-spacing="0.05em">${p.tag}</text>
-        <text x="${isRight ? 6 : -124}" y="22" font-family="${FONT}" font-size="8" font-weight="800" fill="${textColor}">${p.name}</text>
+        <text x="${isRight ? 6 : -124}" y="22" font-family="${FONT}" font-size="8" font-weight="800" fill="${textColor}">${esc(p.name)}</text>
       </g>
     `;
   });
@@ -531,7 +531,7 @@ export function renderColoringBook(matches, opts = {}) {
 
     <!-- Title Banner -->
     <text x="${W * 0.5}" y="42" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="900" fill="#0f172a" letter-spacing="0.06em">🖍 PICTOGEN COLORING PAGE: ${(c.label || c.id).toUpperCase()}</text>
-    <text x="${W * 0.5}" y="58" text-anchor="middle" font-family="${FONT}" font-size="9" font-weight="700" fill="#64748b">Click on shapes in the studio to color them, or download & print!</text>
+    <text x="${W * 0.5}" y="58" text-anchor="middle" font-family="${FONT}" font-size="9" font-weight="700" fill="#64748b">Click on shapes in the studio to color them, or download &amp; print!</text>
 
     <!-- Centered Thick Outline Art with clickable regions -->
     <g class="coloring-page-art movable-item" data-id="${c.id}" transform="translate(${fmt(objX - 50 * scale)} ${fmt(objY - 50 * scale)}) scale(${scale})">
@@ -1051,7 +1051,7 @@ export function renderComicStrip(matches, opts = {}) {
 
     <!-- Footer Copyright & Issue -->
     <text x="${W * 0.5}" y="${H - 12}" text-anchor="middle" font-family="${FONT}" font-size="9.5" font-weight="700" fill="#64748b" letter-spacing="0.05em">
-      © PICTOGEN SYNDICATE • VECTOR COMIC ENGINE • OFFLINE & PROGRAMMATIC
+      © PICTOGEN SYNDICATE • VECTOR COMIC ENGINE • OFFLINE &amp; PROGRAMMATIC
     </text>
   `;
 

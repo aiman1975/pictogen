@@ -9,7 +9,7 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
 ## Highlights
 
 - ⚡ **100% Offline & Zero Dependencies**: Uses native JavaScript & SVG. No npm installs or GPU required.
-- 🎨 **7 Switchable Visual Styles**:
+- 🎨 **20 Switchable Visual Styles** (the classic seven below, plus cute2d, comic, doodle, editorial, papercut, geometric, whiteboard, blueprint, chalkboard, vintage, pixel, stickman and letterling):
   - **Flat**: Clean, modern emoji-like flat colors.
   - **Cartoon**: Bold vibrant colors with dark ink outlines (children's books).
   - **Outline**: Clean black & white line art (coloring books & minimal diagrams).
@@ -17,7 +17,7 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
   - **Silhouette**: High-contrast solid pictograms and signage.
   - **Sketch**: Hand-drawn pencil look with organic wobble.
   - **Neon**: Cyberpunk-style vibrant glowing vectors on a dark canvas.
-- 📐 **3 Generation Modes**:
+- 📐 **13 Layout Modes** (the three core modes below, plus comic strip, stickman, isometric diorama, callout, knolling, before/after split, waffle chart, coloring book, alphabet pals and animated clips):
   - **Scene (`scene`)**: Auto-detects environment (day, night, sunset, rain, snow, water/beach), arranges items by perspective, placement, and realistic relative scale.
   - **Flashcard (`card`)**: Large friendly typography and hero icon on tinted card (ideal for kids' flashcards & language learning).
   - **Sticker / Icon Sheet (`icons`)**: Organized grid of matched concepts with captions (great for presentation slides & documentation).
@@ -27,7 +27,7 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
   - Handles sizes (*"huge tree"* &rarr; scaled up).
   - Handles plurals & irregular forms (*"geese"*, *"leaves"*, *"bicycles"*).
   - Semantic aliases (*"schoolboy"* &rarr; boy, *"automobile"* &rarr; car, *"nemo"* &rarr; fish).
-- 🧩 **Extensible Library (37+ Concepts Built-in)**:
+- 🧩 **Extensible Library**: ~70 hand-drawn concepts (recolorable, with expressions & motion) plus ~3,170 Fluent Emoji library icons (MIT). The hand-drawn core:
   - **Vehicles**: `bike`, `car`, `bus`, `boat`, `plane`
   - **Nature**: `tree`, `neem`, `flower`, `mountain`, `grass`
   - **Food**: `apple`, `banana`, `orange`, `cake`
@@ -61,7 +61,7 @@ node cli.js "apple" -m card -s cartoon -o apple_card.svg
 # Generate an icon sheet for presentation slides
 node cli.js "bike, car, bus, boat, plane" -m icons -s flat -o vehicles.svg
 
-# Export all 37 concepts in all 7 styles as individual SVG files
+# Export every concept in every style as individual SVG files (~67,000 files)
 node cli.js --export-all ./dist/library/
 ```
 
@@ -86,7 +86,7 @@ console.log(result.matches); // [{ id: 'boy', count: 1 }, { id: 'dog', count: 1 
 
 ## Adding New Concepts
 
-Every concept is written once in a style-agnostic manner inside `src/concepts/`. See [`docs/CONCEPT_GUIDE.md`](file:///C:/Users/User/.gemini/antigravity/scratch/pictogen/docs/CONCEPT_GUIDE.md) for full instructions and drawing examples.
+Every concept is written once in a style-agnostic manner inside `src/concepts/`. See [`docs/CONCEPT_GUIDE.md`](docs/CONCEPT_GUIDE.md) for full instructions and drawing examples.
 
 Example:
 ```javascript
@@ -108,7 +108,8 @@ export default [
 ];
 ```
 
-Run test suite:
+Run the test suite (smoke test, SVG well-formedness, animations, presentation modes, story engine):
 ```bash
-node scripts/smoke-test.js
+npm test
 ```
+`scripts/test-tts.js` and the `.ps1` audio scripts use Windows PowerShell voices and only run on Windows.

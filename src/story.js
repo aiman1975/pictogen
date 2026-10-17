@@ -475,7 +475,8 @@ export function composeStory(storyInput, opts = {}) {
  * Renders Lower-Third editorial graphics according to the chosen genre and aspect ratio.
  */
 export function generateStoryHtml(story) {
-  const scenesJson = JSON.stringify(story.scenes);
+  // \u003c keeps user captions like "</script>" from closing the inline <script> block.
+  const scenesJson = JSON.stringify(story.scenes).replace(/</g, '\\u003c');
   const title = esc(story.title || 'PictoGen Animated Clip');
   const genre = story.genre || 'kids';
   const aspect = story.aspect || '16:9';

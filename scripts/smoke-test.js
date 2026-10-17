@@ -52,5 +52,28 @@ const apple = p.matches.find((m) => m.id === 'apple');
 if (!apple || apple.count !== 3 || apple.color !== 'red') fail('parse: "three red apples" -> apple x3 red');
 if (!p.matches.find((m) => m.id === 'boy')) fail('parse: boy');
 
+// library matching: generic words pick an obvious icon or nothing, never a skin-tone variant
+const ids = (t) => parseText(t).matches.map((m) => m.id).join(',');
+const expectIds = {
+  'a happy face': 'smiling_face',
+  'a red heart': 'red_heart',
+  'two black circles': 'black_circle',
+  'a green apple': 'apple',
+  'light rain on a dark night': '',
+  'turn right at the house': 'house',
+  'a woman in medium hair': 'woman',
+};
+for (const [t, want] of Object.entries(expectIds)) {
+  if (ids(t) !== want) fail(`parse: "${t}" -> "${want}" (got "${ids(t)}")`);
+}
+const g = generate('a boy at the beach on a rainy night');
+if (g.unknown.length || g.setting.join() !== 'beach,rainy,night') fail(`generate: backdrop words reported as setting (got unknown=${g.unknown} setting=${g.setting})`);
+
+// auto placement uses whole words: a bathtub is not a bat, custard is not a star
+const placeOf = (id) => concepts.find((c) => c.id === id)?.placement;
+for (const [id, want] of [['bathtub', 'ground'], ['custard', 'ground'], ['place_of_worship', 'ground'], ['rocket', 'air'], ['sailboat', 'water']]) {
+  if (placeOf(id) !== want) fail(`placement: ${id} -> ${want} (got ${placeOf(id)})`);
+}
+
 console.log(`${concepts.length} concepts × ${STYLE_NAMES.length} styles — ${fails ? fails + ' failure(s)' : 'all OK'}`);
 process.exit(fails ? 1 : 0);

@@ -41,5 +41,10 @@ assert(html.includes('<!doctype html>'), 'Generated valid HTML player');
 assert(html.includes('AudioContext'), 'HTML player has Web Audio sound generator');
 assert(html.includes(STORY_TEMPLATES[0].scenes[0].caption), 'HTML player contains story captions');
 
+// 5. User captions cannot break out of the exported player's <script> block
+const hostile = composeStory('a boy | TAG | Head | hi </script><script>alert(1)</script>', {});
+const hostileHtml = generateStoryHtml(hostile);
+assert(!hostileHtml.includes('</script><script>alert(1)'), 'Exported HTML escapes "</script>" in captions');
+
 console.log(`\nStory Engine test suite: ${fails === 0 ? 'ALL PASSED!' : `${fails} FAILS`}`);
 process.exit(fails === 0 ? 0 : 1);

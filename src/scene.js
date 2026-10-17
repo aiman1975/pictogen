@@ -8,7 +8,7 @@ import { drawConcept, shapesToSvg, svgDoc, newUid, styleWrap } from './core/rend
 import { getStyle } from './core/styles.js';
 import { darken, lighten, mix } from './core/color.js';
 
-const WORDS = {
+export const ENV_WORDS = {
   night: ['night', 'midnight', 'nighttime', 'dark', 'bedtime', 'sleep', 'sleeping', 'asleep', 'moon', 'stars'],
   sunset: ['sunset', 'sunrise', 'dusk', 'dawn', 'evening'],
   snow: ['snow', 'snowy', 'snowing', 'winter', 'christmas', 'frozen', 'blizzard'],
@@ -24,7 +24,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 function detectEnv(items, words) {
   const w = new Set(words);
-  const any = (k) => WORDS[k].some((x) => w.has(x));
+  const any = (k) => ENV_WORDS[k].some((x) => w.has(x));
   const ids = new Set(items.map((i) => i.c.id));
   const tags = new Set(items.flatMap((i) => i.c.tags || []));
   const sunset = any('sunset');

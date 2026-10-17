@@ -6,26 +6,43 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const JSON_PATH = resolve(__dirname, '../data/fluent-emoji-flat.json');
 
-function cleanWord(str) {
-  return str.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-}
+// Skin-tone variants ("artist-dark", "woman-rowing-boat-medium-light") of a base icon.
+const TONE_RE = /-(medium-dark|medium-light|dark|light|medium)$/;
 
-function detectPlacement(id, cat = '') {
-  const s = id.toLowerCase();
-  if (['sun', 'moon', 'star', 'cloud', 'rainbow', 'comet', 'crescent'].some((w) => s.includes(w))) return 'sky';
-  if (['airplane', 'plane', 'rocket', 'helicopter', 'flying', 'bird', 'eagle', 'bat', 'butterfly', 'balloon', 'kite'].some((w) => s.includes(w))) return 'air';
-  if (['fish', 'shark', 'whale', 'dolphin', 'octopus', 'squid', 'lobster', 'crab'].some((w) => s.includes(w))) return 'underwater';
-  if (['boat', 'ship', 'sailboat', 'ferry', 'canoe', 'yacht'].some((w) => s.includes(w))) return 'water';
-  if (['mountain', 'volcano', 'castle', 'pyramid', 'stadium', 'building'].some((w) => s.includes(w))) return 'background';
+// Generic last words shared by many icons ("face", "heart", ...) map to one obvious default;
+// other last words become aliases only when a single icon ends with them ("turn right" must not
+// draw an arrow, "light rain" must not draw "artist-light").
+const CANONICAL_LAST_WORD = {
+  face: 'smiling-face',
+  heart: 'red-heart',
+  hand: 'raised-hand',
+  hands: 'raising-hands',
+  circle: 'red-circle',
+};
+const MAX_SHARED_LAST_WORD = 1;
+// Backdrop words handled by the scene composer (src/scene.js ENV_WORDS) never become icon aliases.
+const SETTING_LAST_WORDS = new Set(['night', 'rain', 'snow', 'water', 'sea', 'beach', 'sand', 'room', 'office', 'park', 'garden', 'street', 'road']);
+
+const hasWord = (tokens, words) => words.some((w) => tokens.includes(w));
+
+function detectPlacement(key, cat = '') {
+  const t = key.toLowerCase().split('-');
+  // People/flags/symbols stand on the ground even when named after the sky ("man-mountain-biking").
+  if (/people|flag|symbol|smiley/i.test(cat)) return 'ground';
+  if (hasWord(t, ['sun', 'moon', 'star', 'stars', 'cloud', 'rainbow', 'comet', 'crescent'])) return 'sky';
+  if (hasWord(t, ['airplane', 'plane', 'rocket', 'helicopter', 'flying', 'bird', 'eagle', 'bat', 'butterfly', 'balloon', 'kite', 'saucer'])) return 'air';
+  if (hasWord(t, ['fish', 'blowfish', 'shark', 'whale', 'dolphin', 'octopus', 'squid', 'lobster', 'crab', 'jellyfish'])) return 'underwater';
+  if (hasWord(t, ['boat', 'ship', 'sailboat', 'ferry', 'canoe', 'yacht', 'speedboat'])) return 'water';
+  if (hasWord(t, ['mountain', 'volcano', 'castle', 'pyramid', 'stadium', 'building'])) return 'background';
   return 'ground';
 }
 
-function detectScale(id, cat = '') {
-  const s = id.toLowerCase();
-  if (cat.includes('Food') || ['apple', 'cookie', 'pizza', 'cup', 'ring', 'gem', 'coin', 'key'].some((w) => s.includes(w))) return 0.25;
-  if (['guitar', 'backpack', 'book', 'chair', 'ball', 'lamp', 'box', 'clock'].some((w) => s.includes(w))) return 0.38;
-  if (['mountain', 'castle', 'building', 'tree'].some((w) => s.includes(w))) return 2.0;
-  if (['car', 'bus', 'train', 'truck', 'elephant', 'horse', 'dinosaur'].some((w) => s.includes(w))) return 1.1;
+function detectScale(key, cat = '') {
+  const t = key.toLowerCase().split('-');
+  if (cat.includes('Food') || hasWord(t, ['apple', 'cookie', 'pizza', 'cup', 'ring', 'gem', 'coin', 'key'])) return 0.25;
+  if (hasWord(t, ['guitar', 'backpack', 'book', 'chair', 'ball', 'lamp', 'box', 'clock'])) return 0.38;
+  if (hasWord(t, ['mountain', 'castle', 'building', 'tree'])) return 2.0;
+  if (hasWord(t, ['car', 'bus', 'train', 'truck', 'elephant', 'horse', 'dinosaur'])) return 1.1;
   return 0.55;
 }
 
@@ -45,22 +62,35 @@ export function loadFluentConcepts() {
   }
 
   const icons = data.icons || {};
+  const isVariant = (key) => TONE_RE.test(key) && icons[key.replace(TONE_RE, '')] != null;
+  const lastWordUse = {};
+  for (const key of Object.keys(icons)) {
+    const words = key.split('-');
+    if (words.length > 1 && !isVariant(key)) {
+      const last = words[words.length - 1];
+      lastWordUse[last] = (lastWordUse[last] || 0) + 1;
+    }
+  }
+
   for (const [key, icon] of Object.entries(icons)) {
     if (!icon || !icon.body) continue;
 
     const cat = catMap[key] || 'Objects';
     const id = key.replace(/-/g, '_');
     const label = key.replace(/-/g, ' ');
+    const variant = isVariant(key);
 
     const aliases = new Set();
     aliases.add(label);
     const noHyphen = key.replace(/-/g, '');
     if (noHyphen !== key) aliases.add(noHyphen);
 
-    // Extract root word aliases (e.g. "acoustic guitar" -> also matches "guitar" if free)
+    // Root word alias ("acoustic guitar" -> "guitar") only when it is unambiguous.
     const words = label.split(' ');
-    if (words.length > 1) {
-      aliases.add(words[words.length - 1]);
+    const last = words[words.length - 1];
+    if (!variant && words.length > 1 && !SETTING_LAST_WORDS.has(last)) {
+      const canonical = CANONICAL_LAST_WORD[last];
+      if (canonical ? canonical === key : lastWordUse[last] <= MAX_SHARED_LAST_WORD) aliases.add(last);
     }
 
     const placement = detectPlacement(key, cat);
@@ -77,6 +107,7 @@ export function loadFluentConcepts() {
       baseline: 92,
       colors: { main: '#42a5f5' },
       isLibrary: true,
+      ...(variant ? { variantOf: key.replace(TONE_RE, '').replace(/-/g, '_') } : {}),
       draw(d) {
         // Fluent Emoji viewbox is 32x32, scale to 100x100
         d.raw(`<g transform="scale(3.125)">${icon.body}</g>`);

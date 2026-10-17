@@ -1,7 +1,10 @@
 // PictoGen public API – offline text-to-vector image generator.
 
 import { parseText } from './text/matcher.js';
-import { composeScene } from './scene.js';
+import { composeScene, ENV_WORDS } from './scene.js';
+
+// Words that set the scene's backdrop (night, rain, beach...) rather than draw an object.
+const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
 import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/render.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
@@ -14,7 +17,8 @@ export { listConcepts, getConcept, registerConcept } from './concepts/index.js';
 export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './story.js';
 
 /**
- * generate(text, opts) -> { svg, matches, unknown, tokens, images }
+ * generate(text, opts) -> { svg, matches, unknown, setting, tokens, images }
+ *   setting: words that changed the scene backdrop (night, rain, beach...) instead of drawing an object
  *
  * opts.mode   'scene' (default) | 'comic' | 'stickman' | 'callout' | 'knolling' | 'split' | 'isometric' | 'waffle' | 'coloring' | 'icons' | 'card'
  * opts.style  'flat' | 'cartoon' | 'cute2d' | 'comic' | 'whiteboard' | 'geometric' | 'doodle' | 'editorial' | 'papercut' | 'stickman' | 'outline' | 'pastel' | 'silhouette' | 'sketch' | 'neon' | 'blueprint' | 'chalkboard' | 'vintage' | 'pixel'
@@ -63,5 +67,7 @@ export function generate(text, opts = {}) {
     id: m.id, word: m.word, count: m.count, color: m.color, expression: m.expression, animation: m.animation,
     svg: renderIcon(m.id, { ...common, color: m.color, expression: m.expression, animation: m.animation, size }),
   }));
-  return { svg, ...parsed, images };
+  const setting = mode === 'scene' ? parsed.unknown.filter((w) => SETTING_WORDS.has(w)) : [];
+  const unknown = parsed.unknown.filter((w) => !setting.includes(w));
+  return { svg, ...parsed, unknown, setting, images };
 }
