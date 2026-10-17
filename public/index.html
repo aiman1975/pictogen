@@ -1,0 +1,2069 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PictoGen — Offline Vector Image & Slide Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --accent: #f59e0b;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.25rem;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+    }
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-badge {
+      background: #e0f2fe;
+      color: #0284c7;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-links {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .btn-link {
+      background: none;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: color 0.15s;
+    }
+    .btn-link:hover { color: var(--primary); }
+
+    main {
+      max-width: 1240px;
+      margin: 1.5rem auto;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    /* Prompt section */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+    }
+
+    .prompt-box {
+      display: flex;
+      gap: 0.75rem;
+      position: relative;
+    }
+    .prompt-input {
+      flex: 1;
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: 600;
+      padding: 0.85rem 1.15rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      outline: none;
+      background: var(--surface);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .prompt-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+    }
+    .btn-generate {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0 1.5rem;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.15s, transform 0.05s;
+    }
+    .btn-generate:hover { background: var(--primary-hover); }
+    .btn-generate:active { transform: scale(0.98); }
+
+    .sample-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      align-items: center;
+    }
+    .chip-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .chip {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Controls bar */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .control-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.5rem;
+    }
+
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .pill-btn {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 0.4rem 0.75rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+    }
+    .pill-btn:hover { background: #e2e8f0; }
+    .pill-btn.active {
+      background: var(--text);
+      color: #fff;
+      border-color: var(--text);
+    }
+
+    .options-row {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-label input { accent-color: var(--primary); cursor: pointer; }
+
+    /* Canvas / Studio Display */
+    .display-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 900px) {
+      .display-layout { grid-template-columns: 1fr; }
+    }
+
+    .canvas-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    .canvas-header {
+      padding: 0.75rem 1.25rem;
+      background: var(--surface-subtle);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .canvas-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .btn-action {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.8rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      font-family: inherit;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .btn-action:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .movable-hint-bar {
+      background: #eff6ff;
+      border-bottom: 1px solid #bfdbfe;
+      padding: 0.45rem 1.25rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #1e40af;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .svg-viewport {
+      padding: 1.5rem;
+      background: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+      background-size: 16px 16px;
+      min-height: 440px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      position: relative;
+      user-select: none;
+    }
+    .svg-viewport svg {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      background: #fff;
+    }
+
+    /* Movable object interactive styling */
+    .movable-item {
+      cursor: grab !important;
+      transition: filter 0.15s;
+      outline: none;
+    }
+    .movable-item:hover {
+      filter: drop-shadow(0 0 4px rgba(37,99,235,0.7));
+    }
+    .movable-item.dragging {
+      cursor: grabbing !important;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25)) !important;
+    }
+    .movable-item.selected {
+      filter: drop-shadow(0 0 6px rgba(37,99,235,0.9)) !important;
+    }
+
+    /* Floating selection controls overlay */
+    .object-toolbar {
+      position: absolute;
+      display: none;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 8px 10px;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      flex-direction: column;
+      gap: 6px;
+      z-index: 50;
+      font-size: 12px;
+      transform: translate(-50%, -100%);
+      margin-top: -12px;
+      min-width: 280px;
+      max-width: 90vw;
+    }
+    .object-toolbar-row {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .object-toolbar-row-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: 4px;
+    }
+    .object-toolbar button {
+      background: #334155;
+      color: #fff;
+      border: none;
+      padding: 4px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .object-toolbar button:hover {
+      background: var(--primary);
+    }
+    .object-toolbar button.active-pill {
+      background: #2563eb !important;
+      box-shadow: 0 0 0 1.5px #93c5fd;
+    }
+    .object-toolbar-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-right: 4px;
+      text-transform: capitalize;
+    }
+
+    /* Inspector sidebar */
+    .inspector-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .matches-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .match-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 0.8rem;
+      background: var(--surface-subtle);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .match-id {
+      font-weight: 700;
+      text-transform: capitalize;
+    }
+    .match-count {
+      font-size: 0.8rem;
+      font-weight: 800;
+      background: #e2e8f0;
+      color: var(--text);
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+    .match-color-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      border: 1px solid rgba(0,0,0,0.15);
+      vertical-align: middle;
+    }
+
+    .unknown-badge {
+      display: inline-block;
+      background: #fee2e2;
+      color: #b91c1c;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-right: 4px;
+      margin-top: 4px;
+    }
+
+    /* Concept Dictionary Section */
+    .dictionary-section {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      margin-top: 1rem;
+    }
+    .dict-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .dict-search {
+      padding: 0.5rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.9rem;
+      width: 240px;
+    }
+
+    .dict-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 0.75rem;
+    }
+    .dict-item {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 0.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .dict-item:hover {
+      background: #fff;
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+    .dict-item-svg {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .dict-item-svg svg {
+      width: 100%;
+      height: 100%;
+    }
+    .dict-item-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: capitalize;
+    }
+    .dict-item-cat {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #fff;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s ease;
+      z-index: 100;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="#" class="brand">
+      <div class="brand-logo">P</div>
+      <div>
+        <div class="brand-title">PictoGen</div>
+      </div>
+      <span class="brand-badge">Offline Vector Engine</span>
+    </a>
+    <div class="header-links">
+      <a href="/showcase" target="_blank" class="btn-link" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-weight: 800; box-shadow: 0 2px 6px rgba(37,99,235,0.3); transition: transform 0.15s, opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+        🎥 Video Showcase (Voice Narration)
+      </a>
+      <button class="btn-link" onclick="document.getElementById('dictionary').scrollIntoView({ behavior: 'smooth' })">
+        📚 Concept Dictionary (<span id="concept-count">37</span>)
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Prompt Card -->
+    <section class="card">
+      <div class="prompt-box">
+        <input
+          type="text"
+          id="prompt-input"
+          class="prompt-input"
+          placeholder="Describe what you want to draw... (e.g., 'a boy riding a blue bike under the sun and tree')"
+          value="a boy riding a blue bike under the sun and tree"
+        />
+        <button id="btn-generate" class="btn-generate">
+          <span>✨ Draw</span>
+        </button>
+      </div>
+
+      <div class="sample-chips">
+        <span class="chip-label">🔤 Alphabet Pals:</span>
+        <button class="chip" data-prompt="LOVE" data-mode="alphabet">💖 Word Pals (LOVE)</button>
+        <button class="chip" data-prompt="C is for cat" data-mode="alphabet">🐱 Phonics (C is for Cat)</button>
+        <button class="chip" data-prompt="A B C" data-mode="alphabet">🔤 ABC Friends</button>
+        <button class="chip" data-prompt="a jumping letter a under the sun" data-style="letterling" data-mode="scene">🦘 Jumping Letter A</button>
+        <span class="chip-label">🎬 Cartoon Animations & Scenarios:</span>
+        <button class="chip" data-prompt="a jumping boy under the bright sun" data-style="stickman" data-mode="scene">🦘 Jumping Boy</button>
+        <button class="chip" data-prompt="a dancing girl and a laughing boy under the starry night" data-style="cute2d" data-mode="scene">💃 Dancing under Stars</button>
+        <button class="chip" data-prompt="a red car driving on a rainy street" data-style="flat" data-mode="scene">🌧 Rainy Street Driving</button>
+        <button class="chip" data-prompt="a happy boy running on cartoon parallax road" data-style="cartoon" data-mode="scene">🏃 Parallax Cartoon Run</button>
+        <button class="chip" data-prompt="a happy dog wagging tail at the beach" data-style="flat" data-mode="scene">🏖 Beach Wave Rolling</button>
+        <button class="chip" data-prompt="a sleeping boy under the starry night" data-style="cute2d" data-mode="scene">😴 Starry Night Sleep</button>
+        <span class="chip-label">Roadmap Styles:</span>
+        <button class="chip" data-prompt="boy" data-style="stickman" data-mode="scene">👑 Stick Figure</button>
+        <button class="chip" data-prompt="confused boy pointing in a room with chair and window" data-style="stickman" data-mode="scene">🏠 4-Quadrant Room</button>
+        <button class="chip" data-prompt="boy, man and woman" data-style="editorial" data-mode="scene">🎭 Editorial Silhouettes</button>
+        <button class="chip" data-prompt="boy and girl" data-style="cute2d" data-mode="scene">🌸 Cute 2D Kawaii</button>
+        <button class="chip" data-prompt="a boy discovers an apple tree" data-mode="comic">📰 Comic Strip</button>
+        <button class="chip" data-prompt="skeptical boy pointing in a room with chair and window" data-style="whiteboard" data-mode="scene">📋 Whiteboard</button>
+        <button class="chip" data-prompt="a boy and a woman" data-style="geometric" data-mode="scene">📐 Geometric Bauhaus</button>
+        <button class="chip" data-prompt="confused boy thumbsup with box and chair" data-style="doodle" data-mode="scene">✏️ Sketchbook Doodle</button>
+        <button class="chip" data-prompt="boy, girl, man and woman" data-style="papercut" data-mode="scene">✂️ Craft Papercut</button>
+        <button class="chip" data-prompt="a blue bicycle with gears and handlebars" data-mode="callout" data-style="blueprint">🔍 Bike Callout</button>
+        <button class="chip" data-prompt="apple, bike, tree, sun, coffee, book" data-mode="knolling">🎒 Gear Knolling</button>
+        <button class="chip" data-prompt="sad boy and laughing boy" data-mode="split">⚖️ Sad vs Laughing</button>
+        <button class="chip" data-prompt="tree, house and car on a sunny day" data-mode="isometric">📐 2.5D Diorama</button>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls-grid">
+        <div class="control-group">
+          <label>Visual Style (20 Styles)</label>
+          <div class="pill-group" id="styles-group">
+            <button class="pill-btn active" data-style="flat">🎨 Flat</button>
+            <button class="pill-btn" data-style="letterling">🔤 Letterling</button>
+            <button class="pill-btn" data-style="stickman">👑 Stickman</button>
+            <button class="pill-btn" data-style="cute2d">🌸 Cute 2D</button>
+            <button class="pill-btn" data-style="comic">📰 Comic</button>
+            <button class="pill-btn" data-style="whiteboard">📋 Whiteboard</button>
+            <button class="pill-btn" data-style="geometric">📐 Geometric</button>
+            <button class="pill-btn" data-style="doodle">✏️ Doodle</button>
+            <button class="pill-btn" data-style="editorial">🎭 Editorial</button>
+            <button class="pill-btn" data-style="papercut">✂️ Papercut</button>
+            <button class="pill-btn" data-style="cartoon">🖍 Cartoon</button>
+            <button class="pill-btn" data-style="outline">✒ Outline</button>
+            <button class="pill-btn" data-style="pastel">🌸 Pastel</button>
+            <button class="pill-btn" data-style="silhouette">👤 Silhouette</button>
+            <button class="pill-btn" data-style="sketch">✏ Sketch</button>
+            <button class="pill-btn" data-style="neon">⚡ Neon</button>
+            <button class="pill-btn" data-style="blueprint">📐 Blueprint</button>
+            <button class="pill-btn" data-style="chalkboard">🏫 Chalkboard</button>
+            <button class="pill-btn" data-style="vintage">📜 Vintage</button>
+            <button class="pill-btn" data-style="pixel">👾 Pixel</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Layout & Presentation Mode (13 Modes)</label>
+          <div class="pill-group" id="modes-group">
+            <button class="pill-btn active" data-mode="scene">🌄 Scene</button>
+            <button class="pill-btn" data-mode="alphabet">🔤 Alphabet Pals</button>
+            <button class="pill-btn" data-mode="stickman">👑 Stickman Studio</button>
+            <button class="pill-btn" data-mode="comic">📰 Comic Strip</button>
+            <button class="pill-btn" data-mode="callout">🔍 Callout / Specs</button>
+            <button class="pill-btn" data-mode="knolling">🎒 Knolling Flat-Lay</button>
+            <button class="pill-btn" data-mode="split">⚖️ Before vs After</button>
+            <button class="pill-btn" data-mode="isometric">📐 2.5D Diorama</button>
+            <button class="pill-btn" data-mode="waffle">📊 Waffle Chart</button>
+            <button class="pill-btn" data-mode="coloring">🖍 Coloring Book</button>
+            <button class="pill-btn" data-mode="story">🎬 Clip Studio</button>
+            <button class="pill-btn" data-mode="card">🏷 Flashcard</button>
+            <button class="pill-btn" data-mode="icons">🗂 Sticker Sheet</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Options & Variation</label>
+          <div class="options-row">
+            <label class="toggle-label">
+              <input type="checkbox" id="opt-vary" />
+              <span>Randomize palettes (clothes, skin, fruits)</span>
+            </label>
+            <button class="btn-action" id="btn-seed">
+              <span>🎲 Shuffle Seed (<span id="seed-val">1</span>)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Animated Clip Presets & Aspect Ratio Row (visible in Story mode) -->
+      <div id="story-presets-row" style="display: none; margin-top: 1.25rem; padding: 1rem 1.25rem; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius-sm);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="font-size: 0.85rem; font-weight: 800; color: #92400e; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🎬 Multi-Genre Animated Clips & Presentations</span>
+          </div>
+          <!-- Aspect Ratio Switcher -->
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <span style="font-size: 0.75rem; font-weight: 800; color: #92400e; text-transform: uppercase;">Aspect:</span>
+            <div class="pill-group" id="story-aspect-group">
+              <button class="pill-btn active" data-aspect="16:9" style="font-size: 0.75rem; padding: 2px 8px;">📺 16:9 Wide</button>
+              <button class="pill-btn" data-aspect="9:16" style="font-size: 0.75rem; padding: 2px 8px;">📱 9:16 Reel</button>
+              <button class="pill-btn" data-aspect="1:1" style="font-size: 0.75rem; padding: 2px 8px;">⏹ 1:1 Square</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Genre Tabs -->
+        <div class="pill-group" id="story-genre-group" style="margin-bottom: 0.75rem;">
+          <button class="pill-btn active" data-genre="kids" style="background:#fff; border-color:#fcd34d;">🎬 Kids Stories</button>
+          <button class="pill-btn" data-genre="documentary" style="background:#fff; border-color:#fcd34d;">🔬 Science & Doc</button>
+          <button class="pill-btn" data-genre="news" style="background:#fff; border-color:#fcd34d;">📰 News & Editorial</button>
+          <button class="pill-btn" data-genre="howto" style="background:#fff; border-color:#fcd34d;">💡 How-To Guides</button>
+        </div>
+
+        <!-- Presets Container (Dynamic based on selected genre) -->
+        <div id="story-presets-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+
+        <div style="margin-top: 0.6rem; font-size: 0.74rem; color: #b45309;">
+          💡 <strong>Tip:</strong> Choose a preset above or type custom multi-beat scripts: <code>Prompt | Tag | Headline | Caption // ...</code>
+        </div>
+      </div>
+
+      <!-- Coloring Book Palette Bar (visible when mode === 'coloring') -->
+      <div id="coloring-palette-bar" style="display: none; margin-top: 1.25rem; padding: 0.85rem 1.15rem; background: #fdf4ff; border: 1.5px solid #f0abfc; border-radius: var(--radius-sm);">
+        <div style="font-size: 0.85rem; font-weight: 800; color: #86198f; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+          <span>🖍 Interactive Paint Bucket: Pick a color, then click any shape in the canvas to paint it!</span>
+          <span style="font-size: 0.72rem; font-weight: 800; background: #fae8ff; color: #a21caf; padding: 2px 8px; border-radius: 999px;">Click-to-Color</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;" id="coloring-swatches">
+          <button class="color-swatch-btn active" data-color="#ef4444" style="width:26px; height:26px; border-radius:50%; background:#ef4444; border:2px solid #fff; box-shadow:0 0 0 2px #ef4444; cursor:pointer;" title="Red"></button>
+          <button class="color-swatch-btn" data-color="#f97316" style="width:26px; height:26px; border-radius:50%; background:#f97316; border:2px solid #fff; cursor:pointer;" title="Orange"></button>
+          <button class="color-swatch-btn" data-color="#eab308" style="width:26px; height:26px; border-radius:50%; background:#eab308; border:2px solid #fff; cursor:pointer;" title="Yellow"></button>
+          <button class="color-swatch-btn" data-color="#22c55e" style="width:26px; height:26px; border-radius:50%; background:#22c55e; border:2px solid #fff; cursor:pointer;" title="Green"></button>
+          <button class="color-swatch-btn" data-color="#06b6d4" style="width:26px; height:26px; border-radius:50%; background:#06b6d4; border:2px solid #fff; cursor:pointer;" title="Cyan"></button>
+          <button class="color-swatch-btn" data-color="#3b82f6" style="width:26px; height:26px; border-radius:50%; background:#3b82f6; border:2px solid #fff; cursor:pointer;" title="Blue"></button>
+          <button class="color-swatch-btn" data-color="#a855f7" style="width:26px; height:26px; border-radius:50%; background:#a855f7; border:2px solid #fff; cursor:pointer;" title="Purple"></button>
+          <button class="color-swatch-btn" data-color="#ec4899" style="width:26px; height:26px; border-radius:50%; background:#ec4899; border:2px solid #fff; cursor:pointer;" title="Pink"></button>
+          <button class="color-swatch-btn" data-color="#78716c" style="width:26px; height:26px; border-radius:50%; background:#78716c; border:2px solid #fff; cursor:pointer;" title="Brown"></button>
+          <button class="color-swatch-btn" data-color="#ffffff" style="width:26px; height:26px; border-radius:50%; background:#ffffff; border:1.5px solid #cbd5e1; cursor:pointer;" title="Eraser / White"></button>
+          <span style="font-size:0.75rem; color:#86198f; font-weight:700; margin-left:0.5rem;" id="active-color-name">Active: Red</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Canvas & Inspector Display -->
+    <section class="display-layout">
+      <!-- Main Canvas -->
+      <div class="canvas-card">
+        <div class="canvas-header">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <span style="font-weight: 800; font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">
+              Interactive Canvas
+            </span>
+            <span style="font-size: 0.75rem; background: #dcfce7; color: #166534; font-weight: 700; padding: 2px 8px; border-radius: 999px;">
+              ✋ Movable Objects ON
+            </span>
+          </div>
+          <div class="canvas-actions">
+            <button class="btn-action" id="btn-reset" title="Reset positions to default layout">↩ Reset Positions</button>
+            <button class="btn-action" id="btn-copy-svg">📋 Copy SVG</button>
+            <button class="btn-action" id="btn-download-svg">💾 Download SVG</button>
+            <button class="btn-action" id="btn-download-png">🖼 Download PNG</button>
+          </div>
+        </div>
+
+        <div class="movable-hint-bar">
+          <span>💡 <strong>Click & drag</strong> any object to move it anywhere. Click an object for scale, flip & layer controls!</span>
+        </div>
+
+        <div class="svg-viewport" id="svg-viewport">
+          <div style="color: var(--text-muted); font-weight: 600;">Generating graphic...</div>
+        </div>
+
+        <!-- Floating toolbar for selected movable object -->
+        <div class="object-toolbar" id="object-toolbar">
+          <div class="object-toolbar-row">
+            <span class="object-toolbar-label" id="toolbar-item-name">Object</span>
+            <button id="tb-scale-up" title="Scale Up (Bigger)">➕ Bigger</button>
+            <button id="tb-scale-down" title="Scale Down (Smaller)">➖ Smaller</button>
+            <button id="tb-flip" title="Flip Horizontally">↔ Flip</button>
+            <button id="tb-front" title="Bring to Front">⬆ Front</button>
+            <button id="tb-back" title="Send to Back">⬇ Back</button>
+            <button id="tb-delete" style="color: #fca5a5;" title="Remove from Scene">🗑 Delete</button>
+          </div>
+          <!-- Facial Expression (Mimics) Row -->
+          <div class="object-toolbar-row" id="tb-row-expression">
+            <span class="object-toolbar-row-title">Mimics:</span>
+            <button class="tb-expr-btn" data-expr="happy" title="Happy Smile">😊 Happy</button>
+            <button class="tb-expr-btn" data-expr="laugh" title="Big Laugh">😃 Laugh</button>
+            <button class="tb-expr-btn" data-expr="surprised" title="Surprised">😮 Wow</button>
+            <button class="tb-expr-btn" data-expr="sad" title="Sad / Crying">😢 Sad</button>
+            <button class="tb-expr-btn" data-expr="wink" title="Wink Smirk">😉 Wink</button>
+            <button class="tb-expr-btn" data-expr="angry" title="Angry">😠 Mad</button>
+            <button class="tb-expr-btn" data-expr="confused" title="Confused / Puzzled">🤔 Confused</button>
+            <button class="tb-expr-btn" data-expr="skeptical" title="Skeptical / Suspicious">🤨 Skeptical</button>
+            <button class="tb-expr-btn" data-expr="talking" title="Speaking / Talking">🗣 Talk</button>
+          </div>
+          <!-- Animation & Motion Row -->
+          <div class="object-toolbar-row" id="tb-row-animation">
+            <span class="object-toolbar-row-title">Motion:</span>
+            <button class="tb-anim-btn" data-anim="jump" title="Jumping Animation (Squash & Stretch)">🦘 Jump</button>
+            <button class="tb-anim-btn" data-anim="dance" title="Dancing / Grooving Animation">💃 Dance</button>
+            <button class="tb-anim-btn" data-anim="cheer" title="Cheering Arms Raised">🎉 Cheer</button>
+            <button class="tb-anim-btn" data-anim="fly" title="Flying Glider">🦸 Fly</button>
+            <button class="tb-anim-btn" data-anim="walk" title="Walk Cycle in Place">🚶 Walk</button>
+            <button class="tb-anim-btn" data-anim="walk-across" title="Walk Across Slide">🚶‍♂️ Across</button>
+            <button class="tb-anim-btn" data-anim="run" title="Run Cycle">🏃 Run</button>
+            <button class="tb-anim-btn" data-anim="wave" title="Wave Hand">👋 Wave</button>
+            <button class="tb-anim-btn" data-anim="point" title="Pointing Index Finger">👉 Point</button>
+            <button class="tb-anim-btn" data-anim="thumbsup" title="Thumbs Up Gesture">👍 Thumbs Up</button>
+            <button class="tb-anim-btn" data-anim="hold" title="Holding Gesture">🤲 Hold</button>
+            <button class="tb-anim-btn" data-anim="think" title="Thinking / Pondering">🤔 Think</button>
+            <button class="tb-anim-btn" data-anim="sleep" title="Sleeping / Relaxing">😴 Sleep</button>
+            <button class="tb-anim-btn" data-anim="sit" title="Sitting Pose">🪑 Sit</button>
+            <button class="tb-anim-btn" data-anim="blink" title="Idle Blinking">👀 Idle</button>
+            <button class="tb-anim-btn" data-anim="none" style="color: #cbd5e1;" title="Stop Animation">🛑 Stop</button>
+          </div>
+        </div>
+
+        <!-- Animated Clip Player & Lower-Third Bar (active when mode === 'story') -->
+        <div id="story-player-bar" style="display: none; background: #0f172a; color: #fff; border-top: 1px solid var(--border);">
+          <!-- Top clip info bar -->
+          <div style="padding: 0.45rem 1.25rem; background: rgba(0,0,0,0.35); border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span id="story-genre-badge" style="font-weight: 900; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase; background: #f59e0b; color: #fff;">KIDS</span>
+              <span id="story-title-display" style="font-weight: 800; color: #f1f5f9;">Animated Clip</span>
+            </div>
+            <div id="story-aspect-badge" style="color: #94a3b8; font-weight: 700; font-size: 0.72rem;">16:9 Widescreen</div>
+          </div>
+
+          <!-- Dynamic Lower-Third Overlay Box -->
+          <div id="story-caption-box" style="padding: 0.9rem 1.4rem; background: rgba(15,23,42,0.96); border-bottom: 1px solid rgba(255,255,255,0.08); min-height: 75px; display: flex; flex-direction: column; justify-content: center;">
+            <div id="story-lower-third">
+              <span id="story-caption-text" style="font-size: 1.15rem; font-weight: 800; color: #f8fafc; text-align: center; display: block;">Preparing clip...</span>
+            </div>
+          </div>
+
+          <div style="padding: 0.65rem 1.25rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <div style="display: flex; gap: 4px;">
+              <button class="btn-action" id="story-btn-prev" style="background:#1e293b; color:#fff; border:none; padding: 6px 12px; border-radius: 6px;" title="Previous Scene">⏮ Prev</button>
+              <button class="btn-action" id="story-btn-play" style="background:#2563eb; color:#fff; border:none; padding: 6px 16px; border-radius: 6px; font-weight: 800;" title="Play / Pause">⏸ Pause</button>
+              <button class="btn-action" id="story-btn-next" style="background:#1e293b; color:#fff; border:none; padding: 6px 12px; border-radius: 6px;" title="Next Scene">Next ⏭</button>
+            </div>
+
+            <div id="story-progress-track" style="flex: 1; min-width: 140px; height: 8px; background: rgba(255,255,255,0.2); border-radius: 999px; overflow: hidden; cursor: pointer; position: relative;">
+              <div id="story-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #38bdf8, #818cf8); border-radius: 999px; transition: width 0.08s linear;"></div>
+            </div>
+
+            <div id="story-dots-container" style="display: flex; gap: 6px;"></div>
+
+            <button class="btn-action" id="story-btn-sound" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Toggle Clip Chimes">🔔</button>
+            <button class="btn-action" id="story-btn-export-html" style="background:#10b981; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Export standalone offline animated player">💾 Export Clip (.html)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inspector -->
+      <div class="inspector-card">
+        <div>
+          <div class="section-title">
+            <span>Matched Concepts</span>
+            <span id="match-badge-count" style="font-size: 0.75rem; background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 999px;">0</span>
+          </div>
+          <div id="matches-list" class="matches-list">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">No concepts detected.</div>
+          </div>
+        </div>
+
+        <div id="unknown-section" style="display: none;">
+          <div class="section-title">Unrecognized Words</div>
+          <div id="unknown-list"></div>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+            Tip: You can add custom concepts or aliases anytime in <code>src/concepts/</code>.
+          </p>
+        </div>
+
+        <div>
+          <div class="section-title">Slide & Scene Tips</div>
+          <ul style="font-size: 0.82rem; color: var(--text-muted); padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem;">
+            <li><strong>Movable:</strong> Drag any boy, bike, tree, animal, or sun to compose custom story scenes or slide layouts.</li>
+            <li><strong>Keyboard:</strong> Use Arrow Keys to nudge selected items, or Backspace/Delete to remove.</li>
+            <li><strong>High-Res Exports:</strong> Both SVG and PNG exports preserve your custom positions exactly.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Concept Dictionary Section -->
+    <section class="dictionary-section" id="dictionary">
+      <div class="dict-header">
+        <div>
+          <h2 style="font-weight: 800; font-size: 1.25rem;">Built-in Concept Dictionary</h2>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Click any concept to append it to your prompt, or preview it in the active style.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <input type="text" id="dict-search" class="dict-search" placeholder="Search concepts or tags..." />
+        </div>
+      </div>
+
+      <div class="pill-group" id="cat-filters" style="margin-bottom: 1rem;">
+        <button class="pill-btn active" data-cat="all">All</button>
+        <button class="pill-btn" data-cat="sky">Sky</button>
+        <button class="pill-btn" data-cat="nature">Nature</button>
+        <button class="pill-btn" data-cat="people">People</button>
+        <button class="pill-btn" data-cat="animals">Animals</button>
+        <button class="pill-btn" data-cat="wildlife">Wildlife</button>
+        <button class="pill-btn" data-cat="vehicles">Vehicles</button>
+        <button class="pill-btn" data-cat="food">Food</button>
+        <button class="pill-btn" data-cat="objects">Objects</button>
+      </div>
+
+      <div class="dict-grid" id="dict-grid"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast">Copied to clipboard!</div>
+
+  <script>
+    let state = {
+      prompt: 'a boy riding a blue bike under the sun and tree',
+      style: 'flat',
+      mode: 'scene',
+      genre: 'kids',
+      aspect: '16:9',
+      vary: false,
+      seed: 1,
+      svg: '',
+      concepts: [],
+      filteredCategory: 'all',
+      searchQuery: '',
+    };
+
+    const promptInput = document.getElementById('prompt-input');
+    const btnGenerate = document.getElementById('btn-generate');
+    const svgViewport = document.getElementById('svg-viewport');
+    const matchesList = document.getElementById('matches-list');
+    const matchBadgeCount = document.getElementById('match-badge-count');
+    const unknownSection = document.getElementById('unknown-section');
+    const unknownList = document.getElementById('unknown-list');
+    const optVary = document.getElementById('opt-vary');
+    const btnSeed = document.getElementById('btn-seed');
+    const seedVal = document.getElementById('seed-val');
+    const dictGrid = document.getElementById('dict-grid');
+    const dictSearch = document.getElementById('dict-search');
+    const toast = document.getElementById('toast');
+    const objectToolbar = document.getElementById('object-toolbar');
+    const toolbarItemName = document.getElementById('toolbar-item-name');
+
+    // Story Clip State & Presets
+    const STORY_PRESETS = {
+      kids: [
+        { id: 'puppy-friend', label: '🐶 The Boy & Puppy' },
+        { id: 'forest-bike', label: '🚲 The Park Adventure' },
+        { id: 'magic-garden', label: '🌸 The Secret Garden' },
+      ],
+      documentary: [
+        { id: 'water-cycle', label: '💧 Earth\'s Water Cycle' },
+        { id: 'solar-journey', label: '☀️ Solar Power Journey' },
+        { id: 'moon-mission', label: '🚀 Lunar Landing Mission' },
+      ],
+      news: [
+        { id: 'renewable-boom', label: '📈 $1.8T Energy Boom' },
+        { id: 'weather-alert', label: '⚠️ Severe Heat Wave Alert' },
+      ],
+      howto: [
+        { id: 'workplace-ergonomics', label: '🪑 Desk Ergonomics' },
+        { id: 'plant-care', label: '🪴 Houseplant Care Guide' },
+      ],
+    };
+
+    let storyState = {
+      scenes: [],
+      curIndex: 0,
+      isPlaying: true,
+      sound: true,
+      timer: null,
+      progressInterval: null,
+      startTime: 0,
+      duration: 4500,
+      genre: 'kids',
+      aspect: '16:9',
+      title: '',
+    };
+
+    const storyPresetsRow = document.getElementById('story-presets-row');
+    const storyPresetsContainer = document.getElementById('story-presets-container');
+    const storyPlayerBar = document.getElementById('story-player-bar');
+    const storyGenreBadge = document.getElementById('story-genre-badge');
+    const storyTitleDisplay = document.getElementById('story-title-display');
+    const storyAspectBadge = document.getElementById('story-aspect-badge');
+    const storyLowerThird = document.getElementById('story-lower-third');
+    const storyBtnPlay = document.getElementById('story-btn-play');
+    const storyBtnPrev = document.getElementById('story-btn-prev');
+    const storyBtnNext = document.getElementById('story-btn-next');
+    const storyBtnSound = document.getElementById('story-btn-sound');
+    const storyBtnExportHtml = document.getElementById('story-btn-export-html');
+    const storyProgressTrack = document.getElementById('story-progress-track');
+    const storyProgressFill = document.getElementById('story-progress-fill');
+    const storyDotsContainer = document.getElementById('story-dots-container');
+
+    // Coloring Book Palette State
+    let activeColor = '#ef4444';
+    const activeColorName = document.getElementById('active-color-name');
+    const coloringPaletteBar = document.getElementById('coloring-palette-bar');
+
+    document.querySelectorAll('.color-swatch-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.color-swatch-btn').forEach(b => {
+          b.classList.remove('active');
+          b.style.boxShadow = 'none';
+        });
+        btn.classList.add('active');
+        btn.style.boxShadow = `0 0 0 2px ${btn.dataset.color === '#ffffff' ? '#0f172a' : btn.dataset.color}`;
+        activeColor = btn.dataset.color;
+        if (activeColorName) activeColorName.textContent = 'Active: ' + (btn.getAttribute('title') || activeColor);
+      });
+    });
+
+    function renderStoryPresets(genre) {
+      if (!storyPresetsContainer) return;
+      const list = STORY_PRESETS[genre] || STORY_PRESETS.kids;
+      storyPresetsContainer.innerHTML = list.map(item => `
+        <button class="btn-action story-preset-btn" data-story="${item.id}" style="background:#fff; font-weight:700; border-color:#fcd34d;">
+          ${item.label}
+        </button>
+      `).join('');
+
+      storyPresetsContainer.querySelectorAll('.story-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const storyId = btn.dataset.story;
+          state.prompt = storyId;
+          promptInput.value = storyId;
+          runGenerate();
+        });
+      });
+    }
+
+    // Selected movable item
+    let selectedItem = null;
+    let isDragging = false;
+    let dragStartSvgPt = { x: 0, y: 0 };
+    let dragStartTransform = { tx: 0, ty: 0, sx: 1, sy: 1 };
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    async function loadConcepts() {
+      try {
+        const res = await fetch('/api/concepts');
+        const data = await res.json();
+        state.concepts = data.concepts;
+        document.getElementById('concept-count').textContent = state.concepts.length;
+        renderDictionary();
+      } catch (e) {
+        console.error('Failed to load concepts:', e);
+      }
+    }
+
+    async function runGenerate() {
+      state.prompt = promptInput.value.trim() || 'apple';
+      state.vary = optVary.checked;
+      deselectItem();
+
+      if (state.mode === 'story') {
+        storyPlayerBar.style.display = 'block';
+        storyPresetsRow.style.display = 'block';
+
+        // Adjust SVG viewport max width to match aspect ratio preview
+        if (state.aspect === '9:16') {
+          svgViewport.style.maxWidth = '360px';
+          svgViewport.style.margin = '0 auto';
+        } else if (state.aspect === '1:1') {
+          svgViewport.style.maxWidth = '480px';
+          svgViewport.style.margin = '0 auto';
+        } else {
+          svgViewport.style.maxWidth = '100%';
+          svgViewport.style.margin = '0';
+        }
+
+        svgViewport.innerHTML = `<div style="color: #64748b; font-weight: 700;">Rendering ${state.genre} animated clip (${state.aspect})...</div>`;
+
+        try {
+          const res = await fetch('/api/story/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: state.prompt,
+              style: state.style,
+              genre: state.genre,
+              aspect: state.aspect,
+              seed: state.seed,
+              vary: state.vary,
+            }),
+          });
+          const data = await res.json();
+          storyState.scenes = data.scenes;
+          storyState.genre = data.genre || state.genre;
+          storyState.aspect = data.aspect || state.aspect;
+          storyState.title = data.title;
+          storyState.isPlaying = true;
+          storyBtnPlay.textContent = '⏸ Pause';
+
+          if (storyGenreBadge) {
+            storyGenreBadge.textContent = storyState.genre.toUpperCase();
+            storyGenreBadge.style.background = storyState.genre === 'news' ? '#ef4444' : storyState.genre === 'documentary' ? '#0284c7' : storyState.genre === 'howto' ? '#10b981' : '#f59e0b';
+          }
+          if (storyTitleDisplay) storyTitleDisplay.textContent = data.title;
+          if (storyAspectBadge) storyAspectBadge.textContent = storyState.aspect === '9:16' ? '📱 9:16 Reel' : storyState.aspect === '1:1' ? '⏹ 1:1 Square' : '📺 16:9 Wide';
+
+          const allMatches = data.scenes.flatMap(s => s.matches || []);
+          matchBadgeCount.textContent = allMatches.length;
+          matchesList.innerHTML = `<div style="font-size:0.85rem; font-weight:800; color:#1e40af; margin-bottom:0.4rem;">🎬 ${data.title} (${data.scenes.length} Scenes)</div>` +
+            data.scenes.map((s, i) => `
+              <div class="match-item" style="cursor:pointer;" onclick="goToStoryScene(${i})">
+                <span class="match-id">Scene ${i+1}</span>
+                <span style="font-size:0.75rem; color:#64748b;">${s.prompt.slice(0, 32)}...</span>
+              </div>
+            `).join('');
+
+          renderStoryScene(0, false);
+          showToast(`Playing ${storyState.genre} clip: ${data.title}`);
+        } catch (err) {
+          svgViewport.innerHTML = `<div style="color: #ef4444; font-weight: 700;">Error: ${err.message}</div>`;
+        }
+        return;
+      } else {
+        svgViewport.style.maxWidth = '100%';
+        svgViewport.style.margin = '0';
+        storyPlayerBar.style.display = 'none';
+        storyPresetsRow.style.display = 'none';
+        clearInterval(storyState.progressInterval);
+        clearTimeout(storyState.timer);
+      }
+
+      if (state.mode === 'coloring') {
+        coloringPaletteBar.style.display = 'block';
+      } else {
+        coloringPaletteBar.style.display = 'none';
+      }
+
+      svgViewport.innerHTML = '<div style="color: #64748b; font-weight: 700;">Rendering vector graphic...</div>';
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: state.prompt,
+            style: state.style,
+            mode: state.mode,
+            vary: state.vary,
+            seed: state.seed,
+          }),
+        });
+        const data = await res.json();
+        state.svg = data.svg;
+        svgViewport.innerHTML = data.svg;
+
+        // Render inspector matches
+        matchBadgeCount.textContent = data.matches.length;
+        if (data.matches.length === 0) {
+          matchesList.innerHTML = '<div style="font-size: 0.85rem; color: #64748b;">No known concepts matched.</div>';
+        } else {
+          matchesList.innerHTML = data.matches.map(m => `
+            <div class="match-item">
+              <div>
+                ${m.color ? `<span class="match-color-swatch" style="background:${m.color}"></span>` : ''}
+                <span class="match-id">${m.id}</span>
+                ${m.color ? `<span style="font-size:0.75rem; color:#64748b;">(${m.color})</span>` : ''}
+                ${m.expression ? `<span style="font-size:0.72rem; background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:999px; margin-left:4px; font-weight:700;">${m.expression}</span>` : ''}
+                ${m.animation ? `<span style="font-size:0.72rem; background:#dbeafe; color:#1e40af; padding:1px 6px; border-radius:999px; margin-left:4px; font-weight:700;">${m.animation}</span>` : ''}
+              </div>
+              <span class="match-count">×${m.count}</span>
+            </div>
+          `).join('');
+        }
+
+        // Render unknown words
+        if (data.unknown && data.unknown.length > 0) {
+          unknownSection.style.display = 'block';
+          unknownList.innerHTML = data.unknown.map(u => `<span class="unknown-badge">${u}</span>`).join(' ');
+        } else {
+          unknownSection.style.display = 'none';
+        }
+
+        initMovableObjects();
+      } catch (err) {
+        svgViewport.innerHTML = `<div style="color: #ef4444; font-weight: 700;">Error: ${err.message}</div>`;
+      }
+    }
+
+    // ==========================================
+    // Interactive Movable Objects & Drag-and-Drop
+    // ==========================================
+
+    function getSvgElement() {
+      return svgViewport.querySelector('svg');
+    }
+
+    function screenToSvgCoords(svg, clientX, clientY) {
+      const pt = svg.createSVGPoint();
+      pt.x = clientX;
+      pt.y = clientY;
+      const ctm = svg.getScreenCTM();
+      return ctm ? pt.matrixTransform(ctm.inverse()) : { x: clientX, y: clientY };
+    }
+
+    function parseTransform(el) {
+      const tr = el.getAttribute('transform') || '';
+      const matchTrans = tr.match(/translate\(([-\d.]+)[ ,]([-\d.]+)\)/);
+      const matchScale = tr.match(/scale\(([-\d.]+)(?:[ ,]([-\d.]+))?\)/);
+      const tx = matchTrans ? parseFloat(matchTrans[1]) : 0;
+      const ty = matchTrans ? parseFloat(matchTrans[2]) : 0;
+      const sx = matchScale ? parseFloat(matchScale[1]) : 1;
+      const sy = matchScale ? (matchScale[2] ? parseFloat(matchScale[2]) : sx) : 1;
+      return { tx, ty, sx, sy };
+    }
+
+    function applyTransform(el, { tx, ty, sx, sy }) {
+      const round = n => Math.round(n * 100) / 100;
+      el.setAttribute('transform', `translate(${round(tx)} ${round(ty)}) scale(${round(sx)} ${round(sy)})`);
+      state.svg = svgViewport.innerHTML;
+    }
+
+    function updateToolbarPosition() {
+      if (!selectedItem) {
+        objectToolbar.style.display = 'none';
+        return;
+      }
+      const rect = selectedItem.getBoundingClientRect();
+      const parentRect = svgViewport.getBoundingClientRect();
+
+      const top = rect.top - parentRect.top;
+      const left = rect.left + rect.width / 2 - parentRect.left;
+
+      objectToolbar.style.display = 'flex';
+      objectToolbar.style.top = `${top}px`;
+      objectToolbar.style.left = `${left}px`;
+      toolbarItemName.textContent = selectedItem.dataset.id || 'Item';
+
+      // Check if figure supports facial expressions
+      const isPerson = ['boy', 'girl', 'man', 'woman'].includes(selectedItem.dataset.id) || selectedItem.querySelector('.pg-face-eyes') !== null;
+      const exprRow = document.getElementById('tb-row-expression');
+      if (exprRow) exprRow.style.display = isPerson ? 'flex' : 'none';
+
+      // Highlight active expression
+      const curExpr = selectedItem.dataset.expression || 'happy';
+      document.querySelectorAll('.tb-expr-btn').forEach(btn => {
+        btn.classList.toggle('active-pill', btn.dataset.expr === curExpr);
+      });
+
+      // Highlight active animation
+      const curAnim = selectedItem.dataset.animation || (isPerson ? 'blink' : 'none');
+      document.querySelectorAll('.tb-anim-btn').forEach(btn => {
+        btn.classList.toggle('active-pill', btn.dataset.anim === curAnim);
+      });
+    }
+
+    function selectItem(el) {
+      if (selectedItem && selectedItem !== el) {
+        selectedItem.classList.remove('selected');
+      }
+      selectedItem = el;
+      if (selectedItem) {
+        selectedItem.classList.add('selected');
+        updateToolbarPosition();
+      } else {
+        objectToolbar.style.display = 'none';
+      }
+    }
+
+    function deselectItem() {
+      if (selectedItem) {
+        selectedItem.classList.remove('selected');
+        selectedItem = null;
+      }
+      objectToolbar.style.display = 'none';
+    }
+
+    function initMovableObjects() {
+      const svg = getSvgElement();
+      if (!svg) return;
+
+      const items = svg.querySelectorAll('.movable-item');
+      items.forEach(item => {
+        item.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          isDragging = true;
+          selectItem(item);
+          item.classList.add('dragging');
+
+          const svgCoords = screenToSvgCoords(svg, e.clientX, e.clientY);
+          dragStartSvgPt = svgCoords;
+          dragStartTransform = parseTransform(item);
+        });
+      });
+
+      if (state.mode === 'coloring') {
+        svg.style.cursor = 'crosshair';
+        svg.querySelectorAll('path, circle, rect, polygon, ellipse').forEach(el => {
+          if (el.tagName.toLowerCase() === 'rect' && el.getAttribute('width') == svg.viewBox.baseVal.width) return;
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            el.setAttribute('fill', activeColor);
+            el.style.fill = activeColor;
+            state.svg = svgViewport.innerHTML;
+            showToast('Painted shape with ' + activeColor);
+          });
+        });
+      } else {
+        svg.style.cursor = 'default';
+      }
+    }
+
+    // Global drag listener on window for smooth dragging even outside canvas
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging || !selectedItem) return;
+      const svg = getSvgElement();
+      if (!svg) return;
+
+      const curSvgPt = screenToSvgCoords(svg, e.clientX, e.clientY);
+      const dx = curSvgPt.x - dragStartSvgPt.x;
+      const dy = curSvgPt.y - dragStartSvgPt.y;
+
+      applyTransform(selectedItem, {
+        tx: dragStartTransform.tx + dx,
+        ty: dragStartTransform.ty + dy,
+        sx: dragStartTransform.sx,
+        sy: dragStartTransform.sy,
+      });
+
+      updateToolbarPosition();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDragging && selectedItem) {
+        selectedItem.classList.remove('dragging');
+        isDragging = false;
+        state.svg = svgViewport.innerHTML;
+        updateToolbarPosition();
+      }
+    });
+
+    // Deselect if clicking on empty background
+    svgViewport.addEventListener('mousedown', (e) => {
+      if (!e.target.closest('.movable-item') && !e.target.closest('.object-toolbar')) {
+        deselectItem();
+      }
+    });
+
+    // Object Toolbar button actions
+    document.getElementById('tb-scale-up').addEventListener('click', () => {
+      if (!selectedItem) return;
+      const t = parseTransform(selectedItem);
+      applyTransform(selectedItem, { ...t, sx: t.sx * 1.15, sy: t.sy * 1.15 });
+      updateToolbarPosition();
+    });
+
+    document.getElementById('tb-scale-down').addEventListener('click', () => {
+      if (!selectedItem) return;
+      const t = parseTransform(selectedItem);
+      applyTransform(selectedItem, { ...t, sx: t.sx * 0.85, sy: t.sy * 0.85 });
+      updateToolbarPosition();
+    });
+
+    document.getElementById('tb-flip').addEventListener('click', () => {
+      if (!selectedItem) return;
+      const t = parseTransform(selectedItem);
+      // Flip horizontally relative to standard 100 width
+      applyTransform(selectedItem, { ...t, sx: -t.sx, tx: t.tx + (t.sx > 0 ? 100 * t.sx : -100 * Math.abs(t.sx)) });
+      updateToolbarPosition();
+    });
+
+    document.getElementById('tb-front').addEventListener('click', () => {
+      if (!selectedItem || !selectedItem.parentNode) return;
+      selectedItem.parentNode.appendChild(selectedItem);
+      state.svg = svgViewport.innerHTML;
+      updateToolbarPosition();
+      showToast('Brought to front');
+    });
+
+    document.getElementById('tb-back').addEventListener('click', () => {
+      if (!selectedItem || !selectedItem.parentNode) return;
+      selectedItem.parentNode.insertBefore(selectedItem, selectedItem.parentNode.firstChild);
+      state.svg = svgViewport.innerHTML;
+      updateToolbarPosition();
+      showToast('Sent to back');
+    });
+
+    document.getElementById('tb-delete').addEventListener('click', () => {
+      if (!selectedItem) return;
+      const name = selectedItem.dataset.id || 'Item';
+      selectedItem.remove();
+      deselectItem();
+      state.svg = svgViewport.innerHTML;
+      showToast(`Removed ${name}`);
+    });
+
+    // Facial expression & motion switching
+    async function setItemExpression(targetExpr) {
+      if (!selectedItem) return;
+      const id = selectedItem.dataset.id;
+      const curAnim = selectedItem.dataset.animation || 'blink';
+      const curSeed = `${state.seed}:${id}:${selectedItem.dataset.k || 0}`;
+
+      try {
+        const res = await fetch('/api/render-concept', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id,
+            style: state.style,
+            expression: targetExpr,
+            animation: curAnim === 'walk-across' ? 'walk' : curAnim,
+            seed: curSeed,
+          }),
+        });
+        const data = await res.json();
+        if (data.markup) {
+          selectedItem.dataset.expression = targetExpr;
+          const motionWrapper = selectedItem.querySelector('.pg-motion-across');
+          if (motionWrapper) {
+            motionWrapper.innerHTML = data.markup;
+          } else {
+            selectedItem.innerHTML = data.markup;
+          }
+          state.svg = svgViewport.innerHTML;
+          updateToolbarPosition();
+          showToast(`Expression: ${targetExpr}`);
+        }
+      } catch (err) {
+        console.error('Failed to update expression:', err);
+      }
+    }
+
+    async function setItemAnimation(targetAnim) {
+      if (!selectedItem) return;
+      const id = selectedItem.dataset.id;
+      const curExpr = selectedItem.dataset.expression || 'happy';
+      const curSeed = `${state.seed}:${id}:${selectedItem.dataset.k || 0}`;
+
+      selectedItem.dataset.animation = targetAnim;
+
+      try {
+        const res = await fetch('/api/render-concept', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id,
+            style: state.style,
+            expression: curExpr,
+            animation: targetAnim === 'none' ? undefined : targetAnim,
+            seed: curSeed,
+          }),
+        });
+        const data = await res.json();
+        if (data.markup) {
+          if (targetAnim === 'walk-across') {
+            selectedItem.innerHTML = `<g class="pg-motion-across">${data.markup}</g>`;
+          } else {
+            selectedItem.innerHTML = data.markup;
+          }
+        }
+      } catch (e) {}
+
+      state.svg = svgViewport.innerHTML;
+      updateToolbarPosition();
+      showToast(`Motion: ${targetAnim}`);
+    }
+
+    document.querySelectorAll('.tb-expr-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setItemExpression(btn.dataset.expr);
+      });
+    });
+
+    document.querySelectorAll('.tb-anim-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setItemAnimation(btn.dataset.anim);
+      });
+    });
+
+    // Keyboard navigation for selected object
+    window.addEventListener('keydown', (e) => {
+      if (!selectedItem) return;
+      if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return;
+
+      const step = e.shiftKey ? 10 : 2;
+      const t = parseTransform(selectedItem);
+
+      if (e.key === 'ArrowLeft') {
+        applyTransform(selectedItem, { ...t, tx: t.tx - step });
+        updateToolbarPosition();
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        applyTransform(selectedItem, { ...t, tx: t.tx + step });
+        updateToolbarPosition();
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp') {
+        applyTransform(selectedItem, { ...t, ty: t.ty - step });
+        updateToolbarPosition();
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown') {
+        applyTransform(selectedItem, { ...t, ty: t.ty + step });
+        updateToolbarPosition();
+        e.preventDefault();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        selectedItem.remove();
+        deselectItem();
+        state.svg = svgViewport.innerHTML;
+        e.preventDefault();
+      }
+    });
+
+    // ==========================================
+    // Kids Story Clip Player & Sound Synthesizer
+    // ==========================================
+
+    let audioCtx = null;
+    function playStoryChime() {
+      if (!storyState.sound) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const genre = storyState.genre || state.genre || 'kids';
+        const now = audioCtx.currentTime;
+
+        if (genre === 'news') {
+          // Sharp double electronic broadcast blip
+          [880, 880].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + i * 0.1);
+            gain.gain.setValueAtTime(0.08, now + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.1 + 0.08);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.1);
+            osc.stop(now + i * 0.1 + 0.08);
+          });
+        } else if (genre === 'documentary') {
+          // Deep atmospheric resonant chime
+          [220, 329.63, 440].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.09);
+            gain.gain.setValueAtTime(0.08, now + i * 0.09);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.09 + 0.7);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.09);
+            osc.stop(now + i * 0.09 + 0.7);
+          });
+        } else if (genre === 'howto') {
+          // Affirmative upbeat ping
+          [587.33, 880].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.08);
+            gain.gain.setValueAtTime(0.07, now + i * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.08 + 0.4);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.08);
+            osc.stop(now + i * 0.08 + 0.4);
+          });
+        } else {
+          // Playful 4-note ascending arpeggio for kids
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.07);
+            gain.gain.setValueAtTime(0.06, audioCtx.currentTime + i * 0.07);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + i * 0.07 + 0.5);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime + i * 0.07);
+            osc.stop(audioCtx.currentTime + i * 0.07 + 0.5);
+          });
+        }
+      } catch (e) {}
+    }
+
+    function renderStoryDots() {
+      storyDotsContainer.innerHTML = storyState.scenes.map((_, i) =>
+        `<div class="scene-dot ${i === storyState.curIndex ? 'active' : ''}" style="width:10px; height:10px; border-radius:50%; background:${i === storyState.curIndex ? '#f59e0b' : 'rgba(255,255,255,0.3)'}; cursor:pointer; transition:all 0.2s; transform:${i === storyState.curIndex ? 'scale(1.2)' : 'none'};" data-idx="${i}"></div>`
+      ).join('');
+
+      storyDotsContainer.querySelectorAll('.scene-dot').forEach(dot => {
+        dot.addEventListener('click', () => {
+          goToStoryScene(parseInt(dot.dataset.idx, 10));
+        });
+      });
+    }
+
+    function renderStoryScene(idx, withChime = true) {
+      if (!storyState.scenes || storyState.scenes.length === 0) return;
+      storyState.curIndex = (idx + storyState.scenes.length) % storyState.scenes.length;
+      const sc = storyState.scenes[storyState.curIndex];
+      storyState.duration = (sc.duration || 4.5) * 1000;
+      storyState.startTime = Date.now();
+
+      deselectItem();
+      svgViewport.innerHTML = sc.svg;
+
+      const genre = storyState.genre || state.genre || 'kids';
+      if (storyLowerThird) {
+        if (genre === 'news') {
+          storyLowerThird.innerHTML = `
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                <span style="background:#dc2626; color:#fff; font-size:0.72rem; font-weight:900; padding:2px 7px; border-radius:4px; letter-spacing:0.05em;">🔴 BREAKING NEWS</span>
+                <span style="font-size:0.75rem; font-weight:800; color:#94a3b8; text-transform:uppercase;">${sc.tag || 'UPDATE'}</span>
+              </div>
+              <div style="font-size:1.15rem; font-weight:900; color:#ffffff; letter-spacing:-0.01em; margin-bottom:0.25rem;">${sc.headline || ''}</div>
+              <div style="font-size:0.92rem; color:#e2e8f0; border-left:2px solid #ef4444; padding-left:8px; line-height:1.4;">${sc.caption}</div>
+            </div>
+          `;
+        } else if (genre === 'documentary') {
+          storyLowerThird.innerHTML = `
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
+                <span style="font-size:0.72rem; font-weight:900; color:#38bdf8; background:rgba(56,189,248,0.15); padding:2px 7px; border-radius:4px; letter-spacing:0.05em;">${sc.tag || 'SCIENCE'}</span>
+                <span style="font-size:1.05rem; font-weight:800; color:#f1f5f9;">${sc.headline || ''}</span>
+              </div>
+              <div style="font-size:0.95rem; color:#cbd5e1; line-height:1.45;">${sc.caption}</div>
+            </div>
+          `;
+        } else if (genre === 'howto') {
+          storyLowerThird.innerHTML = `
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                <span style="background:#10b981; color:#064e3b; font-size:0.72rem; font-weight:900; padding:2px 8px; border-radius:999px;">${sc.tag || 'STEP'}</span>
+                <span style="font-size:1.08rem; font-weight:800; color:#ffffff;">${sc.headline || ''}</span>
+              </div>
+              <div style="font-size:0.95rem; color:#cbd5e1; line-height:1.4;">${sc.caption}</div>
+            </div>
+          `;
+        } else {
+          storyLowerThird.innerHTML = `
+            <div style="font-size:1.2rem; font-weight:800; color:#f8fafc; text-align:center; line-height:1.4; text-shadow:0 2px 4px rgba(0,0,0,0.5);">
+              ${sc.caption}
+            </div>
+          `;
+        }
+      }
+
+      initMovableObjects();
+      renderStoryDots();
+
+      if (withChime) playStoryChime();
+      startStoryProgress();
+    }
+
+    function startStoryProgress() {
+      clearInterval(storyState.progressInterval);
+      clearTimeout(storyState.timer);
+
+      if (!storyState.isPlaying) {
+        storyProgressFill.style.width = '0%';
+        return;
+      }
+
+      storyState.progressInterval = setInterval(() => {
+        const elapsed = Date.now() - storyState.startTime;
+        const pct = Math.min(100, (elapsed / storyState.duration) * 100);
+        storyProgressFill.style.width = pct + '%';
+      }, 50);
+
+      storyState.timer = setTimeout(() => {
+        renderStoryScene(storyState.curIndex + 1);
+      }, storyState.duration);
+    }
+
+    function goToStoryScene(i) {
+      renderStoryScene(i);
+    }
+
+    function toggleStoryPlay() {
+      storyState.isPlaying = !storyState.isPlaying;
+      storyBtnPlay.textContent = storyState.isPlaying ? '⏸ Pause' : '▶ Play';
+      if (storyState.isPlaying) {
+        storyState.startTime = Date.now();
+        startStoryProgress();
+      } else {
+        clearInterval(storyState.progressInterval);
+        clearTimeout(storyState.timer);
+      }
+    }
+
+    storyBtnPlay.addEventListener('click', toggleStoryPlay);
+    storyBtnNext.addEventListener('click', () => renderStoryScene(storyState.curIndex + 1));
+    storyBtnPrev.addEventListener('click', () => renderStoryScene(storyState.curIndex - 1));
+    storyBtnSound.addEventListener('click', () => {
+      storyState.sound = !storyState.sound;
+      storyBtnSound.style.color = storyState.sound ? '#f59e0b' : '#64748b';
+      storyBtnSound.textContent = storyState.sound ? '🔔' : '🔕';
+      if (storyState.sound) playStoryChime();
+    });
+
+    storyProgressTrack.addEventListener('click', (e) => {
+      if (!storyState.scenes || storyState.scenes.length === 0) return;
+      const rect = storyProgressTrack.getBoundingClientRect();
+      const clickPct = (e.clientX - rect.left) / rect.width;
+      const targetScene = Math.floor(clickPct * storyState.scenes.length);
+      goToStoryScene(targetScene);
+    });
+
+    storyBtnExportHtml.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/story/export-html', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: state.prompt,
+            style: state.style,
+            genre: state.genre,
+            aspect: state.aspect,
+            seed: state.seed,
+            vary: state.vary,
+          }),
+        });
+        const html = await res.text();
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const aspectTag = (state.aspect || '16-9').replace(':', 'x');
+        a.download = `pictogen-${state.genre || 'clip'}-${aspectTag}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`Exported standalone ${state.genre} clip HTML (${state.aspect})!`);
+      } catch (err) {
+        showToast('Export failed: ' + err.message);
+      }
+    });
+
+    // Aspect ratio pills
+    document.querySelectorAll('#story-aspect-group .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#story-aspect-group .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.aspect = btn.dataset.aspect;
+        if (state.mode === 'story') {
+          runGenerate();
+        }
+      });
+    });
+
+    // Genre tabs
+    document.querySelectorAll('#story-genre-group .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#story-genre-group .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.genre = btn.dataset.genre;
+        renderStoryPresets(state.genre);
+        const presets = STORY_PRESETS[state.genre] || [];
+        if (presets.length > 0) {
+          state.prompt = presets[0].id;
+          promptInput.value = presets[0].id;
+          if (state.mode === 'story') runGenerate();
+        }
+      });
+    });
+
+    // Reset layout button
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      runGenerate();
+      showToast('Positions reset to default');
+    });
+
+    // ==========================================
+    // Dictionary & Filter Controls
+    // ==========================================
+
+    let visibleCount = 60;
+
+    function renderDictionary() {
+      const q = state.searchQuery.toLowerCase();
+      const filtered = state.concepts.filter(c => {
+        const matchCat = state.filteredCategory === 'all' || c.category === state.filteredCategory;
+        const matchQuery = !q || c.id.includes(q) || (c.tags && c.tags.some(t => t.includes(q))) || (c.aliases && c.aliases.some(a => a.includes(q)));
+        return matchCat && matchQuery;
+      });
+
+      const visible = filtered.slice(0, visibleCount);
+
+      let html = visible.map(c => `
+        <div class="dict-item" data-id="${c.id}" title="Click to add '${c.id}' to prompt">
+          <div class="dict-item-svg">
+            <img loading="lazy" src="/api/svg?text=${encodeURIComponent(c.id)}&style=${encodeURIComponent(state.style || 'flat')}&mode=scene&seed=1" alt="${c.id}" style="width:100%;height:100%;object-fit:contain;" />
+          </div>
+          <div class="dict-item-label">${c.label || c.id}</div>
+          <div class="dict-item-cat">${c.category}</div>
+        </div>
+      `).join('');
+
+      if (filtered.length > visibleCount) {
+        html += `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 1.25rem 0;">
+            <button id="btn-show-more" class="btn-action" style="margin: 0 auto; padding: 0.6rem 1.4rem; font-size: 0.9rem;">
+              🔽 Show More (${filtered.length - visibleCount} more concepts)
+            </button>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Showing ${visibleCount} of ${filtered.length} concepts</p>
+          </div>
+        `;
+      }
+
+      dictGrid.innerHTML = html;
+
+      const btnMore = document.getElementById('btn-show-more');
+      if (btnMore) {
+        btnMore.addEventListener('click', () => {
+          visibleCount += 60;
+          renderDictionary();
+        });
+      }
+
+      document.querySelectorAll('.dict-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = el.dataset.id;
+          if (promptInput.value.trim()) {
+            promptInput.value += ', ' + id;
+          } else {
+            promptInput.value = id;
+          }
+          runGenerate();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    }
+
+    // Styles switcher
+    document.querySelectorAll('#styles-group .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#styles-group .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.style = btn.dataset.style;
+        runGenerate();
+        renderDictionary();
+      });
+    });
+
+    // Modes switcher
+    document.querySelectorAll('#modes-group .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#modes-group .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.mode = btn.dataset.mode;
+        if (state.mode === 'story') {
+          storyPresetsRow.style.display = 'block';
+          coloringPaletteBar.style.display = 'none';
+          renderStoryPresets(state.genre);
+          const presets = STORY_PRESETS[state.genre] || [];
+          if (!state.prompt || state.prompt.startsWith('a ') || !presets.some(p => p.id === state.prompt)) {
+            state.prompt = presets[0] ? presets[0].id : 'puppy-friend';
+            promptInput.value = state.prompt;
+          }
+          promptInput.placeholder = "Enter clip preset ('water-cycle', 'puppy-friend') or multi-scene script...";
+        } else if (state.mode === 'coloring') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'block';
+          promptInput.placeholder = "Describe what you want to color... (e.g. 'a cute puppy under a flower')";
+        } else if (state.mode === 'callout') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          promptInput.placeholder = "Enter concept for technical schematic & callouts (e.g. 'a bicycle', 'a tree', 'a rocket')";
+        } else if (state.mode === 'knolling') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          promptInput.placeholder = "Enter gear / tools / objects to knoll (e.g. 'apple, bike, tree, sun, coffee, book')";
+        } else if (state.mode === 'split') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          promptInput.placeholder = "Enter two states or items to compare (e.g. 'sad boy and laughing boy', 'rainy tree and sunny tree')";
+        } else if (state.mode === 'isometric') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          promptInput.placeholder = "Enter objects for 2.5D diorama (e.g. 'tree, house and car on a sunny day')";
+        } else if (state.mode === 'waffle') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          promptInput.placeholder = "Enter ratio metric or percentage (e.g. '80% clean bicycles in city transit')";
+        } else {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          clearInterval(storyState.progressInterval);
+          clearTimeout(storyState.timer);
+          promptInput.placeholder = "Describe what you want to draw... (e.g., 'a boy riding a blue bike under the sun and tree')";
+        }
+        runGenerate();
+      });
+    });
+
+    // Category filter pills
+    document.querySelectorAll('#cat-filters .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#cat-filters .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.filteredCategory = btn.dataset.cat;
+        renderDictionary();
+      });
+    });
+
+    // Search dictionary
+    dictSearch.addEventListener('input', (e) => {
+      state.searchQuery = e.target.value.trim();
+      renderDictionary();
+    });
+
+    // Seed dice
+    btnSeed.addEventListener('click', () => {
+      state.seed = Math.floor(Math.random() * 10000) + 1;
+      seedVal.textContent = state.seed;
+      runGenerate();
+    });
+
+    // Variation toggle
+    optVary.addEventListener('change', runGenerate);
+
+    // Prompt input Enter key
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runGenerate();
+    });
+    btnGenerate.addEventListener('click', runGenerate);
+
+    // Quick prompt chips
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        if (chip.dataset.mode) {
+          state.mode = chip.dataset.mode;
+          document.querySelectorAll('#modes-group .pill-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === state.mode);
+          });
+          if (chip.dataset.genre) {
+            state.genre = chip.dataset.genre;
+            document.querySelectorAll('#story-genre-group .pill-btn').forEach(b => {
+              b.classList.toggle('active', b.dataset.genre === state.genre);
+            });
+            renderStoryPresets(state.genre);
+          }
+        }
+        if (chip.dataset.style) {
+          state.style = chip.dataset.style;
+          document.querySelectorAll('#styles-group .pill-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.style === state.style);
+          });
+        }
+        promptInput.value = chip.dataset.prompt;
+        runGenerate();
+      });
+    });
+
+    // Copy SVG (exports the current live manipulated SVG)
+    document.getElementById('btn-copy-svg').addEventListener('click', async () => {
+      const svg = svgViewport.querySelector('svg');
+      if (!svg) return;
+      const svgCode = svg.outerHTML;
+      try {
+        await navigator.clipboard.writeText(svgCode);
+        showToast('SVG copied with custom positions!');
+      } catch {
+        showToast('Clipboard access denied.');
+      }
+    });
+
+    // Download SVG (exports the current live manipulated SVG)
+    document.getElementById('btn-download-svg').addEventListener('click', () => {
+      const svg = svgViewport.querySelector('svg');
+      if (!svg) return;
+      const svgCode = svg.outerHTML;
+      const blob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pictogen-custom-${Date.now()}.svg`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Downloading customized SVG...');
+    });
+
+    // Download PNG (rasterize current live manipulated SVG on client)
+    document.getElementById('btn-download-png').addEventListener('click', () => {
+      const svgEl = svgViewport.querySelector('svg');
+      if (!svgEl) return;
+      const bbox = svgEl.viewBox.baseVal;
+      const w = bbox && bbox.width ? bbox.width * 2 : 1280;
+      const h = bbox && bbox.height ? bbox.height * 2 : 720;
+
+      const svgCode = svgEl.outerHTML;
+      const img = new Image();
+      const svgBlob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+
+        canvas.toBlob((blob) => {
+          const pngUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = pngUrl;
+          a.download = `pictogen-custom-${Date.now()}.png`;
+          a.click();
+          URL.revokeObjectURL(pngUrl);
+          showToast('Downloading customized PNG...');
+        }, 'image/png');
+      };
+      img.src = url;
+    });
+
+    // Initial load: render canvas immediately
+    renderStoryPresets(state.genre);
+    runGenerate();
+    setTimeout(loadConcepts, 150);
+  </script>
+</body>
+</html>

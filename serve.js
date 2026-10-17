@@ -1,0 +1,220 @@
+// Minimal zero-dependency HTTP server for PictoGen Web Studio.
+import http from 'node:http';
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { generate, listConcepts, getConcept, drawConcept, shapesToSvg, STYLE_NAMES, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './src/index.js';
+import { getShowcaseData } from './src/showcase.js';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const PORT = process.env.PORT || 3000;
+const PUBLIC_DIR = resolve(__dirname, 'public');
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.svg': 'image/svg+xml; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.wav': 'audio/wav',
+  '.webm': 'video/webm',
+  '.mp4': 'video/mp4',
+};
+
+const svgCache = new Map();
+
+const server = http.createServer((req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = url.pathname;
+
+  // API: List concepts
+  if (pathname === '/api/concepts' && req.method === 'GET') {
+    const list = listConcepts().map((c) => ({
+      id: c.id,
+      label: c.label,
+      category: c.category,
+      tags: c.tags,
+      aliases: c.aliases,
+      scale: c.scale,
+      placement: c.placement,
+    }));
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=3600',
+    });
+    res.end(JSON.stringify({ concepts: list, styles: STYLE_NAMES }));
+    return;
+  }
+
+  // API: Generate SVG from text
+  if (pathname === '/api/generate' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const text = payload.text || 'apple';
+        const opts = {
+          style: payload.style || 'flat',
+          mode: payload.mode || 'scene',
+          width: payload.width || 640,
+          height: payload.height || 360,
+          seed: payload.seed || 1,
+          vary: Boolean(payload.vary),
+          fuzzy: Boolean(payload.fuzzy),
+        };
+        const result = generate(text, opts);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // API: Render single concept with custom expression / animation
+  if (pathname === '/api/render-concept' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const { id, style = 'flat', expression = 'happy', animation, color, vary, seed = 1 } = payload;
+        const c = getConcept(id);
+        if (!c) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: `Unknown concept: ${id}` }));
+          return;
+        }
+        const shapes = drawConcept(c, { seed, color, vary, expression, animation, style });
+        const markup = shapesToSvg(shapes, style);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ id, expression, animation, markup }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // API: Get story templates
+  if (pathname === '/api/story/templates' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ templates: STORY_TEMPLATES, aspectRatios: ASPECT_RATIOS }));
+    return;
+  }
+
+  // API: Generate multi-scene animated clip (Kids, Documentary, News, How-To)
+  if (pathname === '/api/story/generate' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const text = payload.text || 'puppy-friend';
+        const opts = {
+          style: payload.style || 'flat',
+          genre: payload.genre || 'kids',
+          aspect: payload.aspect || '16:9',
+          seed: payload.seed || 1,
+          vary: Boolean(payload.vary),
+          title: payload.title,
+        };
+        const story = composeStory(text, opts);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(story));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // API: Export story as standalone offline HTML player
+  if (pathname === '/api/story/export-html' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const story = composeStory(payload.text || 'puppy-friend', {
+          style: payload.style || 'flat',
+          genre: payload.genre || 'kids',
+          aspect: payload.aspect || '16:9',
+          seed: payload.seed || 1,
+          vary: Boolean(payload.vary),
+          title: payload.title,
+        });
+        const html = generateStoryHtml(story);
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${(story.title || 'clip').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.html"`,
+        });
+        res.end(html);
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // API: Direct SVG export (GET /api/svg?text=...&style=...&mode=...)
+  if (pathname === '/api/svg' && req.method === 'GET') {
+    const text = url.searchParams.get('text') || 'apple';
+    const style = url.searchParams.get('style') || 'flat';
+    const mode = url.searchParams.get('mode') || 'scene';
+    const seed = url.searchParams.get('seed') || 1;
+    const vary = url.searchParams.get('vary') === 'true';
+
+    const cacheKey = `${text}:${style}:${mode}:${seed}:${vary}`;
+    let svg = svgCache.get(cacheKey);
+    if (!svg) {
+      const result = generate(text, { style, mode, seed, vary });
+      svg = result.svg;
+      if (svgCache.size < 5000) svgCache.set(cacheKey, svg);
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=86400',
+      'Content-Disposition': 'inline; filename="pictogen.svg"',
+    });
+    res.end(svg);
+    return;
+  }
+
+  // API: Get showcase video data
+  if (pathname === '/api/showcase' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(getShowcaseData()));
+    return;
+  }
+
+  // Static file serving from public/
+  let filePath = resolve(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname === '/showcase' ? 'showcase.html' : '.' + pathname);
+  if (!filePath.startsWith(PUBLIC_DIR)) {
+    res.writeHead(403);
+    res.end('Forbidden');
+    return;
+  }
+
+  if (existsSync(filePath)) {
+    const ext = extname(filePath);
+    const mime = MIME[ext] || 'application/octet-stream';
+    res.writeHead(200, { 'Content-Type': mime });
+    res.end(readFileSync(filePath));
+  } else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  }
+});
+
+server.listen(PORT, () => {
+  console.log(`PictoGen Web Studio running at: http://localhost:${PORT}`);
+});

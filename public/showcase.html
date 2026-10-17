@@ -1,0 +1,1342 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PictoGen — Video Feature Showcase (Natural English Narration)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #111827;
+      --surface-subtle: #1e293b;
+      --surface-elevated: #243247;
+      --border: #334155;
+      --border-bright: #475569;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.4);
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.4);
+      --danger: #ef4444;
+      --radius-sm: 8px;
+      --radius: 14px;
+      --radius-lg: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding-bottom: 80px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation */
+    header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.9rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 1.3rem;
+      color: #fff;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+    .brand-titles {
+      display: flex;
+      flex-direction: column;
+    }
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .badge-video {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .brand-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .btn {
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface-subtle);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .btn:hover {
+      background: var(--surface-elevated);
+      border-color: var(--border-bright);
+      transform: translateY(-1px);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    }
+    .btn-record {
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+    .btn-record:hover {
+      background: linear-gradient(135deg, #b91c1c, #dc2626);
+    }
+    .btn-record.recording {
+      animation: pulse-red 1s infinite alternate;
+    }
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); }
+      100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.9); }
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1200px;
+      margin: 1.5rem auto;
+      padding: 0 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      width: 100%;
+    }
+
+    /* Video Player Wrapper */
+    .player-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Widescreen Stage */
+    .video-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+      user-select: none;
+    }
+
+    .svg-screen {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+    .svg-screen svg {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.4));
+    }
+
+    /* Screen Badges */
+    .stage-badge-left {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 10;
+    }
+    .stage-badge-left .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+
+    .stage-badge-right {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #a78bfa;
+      z-index: 10;
+    }
+
+    /* Lower Third Subtitles */
+    .lower-third {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 1.5rem 2rem 1.25rem;
+      background: linear-gradient(180deg, transparent 0%, rgba(9, 13, 22, 0.7) 35%, rgba(9, 13, 22, 0.95) 100%);
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      pointer-events: none;
+    }
+    .lt-tag {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .lt-title {
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: -0.01em;
+      color: #ffffff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    }
+    .lt-narration {
+      font-size: 1.02rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      line-height: 1.45;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+      max-width: 90%;
+    }
+    .lt-narration span.spoken {
+      color: #facc15;
+      font-weight: 700;
+    }
+
+    /* Live Equalizer waveform on stage */
+    .audio-visualizer-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      z-index: 20;
+      overflow: hidden;
+    }
+    .audio-visualizer-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ec4899);
+      transition: width 0.1s linear;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.8);
+    }
+
+    /* Big Start Overlay */
+    .start-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(9, 13, 22, 0.75);
+      backdrop-filter: blur(6px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      z-index: 30;
+      cursor: pointer;
+      transition: opacity 0.3s ease;
+    }
+    .start-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .play-circle-btn {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 32px var(--primary-glow);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .start-overlay:hover .play-circle-btn {
+      transform: scale(1.12);
+    }
+    .play-circle-btn svg {
+      width: 40px;
+      height: 40px;
+      fill: #fff;
+      margin-left: 4px;
+    }
+    .start-text {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #fff;
+      text-align: center;
+    }
+    .start-subtext {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* Player Controls Bar */
+    .controls-bar {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    /* Progress scrub */
+    .timeline-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .timeline {
+      flex: 1;
+      height: 8px;
+      background: var(--surface-subtle);
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .timeline-progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      border-radius: 999px;
+      transition: width 0.1s linear;
+    }
+    .timeline-segments {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      pointer-events: none;
+    }
+    .timeline-segment {
+      flex: 1;
+      border-right: 2px solid rgba(15, 23, 42, 0.8);
+      height: 100%;
+    }
+    .time-stamp {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      min-width: 90px;
+      text-align: right;
+    }
+
+    /* Control Buttons */
+    .buttons-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .controls-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .icon-btn {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 1rem;
+    }
+    .icon-btn:hover {
+      background: var(--surface-elevated);
+      border-color: var(--border-bright);
+      color: #fff;
+    }
+    .icon-btn.primary {
+      background: var(--primary);
+      border-color: transparent;
+      color: #fff;
+    }
+    .icon-btn.primary:hover {
+      background: #2563eb;
+    }
+
+    .volume-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: 0.5rem;
+    }
+    .volume-slider {
+      width: 80px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .voice-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .voice-select {
+      background: transparent;
+      border: none;
+      color: #38bdf8;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+    }
+    .voice-select option {
+      background: #1e293b;
+      color: #fff;
+    }
+
+    /* Scene Carousel / Gallery */
+    .scene-grid-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .scene-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.75rem;
+    }
+    .scene-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      position: relative;
+    }
+    .scene-card:hover {
+      background: var(--surface-subtle);
+      border-color: var(--border-bright);
+      transform: translateY(-2px);
+    }
+    .scene-card.active {
+      border-color: var(--primary);
+      background: var(--surface-subtle);
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+    .scene-card-preview {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .scene-card-preview svg {
+      width: 100%;
+      height: 100%;
+    }
+    .scene-card-num {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.75);
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fff;
+    }
+    .scene-card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #fff;
+    }
+    .scene-card-tag {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #38bdf8;
+      text-transform: uppercase;
+    }
+
+    /* Hidden elements for video recording */
+    #render-canvas {
+      display: none;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      border: 1px solid var(--border-bright);
+      color: #fff;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s ease;
+      z-index: 100;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-logo">P</div>
+      <div class="brand-titles">
+        <div class="brand-title">
+          PictoGen Showcase
+          <span class="badge-video">HD Video Clip</span>
+        </div>
+        <div class="brand-sub">7-Scene Feature Tour • Natural English Voice Narration</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btn-record-video" class="btn btn-record" title="Record all scenes into a WebM video file">
+        <span>🎥 Record & Download Video</span>
+      </button>
+      <a href="/" class="btn" title="Back to Interactive Web Studio">
+        <span>🎨 Open Studio</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Player Card -->
+    <section class="player-card">
+      <div class="video-stage" id="video-stage">
+        <!-- Live SVG screen container -->
+        <div class="svg-screen" id="svg-screen">
+          <!-- Active Scene SVG is injected here -->
+        </div>
+
+        <!-- Top Badges -->
+        <div class="stage-badge-left" id="badge-scene-info">
+          <span class="dot"></span>
+          <span id="badge-scene-text">SCENE 01 / 07 • WELCOME</span>
+        </div>
+        <div class="stage-badge-right" id="badge-style-info">
+          STYLE: CARTOON
+        </div>
+
+        <!-- Lower Third Narration & Titles -->
+        <div class="lower-third">
+          <div class="lt-tag" id="lt-tag">OFFLINE VECTOR ENGINE</div>
+          <div class="lt-title" id="lt-title">Welcome to PictoGen</div>
+          <div class="lt-narration" id="lt-narration">
+            Welcome to PictoGen, a zero-dependency vector engine that creates illustrations and animated clips completely offline.
+          </div>
+        </div>
+
+        <!-- Equalizer Waveform line at base of screen -->
+        <div class="audio-visualizer-bar">
+          <div class="audio-visualizer-fill" id="visualizer-fill"></div>
+        </div>
+
+        <!-- Big Play Button Overlay (for browser autoplay permission) -->
+        <div class="start-overlay" id="start-overlay">
+          <div class="play-circle-btn">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <div>
+            <div class="start-text">Click to Play Showcase Video</div>
+            <div class="start-subtext">Narrated in Natural English (Microsoft Zira en-US)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls Bar -->
+      <div class="controls-bar">
+        <!-- Scrub bar -->
+        <div class="timeline-wrap">
+          <div class="timeline" id="timeline">
+            <div class="timeline-progress" id="timeline-progress"></div>
+            <div class="timeline-segments" id="timeline-segments"></div>
+          </div>
+          <div class="time-stamp" id="time-display">00:00 / 00:40</div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="buttons-row">
+          <div class="controls-left">
+            <button class="icon-btn" id="btn-prev" title="Previous Scene">⏮</button>
+            <button class="icon-btn primary" id="btn-play-pause" title="Play / Pause">▶</button>
+            <button class="icon-btn" id="btn-next" title="Next Scene">⏭</button>
+            <button class="icon-btn" id="btn-replay" title="Replay Video">↺</button>
+            
+            <div class="volume-group">
+              <button class="icon-btn" id="btn-mute" title="Mute Audio">🔊</button>
+              <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.05" value="1" />
+            </div>
+          </div>
+
+          <div class="controls-right">
+            <!-- Voice Switcher -->
+            <div class="voice-select-wrap">
+              <span>🎙️ Voice:</span>
+              <select class="voice-select" id="voice-source">
+                <option value="wav" selected>Pre-rendered Natural WAV (Microsoft Zira)</option>
+                <option value="speech">Browser Speech Synthesis (Native en-US)</option>
+              </select>
+            </div>
+
+            <!-- Export single scene buttons -->
+            <button class="btn" id="btn-export-svg" title="Save current scene as vector SVG">
+              <span>📥 SVG</span>
+            </button>
+            <button class="btn" id="btn-export-png" title="Save current scene as HD PNG">
+              <span>🖼️ PNG</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scene Selector Cards / Chapter Grid -->
+    <section class="scene-grid-section">
+      <div class="section-header">
+        <div class="section-title">Showcase Chapters (Click to Jump)</div>
+        <div class="section-title" id="total-duration-badge">7 SCENES • 40 SECONDS</div>
+      </div>
+      <div class="scene-grid" id="scene-grid">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+  </main>
+
+  <canvas id="render-canvas" width="1280" height="720"></canvas>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // State
+    let showcaseData = null;
+    let currentSceneIdx = 0;
+    let isPlaying = false;
+    let isRecording = false;
+    let audioMode = 'wav'; // 'wav' | 'speech'
+    let audioElement = new Audio();
+    let speechUtterance = null;
+    let sceneTimer = null;
+    let sceneStartTime = 0;
+    let sceneElapsed = 0;
+    let animFrame = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+
+    // Fallback static data in case of offline/direct file access
+    const FALLBACK_DATA = {
+      title: "PictoGen Vector Engine — Feature Showcase Video",
+      scenes: [
+        {
+          num: 1,
+          title: "Welcome to PictoGen",
+          tag: "OFFLINE VECTOR ENGINE",
+          mode: "scene",
+          style: "cartoon",
+          prompt: "a happy boy walking across the slide with a blue bike under the sun and tree",
+          narration: "Welcome to PictoGen, a zero-dependency vector engine that creates illustrations and animated clips completely offline.",
+          duration: 5.5,
+          audioUrl: "/audio/showcase-1.wav"
+        },
+        {
+          num: 2,
+          title: "Technical Callouts & Blueprint Schematics",
+          tag: "PRECISION ENGINEERING",
+          mode: "callout",
+          style: "blueprint",
+          prompt: "a blue bicycle with gears and handlebars",
+          narration: "Create precision technical schematics and anatomy diagrams with leader lines, part badges, and exact dimension brackets.",
+          duration: 5.5,
+          audioUrl: "/audio/showcase-2.wav"
+        },
+        {
+          num: 3,
+          title: "Meticulous Studio Knolling",
+          tag: "FLAT-LAY DESIGN",
+          mode: "knolling",
+          style: "flat",
+          prompt: "apple, bike, tree, sun, coffee, book",
+          narration: "Organize your items into immaculate studio knolling flat-lays, aligned orthogonally on metric workshop cutting mats.",
+          duration: 5.5,
+          audioUrl: "/audio/showcase-3.wav"
+        },
+        {
+          num: 4,
+          title: "Before vs After Comparison",
+          tag: "VERSUS SPLIT-SCREEN",
+          mode: "split",
+          style: "cartoon",
+          prompt: "sad boy and laughing boy",
+          narration: "Highlight transformations and contrasts with dynamic split-screens, comparing before and after states side by side.",
+          duration: 5.5,
+          audioUrl: "/audio/showcase-4.wav"
+        },
+        {
+          num: 5,
+          title: "2.5D Isometric Dioramas",
+          tag: "MINIATURE DEPTH",
+          mode: "isometric",
+          style: "flat",
+          prompt: "tree, house and car on a sunny day",
+          narration: "Bring objects into three dimensions with floating isometric dioramas, featuring grounded contact shadows and miniature depth.",
+          duration: 5.5,
+          audioUrl: "/audio/showcase-5.wav"
+        },
+        {
+          num: 6,
+          title: "Pictorial Waffle Infographics",
+          tag: "ISOTYPE DATA GRAPHICS",
+          mode: "waffle",
+          style: "flat",
+          prompt: "80% clean bicycles in city transit",
+          narration: "Transform statistical numbers into intuitive pictorial waffle charts, making data visual, human, and engaging.",
+          duration: 5.5,
+          audioUrl: "/audio/showcase-6.wav"
+        },
+        {
+          num: 7,
+          title: "Animated Broadcast Clips & Coloring Pages",
+          tag: "UNLIMITED CREATIVITY",
+          mode: "scene",
+          style: "flat",
+          prompt: "renewable-boom",
+          narration: "From animated documentaries and news bulletins with lower thirds, to interactive coloring books, PictoGen creates it all offline. 100% open source and commercial friendly.",
+          duration: 7.2,
+          audioUrl: "/audio/showcase-7.wav"
+        }
+      ]
+    };
+
+    // DOM Elements
+    const videoStage = document.getElementById('video-stage');
+    const svgScreen = document.getElementById('svg-screen');
+    const badgeSceneText = document.getElementById('badge-scene-text');
+    const badgeStyleInfo = document.getElementById('badge-style-info');
+    const ltTag = document.getElementById('lt-tag');
+    const ltTitle = document.getElementById('lt-title');
+    const ltNarration = document.getElementById('lt-narration');
+    const visualizerFill = document.getElementById('visualizer-fill');
+    const startOverlay = document.getElementById('start-overlay');
+    const timeline = document.getElementById('timeline');
+    const timelineProgress = document.getElementById('timeline-progress');
+    const timelineSegments = document.getElementById('timeline-segments');
+    const timeDisplay = document.getElementById('time-display');
+    const btnPlayPause = document.getElementById('btn-play-pause');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const btnReplay = document.getElementById('btn-replay');
+    const btnMute = document.getElementById('btn-mute');
+    const volumeSlider = document.getElementById('volume-slider');
+    const voiceSource = document.getElementById('voice-source');
+    const btnRecordVideo = document.getElementById('btn-record-video');
+    const btnExportSvg = document.getElementById('btn-export-svg');
+    const btnExportPng = document.getElementById('btn-export-png');
+    const sceneGrid = document.getElementById('scene-grid');
+    const toast = document.getElementById('toast');
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function getTotalDuration() {
+      if (!showcaseData || !showcaseData.scenes) return 40;
+      return showcaseData.scenes.reduce((acc, sc) => acc + (sc.duration || 5.5), 0);
+    }
+
+    function getSceneStartOffset(idx) {
+      let offset = 0;
+      for (let i = 0; i < idx; i++) {
+        offset += showcaseData.scenes[i].duration || 5.5;
+      }
+      return offset;
+    }
+
+    // Load Data
+    async function initShowcase() {
+      try {
+        const res = await fetch('/api/showcase');
+        if (res.ok) {
+          showcaseData = await res.json();
+        } else {
+          showcaseData = FALLBACK_DATA;
+        }
+      } catch (e) {
+        console.warn('Using fallback showcase data:', e);
+        showcaseData = FALLBACK_DATA;
+      }
+
+      renderTimelineSegments();
+      renderSceneGrid();
+      loadScene(0, false);
+      setupEvents();
+    }
+
+    function renderTimelineSegments() {
+      timelineSegments.innerHTML = '';
+      const total = getTotalDuration();
+      showcaseData.scenes.forEach((sc) => {
+        const seg = document.createElement('div');
+        seg.className = 'timeline-segment';
+        seg.style.flex = (sc.duration || 5.5) / total;
+        timelineSegments.appendChild(seg);
+      });
+    }
+
+    function renderSceneGrid() {
+      sceneGrid.innerHTML = '';
+      showcaseData.scenes.forEach((sc, idx) => {
+        const card = document.createElement('div');
+        card.className = `scene-card ${idx === 0 ? 'active' : ''}`;
+        card.id = `scene-card-${idx}`;
+        card.innerHTML = `
+          <div class="scene-card-preview">${sc.svg || '<div style="color:#64748b;font-size:0.75rem;">Scene ' + sc.num + '</div>'}</div>
+          <span class="scene-card-num">0${sc.num}</span>
+          <div class="scene-card-tag">${sc.tag || sc.mode}</div>
+          <div class="scene-card-title">${sc.title}</div>
+        `;
+        card.addEventListener('click', () => {
+          loadScene(idx, isPlaying);
+        });
+        sceneGrid.appendChild(card);
+      });
+    }
+
+    function loadScene(idx, autoPlay = true) {
+      if (idx < 0) idx = 0;
+      if (idx >= showcaseData.scenes.length) {
+        pause();
+        return;
+      }
+
+      currentSceneIdx = idx;
+      const sc = showcaseData.scenes[idx];
+
+      // Update Screen
+      svgScreen.innerHTML = sc.svg || `<div style="color:#fff;font-size:1.5rem;font-weight:700;">Scene ${sc.num}: ${sc.title}</div>`;
+      badgeSceneText.textContent = `SCENE 0${sc.num} / 0${showcaseData.scenes.length} • ${sc.tag}`;
+      badgeStyleInfo.textContent = `STYLE: ${(sc.style || 'FLAT').toUpperCase()}`;
+      ltTag.textContent = sc.tag;
+      ltTitle.textContent = sc.title;
+      ltNarration.textContent = sc.narration;
+
+      // Update Active Chapter Card
+      document.querySelectorAll('.scene-card').forEach((c, i) => {
+        c.classList.toggle('active', i === idx);
+      });
+      const activeCard = document.getElementById(`scene-card-${idx}`);
+      if (activeCard) {
+        activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+
+      // Stop previous audio
+      stopAudio();
+
+      sceneElapsed = 0;
+      sceneStartTime = performance.now();
+      updateProgress();
+
+      if (autoPlay) {
+        playSceneAudio(sc);
+      }
+    }
+
+    function stopAudio() {
+      audioElement.pause();
+      audioElement.currentTime = 0;
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    function playSceneAudio(sc) {
+      if (audioMode === 'wav') {
+        audioElement.src = sc.audioUrl;
+        audioElement.volume = volumeSlider.value;
+        audioElement.play().catch(e => {
+          console.warn('Audio play error, falling back to speech synthesis:', e);
+          playSpeechNarration(sc);
+        });
+
+        audioElement.onended = () => {
+          onSceneComplete();
+        };
+      } else {
+        playSpeechNarration(sc);
+      }
+    }
+
+    function playSpeechNarration(sc) {
+      if (!('speechSynthesis' in window)) {
+        setTimeout(onSceneComplete, (sc.duration || 5.5) * 1000);
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(sc.narration);
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+
+      // Pick natural English voice
+      const voices = window.speechSynthesis.getVoices();
+      const engVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Zira') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Google'))) ||
+                       voices.find(v => v.lang.startsWith('en'));
+      if (engVoice) utter.voice = engVoice;
+
+      utter.onend = () => {
+        onSceneComplete();
+      };
+      utter.onerror = () => {
+        setTimeout(onSceneComplete, 1000);
+      };
+      window.speechSynthesis.speak(utter);
+    }
+
+    function onSceneComplete() {
+      if (currentSceneIdx < showcaseData.scenes.length - 1) {
+        loadScene(currentSceneIdx + 1, true);
+      } else {
+        // Finished all scenes!
+        pause();
+        loadScene(0, false);
+        showToast('🎉 Video Showcase Complete! You can replay or export.');
+        if (isRecording) {
+          stopRecording();
+        }
+      }
+    }
+
+    function play() {
+      isPlaying = true;
+      btnPlayPause.textContent = '⏸';
+      startOverlay.classList.add('hidden');
+      loadScene(currentSceneIdx, true);
+      startTick();
+    }
+
+    function pause() {
+      isPlaying = false;
+      btnPlayPause.textContent = '▶';
+      stopAudio();
+      stopTick();
+    }
+
+    function startTick() {
+      stopTick();
+      function tick() {
+        if (!isPlaying) return;
+        updateProgress();
+        animFrame = requestAnimationFrame(tick);
+      }
+      animFrame = requestAnimationFrame(tick);
+    }
+
+    function stopTick() {
+      if (animFrame) {
+        cancelAnimationFrame(animFrame);
+        animFrame = null;
+      }
+    }
+
+    function updateProgress() {
+      if (!showcaseData || !showcaseData.scenes) return;
+      const sc = showcaseData.scenes[currentSceneIdx];
+      const dur = sc.duration || 5.5;
+
+      let currentSec = 0;
+      if (audioMode === 'wav' && audioElement.duration) {
+        currentSec = audioElement.currentTime;
+      } else {
+        currentSec = (performance.now() - sceneStartTime) / 1000;
+        if (currentSec > dur) currentSec = dur;
+      }
+
+      const totalOffset = getSceneStartOffset(currentSceneIdx) + currentSec;
+      const totalDur = getTotalDuration();
+      const pct = Math.min(100, Math.max(0, (totalOffset / totalDur) * 100));
+
+      timelineProgress.style.width = `${pct}%`;
+      visualizerFill.style.width = `${(currentSec / dur) * 100}%`;
+      timeDisplay.textContent = `${formatTime(totalOffset)} / ${formatTime(totalDur)}`;
+    }
+
+    // User Events
+    function setupEvents() {
+      startOverlay.addEventListener('click', () => {
+        play();
+      });
+
+      btnPlayPause.addEventListener('click', () => {
+        if (isPlaying) pause();
+        else play();
+      });
+
+      btnPrev.addEventListener('click', () => {
+        if (currentSceneIdx > 0) {
+          loadScene(currentSceneIdx - 1, isPlaying);
+        }
+      });
+
+      btnNext.addEventListener('click', () => {
+        if (currentSceneIdx < showcaseData.scenes.length - 1) {
+          loadScene(currentSceneIdx + 1, isPlaying);
+        }
+      });
+
+      btnReplay.addEventListener('click', () => {
+        loadScene(0, true);
+        play();
+      });
+
+      btnMute.addEventListener('click', () => {
+        audioElement.muted = !audioElement.muted;
+        btnMute.textContent = audioElement.muted ? '🔇' : '🔊';
+      });
+
+      volumeSlider.addEventListener('input', (e) => {
+        audioElement.volume = parseFloat(e.target.value);
+        if (audioElement.volume === 0) btnMute.textContent = '🔇';
+        else btnMute.textContent = '🔊';
+      });
+
+      voiceSource.addEventListener('change', (e) => {
+        audioMode = e.target.value;
+        if (isPlaying) {
+          stopAudio();
+          playSceneAudio(showcaseData.scenes[currentSceneIdx]);
+        }
+        showToast(audioMode === 'wav' ? '🎙️ Pre-rendered Zira WAV voice active' : '🗣️ Browser Speech Synthesis active');
+      });
+
+      // Timeline scrub click
+      timeline.addEventListener('click', (e) => {
+        const rect = timeline.getBoundingClientRect();
+        const clickRatio = (e.clientX - rect.left) / rect.width;
+        const totalDur = getTotalDuration();
+        const targetTime = clickRatio * totalDur;
+
+        // Find which scene contains targetTime
+        let accum = 0;
+        for (let i = 0; i < showcaseData.scenes.length; i++) {
+          const scDur = showcaseData.scenes[i].duration || 5.5;
+          if (targetTime <= accum + scDur || i === showcaseData.scenes.length - 1) {
+            loadScene(i, isPlaying);
+            break;
+          }
+          accum += scDur;
+        }
+      });
+
+      // Export Current SVG
+      btnExportSvg.addEventListener('click', () => {
+        const sc = showcaseData.scenes[currentSceneIdx];
+        const blob = new Blob([sc.svg], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pictogen-scene-${sc.num}-${(sc.mode || 'art')}.svg`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`Saved Scene ${sc.num} SVG!`);
+      });
+
+      // Export Current PNG
+      btnExportPng.addEventListener('click', () => {
+        const sc = showcaseData.scenes[currentSceneIdx];
+        const canvas = document.createElement('canvas');
+        canvas.width = 1920;
+        canvas.height = 1080;
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        const svgBlob = new Blob([sc.svg], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        img.onload = () => {
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const pngUrl = canvas.toDataURL('image/png');
+          const a = document.createElement('a');
+          a.href = pngUrl;
+          a.download = `pictogen-scene-${sc.num}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast(`Saved Scene ${sc.num} as HD PNG!`);
+        };
+        img.src = url;
+      });
+
+      // Record Full Video (.webm)
+      btnRecordVideo.addEventListener('click', () => {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startVideoRecording();
+        }
+      });
+    }
+
+    // Video Recording Feature with HTML5 Canvas + MediaRecorder
+    async function startVideoRecording() {
+      if (!window.MediaRecorder) {
+        alert('MediaRecorder API is not supported in this browser.');
+        return;
+      }
+
+      isRecording = true;
+      recordedChunks = [];
+      btnRecordVideo.classList.add('recording');
+      btnRecordVideo.innerHTML = '<span>⏹ Stop & Save Recording</span>';
+      showToast('🎥 Recording showcase video... Playing from Scene 1');
+
+      const canvas = document.getElementById('render-canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Create stream from canvas (30 fps)
+      const stream = canvas.captureStream(30);
+
+      // Web Audio setup to route narration audio into video stream
+      let audioCtx = null;
+      let dest = null;
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        dest = audioCtx.createMediaStreamDestination();
+        const source = audioCtx.createMediaElementSource(audioElement);
+        source.connect(dest);
+        source.connect(audioCtx.destination);
+        dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+      } catch (err) {
+        console.warn('Audio capture stream fallback:', err);
+      }
+
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+        ? 'video/webm;codecs=vp9,opus'
+        : 'video/webm';
+
+      mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4500000 });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          recordedChunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'PictoGen-Showcase-Video.webm';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        showToast('✅ Showcase video saved as PictoGen-Showcase-Video.webm!');
+        btnRecordVideo.classList.remove('recording');
+        btnRecordVideo.innerHTML = '<span>🎥 Record & Download Video</span>';
+        isRecording = false;
+      };
+
+      mediaRecorder.start(100);
+
+      // Rendering loop to draw onto canvas
+      function drawFrame() {
+        if (!isRecording) return;
+        const sc = showcaseData.scenes[currentSceneIdx];
+
+        // Background
+        ctx.fillStyle = '#090d16';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw active SVG screen
+        const activeSvg = svgScreen.querySelector('svg');
+        if (activeSvg) {
+          const img = new Image();
+          const xml = new XMLSerializer().serializeToString(activeSvg);
+          const svgBlob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+          const url = URL.createObjectURL(svgBlob);
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(url);
+          };
+          img.src = url;
+        }
+
+        // Draw Lower Third Banner
+        ctx.fillStyle = 'rgba(9, 13, 22, 0.9)';
+        ctx.fillRect(0, canvas.height - 130, canvas.width, 130);
+
+        // Lower third text
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 20px Nunito, sans-serif';
+        ctx.fillText(`SCENE 0${sc.num} / 0${showcaseData.scenes.length} • ${sc.tag}`, 40, canvas.height - 90);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 28px Nunito, sans-serif';
+        ctx.fillText(sc.title, 40, canvas.height - 56);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '600 20px Nunito, sans-serif';
+        const truncatedNarration = sc.narration.length > 95 ? sc.narration.substring(0, 92) + '...' : sc.narration;
+        ctx.fillText(truncatedNarration, 40, canvas.height - 24);
+
+        requestAnimationFrame(drawFrame);
+      }
+
+      drawFrame();
+
+      // Start playing from Scene 1
+      loadScene(0, true);
+      play();
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      isRecording = false;
+    }
+
+    // Startup
+    window.addEventListener('DOMContentLoaded', initShowcase);
+  </script>
+</body>
+</html>
