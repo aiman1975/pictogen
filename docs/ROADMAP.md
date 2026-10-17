@@ -1,0 +1,90 @@
+# Roadmap: Text to Clip
+
+**Goal:** type a sentence ("a boy walks toward us and waves, then a dog runs to him") and get a
+short animated clip with living figures, a believable environment and camera, in any of the
+visual styles. It should run offline and export as SVG, HTML or video.
+
+## Where it stands
+
+- **Text understanding:** objects, counts, colors, sizes, expressions, motions, negation, and
+  direction phrases ("toward us", "away into the distance", "across the room").
+- **Figures:** about 70 hand-drawn rigged concepts (people with limbs, faces and expressions,
+  animals, vehicles) plus about 3,170 static emoji icons.
+- **Animation:** CSS keyframes. Limb cycles (walk, run, jump, dance, wave...), facial cycles
+  (blink, talk), environment loops (clouds, rain, stars).
+- **Depth (2.5D):** figures can walk from the horizon toward the camera ("approach") or away
+  ("recede") on a perspective path. Crowds stand in two depth rows, and grounded figures have
+  contact shadows.
+- **Clips:** multi-scene stories with captions, four genres (kids, documentary, news, how-to)
+  and three aspect ratios, exported as a standalone HTML player.
+
+## On 3D
+
+**Recommendation: build out 2.5D in SVG first, not true 3D.**
+
+- **True 3D** (three.js/WebGL with 3D models) gets real rotation and lighting. But it needs a 3D
+  asset for every concept and a GPU, and it gives up the 20 flat illustration styles that make
+  PictoGen distinctive.
+- **2.5D** keeps every style and the vector output, and gets most of what viewers read as depth:
+  - perspective scaling along a path (done for approach/recede)
+  - occlusion order
+  - contact shadows
+  - parallax layers
+  - atmospheric fade with distance
+  - camera zoom and pan
+  - front, three-quarter, side and back views of characters
+
+Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is mature.
+
+## Phases
+
+### 1. Depth and staging (started)
+- [x] Approach/recede on a perspective path, motion scaled correctly for every figure size
+- [x] Contact shadows, two depth rows for crowds
+- [ ] **Back and three-quarter views** for people and animals, so "walking away" shows the figure's
+      back and turning is possible (currently a receding figure still faces the camera)
+- [ ] Re-sort draw order while a figure travels (now drawn in front for the whole path)
+- [ ] Atmospheric perspective: lighter, lower-contrast far objects
+- [ ] Paths: walking along a road or riverbank and around obstacles, not only straight lines
+
+### 2. Characters and facial expression
+- [ ] One shared skeleton (hips, knees, elbows, neck) for all rigged figures, so every motion works
+      on every character instead of per-drawing animation classes
+- [ ] More expressions plus **expression changes over time** ("sad, then happy")
+- [ ] Eye gaze (look at another character, follow a moving object), eyebrows, head tilt
+- [ ] Lip-sync from caption text (map words to mouth shapes), no audio needed
+- [ ] Idle life: breathing, weight shift, occasional glances; secondary motion (hair, ears, tails)
+- [ ] Interactions: holding a ball, sitting on a chair, riding a bike, hugging
+
+### 3. Environment
+- [ ] Parallax layers (far hills, mid trees, near grass) that move with the camera
+- [ ] More settings: city street, beach, forest, classroom, kitchen, space; indoor rooms with furniture
+- [ ] Time-of-day and weather changes inside a clip (sunset falls, rain starts)
+- [ ] Props that react: trees sway in wind, water ripples around a swimmer
+
+### 4. Clip engine (timeline)
+- [ ] **Beats within a scene**: "a boy walks in, then waves, then a dog runs to him" becomes a
+      per-actor timeline (enter, act, react, exit) instead of one looping motion per figure
+- [ ] Camera: push-in, pan, follow a character, cut to a close-up
+- [ ] Scene transitions (cut, fade, wipe) and caption timing tied to the beats
+- [ ] Recurring characters: the same boy looks the same in every scene (seeded identity)
+
+### 5. Export
+- [ ] **Video (MP4/WebM/GIF)** by stepping the animations frame by frame in a headless browser
+      (the Web Animations API can seek every keyframe deterministically, which the depth tests
+      already rely on), then encoding with a separately installed ffmpeg (not bundled, because of
+      its LGPL/GPL licensing)
+- [ ] Lottie JSON export for app developers
+- [ ] Transparent-background PNG sequences for video editors
+
+### 6. Product quality
+- [ ] Visual regression tests: render reference prompts to PNG and compare against approved images
+- [ ] A license check in CI so no unlicensed asset gets in (see `docs/LICENSE_AUDIT.md`)
+- [ ] Performance budget for clips with many figures
+- [ ] Studio UI: a timeline view, per-figure motion picker including approach/recede
+
+## Known issues to fix along the way
+- "a tree, a house and a dog" draws an indoor room, because "house" is also an indoor-backdrop word
+- The bicycle drawing loses its wheels at small sizes
+- "shoes" and "glasses" match ballet shoes and clinking glasses
+- Walk-across figures also get a sideways-scrolling ground, so the motion counts twice

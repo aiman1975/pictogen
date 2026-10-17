@@ -28,6 +28,7 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
   - Handles sizes (*"huge tree"* &rarr; scaled up).
   - Handles plurals & irregular forms (*"geese"*, *"leaves"*, *"bicycles"*).
   - Semantic aliases (*"schoolboy"* &rarr; boy, *"automobile"* &rarr; car, *"nemo"* &rarr; fish).
+  - Motion and depth (*"a boy walking towards us"* &rarr; walks from the horizon toward the camera, growing with perspective; *"a girl walking away into the distance"*; *"a man and a dog walking across the park"* &rarr; both walk, at the same pace).
 - 🧩 **Extensible Library**: ~70 hand-drawn concepts (recolorable, with expressions & motion) plus ~3,170 Fluent Emoji library icons (MIT). The hand-drawn core:
   - **Vehicles**: `bike`, `car`, `bus`, `boat`, `plane`
   - **Nature**: `tree`, `neem`, `flower`, `mountain`, `grass`
@@ -109,8 +110,15 @@ export default [
 ];
 ```
 
-Run the test suite (smoke test, SVG well-formedness, animations, presentation modes, story engine):
+Run the test suite (smoke test, SVG well-formedness, animations, presentation modes, story engine, depth & motion, CLI, server):
 ```bash
 npm test
 ```
 `scripts/generate-showcase-audio.js` regenerates the showcase narration in `public/audio/` with the operating system's own voice engine: PowerShell voices on Windows, `say` on macOS, or `espeak-ng`/`espeak` on Linux (`sudo apt install espeak-ng`). `node scripts/test-tts.js` checks that an engine is available.
+
+---
+
+## Roadmap & Licensing
+
+- **Roadmap:** [`docs/ROADMAP.md`](docs/ROADMAP.md): the text-to-clip plan (depth, characters, environments, timeline, video export).
+- **License:** PictoGen is MIT-licensed ([`LICENSE`](LICENSE)). Bundled third-party material (Microsoft Fluent Emoji, MIT; Nunito and JetBrains Mono fonts, SIL OFL 1.1) is listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), and the full audit is in [`docs/LICENSE_AUDIT.md`](docs/LICENSE_AUDIT.md).

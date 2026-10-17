@@ -9,6 +9,7 @@ export const STOPWORDS = new Set(
   i you he she it we they me him her us them my your his its our their mine yours this that these those there here
   as into onto over under above below near beside behind between across up down out off very so too then than just also not no yes
   do does did done has have had having will would can could should may might must shall while when where who whom which what why how
+  comes coming toward towards
   all any each every such only own same other s t let lets get gets got go goes going went come came see saw look looks looking
   like likes liked once upon time day one's its very really
   stand standing stands stood play playing plays played
@@ -56,7 +57,54 @@ export const MOTION_WORDS = {
   drive: 'drive', driving: 'drive', drives: 'drive', drove: 'drive', ride: 'drive', riding: 'drive',
   flap: 'flap', flapping: 'flap', flutter: 'flap', fluttering: 'flap',
   wag: 'wag', wagging: 'wag', wags: 'wag',
+  // Depth: walking from the distance toward the viewer, or away into it
+  approach: 'approach', approaching: 'approach', approaches: 'approach', approached: 'approach',
+  recede: 'recede', receding: 'recede', recedes: 'recede',
 };
+
+// "a boy and a dog walking": a motion word spreads back over the things listed with "and" before it,
+// but only to things that can move by themselves (never "a tree and a dog walking" -> walking tree).
+const MOVERS = new Set(['people', 'animals', 'wildlife', 'vehicles', 'alphabet', 'people_body']);
+// Words that end such a list ("a tree under the sun", "a man near a dog walking").
+const LIST_BREAKS = new Set(['under', 'on', 'in', 'at', 'near', 'behind', 'beside', 'above', 'below', 'over', 'by', 'from', 'to', 'into', 'onto', 'between']);
+
+// Verbs that only describe motion together with a direction ("coming toward us", "heading away").
+const DIRECTIONAL_VERBS = new Set(['come', 'comes', 'coming', 'came', 'head', 'heads', 'heading', 'move', 'moves', 'moving', 'go', 'goes', 'going', 'went']);
+const VIEWER = new Set(['us', 'me', 'you', 'camera', 'viewer']);
+const STAGES = ['slide', 'screen', 'room', 'stage', 'page'];
+
+/**
+ * Direction words right after a motion verb, starting at toks[j]:
+ *   across / around / through [the] [slide|screen|room|stage|page|park], from place to place -> walk-across
+ *   toward(s) [the] us|me|you|camera|viewer, closer, nearer, from afar, from far [away], from the distance -> approach
+ *   away [from [the] us|me|camera...], into the distance -> recede
+ * Returns { anim, len } (len = tokens consumed) or null.
+ */
+function motionTail(toks, j) {
+  const [a, b, c, d] = toks.slice(j, j + 4);
+  if (a === 'across' || a === 'around' || a === 'through' || (a === 'from' && b === 'place')) {
+    let len = a === 'from' ? (d === 'place' ? 4 : 3) : 1;
+    if (toks[j + len] === 'the' && [...STAGES, 'park'].includes(toks[j + len + 1])) len += 2;
+    else if (STAGES.includes(toks[j + len])) len += 1;
+    return { anim: 'walk-across', len };
+  }
+  if (a === 'toward' || a === 'towards') {
+    if (VIEWER.has(b)) return { anim: 'approach', len: 2 };
+    if (b === 'the' && VIEWER.has(c)) return { anim: 'approach', len: 3 };
+    return null;
+  }
+  if (a === 'closer' || a === 'nearer') return { anim: 'approach', len: 1 };
+  if (a === 'from' && b === 'afar') return { anim: 'approach', len: 2 };
+  if (a === 'from' && b === 'far') return { anim: 'approach', len: c === 'away' ? 3 : 2 };
+  if (a === 'from' && b === 'the' && c === 'distance') return { anim: 'approach', len: 3 };
+  if (a === 'away') {
+    if (b === 'from' && VIEWER.has(c)) return { anim: 'recede', len: 3 };
+    if (b === 'from' && c === 'the' && VIEWER.has(d)) return { anim: 'recede', len: 4 };
+    return { anim: 'recede', len: 1 };
+  }
+  if (a === 'into' && b === 'the' && c === 'distance') return { anim: 'recede', len: 3 };
+  return null;
+}
 
 export const NUMBER_WORDS = {
   one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
@@ -136,23 +184,11 @@ function conceptAt(toks, i, idx) {
     const head = words.slice(0, -1).join(' ');
     const last = words[n - 1];
 
-    if (n === 2 && MOTION_WORDS[last]) {
+    if (n === 2 && (MOTION_WORDS[last] || DIRECTIONAL_VERBS.has(last))) {
       const base = lookupWord(head, idx.single);
-      if (base) {
-        let anim = MOTION_WORDS[last];
-        let len = 2;
-        const after = toks[i + 2];
-        if (after === 'across' || after === 'around' || after === 'through' || (after === 'from' && toks[i + 3] === 'place')) {
-          anim = 'walk-across';
-          if (after === 'from') len += 3;
-          else len += 1;
-          if (toks[i + len] === 'the' && ['slide', 'screen', 'room', 'stage', 'page', 'park'].includes(toks[i + len + 1])) {
-            len += 2;
-          } else if (['slide', 'screen', 'room', 'stage', 'page'].includes(toks[i + len])) {
-            len += 1;
-          }
-        }
-        return { id: base.id, animation: anim, plural: base.plural, len, word: head };
+      const tail = motionTail(toks, i + 2);
+      if (base && (MOTION_WORDS[last] || tail)) {
+        return { id: base.id, animation: tail ? tail.anim : MOTION_WORDS[last], plural: base.plural, len: 2 + (tail?.len ?? 0), word: head };
       }
     }
 
@@ -227,6 +263,14 @@ export function parseText(text, { fuzzy = false } = {}) {
   const excluded = [];
   let pend = {};
   let lastConceptIndex = -99;
+  let list = []; // indices into `found` of the current "x and y" list
+
+  const spreadMotion = (anim) => {
+    for (const j of list) {
+      if (!found[j].animation && MOVERS.has(getConcept(found[j].id)?.category)) found[j].animation = anim;
+    }
+    list = [];
+  };
 
   const push = (hit, extra = {}) => {
     if (pend.negate) {
@@ -242,6 +286,8 @@ export function parseText(text, { fuzzy = false } = {}) {
       ...extra,
     });
     pend = {};
+    list.push(found.length - 1);
+    if (hit.animation) spreadMotion(hit.animation);
   };
 
   for (let i = 0; i < toks.length;) {
@@ -251,6 +297,7 @@ export function parseText(text, { fuzzy = false } = {}) {
     if (['and', 'or', 'but', 'with', 'without', 'then'].includes(t)) {
       lastConceptIndex = -99;
     }
+    if (LIST_BREAKS.has(t)) list = [];
     if (NEGATIONS.has(t)) {
       pend.negate = true;
       i++;
@@ -291,22 +338,16 @@ export function parseText(text, { fuzzy = false } = {}) {
       } else {
         pend.expression = expr;
       }
-    } else if (MOTION_WORDS[t]) {
-      let anim = MOTION_WORDS[t];
-      if (next === 'across' || next === 'around' || next === 'through' || (next === 'from' && toks[i + 2] === 'place')) {
-        anim = 'walk-across';
-        if (next === 'from') i += 3;
-        else i++;
-        if (toks[i + 1] === 'the' && ['slide', 'screen', 'room', 'stage', 'page', 'park'].includes(toks[i + 2])) {
-          i += 2;
-        } else if (['slide', 'screen', 'room', 'stage', 'page'].includes(toks[i + 1])) {
-          i += 1;
-        }
-      }
+    } else if (MOTION_WORDS[t] || (DIRECTIONAL_VERBS.has(t) && motionTail(toks, i + 1))) {
+      const tail = motionTail(toks, i + 1);
+      const anim = tail ? tail.anim : MOTION_WORDS[t];
+      const at = i;
+      if (tail) i += tail.len;
       if (hasNextConcept) {
         pend.animation = anim;
-      } else if (found.length > 0 && (i <= lastConceptIndex + 2)) {
+      } else if (found.length > 0 && (at <= lastConceptIndex + 2)) {
         found[found.length - 1].animation = anim;
+        spreadMotion(anim);
       } else {
         pend.animation = anim;
       }
@@ -315,6 +356,7 @@ export function parseText(text, { fuzzy = false } = {}) {
       if (f) push({ id: f.id, word: t, plural: false }, { fuzzy: true });
       else {
         unknown.push(t);
+        list = [];
         delete pend.negate; // "no place like home": the negation was about something we can't draw
       }
     }

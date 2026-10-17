@@ -1630,19 +1630,17 @@
             id,
             style: state.style,
             expression: targetExpr,
-            animation: curAnim === 'walk-across' ? 'walk' : curAnim,
+            // travelling figures walk in place inside their motion wrapper
+            animation: ['walk-across', 'approach', 'recede'].includes(curAnim) ? 'walk' : curAnim,
             seed: curSeed,
           }),
         });
         const data = await res.json();
         if (data.markup) {
           selectedItem.dataset.expression = targetExpr;
-          const motionWrapper = selectedItem.querySelector('.pg-motion-across');
-          if (motionWrapper) {
-            motionWrapper.innerHTML = data.markup;
-          } else {
-            selectedItem.innerHTML = data.markup;
-          }
+          // Replace only the drawing: keep the contact shadow and any travel motion around it.
+          const target = selectedItem.querySelector('.pg-figure') || selectedItem.querySelector('.pg-motion-across') || selectedItem;
+          target.innerHTML = data.markup;
           addHitArea(selectedItem);
           state.svg = svgViewport.innerHTML;
           updateToolbarPosition();
@@ -1675,11 +1673,9 @@
         });
         const data = await res.json();
         if (data.markup) {
-          if (targetAnim === 'walk-across') {
-            selectedItem.innerHTML = `<g class="pg-motion-across">${data.markup}</g>`;
-          } else {
-            selectedItem.innerHTML = data.markup;
-          }
+          const shadow = selectedItem.querySelector('.pg-shadow')?.outerHTML || '';
+          const figure = `${shadow}<g class="pg-figure">${data.markup}</g>`;
+          selectedItem.innerHTML = targetAnim === 'walk-across' ? `<g class="pg-motion-across">${figure}</g>` : figure;
           addHitArea(selectedItem);
         }
       } catch (e) {}
