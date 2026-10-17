@@ -47,7 +47,9 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] **Side views** (profile) of the four people: one eye, nose and ear, far arm and leg drawn
       darker behind the body, all ten expressions. Walking and running people use them by default,
       so the limb swing reads as a stride; stylized styles turn the face toward the walking direction
-- [ ] Three-quarter views, back and front views for animals, and turning between views during a clip
+- [x] Front and back views for the dog, cat, rabbit and lion (and the penguin's back): animals
+      running toward the camera face it, walking away they show their back and tail
+- [ ] Three-quarter views, and turning between views during a clip
 - [ ] Re-sort draw order while a figure travels (now drawn in front for the whole path)
 - [ ] Atmospheric perspective: lighter, lower-contrast far objects
 - [ ] Paths: walking along a road or riverbank and around obstacles, not only straight lines

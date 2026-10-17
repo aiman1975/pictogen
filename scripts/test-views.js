@@ -56,6 +56,27 @@ check(!/class="pg-profile"/.test(shapesToSvg(drawConcept('girl', { seed: 1, anim
 const across = generate('a man and a woman walking across the park').svg;
 check(/class="pg-profile"/.test(item(across, 'man')) && /class="pg-profile"/.test(item(across, 'woman')), 'people walking across a scene are in profile');
 
+// 1c. Animals: front and back views for the four-legged ones (side is their default drawing)
+const INK = '#263238';
+const animalIssues = [];
+for (const id of ['dog', 'cat', 'rabbit', 'lion']) {
+  for (const style of ['flat', 'cartoon', 'sketch']) {
+    const side = shapesToSvg(drawConcept(id, { style, seed: 1 }), style);
+    const front = shapesToSvg(drawConcept(id, { style, seed: 1, view: 'front' }), style);
+    const back = shapesToSvg(drawConcept(id, { style, seed: 1, view: 'back' }), style);
+    if (front === side || back === side || back === front) animalIssues.push(`${id}/${style}: views not distinct`);
+    if (style === 'flat' && (!front.includes(INK) || back.includes(INK))) animalIssues.push(`${id}: face should show from the front only`);
+    if (!/class="pg-body-torso"/.test(front) || !/class="pg-body-torso"/.test(back)) animalIssues.push(`${id}/${style}: no body group to bob`);
+  }
+}
+check(!animalIssues.length, `dog, cat, rabbit and lion have distinct front and back views (face only from the front, body bobs)${animalIssues.length ? ': ' + animalIssues.join(', ') : ''}`);
+const penguinBack = shapesToSvg(drawConcept('penguin', { seed: 1, view: 'back' }), 'flat');
+check(penguinBack !== shapesToSvg(drawConcept('penguin', { seed: 1 }), 'flat') && !penguinBack.includes('#ffffff'), 'the penguin from behind is all dark (no white tummy or face)');
+const dogToward = item(generate('a dog running towards us').svg, 'dog');
+const dogAway = item(generate('a boy and a dog walking away into the distance').svg, 'dog');
+check(dogToward.includes(INK) && /pg-body-torso/.test(dogToward), 'a dog running toward us faces the camera');
+check(!dogAway.includes(INK) && /data-view="back"/.test(dogAway), 'a dog walking away shows its back');
+
 // 2. View phrases
 const views = (t) => parseText(t).matches.map((m) => `${m.id}:${m.view ?? '-'}`).join(' ');
 for (const [t, want] of [

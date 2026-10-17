@@ -1,5 +1,39 @@
 // Wildlife concepts: lion, elephant, bear, penguin.
 import { INK } from '../core/styles.js';
+import { darken } from '../core/color.js';
+import { animalView } from './animals.js';
+
+/** Lion seen from the front or back (see animalView in animals.js). */
+function drawLionView(d, p, view) {
+  const fur = p.c('main'), mane = p.c('mane'), far = darken(fur, 0.15);
+  d.group({ class: 'pg-body-torso' }, () => {
+    if (view === 'back') {
+      // The mane is furthest away and shows above the back; the tail with its tuft is nearest
+      d.circle(50, 38, 20, { fill: mane, kind: 'body' });
+      d.ellipse(50, 68, 20, 17, { fill: fur, kind: 'body' });
+      d.rect(38, 72, 10, 21, { rx: 3, fill: fur, kind: 'body' });
+      d.rect(52, 72, 10, 21, { rx: 3, fill: fur, kind: 'body' });
+      d.path('M48 66 Q41 50 50 40 Q56 52 53 66 Z', { fill: darken(fur, 0.12), kind: 'body' });
+      d.circle(50, 39, 4, { fill: mane, kind: 'body' });
+      return;
+    }
+    d.path('M66 66 Q82 56 80 42 Q76 52 64 60 Z', { fill: fur, kind: 'body' });
+    d.circle(80, 41, 4, { fill: mane, kind: 'body' });
+    d.rect(31, 72, 8, 20, { rx: 3, fill: far, kind: 'body' });
+    d.rect(61, 72, 8, 20, { rx: 3, fill: far, kind: 'body' });
+    d.ellipse(50, 68, 20, 17, { fill: fur, kind: 'body' });
+    d.rect(39, 70, 9, 23, { rx: 3, fill: fur, kind: 'body' });
+    d.rect(52, 70, 9, 23, { rx: 3, fill: fur, kind: 'body' });
+    d.circle(50, 40, 21, { fill: mane, kind: 'body' });
+    d.circle(39, 27, 4, { fill: fur, kind: 'body' });
+    d.circle(61, 27, 4, { fill: fur, kind: 'body' });
+    d.circle(50, 42, 13, { fill: fur, kind: 'body' });
+    d.circle(45.5, 39, 1.8, { fill: INK, kind: 'detail' });
+    d.circle(54.5, 39, 1.8, { fill: INK, kind: 'detail' });
+    d.poly([[48, 44], [52, 44], [50, 47]], { fill: p.c('nose'), kind: 'detail' });
+    d.path('M47.5 49 Q50 52 52.5 49', { kind: 'line', stroke: INK, sw: 1.5 });
+  });
+}
 
 export default [
   {
@@ -13,6 +47,7 @@ export default [
     width: 0.85,
     colors: { main: '#ffa726', mane: '#e65100', nose: '#5d4037' },
     draw(d, p) {
+      if (animalView(p)) return drawLionView(d, p, animalView(p));
       const fur = p.c('main');
       const mane = p.c('mane');
 
@@ -109,8 +144,9 @@ export default [
       // Dark body egg-shape
       d.ellipse(50, 56, 20, 32, { fill: dark, kind: 'body' });
 
-      // White tummy
-      d.ellipse(50, 60, 13, 24, { fill: white, kind: 'body' });
+      // From behind: an all-dark back with just the feet and flippers showing
+      const back = p.opts.view === 'back';
+      if (!back) d.ellipse(50, 60, 13, 24, { fill: white, kind: 'body' }); // white tummy
 
       // Flippers / Wings on sides
       d.ellipse(30, 58, 5, 16, { fill: dark, kind: 'body', transform: 'rotate(15 30 58)' });
@@ -118,6 +154,7 @@ export default [
 
       // Head
       d.circle(50, 30, 13, { fill: dark, kind: 'body' });
+      if (back) return;
 
       // Face white mask
       d.circle(46, 30, 5, { fill: white, kind: 'body' });

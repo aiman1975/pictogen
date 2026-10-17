@@ -1,5 +1,119 @@
 // Animal concepts.
 import { INK } from '../core/styles.js';
+import { darken, mix } from '../core/color.js';
+
+/**
+ * Front and back views of the four-legged animals (opts.view 'front' | 'back'; side is the default
+ * drawing). Seen head-on the body is foreshortened: chest, two front legs, the hind legs peeking out
+ * behind. The whole figure sits in .pg-body-torso, so the walk cycle bobs it as it trots toward or
+ * away from the camera.
+ */
+export const animalView = (p) => (p.opts.view === 'front' || p.opts.view === 'back' ? p.opts.view : null);
+
+function drawDogView(d, p, view) {
+  const fur = p.c('main'), ear = p.c('ear'), far = darken(fur, 0.15);
+  d.group({ class: 'pg-body-torso' }, () => {
+    if (view === 'back') {
+      // From behind the head is furthest away: it peeks over the back, and the tail is nearest
+      d.circle(50, 38, 15, { fill: fur, kind: 'body' });
+      d.path('M36 29 Q27 41 32 52 Q38 48 40 35 Z', { fill: ear, kind: 'body' });
+      d.path('M64 29 Q73 41 68 52 Q62 48 60 35 Z', { fill: ear, kind: 'body' });
+      d.rect(40, 51, 20, 4, { rx: 2, fill: p.c('collar'), kind: 'body' });
+      d.ellipse(50, 70, 18, 16, { fill: fur, kind: 'body' });
+      d.ellipse(44, 68, 7, 6, { fill: p.c('spot'), kind: 'accent' });
+      d.rect(39, 74, 9, 19, { rx: 3, fill: fur, kind: 'body' });
+      d.rect(52, 74, 9, 19, { rx: 3, fill: fur, kind: 'body' });
+      d.path('M47 62 Q41 46 50 36 Q56 48 53 62 Z', { fill: darken(fur, 0.12), kind: 'body' }); // tail up
+      return;
+    }
+    d.path('M64 62 Q78 50 73 38 Q68 50 60 58 Z', { fill: fur, kind: 'body' }); // tail behind
+    d.rect(33, 74, 7, 18, { rx: 3, fill: far, kind: 'body' });
+    d.rect(60, 74, 7, 18, { rx: 3, fill: far, kind: 'body' });
+    d.ellipse(50, 70, 18, 16, { fill: fur, kind: 'body' });
+    d.rect(40, 72, 8, 21, { rx: 3, fill: fur, kind: 'body' });
+    d.rect(52, 72, 8, 21, { rx: 3, fill: fur, kind: 'body' });
+    d.ellipse(57, 76, 6, 5, { fill: p.c('spot'), kind: 'accent' });
+    d.rect(40, 55, 20, 4, { rx: 2, fill: p.c('collar'), kind: 'body' });
+    d.circle(50, 61, 2, { fill: '#ffca28', kind: 'detail' });
+    d.circle(50, 40, 16, { fill: fur, kind: 'body' });
+    d.path('M36 30 Q26 42 31 54 Q38 50 40 36 Z', { fill: ear, kind: 'body' });
+    d.path('M64 30 Q74 42 69 54 Q62 50 60 36 Z', { fill: ear, kind: 'body' });
+    d.ellipse(50, 47, 8, 6, { fill: mix(fur, '#ffffff', 0.35), kind: 'body' });
+    d.ellipse(50, 44, 3.2, 2.4, { fill: p.c('nose'), kind: 'detail' });
+    d.path('M46 49 Q50 52.5 54 49', { kind: 'line', stroke: INK, sw: 1.4 });
+    d.circle(44, 37, 2.2, { fill: INK, kind: 'detail' });
+    d.circle(56, 37, 2.2, { fill: INK, kind: 'detail' });
+    d.circle(44.6, 36.3, 0.7, { kind: 'highlight', opacity: 0.9 });
+    d.circle(56.6, 36.3, 0.7, { kind: 'highlight', opacity: 0.9 });
+  });
+}
+
+function drawCatView(d, p, view) {
+  const fur = p.c('main'), far = darken(fur, 0.15);
+  d.group({ class: 'pg-body-torso' }, () => {
+    if (view === 'back') {
+      d.poly([[37, 40], [36, 23], [47, 32]], { fill: fur, kind: 'body' });
+      d.poly([[63, 40], [64, 23], [53, 32]], { fill: fur, kind: 'body' });
+      d.circle(50, 44, 15, { fill: fur, kind: 'body' });
+      d.ellipse(50, 74, 15, 14, { fill: fur, kind: 'body' });
+      d.rect(42, 80, 7, 14, { rx: 3, fill: fur, kind: 'body' });
+      d.rect(51, 80, 7, 14, { rx: 3, fill: fur, kind: 'body' });
+      d.path('M48 70 Q36 54 44 40 Q49 36 50 42 Q45 54 53 68 Z', { fill: darken(fur, 0.12), kind: 'body' }); // tail up
+      return;
+    }
+    d.path('M60 86 Q80 84 78 64 Q76 56 71 60 Q74 68 66 78 Z', { fill: fur, kind: 'body' }); // tail curled at the side
+    d.rect(37, 80, 6, 14, { rx: 3, fill: far, kind: 'body' });
+    d.rect(57, 80, 6, 14, { rx: 3, fill: far, kind: 'body' });
+    d.ellipse(50, 74, 15, 14, { fill: fur, kind: 'body' });
+    d.rect(43, 80, 6, 14, { rx: 3, fill: fur, kind: 'body' });
+    d.rect(51, 80, 6, 14, { rx: 3, fill: fur, kind: 'body' });
+    d.poly([[37, 42], [36, 25], [47, 34]], { fill: fur, kind: 'body' });
+    d.poly([[63, 42], [64, 25], [53, 34]], { fill: fur, kind: 'body' });
+    d.circle(50, 46, 15, { fill: fur, kind: 'body' });
+    d.ellipse(50, 75, 8, 9, { fill: mix(fur, '#ffffff', 0.4), kind: 'accent' });
+    d.poly([[39, 39], [38.5, 29], [45, 35]], { fill: p.c('innerEar'), kind: 'accent' });
+    d.poly([[61, 39], [61.5, 29], [55, 35]], { fill: p.c('innerEar'), kind: 'accent' });
+    d.ellipse(44, 45, 2, 2.6, { fill: INK, kind: 'detail' });
+    d.ellipse(56, 45, 2, 2.6, { fill: INK, kind: 'detail' });
+    d.poly([[48, 50], [52, 50], [50, 52.5]], { fill: p.c('innerEar'), kind: 'detail' });
+    d.path('M47 54 Q50 56 50 53 Q50 56 53 54', { kind: 'line', stroke: INK, sw: 1.2 });
+    for (const [y0, y1] of [[51, 48], [53, 54], [55, 59]]) {
+      d.line(44, y0, 31, y1, { stroke: INK, sw: 1, kind: 'line' });
+      d.line(56, y0, 69, y1, { stroke: INK, sw: 1, kind: 'line' });
+    }
+  });
+}
+
+function drawRabbitView(d, p, view) {
+  const fur = p.c('main'), light = mix(fur, '#ffffff', 0.5);
+  const ears = (inner) => {
+    for (const [x, r] of [[43, -8], [57, 8]]) {
+      d.ellipse(x, 22, 5, 16, { fill: fur, kind: 'body', transform: `rotate(${r} ${x} 22)` });
+      if (inner) d.ellipse(x, 22, 2.5, 11, { fill: p.c('ear'), kind: 'accent', transform: `rotate(${r} ${x} 22)` });
+    }
+  };
+  d.group({ class: 'pg-body-torso' }, () => {
+    if (view === 'back') {
+      ears(false);
+      d.circle(50, 46, 14, { fill: fur, kind: 'body' });
+      d.ellipse(50, 72, 16, 16, { fill: fur, kind: 'body' });
+      d.ellipse(42, 89, 7, 4, { fill: fur, kind: 'body' });
+      d.ellipse(58, 89, 7, 4, { fill: fur, kind: 'body' });
+      d.circle(50, 78, 6, { fill: light, kind: 'body' }); // fluffy tail
+      return;
+    }
+    d.ellipse(50, 72, 16, 16, { fill: fur, kind: 'body' });
+    d.ellipse(42, 89, 7, 4, { fill: fur, kind: 'body' });
+    d.ellipse(58, 89, 7, 4, { fill: fur, kind: 'body' });
+    ears(true);
+    d.circle(50, 46, 14, { fill: fur, kind: 'body' });
+    d.ellipse(50, 75, 9, 10, { fill: light, kind: 'accent' });
+    d.circle(45, 44, 2, { fill: INK, kind: 'detail' });
+    d.circle(55, 44, 2, { fill: INK, kind: 'detail' });
+    d.circle(50, 50, 2, { fill: p.c('nose'), kind: 'detail' });
+    d.path('M47 53 Q50 56 53 53', { kind: 'line', stroke: INK, sw: 1.2 });
+  });
+}
 
 export default [
   {
@@ -14,6 +128,7 @@ export default [
     colors: { main: '#bcaaa4', spot: '#795548', ear: '#5d4037', collar: '#e53935', nose: '#212121' },
     palettes: { main: ['#bcaaa4', '#d7ccc8', '#ffcc80', '#8d6e63', '#424242', '#ffffff'] },
     draw(d, p) {
+      if (animalView(p)) return drawDogView(d, p, animalView(p));
       const fur = p.c('main');
       const earColor = p.c('ear');
 
@@ -62,6 +177,7 @@ export default [
     colors: { main: '#fb8c00', stripe: '#e65100', innerEar: '#ffab91', collar: '#00acc1' },
     palettes: { main: ['#fb8c00', '#757575', '#212121', '#ffffff', '#ffe082'] },
     draw(d, p) {
+      if (animalView(p)) return drawCatView(d, p, animalView(p));
       const fur = p.c('main');
 
       // Tail (curled)
@@ -218,6 +334,7 @@ export default [
     colors: { main: '#f5f5f5', ear: '#f8bbd0', nose: '#ec407a' },
     palettes: { main: ['#f5f5f5', '#d7ccc8', '#bcaaa4', '#bdbdbd'] },
     draw(d, p) {
+      if (animalView(p)) return drawRabbitView(d, p, animalView(p));
       const fur = p.c('main');
 
       // Fluffy tail
