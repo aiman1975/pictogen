@@ -10,7 +10,7 @@ const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
 const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...ENV_WORDS.snow, ...ENV_WORDS.rain]);
 import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/render.js';
 import { getConcept } from './concepts/index.js';
-import { parseTimeline } from './timeline.js';
+import { parseTimeline, extractCamera } from './timeline.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
 export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
@@ -18,7 +18,7 @@ export { renderIcon, renderCard, renderSheet, drawConcept, shapesToSvg } from '.
 export { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 export { parseText, tokenize } from './text/matcher.js';
 export { composeScene } from './scene.js';
-export { parseTimeline, hasSequence } from './timeline.js';
+export { parseTimeline, hasSequence, cameraAction, extractCamera } from './timeline.js';
 export { listConcepts, getConcept, registerConcept } from './concepts/index.js';
 export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './story.js';
 
@@ -26,7 +26,8 @@ export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateS
  * generate(text, opts) -> { svg, matches, unknown, setting, tokens, images, duration?, beats? }
  *   setting: words that changed the scene backdrop (night, rain, beach...) instead of drawing an object
  *   duration, beats: for a scene told as a sequence ("a boy walks in, then waves, then a dog runs to
- *     him"), the clip length in seconds and the actions of each beat (see src/timeline.js)
+ *     him"), the clip length in seconds and the actions of each beat (see src/timeline.js); scenes with
+ *     camera moves ("zoom in on the dog", "the camera follows him") also report their loop length
  *
  * opts.mode   'scene' (default) | 'comic' | 'stickman' | 'callout' | 'knolling' | 'split' | 'isometric' | 'waffle' | 'coloring' | 'icons' | 'card'
  * opts.style  'flat' | 'cartoon' | 'cute2d' | 'comic' | 'whiteboard' | 'geometric' | 'doodle' | 'editorial' | 'papercut' | 'stickman' | 'outline' | 'pastel' | 'silhouette' | 'sketch' | 'neon' | 'blueprint' | 'chalkboard' | 'vintage' | 'pixel'
@@ -41,7 +42,15 @@ export function generate(text, opts = {}) {
   const dim = (v, d) => (Number.isFinite(+v) && +v > 0 ? +v : d);
   const width = dim(opts.width, 640), height = dim(opts.height, 360);
   text = String(text ?? '');
-  const parsed = parseText(text, { fuzzy });
+  // Camera directions ("zoom in on the dog") are not things to draw: read the scene without them,
+  // but keep whatever they point at ("a close-up of a cat" still draws the cat).
+  const shot = mode === 'scene' ? extractCamera(text) : { text, moves: [] };
+  let sceneText = shot.text;
+  for (const m of shot.moves) {
+    const id = m.target && parseText(m.target).matches[0]?.id;
+    if (id && !parseText(sceneText).matches.some((x) => x.id === id)) sceneText += ` and ${m.target}`;
+  }
+  const parsed = parseText(sceneText, { fuzzy });
   let { matches } = parsed;
   const backdrop = mode === 'scene'
     ? matches.filter((m) => ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)
@@ -84,7 +93,15 @@ export function generate(text, opts = {}) {
   } else if (mode === 'alphabet' || mode === 'spelling' || mode === 'letterling' || mode === 'letters') {
     svg = renderAlphabet(matches, common);
   } else {
-    svg = composeScene(matches, { ...common, words: parsed.tokens, timeline });
+    // Camera moves without a timeline: targets as concept ids (a pronoun means the first figure)
+    const camera = !timeline && shot.moves.length ? {
+      moves: shot.moves.map((m) => ({
+        ...m,
+        target: m.target && (parseText(m.target).matches[0]?.id ?? (/^(him|her|it|them)$/.test(m.target) ? matches[0]?.id : null)),
+      })),
+    } : null;
+    svg = composeScene(matches, { ...common, words: parsed.tokens, timeline, camera });
+    if (camera?.duration) common.duration = camera.duration;
   }
   const images = matches.map((m) => ({
     id: m.id, word: m.word, count: m.count, color: m.color, expression: m.expression, animation: m.animation, view: m.view,
@@ -94,6 +111,6 @@ export function generate(text, opts = {}) {
     ? [...backdrop.map((m) => m.word), ...parsed.unknown.filter((w) => SETTING_WORDS.has(w))]
     : [];
   const unknown = parsed.unknown.filter((w) => !setting.includes(w));
-  const clip = timeline?.duration ? { duration: timeline.duration, beats: timeline.beats } : {};
+  const clip = timeline?.duration ? { duration: timeline.duration, beats: timeline.beats } : common.duration ? { duration: common.duration } : {};
   return { svg, ...parsed, matches, unknown, setting, images, ...clip };
 }

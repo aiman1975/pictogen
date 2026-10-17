@@ -15,7 +15,7 @@ export const ENV_WORDS = {
   rain: ['rain', 'raining', 'rainy', 'storm', 'stormy', 'thunder', 'cloudy'],
   water: ['sea', 'ocean', 'lake', 'river', 'beach', 'pond', 'swim', 'swimming', 'sail', 'sailing', 'water', 'island', 'boat'],
   beach: ['beach', 'sand', 'island', 'shore'],
-  room: ['room', 'office', 'indoor', 'inside', 'house', 'studio', 'classroom', 'kitchen', 'bedroom', 'desk'],
+  room: ['room', 'office', 'indoor', 'inside', 'studio', 'classroom', 'kitchen', 'bedroom', 'desk'],
   forest: ['forest', 'woods', 'park', 'nature', 'jungle', 'garden'],
   parallax: ['walk', 'walking', 'run', 'running', 'jog', 'jogging', 'stroll', 'across', 'drive', 'driving', 'road', 'street', 'cartoon', 'parallax', 'zeichentrick'],
 };
@@ -253,7 +253,8 @@ const HOLD_SECONDS = 1.6; // the final arrangement stays on screen before the cl
  * Plays the beats out for each actor: where it is (x over time) and which pose it shows.
  * slots: actor id -> { it, cx, w, h } (its place in the composed scene)
  * props: concept id -> { cx, w } (things actors can walk to)
- * Returns { T, tracks: actor id -> [{ t0, t1, x0, x1, pose }] } with times in seconds.
+ * Returns { T, tracks: actor id -> [{ t0, t1, x0, x1, pose }], camera: [{ type, target, t0, t1 }] }
+ * with times in seconds.
  */
 function playTimeline(timeline, slots, props, W) {
   const state = new Map();
@@ -273,7 +274,16 @@ function playTimeline(timeline, slots, props, W) {
   const posOf = (id) => (state.has(id) && state.get(id).present ? { cx: state.get(id).x, w: slots.get(id).w } : props.get(id) || (slots.has(id) && { cx: slots.get(id).cx, w: slots.get(id).w }));
 
   let t = 0;
+  const camera = [];
   for (const beat of timeline.beats) {
+    if (beat.camera) {
+      // A camera beat: everyone holds still while the camera moves
+      const d = CAMERA_SECONDS[beat.camera.type] ?? 1.6;
+      camera.push({ ...beat.camera, t0: t, t1: t + d });
+      for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + d, x0: st.x, x1: st.x, pose: pose(id) });
+      t += d;
+      continue;
+    }
     const acting = new Map();
     for (const a of beat.actions) {
       if (!slots.has(a.actor)) continue;
@@ -327,7 +337,89 @@ function playTimeline(timeline, slots, props, W) {
     t += beatLen;
   }
   for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + HOLD_SECONDS, x0: st.x, x1: st.x, pose: pose(id) });
-  return { T: t + HOLD_SECONDS, tracks };
+  return { T: t + HOLD_SECONDS, tracks, camera };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Camera: the whole picture sits in one group that zooms and pans. The view is clamped to the
+// scene, so the camera never shows past its edges. Stills (no animation) show the wide shot.
+
+const CAMERA_SECONDS = { zoomIn: 1.6, zoomOut: 1.6, pan: 3, panTo: 2 };
+
+/** Where an actor is at time t (seconds), from its timeline track. */
+function xAt(track, t) {
+  if (!track.length) return null;
+  if (t <= track[0].t0) return track[0].x0;
+  for (const seg of track) {
+    if (t <= seg.t1) return seg.t1 > seg.t0 ? seg.x0 + (seg.x1 - seg.x0) * ((t - seg.t0) / (seg.t1 - seg.t0)) : seg.x1;
+  }
+  return track[track.length - 1].x1;
+}
+
+/**
+ * Camera keyframes as { t, z, fx, fy, ease }: zoom z centred on the focus point (fx, fy).
+ * events: [{ type, target, dir, t0, t1 }]; focusAt(id, t) -> { x, y, h } | null;
+ * follow: { id, start } - track that actor from the time it appears.
+ */
+function cameraKeys({ events, follow, T, W, H, focusAt, start }) {
+  const wide = { z: 1, fx: W / 2, fy: H / 2 };
+  const first = start || wide;
+  const closeUp = (f) => (f ? { z: clamp((H * 0.62) / f.h, 1.4, 2.6), fx: f.x, fy: f.y } : { z: 1.6, fx: W / 2, fy: H * 0.58 });
+  let cur = first;
+  const keys = [{ t: 0, ...cur, ease: 'ease-in-out' }];
+  for (const ev of [...events].sort((a, b) => a.t0 - b.t0)) {
+    let next;
+    const f = ev.target ? focusAt(ev.target, ev.t1) : null;
+    if (ev.type === 'zoomIn') next = closeUp(f);
+    else if (ev.type === 'zoomOut') next = wide;
+    else if (ev.type === 'reset') next = first;
+    else if (ev.type === 'pan') next = { z: Math.max(cur.z, 1.35), fx: ev.dir > 0 ? W * 0.85 : W * 0.15, fy: cur.z > 1 ? cur.fy : H * 0.55 };
+    else if (ev.type === 'panTo') next = f ? { z: Math.max(cur.z, 1.35), fx: f.x, fy: f.y } : cur;
+    else continue;
+    keys.push({ t: ev.t0, ...cur, ease: 'ease-in-out' });
+    if (ev.type === 'pan' && cur.z < next.z) {
+      // From the wide shot: first frame the side the pan starts from, then travel across
+      keys.push({ t: ev.t0 + Math.min(0.7, (ev.t1 - ev.t0) / 3), z: next.z, fx: ev.dir > 0 ? W * 0.15 : W * 0.85, fy: next.fy, ease: 'ease-in-out' });
+    }
+    keys.push({ t: ev.t1, ...next, ease: 'ease-in-out' });
+    cur = next;
+  }
+  keys.push({ t: T, ...cur, ease: 'linear' });
+  if (!follow) return keys;
+
+  // Following: frame the actor wherever it is, at the zoom the other moves set (at least 1.45x).
+  // Until it shows up the camera holds the middle of the scene, easing over as it arrives.
+  const from = follow.start ?? 0;
+  const zAt = (t) => {
+    let k = 0;
+    while (k < keys.length - 1 && keys[k + 1].t <= t) k++;
+    const a = keys[k], b = keys[k + 1] || a;
+    return b.t > a.t ? a.z + (b.z - a.z) * ((t - a.t) / (b.t - a.t)) : a.z;
+  };
+  const out = [];
+  const EASE_IN = 0.8;
+  for (let t = 0; t <= T + 1e-6; t += 0.25) {
+    const f = focusAt(follow.id, Math.max(t, from));
+    const k = clamp((t - (from - EASE_IN)) / EASE_IN, 0, 1); // 0 before the actor appears, 1 once it is in
+    const fx = f ? W / 2 + (f.x - W / 2) * k : W / 2, fy = f ? H * 0.55 + (f.y - H * 0.55) * k : H / 2;
+    out.push({ t: Math.min(t, T), z: Math.max(1 + 0.45 * k, zAt(t)), fx, fy, ease: 'linear' });
+  }
+  return out;
+}
+
+/** CSS @keyframes body for camera keys: translate + scale, clamped so the view stays inside the scene. */
+function cameraCss(keys, T, W, H) {
+  let css = '', last = -1;
+  for (const k of keys) {
+    const tx = clamp(W / 2 - k.z * k.fx, W - k.z * W, 0);
+    const ty = clamp(H / 2 - k.z * k.fy, H - k.z * H, 0);
+    let pc = r2((k.t / T) * 100);
+    if (pc <= last) pc = r2(last + 0.01);
+    if (pc > 100) continue;
+    css += `${pc}% { transform: translate(${r2(tx)}px, ${r2(ty)}px) scale(${r2(k.z * 1000) / 1000}); animation-timing-function: ${k.ease}; } `;
+    last = pc;
+  }
+  return css;
 }
 
 /** Lays out a row of items horizontally; sets it.cx and possibly shrinks it.h. */
@@ -431,7 +523,7 @@ export function composeScene(matches, opts = {}) {
       actorSlots.set(it.c.id, { it, cx, y, s, base, w, h: it.h, olk: clamp(W / 280 / (2.4 * s), 0.35, 4) });
       return;
     }
-    if (!propsAt.has(it.c.id)) propsAt.set(it.c.id, { cx, w });
+    if (!propsAt.has(it.c.id)) propsAt.set(it.c.id, { cx, w, y, h: it.h, anchor });
     const x0 = cx - 50 * s, y0 = y - base * s;
     const flip = it.k % 2 === 1 && it.c.flippable !== false;
     const tr = flip ? `translate(${x0 + 100 * s} ${y0}) scale(${-s} ${s})` : `translate(${x0} ${y0}) scale(${s})`;
@@ -611,15 +703,50 @@ export function composeScene(matches, opts = {}) {
     }
   }
 
+  let cam = null; // { keys, T }
+  // What the camera looks at: an actor (where it is at that moment) or anything else in the scene
+  const focusAt = (tracks) => (id, t) => {
+    if (tracks?.has(id)) {
+      const slot = actorSlots.get(id);
+      return { x: xAt(tracks.get(id), t) ?? slot.cx, y: slot.y - slot.h * 0.55, h: slot.h };
+    }
+    const p = propsAt.get(id);
+    return p ? { x: p.cx, y: p.anchor === 'bottom' ? p.y - p.h * 0.55 : p.y, h: p.h } : null;
+  };
   if (timeline && actorSlots.size) {
-    const { T, tracks } = playTimeline(timeline, actorSlots, propsAt, W);
+    const { T, tracks, camera: events } = playTimeline(timeline, actorSlots, propsAt, W);
     timeline.duration = r2(T);
     for (const [id, slot] of actorSlots) out.push(renderActor(slot, tracks.get(id), T, `${uid}a${id}`));
+    if (events.length || timeline.follow) {
+      const followed = timeline.follow && tracks.get(timeline.follow);
+      const follow = timeline.follow ? { id: timeline.follow, start: followed?.[0]?.t0 ?? 0 } : null;
+      cam = { T, keys: cameraKeys({ events, follow, T, W, H, focusAt: focusAt(tracks) }) };
+    }
+  } else if (opts.camera?.moves?.length) {
+    // Camera directions without a timeline: play them in order, then ease back so the loop is seamless
+    const ids = new Set(items.map((it) => it.c.id));
+    let t = 0.8;
+    const events = opts.camera.moves.map((m) => {
+      const id = m.target && [...ids].find((x) => x === m.target);
+      const type = m.type === 'follow' ? 'zoomIn' : m.type;
+      const ev = { ...m, type, target: id || null, t0: t, t1: t + (CAMERA_SECONDS[type] ?? 1.6) + 0.6 };
+      t = ev.t1 + 1.2;
+      return ev;
+    });
+    events.push({ type: 'reset', t0: t, t1: t + 1.4 });
+    const T = r2(t + 1.4 + 0.4);
+    const start = opts.camera.moves[0].type === 'zoomOut' ? { z: 1.8, fx: W / 2, fy: H * 0.58 } : null;
+    cam = { T, keys: cameraKeys({ events, T, W, H, focusAt: focusAt(null), start }) };
+    opts.camera.duration = T;
   }
 
   const fx = styleWrap(style, uid, out.join(''), { scale: W / 260, freq: 0.02, blur: W / 450 });
   const bgSvg = shapesToSvg(background(W, H, hY, env, pal, rng, hasGround, style), style);
-  const content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${fx.g}`;
+  let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${fx.g}`;
+  if (cam) {
+    motionCss.push(`@keyframes ${uid}cam { ${cameraCss(cam.keys, cam.T, W, H)}}`);
+    content = `<g class="pg-camera" style="animation: ${uid}cam ${r2(cam.T)}s linear infinite;">${content}</g>`;
+  }
   getStyle(style); // (style validated)
   const motionDefs = motionCss.length ? `<style><![CDATA[${motionCss.join('\n')}]]></style>` : '';
   return svgDoc({ width: W, height: H, viewBox: `0 0 ${W} ${H}`, defs: fx.defs + motionDefs, content });

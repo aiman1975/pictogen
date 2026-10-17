@@ -10,6 +10,7 @@ export const STOPWORDS = new Set(
   as into onto over under above below near beside behind between across up down out off very so too then than just also not no yes
   do does did done has have had having will would can could should may might must shall while when where who whom which what why how
   comes coming toward towards seen viewed shown
+  finally afterwards afterward meanwhile
   all any each every such only own same other s t let lets get gets got go goes going went come came see saw look looks looking
   like likes liked once upon time day one's its very really
   stand standing stands stood play playing plays played

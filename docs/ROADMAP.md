@@ -74,7 +74,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       facing us while gesturing)
 - [ ] Timelines: several figures of one kind ("two boys walk in"), walking toward/away from the
       camera inside a timeline, simultaneous actions with different timing ("while")
-- [ ] Camera: push-in, pan, follow a character, cut to a close-up
+- [x] Camera: zoom in / close-up on someone, zoom out, pan left/right or to something, follow a
+      character (a tracking shot). As beats in a timeline ("then the camera zooms in on him") or on
+      their own, looping smoothly; the view never shows past the edge of the scene
+- [ ] Camera: cuts between shots, shake, dolly-zoom; keep the studio's drag-and-drop exact while zoomed
 - [ ] Scene transitions (cut, fade, wipe) and caption timing tied to the beats
 - [ ] Recurring characters: the same boy looks the same in every scene (seeded identity)
 
@@ -93,7 +96,6 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [ ] Studio UI: a timeline view, per-figure motion picker including approach/recede
 
 ## Known issues to fix along the way
-- "a tree, a house and a dog" draws an indoor room, because "house" is also an indoor-backdrop word
 - The bicycle drawing loses its wheels at small sizes
 - "shoes" and "glasses" match ballet shoes and clinking glasses
 - Walk-across figures also get a sideways-scrolling ground, so the motion counts twice
