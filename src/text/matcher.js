@@ -246,8 +246,10 @@ export function parseText(text, { fuzzy = false } = {}) {
       if (whole && whole.len >= 2 && !whole.animation && rest && getConcept(rest.id)?.isLibrary) isModifierAdjective = false;
     }
     const isStopword = STOPWORDS.has(t);
+    // A bare numeral is a count ("3 dogs"), never the keycap icon that also answers to "3".
+    const isNumeral = /^\d+$/.test(t);
 
-    const hit = (isModifierAdjective || isStopword) ? null : conceptAt(toks, i, idx);
+    const hit = (isModifierAdjective || isStopword || isNumeral) ? null : conceptAt(toks, i, idx);
     if (hit) {
       push(hit);
       lastConceptIndex = i + hit.len - 1;
@@ -256,7 +258,7 @@ export function parseText(text, { fuzzy = false } = {}) {
     }
 
     if (NUMBER_WORDS[t] != null) pend.count = NUMBER_WORDS[t];
-    else if (/^\d+$/.test(t)) pend.count = Math.min(+t, 12);
+    else if (/^\d+$/.test(t)) pend.count = Math.max(1, Math.min(+t, 12));
     else if (COLOR_WORDS[t]) pend.color = t;
     else if (SIZE_WORDS[t]) pend.size = SIZE_WORDS[t];
     else if (EXPRESSION_WORDS[t]) {

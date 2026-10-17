@@ -7,7 +7,7 @@
   "bin": { "pictogen": "cli.js" },
   "scripts": {
     "start": "node serve.js",
-    "test": "node scripts/smoke-test.js && node scripts/test-svg-wellformed.js && node scripts/test-animations.js && node scripts/test-presentations.js && node scripts/test-story.js",
+    "test": "node scripts/smoke-test.js && node scripts/test-svg-wellformed.js && node scripts/test-animations.js && node scripts/test-presentations.js && node scripts/test-story.js && node scripts/test-cli.js && node scripts/test-server.js",
     "preview": "node scripts/preview.js",
     "export": "node cli.js --export-all out/library"
   },
