@@ -152,6 +152,44 @@ const zoomThenWave = generate('a girl walks in, then the camera zooms in on her,
 check(zoomWave.svg.includes('pg-camera') && zoomWave.duration < zoomThenWave.duration - 1, `the camera can move while the actors act (${zoomWave.duration}s vs ${zoomThenWave.duration}s one after another)`);
 check(!wellFormedError(together.svg) && !wellFormedError(zoomWave.svg), '"while" timelines are well-formed XML');
 
+// 2e. "when", "after", "before", "until", and actions joined by "and"
+for (const [t, want] of [
+  ['when the dog arrives, the boy jumps', 'dog:enter | boy:pose/jump'],
+  ['the boy jumps when the dog arrives', 'dog:enter | boy:pose/jump'],
+  ['when the dog arrives the boy jumps', 'dog:enter | boy:pose/jump'],
+  ['after the girl waves, the cat runs to her', 'girl:pose/wave | cat:moveTo>girl'],
+  ['the cat runs to her after the girl waves', 'girl:pose/wave | cat:moveTo>girl'],
+  ['before the dog arrives, the boy waves', 'boy:pose/wave | dog:enter'],
+  ['the boy waves before the dog arrives', 'boy:pose/wave | dog:enter'],
+  ['the boy waves until the dog runs to him', 'boy:pose/wave+dog:moveTo>boy'],
+  ['as soon as the dog reaches him, the boy jumps', 'dog:moveTo>boy | boy:pose/jump'],
+  ['the boy jumps once the dog arrives', 'dog:enter | boy:pose/jump'],
+  ['the dog approaches the boy, then the boy jumps', 'dog:moveTo>boy | boy:pose/jump'],
+  ['a boy walks in, then when a dog runs to him he jumps, then waves', 'boy:enter | dog:moveTo>boy | boy:pose/jump | boy:pose/wave'],
+  ['a boy walks in and waves, then a dog runs to him', 'boy:enter | boy:pose/wave | dog:moveTo>boy'],
+  ['a boy walks in, then waves and smiles', 'boy:enter | boy:pose/wave~happy'],
+  ['a boy walks in and a dog and a cat run to him, then he jumps', 'boy:enter | dog:moveTo>boy+cat:moveTo>boy | boy:pose/jump'],
+  ['a boy walks in with a hat and sunglasses, then waves', 'boy:enter | boy:pose/wave'],
+  ['a boy walks in, then a dog runs to him, then they dance', 'boy:enter | dog:moveTo>boy | dog:pose/dance+boy:pose/dance'],
+  ['a boy and a girl walk in, then they wave', 'boy:enter+girl:enter | boy:pose/wave+girl:pose/wave'],
+]) check(actions(t) === want, `"${t}" -> ${want}${actions(t) === want ? '' : ` (got ${actions(t)})`}`);
+for (const t of ['a dog runs after the cat', 'a cat sitting before the fire', 'after lunch, the boy sleeps']) {
+  check(parseTimeline(t) === null, `"${t}" is a still scene, not a sequence`);
+}
+const cue = generate('when the dog arrives, the boy jumps');
+const cb = actor(cue.svg, 'boy'), cd = actor(cue.svg, 'dog');
+const poseOn = (fig, svg, anim) => {
+  const name = fig.match(new RegExp(`class="pg-timeline-pose" data-anim="${anim}"[^>]*style="animation: (\\S+) `))?.[1];
+  const keys = [...kfOf(svg, name).matchAll(/([\d.]+)% \{ opacity: (\d)/g)].map((m) => [+m[1], +m[2]]);
+  return keys.find(([, o]) => o === 1)?.[0];
+};
+const jumpStarts = poseOn(cb, cue.svg, 'jump');
+const cueArrives = offsets(kfOf(cue.svg, moveName(cd))).find((f, i) => i > 0 && Math.abs(f.dx) < 0.01)?.pct;
+check(jumpStarts !== undefined && cueArrives !== undefined && Math.abs(jumpStarts - cueArrives) < 1, `the boy jumps the moment the dog arrives (jump at ${jumpStarts}%, dog arrives at ${cueArrives}%)`);
+const standPose = cb.match(/class="pg-timeline-pose"[^>]*style="animation: (\S+) /)[1];
+check(/^0% \{ opacity: 1/.test(kfOf(cue.svg, standPose)), 'the boy is on stage from the start, waiting for the dog');
+check(!wellFormedError(cue.svg), '"when" timelines are well-formed XML');
+
 // 3. Clips: a sequenced scene lasts as long as its timeline
 const story = composeStory([{ prompt, caption: 'x', duration: 3 }]);
 check(story.scenes[0].duration >= r.duration, `a clip scene lasts as long as its timeline (${story.scenes[0].duration}s >= ${r.duration}s)`);

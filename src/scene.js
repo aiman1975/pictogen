@@ -267,8 +267,9 @@ function playTimeline(timeline, slots, props, W) {
   for (const [key, slot] of slots) {
     const first = timeline.beats.findIndex((b) => b.actions.some((a) => a.actor === slot.id));
     const firstAction = timeline.beats[first]?.actions.find((a) => a.actor === slot.id);
-    // On stage from the start, unless its first beat brings it in (from the side or from the horizon)
-    const onStage = first === 0 && !['enter', 'moveTo', 'approach'].includes(firstAction?.type);
+    // On stage from the start, unless its first action brings it in (from the side, from the horizon,
+    // or a later "then a cat" popping up): "when the dog arrives, the boy jumps" - the boy is there all along
+    const onStage = first >= 0 && !['enter', 'moveTo', 'approach'].includes(firstAction?.type) && !(first > 0 && firstAction?.type === 'appear');
     // x: place across the front row; k: depth as a scale (1 = front row, 1 / FAR_DISTANCE = horizon)
     state.set(key, { x: slot.cx, k: 1, present: onStage, facing: 1, expression: slot.it.m.expression, isPerson: slot.it.c.category === 'people' });
     tracks.set(key, []);

@@ -5,22 +5,90 @@ import { parseText, tokenize, MOTION_WORDS, EXPRESSION_WORDS } from './text/matc
 import { getConcept } from './concepts/index.js';
 
 // "then", "after that", "afterwards", "finally" split a prompt into beats (not "next": "next to");
-// "while", "meanwhile" and "at the same time" put actions side by side in one beat.
-const SEQUENCE_RE = /\b(?:then|after that|afterwards?|finally|while|meanwhile|at the same time|simultaneously)\b/i;
+// "while", "meanwhile" and "at the same time" put actions side by side in one beat; "when",
+// "after", "before", "until" order the two halves of a sentence.
+const SEQUENCE_RE = /\b(?:then|after|afterwards?|finally|while|meanwhile|at the same time|simultaneously|when|whenever|before|until|till|as soon as|once)\b/i;
 const TOGETHER_RE = /\b(?:meanwhile|at the same time|simultaneously)\b[,\s]*/i;
 
+// How a linking word orders the two halves of a sentence: side by side, the linked half first
+// ("when the dog arrives, the boy jumps"), or the linked half last ("the boy waves before ...")
+const LINKS = {
+  while: 'together', until: 'together', till: 'together',
+  when: 'first', whenever: 'first', after: 'first', 'as soon as': 'first', once: 'first',
+  before: 'last',
+};
+const LINK = '(while|until|till|whenever|when|after|as soon as|once|before)';
+const LEAD_RE = new RegExp(`^\\s*${LINK}\\b(.+)$`, 'i');
+const MID_RE = new RegExp(`^(.+?)\\b${LINK}\\b(.+)$`, 'i');
+const SUBJECT_PRONOUNS = new Set(['he', 'she', 'it', 'they']);
+
+/** True when some word in the text makes something happen (so "runs after the cat" is no clause). */
+const hasAction = (text) => tokenize(text).some(isVerb) || !!cameraAction(text);
+
 /**
- * Splits a clause with two things happening at once into its two parts, in the order written:
- *   "while he waves, a dog runs to him"   -> ["he waves", "a dog runs to him"], main = the second
- *   "a dog runs to him while he waves"    -> ["a dog runs to him", "he waves"], main = the first
- *   "a boy waves, meanwhile a dog runs in" -> both, main = the first
- * The main clause wins if both give the same figure something to do. Returns null otherwise.
+ * "when the dog arrives the boy jumps" (no comma): where the second half starts, at the subject of
+ * the first verb after the first one that has a subject right before it ("he", "the boy", "boy").
  */
-function splitTogether(clause) {
-  const lead = clause.match(/^\s*while\b\s*([^,]+),(.+)$/i);
-  if (lead) return { parts: [lead[1], lead[2]], main: 1 };
-  const mid = clause.match(/^(.+?)\bwhile\b(.+)$/i) || clause.match(/^(.+?)(?:\bmeanwhile\b|\bat the same time\b|\bsimultaneously\b)(.+)$/i);
-  if (mid && /[a-z]/i.test(mid[1]) && /[a-z]/i.test(mid[2])) return { parts: [mid[1], mid[2]], main: 0 };
+function cutWithoutComma(text) {
+  const toks = tokenize(text);
+  const v1 = toks.findIndex(isVerb);
+  for (let v = v1 + 1; v1 >= 0 && v < toks.length; v++) {
+    if (!isVerb(toks[v])) continue;
+    let s = -1;
+    if (SUBJECT_PRONOUNS.has(toks[v - 1])) s = v - 1;
+    else {
+      for (let i = v - 1; i >= Math.max(v1 + 1, v - 3) && s < 0; i--) if (DETERMINERS.has(toks[i])) s = i;
+      if (s < 0 && parseText(toks[v - 1]).matches.length) s = v - 1;
+    }
+    if (s > v1) return [toks.slice(0, s).join(' '), toks.slice(s).join(' ')];
+  }
+  return null;
+}
+
+/**
+ * "walks in and waves" / "walks in and a dog runs to him" -> one part per action, in order. A part
+ * that does nothing joins the next one ("a dog and a cat run in") or the one before ("with a hat").
+ */
+function splitAnd(clause) {
+  const out = [];
+  let pending = '';
+  for (const part of clause.split(/\s*,?\s*\band\b\s*/i)) {
+    const cur = pending ? `${pending} and ${part}` : part;
+    pending = '';
+    if (!out.length) out.push(cur);
+    else if (!hasAction(out[out.length - 1])) out[out.length - 1] += ` and ${cur}`;
+    else if (hasAction(cur)) out.push(cur);
+    else pending = cur;
+  }
+  if (pending) out[out.length - 1] += ` and ${pending}`;
+  return out;
+}
+
+/**
+ * Splits a sentence of two linked halves, in the order written:
+ *   "while he waves, a dog runs to him"      -> ["he waves", "a dog runs to him"], main = the second
+ *   "a dog runs to him while he waves"       -> ["a dog runs to him", "he waves"], main = the first
+ *   "a boy waves, meanwhile a dog runs in"   -> both, main = the first
+ *   "when the dog arrives, the boy jumps"    -> order 'first': the dog's half plays first
+ *   "the boy waves before the dog arrives"   -> order 'last': the boy's half plays first
+ * order: 'together' | 'first' | 'last' (when the linked half plays). The main half wins if both
+ * give the same figure something to do at once. Returns null for a plain clause.
+ */
+function splitClause(clause) {
+  const lead = clause.match(LEAD_RE);
+  if (lead) {
+    const order = LINKS[lead[1].toLowerCase().replace(/\s+/g, ' ')];
+    const comma = lead[2].match(/^([^,]+),(.+)$/);
+    if (comma && (lead[1].toLowerCase() === 'while' || hasAction(comma[1]))) return { parts: [comma[1], comma[2]], main: 1, order };
+    const cut = !comma && cutWithoutComma(lead[2]);
+    if (cut) return { parts: cut, main: 1, order };
+  }
+  const mid = clause.match(MID_RE);
+  if (mid && /[a-z]/i.test(mid[1]) && /[a-z]/i.test(mid[3]) && (mid[2].toLowerCase() === 'while' || hasAction(mid[3]))) {
+    return { parts: [mid[1], mid[3]], main: 0, order: LINKS[mid[2].toLowerCase().replace(/\s+/g, ' ')] };
+  }
+  const also = clause.match(/^(.+?)(?:\bmeanwhile\b|\bat the same time\b|\bsimultaneously\b)(.+)$/i);
+  if (also && /[a-z]/i.test(also[1]) && /[a-z]/i.test(also[2])) return { parts: [also[1], also[2]], main: 0, order: 'together' };
   return null;
 }
 const BEAT_SPLIT_RE = /[.;!?]+|,?\s*\b(?:and then|then|after that|afterwards?|finally)\b[,\s]*/i;
@@ -28,8 +96,10 @@ const BEAT_SPLIT_RE = /[.;!?]+|,?\s*\b(?:and then|then|after that|afterwards?|fi
 /** True when a prompt describes things happening one after another. */
 export const hasSequence = (text) => SEQUENCE_RE.test(String(text || ''));
 
-const ENTER_VERBS = new Set(['enter', 'enters', 'entering', 'arrive', 'arrives', 'arriving', 'appear', 'appears', 'appearing', 'come', 'comes', 'coming', 'came']);
-const EXIT_VERBS = new Set(['leave', 'leaves', 'leaving', 'left', 'exit', 'exits', 'exiting', 'disappear', 'disappears']);
+const ENTER_VERBS = new Set(['enter', 'enters', 'entering', 'entered', 'arrive', 'arrives', 'arriving', 'arrived', 'appear', 'appears', 'appearing', 'appeared', 'come', 'comes', 'coming', 'came']);
+const EXIT_VERBS = new Set(['leave', 'leaves', 'leaving', 'left', 'exit', 'exits', 'exiting', 'exited', 'disappear', 'disappears', 'disappeared', 'gone']);
+// Walking up to someone or something named right after the verb ("reaches the boy", "joins her")
+const REACH_VERBS = new Set(['reach', 'reaches', 'reached', 'reaching', 'join', 'joins', 'joined', 'meet', 'meets', 'met']);
 const EXPRESSION_VERBS = { smile: 'happy', smiles: 'happy', grin: 'happy', grins: 'happy', frown: 'sad', frowns: 'sad', cries: 'sad', laughs: 'laugh' };
 const DETERMINERS = new Set(['a', 'an', 'the', 'this', 'that', 'his', 'her', 'their', 'its', 'my', 'your', 'our']);
 const MALE = new Set(['boy', 'man']);
@@ -115,6 +185,8 @@ function depthOf(toks) {
 const stems = (t) => [t, t.replace(/ies$/, 'y'), t.replace(/es$/, ''), t.replace(/s$/, ''), t.replace(/ing$/, ''), t.replace(/ing$/, 'e')];
 const motionOf = (t) => stems(t).map((w) => MOTION_WORDS[w]).find(Boolean);
 const expressionOf = (t) => EXPRESSION_VERBS[t] || stems(t).map((w) => EXPRESSION_WORDS[w]).find(Boolean);
+// A word that makes something happen (adjectives like "happy" only count inside a clause)
+const isVerb = (t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has(t) || EXPRESSION_VERBS[t] || !!motionOf(t);
 
 /**
  * parseTimeline(text) -> { beats, actors, props, follow? } or null when the text has no sequence.
@@ -132,16 +204,18 @@ const expressionOf = (t) => EXPRESSION_VERBS[t] || stems(t).map((w) => EXPRESSIO
 export function parseTimeline(text) {
   if (!hasSequence(text)) return null;
   const clauses = String(text).split(BEAT_SPLIT_RE).map((c) => (c || '').trim()).filter((c) => /[a-z]/i.test(c));
-  if (clauses.length < 2 && !clauses.some(splitTogether)) return null;
+  if (clauses.length < 2 && !clauses.some(splitClause)) return null;
 
   const mentioned = new Map(); // concept id -> first match (colour, expression...)
   const actorIds = [];
   let lastSubjects = [];
+  let lastGroup = []; // everyone in the last clause read, targets too: "they" after "a dog runs to him"
   const beats = [];
   let follow = null;
 
   const remember = (m) => { if (!mentioned.has(m.id)) mentioned.set(m.id, m); };
-  const lastActorWhere = (test) => [...actorIds].reverse().find(test);
+  let ahead = []; // concepts named later in the sentence being read ("runs to her after the girl waves")
+  const lastActorWhere = (test) => [...actorIds].reverse().find(test) ?? ahead.find(test);
   const resolvePronoun = (word, exclude = []) => {
     const others = (id) => !exclude.includes(id);
     if (word === 'him' || word === 'he') return lastActorWhere((id) => MALE.has(id) && others(id));
@@ -167,14 +241,19 @@ export function parseTimeline(text) {
     }
     const toks = tokenize(clause);
     // The first verb that makes something happen
-    let v = toks.findIndex((t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || motionOf(t) || expressionOf(t));
+    let v = toks.findIndex((t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has(t) || motionOf(t) || expressionOf(t));
     const before = v >= 0 ? toks.slice(0, v) : toks;
     let after = v >= 0 ? toks.slice(v + 1) : [];
     // Toward or away from the camera (not a target: "toward the camera" must not draw a camera)
     const verbMotion = v >= 0 ? motionOf(toks[v]) : null;
     const depthWords = v >= 0 ? depthOf(after) : null;
-    const depth = depthWords?.type || (verbMotion === 'approach' || verbMotion === 'recede' ? verbMotion : null);
-    if (depthWords) after = after.slice(depthWords.len);
+    // "reaches the boy", "approaches him": walking up to whoever is named right after the verb
+    const objectWords = after.filter((t) => !DETERMINERS.has(t) || t === 'him' || t === 'her');
+    const reaches = v >= 0 && (REACH_VERBS.has(toks[v]) || verbMotion === 'approach' && !depthWords && objectWords.length > 0
+      && !VIEWER.has(objectWords[0]) && (['him', 'her', 'it', 'them'].includes(objectWords[0]) || parseText(objectWords[0]).matches.length > 0));
+    if (reaches) after = ['to', ...after];
+    const depth = reaches ? null : depthWords?.type || (verbMotion === 'approach' || verbMotion === 'recede' ? verbMotion : null);
+    if (depthWords && !reaches) after = after.slice(depthWords.len);
 
     // Target: "to him", "towards the boy", "up to the tree"
     let target = null, targetAt = -1;
@@ -195,7 +274,8 @@ export function parseTimeline(text) {
     let subjectIds = subjects.map((m) => m.id);
     if (!subjectIds.length) {
       const pronoun = before.find((t) => ['he', 'she', 'it', 'they'].includes(t));
-      if (pronoun === 'they') subjectIds = [...lastSubjects];
+      const plural = lastSubjects.length > 1 || (mentioned.get(lastSubjects[0])?.count ?? 1) > 1;
+      if (pronoun === 'they') subjectIds = plural || lastGroup.length < 2 ? [...lastSubjects] : [...lastGroup];
       else if (pronoun) subjectIds = [resolvePronoun(pronoun)].filter(Boolean);
       else subjectIds = [...lastSubjects];
     }
@@ -239,29 +319,60 @@ export function parseTimeline(text) {
     return { text: clause, actions };
   };
 
+  // A clause with "and" between actions -> its beats in order. "and smiles" after an action is how
+  // the figure looks while doing it, not a beat of its own ("waves and smiles").
+  const readPart = (text) => {
+    const out = [];
+    for (const part of splitAnd(text)) {
+      const beat = readClause(part.trim());
+      if (!beat) continue;
+      const prev = out[out.length - 1];
+      const mood = beat.actions.length && beat.actions.every((a) => a.type === 'expr' && prev?.actions.some((p) => p.actor === a.actor));
+      if (mood) beat.actions.forEach((a) => prev.actions.filter((p) => p.actor === a.actor).forEach((p) => { p.expression = a.expression; }));
+      else out.push(beat);
+    }
+    return out;
+  };
+  const groupOf = (beats) => [...new Set(beats.flatMap((b) => b.actions.flatMap((a) => [a.actor, a.target]).filter(Boolean)))];
+
   for (const clause of clauses) {
-    const together = splitTogether(clause);
-    if (together) {
-      // Two things at once: read both (in the order written, so pronouns resolve), main clause first
-      const read = together.parts.map((part) => readClause(part.trim()));
-      const [main, other] = together.main === 0 ? read : [read[1], read[0]];
-      beats.push({
-        text: clause,
-        actions: [...(main?.actions || []), ...(other?.actions || [])],
-        ...((main?.camera || other?.camera) ? { camera: main?.camera || other?.camera } : {}),
+    const split = splitClause(clause);
+    if (split) {
+      // Read both halves in the order written, with everything the sentence names known to pronouns;
+      // afterwards the main half's subjects are the ones a following "then waves" is about
+      ahead = parseText(clause).matches.map((m) => m.id);
+      let mainSubjects = [];
+      const read = split.parts.map((part, i) => {
+        const r = readPart(part.trim());
+        if (i === split.main) mainSubjects = lastSubjects;
+        return r;
       });
+      ahead = [];
+      lastSubjects = mainSubjects.length ? mainSubjects : lastSubjects;
+      lastGroup = groupOf(read.flat());
+      const [main, other] = split.main === 0 ? read : [read[1], read[0]];
+      if (split.order === 'together') {
+        const all = [...main, ...other];
+        const camera = all.find((b) => b.camera)?.camera;
+        beats.push({ text: clause, actions: all.flatMap((b) => b.actions), ...(camera ? { camera } : {}) });
+      } else {
+        // One after the other: "when / after / as soon as" the linked half first, "before" it last
+        beats.push(...(split.order === 'first' ? [...other, ...main] : [...main, ...other]));
+      }
     } else if (TOGETHER_RE.test(clause) && clause.search(TOGETHER_RE) === 0 && beats.length) {
       // "Meanwhile, a dog runs in": alongside the previous beat
-      const beat = readClause(clause.replace(TOGETHER_RE, ''));
       const prev = beats[beats.length - 1];
-      if (beat) {
+      const read = readPart(clause.replace(TOGETHER_RE, ''));
+      lastGroup = groupOf([prev, ...read]);
+      for (const beat of read) {
         prev.actions.push(...beat.actions);
         if (beat.camera && !prev.camera) prev.camera = beat.camera;
         prev.text += ` / ${clause}`;
       }
     } else {
-      const beat = readClause(clause);
-      if (beat) beats.push(beat);
+      const read = readPart(clause);
+      if (read.some((b) => b.actions.length)) lastGroup = groupOf(read);
+      beats.push(...read);
     }
   }
 

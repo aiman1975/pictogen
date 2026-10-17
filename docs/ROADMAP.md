@@ -86,7 +86,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       every other action and followed by the camera through depth
 - [x] Two things at once: "while he waves, a dog runs to him", "meanwhile", "at the same time";
       gestures last as long as the other action, and the camera can move while the actors act
-- [ ] Timelines: "when" / "after" / "before" clauses ("when the dog arrives, the boy jumps")
+- [x] "when" / "after" / "as soon as" / "once" / "before" / "until" clauses, either order, with or
+      without a comma ("when the dog arrives, the boy jumps"; "the boy waves until the dog runs to him");
+      actions joined by "and" ("walks in and waves", "waves and smiles"); "reaches" / "approaches the
+      boy"; "they" after "a dog runs to him" means both
 - [x] Camera: zoom in / close-up on someone, zoom out, pan left/right or to something, follow a
       character (a tracking shot). As beats in a timeline ("then the camera zooms in on him") or on
       their own, looping smoothly; the view never shows past the edge of the scene
