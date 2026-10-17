@@ -1,7 +1,19 @@
 // PictoGen Story & Clip Engine: Multi-scene animated clips for Kids Stories,
 // Science Documentaries, News & Editorial Briefs, and How-To Explainer Guides.
+import { readFileSync } from 'node:fs';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
+
+const FONT_DIR = new URL('../public/fonts/', import.meta.url);
+let fontCss = null;
+/** The studio's self-hosted @font-face rules with the font files inlined, so exported clips need no network. */
+function embeddedFontCss() {
+  fontCss ??= readFileSync(new URL('fonts.css', FONT_DIR), 'utf8').replace(
+    /url\(([\w.-]+\.woff2)\)/g,
+    (_, file) => `url(data:font/woff2;base64,${readFileSync(new URL(file, FONT_DIR)).toString('base64')})`,
+  );
+  return fontCss;
+}
 
 export const ASPECT_RATIOS = {
   '16:9': { width: 640, height: 360, label: '16:9 Widescreen', ratioCss: '16 / 9' },
@@ -490,10 +502,8 @@ export function generateStoryHtml(story) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${title} — PictoGen Vector Clip</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <style>
+${embeddedFontCss()}
     :root {
       --bg: #0b0f19;
       --surface: #1e293b;

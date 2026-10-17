@@ -6,7 +6,7 @@
 //   node cli.js "dog cat bird fish" --mode icons --style neon -o animals.svg
 //   node cli.js --export-all ./dist/library
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { generate, listConcepts, renderIcon, renderCard, STYLE_NAMES, isStyle } from './src/index.js';
 
@@ -94,6 +94,8 @@ if (exportDir) {
       count++;
     }
   }
+  // The library icons are Microsoft's MIT-licensed Fluent Emoji: their notice must travel with them.
+  copyFileSync(new URL('./THIRD_PARTY_NOTICES.md', import.meta.url), join(target, 'THIRD_PARTY_NOTICES.md'));
   console.log(`Successfully exported ${count} SVG icons!`);
   process.exit(0);
 }

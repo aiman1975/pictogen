@@ -18,6 +18,8 @@ const MIME = {
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.wav': 'audio/wav',
+  '.woff2': 'font/woff2',
+  '.txt': 'text/plain; charset=utf-8',
   '.webm': 'video/webm',
   '.mp4': 'video/mp4',
 };
