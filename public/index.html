@@ -1403,12 +1403,10 @@
       return new XMLSerializer().serializeToString(clone);
     }
 
-    function screenToSvgCoords(svg, clientX, clientY) {
-      const pt = svg.createSVGPoint();
-      pt.x = clientX;
-      pt.y = clientY;
-      const ctm = svg.getScreenCTM();
-      return ctm ? pt.matrixTransform(ctm.inverse()) : { x: clientX, y: clientY };
+    // Screen point -> the coordinates of `el` (the svg, or a group inside a zoomed camera)
+    function screenToSvgCoords(el, clientX, clientY) {
+      const ctm = el.getScreenCTM();
+      return ctm ? new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse()) : { x: clientX, y: clientY };
     }
 
     function parseTransform(el) {
@@ -1511,7 +1509,9 @@
           selectItem(item);
           item.classList.add('dragging');
 
-          const svgCoords = screenToSvgCoords(svg, e.clientX, e.clientY);
+          // Drag in the item's parent space: inside a zoomed or panning camera that is not the
+          // svg's own space, and the figure must follow the pointer exactly
+          const svgCoords = screenToSvgCoords(item.parentNode, e.clientX, e.clientY);
           dragStartSvgPt = svgCoords;
           dragStartTransform = parseTransform(item);
         });
@@ -1541,7 +1541,7 @@
       const svg = getSvgElement();
       if (!svg) return;
 
-      const curSvgPt = screenToSvgCoords(svg, e.clientX, e.clientY);
+      const curSvgPt = screenToSvgCoords(selectedItem.parentNode, e.clientX, e.clientY);
       const dx = curSvgPt.x - dragStartSvgPt.x;
       const dy = curSvgPt.y - dragStartSvgPt.y;
 
@@ -1620,37 +1620,57 @@
     });
 
     // Facial expression & motion switching
+
+    // Redraws one concept the way the scene drew it: same seed, look (vary) and colour
+    async function renderItemDrawing(item, { expression, animation, view }) {
+      const k = +(item.dataset.k || 0);
+      const res = await fetch('/api/render-concept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: item.dataset.id,
+          style: state.style,
+          expression,
+          animation,
+          view,
+          seed: `${state.seed}:${item.dataset.id}:${k}`,
+          vary: state.vary || k > 0,
+          color: item.dataset.color,
+        }),
+      });
+      const data = await res.json();
+      if (!data.markup) throw new Error(data.error || 'no drawing');
+      return data.markup;
+    }
+
     async function setItemExpression(targetExpr) {
       if (!selectedItem) return;
-      const id = selectedItem.dataset.id;
-      const curAnim = selectedItem.dataset.animation || 'blink';
-      const curSeed = `${state.seed}:${id}:${selectedItem.dataset.k || 0}`;
-
+      const item = selectedItem;
       try {
-        const res = await fetch('/api/render-concept', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id,
-            style: state.style,
+        const poses = item.querySelectorAll('.pg-timeline-pose');
+        if (poses.length) {
+          // A timeline actor: every pose (walking in profile, waving, standing...) gets the new face
+          await Promise.all([...poses].map(async (pose) => {
+            const markup = await renderItemDrawing(item, { expression: targetExpr, animation: pose.dataset.anim, view: pose.dataset.view });
+            pose.querySelector('.pg-figure').innerHTML = markup;
+          }));
+        } else {
+          const curAnim = item.dataset.animation || 'blink';
+          const markup = await renderItemDrawing(item, {
             expression: targetExpr,
             // travelling figures walk in place inside their motion wrapper
             animation: ['walk-across', 'approach', 'recede'].includes(curAnim) ? 'walk' : curAnim,
-            seed: curSeed,
-            view: selectedItem.dataset.view,
-          }),
-        });
-        const data = await res.json();
-        if (data.markup) {
-          selectedItem.dataset.expression = targetExpr;
+            view: item.dataset.view,
+          });
           // Replace only the drawing: keep the contact shadow and any travel motion around it.
-          const target = selectedItem.querySelector('.pg-figure') || selectedItem.querySelector('.pg-motion-across') || selectedItem;
-          target.innerHTML = data.markup;
-          addHitArea(selectedItem);
-          state.svg = svgViewport.innerHTML;
-          updateToolbarPosition();
-          showToast(`Expression: ${targetExpr}`);
+          const target = item.querySelector('.pg-figure') || item.querySelector('.pg-motion-across') || item;
+          target.innerHTML = markup;
         }
+        item.dataset.expression = targetExpr;
+        addHitArea(item);
+        state.svg = svgViewport.innerHTML;
+        updateToolbarPosition();
+        showToast(`Expression: ${targetExpr}`);
       } catch (err) {
         console.error('Failed to update expression:', err);
       }
@@ -1658,33 +1678,26 @@
 
     async function setItemAnimation(targetAnim) {
       if (!selectedItem) return;
-      const id = selectedItem.dataset.id;
-      const curExpr = selectedItem.dataset.expression || 'happy';
-      const curSeed = `${state.seed}:${id}:${selectedItem.dataset.k || 0}`;
-
-      selectedItem.dataset.animation = targetAnim;
-
+      if (selectedItem.dataset.actor) {
+        // Its motions come from the prompt's timeline; replacing them here would break the sequence
+        showToast('This figure follows the timeline: change its actions in the prompt');
+        return;
+      }
+      const item = selectedItem;
       try {
-        const res = await fetch('/api/render-concept', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id,
-            style: state.style,
-            expression: curExpr,
-            animation: targetAnim === 'none' ? undefined : targetAnim,
-            seed: curSeed,
-            view: selectedItem.dataset.view,
-          }),
+        const markup = await renderItemDrawing(item, {
+          expression: item.dataset.expression || 'happy',
+          animation: targetAnim === 'none' ? undefined : targetAnim,
+          view: item.dataset.view,
         });
-        const data = await res.json();
-        if (data.markup) {
-          const shadow = selectedItem.querySelector('.pg-shadow')?.outerHTML || '';
-          const figure = `${shadow}<g class="pg-figure">${data.markup}</g>`;
-          selectedItem.innerHTML = targetAnim === 'walk-across' ? `<g class="pg-motion-across">${figure}</g>` : figure;
-          addHitArea(selectedItem);
-        }
-      } catch (e) {}
+        item.dataset.animation = targetAnim;
+        const shadow = item.querySelector('.pg-shadow')?.outerHTML || '';
+        const figure = `${shadow}<g class="pg-figure">${markup}</g>`;
+        item.innerHTML = targetAnim === 'walk-across' ? `<g class="pg-motion-across">${figure}</g>` : figure;
+        addHitArea(item);
+      } catch (e) {
+        console.error('Failed to update motion:', e);
+      }
 
       state.svg = svgViewport.innerHTML;
       updateToolbarPosition();

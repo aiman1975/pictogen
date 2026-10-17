@@ -86,7 +86,7 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] Camera: zoom in / close-up on someone, zoom out, pan left/right or to something, follow a
       character (a tracking shot). As beats in a timeline ("then the camera zooms in on him") or on
       their own, looping smoothly; the view never shows past the edge of the scene
-- [ ] Camera: cuts between shots, shake, dolly-zoom; keep the studio's drag-and-drop exact while zoomed
+- [ ] Camera: cuts between shots, shake, dolly-zoom
 - [ ] Scene transitions (cut, fade, wipe) and caption timing tied to the beats
 - [ ] Recurring characters: the same boy looks the same in every scene (seeded identity)
 
@@ -100,6 +100,8 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [ ] Transparent-background PNG sequences for video editors
 
 ### 6. Product quality
+- [x] Studio editing: expression changes reach every pose of a timeline actor; redrawn figures keep
+      their colour and look; dragging follows the pointer exactly, also while the camera is zoomed
 - [ ] Visual regression tests: render reference prompts to PNG and compare against approved images
 - [ ] A license check in CI so no unlicensed asset gets in (see `docs/LICENSE_AUDIT.md`)
 - [ ] Performance budget for clips with many figures

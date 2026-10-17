@@ -35,7 +35,7 @@ const actor = (svg, id) => {
 };
 const boy = actor(r.svg, 'boy'), dog = actor(r.svg, 'dog');
 check(boy.includes('pg-anim-walk') && boy.includes('pg-profile') && boy.includes('pg-anim-wave'), 'the boy has a walking profile pose and a waving pose');
-check((boy.match(/class="pg-timeline-pose" opacity="1"/g) || []).length === 1 && (dog.match(/class="pg-timeline-pose" opacity="1"/g) || []).length === 1,
+check((boy.match(/class="pg-timeline-pose"[^>]*opacity="1"/g) || []).length === 1 && (dog.match(/class="pg-timeline-pose"[^>]*opacity="1"/g) || []).length === 1,
   'each actor shows exactly one pose in a still (no-animation) render');
 
 // Keyframes: positions start off-screen for actors that enter, and the dog stays hidden until its beat

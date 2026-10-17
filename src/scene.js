@@ -587,11 +587,13 @@ export function composeScene(matches, opts = {}) {
       view,
       style,
     });
-    let wrappedContent = shapesToSvg(shapes, style, { olk });
-    if (limbs && limbs !== 'blink' && !wrappedContent.includes(`pg-anim-${limbs}`)) {
+    // The drawing sits innermost in .pg-figure, so the studio can redraw it (a new expression)
+    // while the animation wrapper, shadow and travel motion around it stay
+    const drawing = shapesToSvg(shapes, style, { olk });
+    let wrappedContent = `<g class="pg-figure">${drawing}</g>`;
+    if (limbs && limbs !== 'blink' && !drawing.includes(`pg-anim-${limbs}`)) {
       wrappedContent = `<g class="pg-anim-${limbs}">${wrappedContent}</g>`;
     }
-    wrappedContent = `<g class="pg-figure">${wrappedContent}</g>`;
     if (shadows && anchor === 'bottom' && !['background', 'water'].includes(it.c.placement)) {
       // Contact shadow on the ground: outside the figure's own animation, so it stays put when jumping.
       const rx = 50 * (it.c.width ?? 0.8) * 0.72;
@@ -609,7 +611,8 @@ export function composeScene(matches, opts = {}) {
     const animAttr = animation ? ` data-animation="${animation}"` : '';
     const exprAttr = expression ? ` data-expression="${expression}"` : '';
     const viewAttr = view ? ` data-view="${view}"` : '';
-    out.push(`<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}"${animAttr}${exprAttr}${viewAttr} transform="${tr.replace(/(\d+\.\d{3})\d+/g, '$1')}" style="cursor: grab;">${wrappedContent}</g>`);
+    const colorAttr = it.m.color ? ` data-color="${it.m.color}"` : '';
+    out.push(`<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}"${animAttr}${exprAttr}${viewAttr}${colorAttr} transform="${tr.replace(/(\d+\.\d{3})\d+/g, '$1')}" style="cursor: grab;">${wrappedContent}</g>`);
   };
 
   // One timeline actor: a wrapper moved by keyframes, and one drawing per pose, switched on and off
@@ -654,17 +657,21 @@ export function composeScene(matches, opts = {}) {
         seed: `${seed}:${it.c.id}:${it.k}`, color: it.m.color, vary: vary || it.k > 0, style,
         expression: pose.expression || 'happy', animation: pose.anim, view: pose.view,
       });
-      let svg = shapesToSvg(shapes, style, { olk });
-      if (pose.anim && !svg.includes(`pg-anim-${pose.anim}`)) svg = `<g class="pg-anim-${pose.anim}">${svg}</g>`;
+      // The drawing sits innermost in .pg-figure, so the studio can redraw it (a new expression)
+      // while the pose's animation wrapper and mirroring around it stay
+      const drawing = shapesToSvg(shapes, style, { olk });
+      let svg = `<g class="pg-figure">${drawing}</g>`;
+      if (pose.anim && !drawing.includes(`pg-anim-${pose.anim}`)) svg = `<g class="pg-anim-${pose.anim}">${svg}</g>`;
       if (pose.mirror) svg = `<g transform="translate(100 0) scale(-1 1)">${svg}</g>`;
       const still = last && last.variant === key;
-      poses += `<g class="pg-timeline-pose" opacity="${still ? 1 : 0}" style="animation: ${name}v${i} ${r2(T)}s step-end infinite;"><g class="pg-figure">${svg}</g></g>`;
+      const attrs = `${pose.anim ? ` data-anim="${pose.anim}"` : ''}${pose.view ? ` data-view="${pose.view}"` : ''}`;
+      poses += `<g class="pg-timeline-pose"${attrs} opacity="${still ? 1 : 0}" style="animation: ${name}v${i} ${r2(T)}s step-end infinite;">${svg}</g>`;
       i++;
     }
     const rx = 50 * (it.c.width ?? 0.8) * 0.72;
     const shadow = shadows ? `<ellipse class="pg-shadow" cx="50" cy="${base}" rx="${r2(rx)}" ry="${r2(Math.max(3, rx * 0.13))}" fill="#000000" opacity="0.16"/>` : '';
     const tr = `translate(${r2(home - 50 * s)} ${r2(y - base * s)}) scale(${r2(s * 1000) / 1000})`;
-    return `<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}" data-actor="${it.c.id}" transform="${tr}" style="cursor: grab;"><g class="pg-timeline-move" style="animation: ${name}p ${r2(T)}s linear infinite;">${shadow}${poses}</g></g>`;
+    return `<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}" data-actor="${it.c.id}"${it.m.color ? ` data-color="${it.m.color}"` : ''} transform="${tr}" style="cursor: grab;"><g class="pg-timeline-move" style="animation: ${name}p ${r2(T)}s linear infinite;">${shadow}${poses}</g></g>`;
   };
 
   // background objects (mountains, rainbows): large, behind everything, sitting on the horizon
