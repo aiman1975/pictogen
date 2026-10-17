@@ -1633,6 +1633,7 @@
             // travelling figures walk in place inside their motion wrapper
             animation: ['walk-across', 'approach', 'recede'].includes(curAnim) ? 'walk' : curAnim,
             seed: curSeed,
+            view: selectedItem.dataset.view,
           }),
         });
         const data = await res.json();
@@ -1669,6 +1670,7 @@
             expression: curExpr,
             animation: targetAnim === 'none' ? undefined : targetAnim,
             seed: curSeed,
+            view: selectedItem.dataset.view,
           }),
         });
         const data = await res.json();

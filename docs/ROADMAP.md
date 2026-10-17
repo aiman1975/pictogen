@@ -13,7 +13,7 @@ visual styles. It should run offline and export as SVG, HTML or video.
 - **Animation:** CSS keyframes. Limb cycles (walk, run, jump, dance, wave...), facial cycles
   (blink, talk), environment loops (clouds, rain, stars).
 - **Depth (2.5D):** figures can walk from the horizon toward the camera ("approach") or away
-  ("recede") on a perspective path. Crowds stand in two depth rows, and grounded figures have
+  ("recede", seen from behind) on a perspective path. Crowds stand in two depth rows, and grounded figures have
   contact shadows.
 - **Clips:** multi-scene stories with captions, four genres (kids, documentary, news, how-to)
   and three aspect ratios, exported as a standalone HTML player.
@@ -41,8 +41,11 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 ### 1. Depth and staging (started)
 - [x] Approach/recede on a perspective path, motion scaled correctly for every figure size
 - [x] Contact shadows, two depth rows for crowds
-- [ ] **Back and three-quarter views** for people and animals, so "walking away" shows the figure's
-      back and turning is possible (currently a receding figure still faces the camera)
+- [x] **Back views** of the four people in all 20 styles. Walking away shows the back, and prompts
+      can ask for it ("seen from behind", "back view of", "with her back to the camera") or override
+      it ("walking away facing us")
+- [ ] Three-quarter and side views for people, back views for animals, and turning between
+      views during a clip
 - [ ] Re-sort draw order while a figure travels (now drawn in front for the whole path)
 - [ ] Atmospheric perspective: lighter, lower-contrast far objects
 - [ ] Paths: walking along a road or riverbank and around obstacles, not only straight lines

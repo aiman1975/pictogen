@@ -106,14 +106,14 @@ const server = http.createServer((req, res) => {
   // API: Render single concept with custom expression / animation
   if (pathname === '/api/render-concept' && req.method === 'POST') {
     withJsonBody(req, res, (payload) => {
-      const { id, style = 'flat', expression = 'happy', animation, color, vary, seed = 1 } = payload;
+      const { id, style = 'flat', expression = 'happy', animation, color, vary, seed = 1, view } = payload;
       const c = getConcept(id);
       if (!c) {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: `Unknown concept: ${id}` }));
         return;
       }
-      const shapes = drawConcept(c, { seed, color, vary, expression, animation, style });
+      const shapes = drawConcept(c, { seed, color, vary, expression, animation, style, view: view === 'back' ? 'back' : undefined });
       const markup = shapesToSvg(shapes, style);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ id, expression, animation, markup }));

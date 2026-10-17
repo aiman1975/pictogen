@@ -9,7 +9,7 @@ export const STOPWORDS = new Set(
   i you he she it we they me him her us them my your his its our their mine yours this that these those there here
   as into onto over under above below near beside behind between across up down out off very so too then than just also not no yes
   do does did done has have had having will would can could should may might must shall while when where who whom which what why how
-  comes coming toward towards
+  comes coming toward towards seen viewed shown
   all any each every such only own same other s t let lets get gets got go goes going went come came see saw look looks looking
   like likes liked once upon time day one's its very really
   stand standing stands stood play playing plays played
@@ -203,6 +203,32 @@ function conceptAt(toks, i, idx) {
   return r ? { ...r, len: 1, word: toks[i] } : null;
 }
 
+const POSSESSIVES = new Set(['his', 'her', 'their', 'its', 'my', 'your', 'our']);
+
+/**
+ * A phrase at toks[i] saying which side of a figure we see. Returns { view, len } or null.
+ *   back:  from behind (not "from behind the house"), from the back/rear, facing away, turned away, back view, rear view,
+ *          with his/her/their back to us/me/you/the camera/the viewer
+ *   front: from the front, front view, facing us/me/you/the camera/the viewer
+ */
+function viewPhrase(toks, i) {
+  const [a, b, c, d, e] = toks.slice(i, i + 5);
+  // ("waving from behind the house" is a place, not a view)
+  if (a === 'from' && b === 'behind' && !['a', 'an', 'the', 'this', 'that'].includes(c) && !POSSESSIVES.has(c)) return { view: 'back', len: 2 };
+  if (a === 'from' && b === 'the' && (c === 'back' || c === 'rear')) return { view: 'back', len: 3 };
+  if ((a === 'facing' || a === 'turned') && b === 'away') return { view: 'back', len: 2 };
+  if ((a === 'back' || a === 'rear') && b === 'view') return { view: 'back', len: 2 };
+  if (a === 'with' && POSSESSIVES.has(b) && c === 'back' && d === 'to') {
+    if (VIEWER.has(e)) return { view: 'back', len: 5 };
+    if (e === 'the' && VIEWER.has(toks[i + 5])) return { view: 'back', len: 6 };
+  }
+  if (a === 'from' && b === 'the' && c === 'front') return { view: 'front', len: 3 };
+  if (a === 'front' && b === 'view') return { view: 'front', len: 2 };
+  if (a === 'facing' && VIEWER.has(b)) return { view: 'front', len: 2 };
+  if (a === 'facing' && b === 'the' && VIEWER.has(c)) return { view: 'front', len: 3 };
+  return null;
+}
+
 function lev(a, b) {
   const m = a.length, n = b.length;
   let prev = Array.from({ length: n + 1 }, (_, j) => j);
@@ -237,7 +263,8 @@ function mergeMatches(found) {
       o.id === m.id &&
       (!m.color || !o.color || o.color === m.color) &&
       (!m.expression || !o.expression || o.expression === m.expression) &&
-      (!m.animation || !o.animation || o.animation === m.animation)
+      (!m.animation || !o.animation || o.animation === m.animation) &&
+      (!m.view || !o.view || o.view === m.view)
     );
     if (target) {
       target.count = Math.max(target.count, m.count);
@@ -245,6 +272,7 @@ function mergeMatches(found) {
       target.size = target.size ?? m.size;
       target.expression = target.expression ?? m.expression;
       target.animation = target.animation ?? m.animation;
+      target.view = target.view ?? m.view;
     } else out.push({ ...m });
   }
   return out;
@@ -283,6 +311,7 @@ export function parseText(text, { fuzzy = false } = {}) {
       count: pend.count != null ? Math.max(1, Math.min(pend.count, MAX_COUNT)) : hit.plural ? 3 : 1,
       expression: pend.expression ?? hit.expression,
       animation: pend.animation ?? hit.animation,
+      view: pend.view,
       ...extra,
     });
     pend = {};
@@ -296,6 +325,14 @@ export function parseText(text, { fuzzy = false } = {}) {
 
     if (['and', 'or', 'but', 'with', 'without', 'then'].includes(t)) {
       lastConceptIndex = -99;
+    }
+    const seen = viewPhrase(toks, i);
+    if (seen) {
+      // "back view of a boy" -> the next figure; "a boy and a girl seen from behind" -> the list so far
+      if (!found.length) pend.view = seen.view;
+      else for (const j of list.length ? list : [found.length - 1]) found[j].view = seen.view;
+      i += seen.len;
+      continue;
     }
     if (LIST_BREAKS.has(t)) list = [];
     if (NEGATIONS.has(t)) {

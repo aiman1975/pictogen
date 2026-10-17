@@ -47,11 +47,11 @@ export function generate(text, opts = {}) {
   let svg;
   if (mode === 'icons') {
     svg = matches.length
-      ? renderSheet(matches.map((m) => ({ id: m.id, color: m.color, expression: m.expression, animation: m.animation, label: true })), common)
+      ? renderSheet(matches.map((m) => ({ id: m.id, color: m.color, expression: m.expression, animation: m.animation, view: m.view, label: true })), common)
       : renderPlaceholder({ style });
   } else if (mode === 'card') {
     svg = matches.length
-      ? renderCard(matches[0].id, { ...common, color: matches[0].color, expression: matches[0].expression, animation: matches[0].animation })
+      ? renderCard(matches[0].id, { ...common, color: matches[0].color, expression: matches[0].expression, animation: matches[0].animation, view: matches[0].view })
       : renderPlaceholder({ style });
   } else if (mode === 'comic') {
     svg = renderComicStrip(matches, common);
@@ -75,8 +75,8 @@ export function generate(text, opts = {}) {
     svg = composeScene(matches, { ...common, words: parsed.tokens });
   }
   const images = matches.map((m) => ({
-    id: m.id, word: m.word, count: m.count, color: m.color, expression: m.expression, animation: m.animation,
-    svg: renderIcon(m.id, { ...common, color: m.color, expression: m.expression, animation: m.animation, size }),
+    id: m.id, word: m.word, count: m.count, color: m.color, expression: m.expression, animation: m.animation, view: m.view,
+    svg: renderIcon(m.id, { ...common, color: m.color, expression: m.expression, animation: m.animation, view: m.view, size }),
   }));
   const setting = mode === 'scene'
     ? [...backdrop.map((m) => m.word), ...parsed.unknown.filter((w) => SETTING_WORDS.has(w))]

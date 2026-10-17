@@ -23,12 +23,13 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
   - **Sticker / Icon Sheet (`icons`)**: Organized grid of matched concepts with captions (great for presentation slides & documentation).
 - 🧠 **Smart Text Matcher**:
   - Handles numbers (*"three apples"*, *"4 dogs"*, *"a dozen eggs"* &rarr; counts, capped at 12 per item).
+  - Views (*"a boy seen from behind"*, *"back view of a girl"*, *"a woman with her back to the camera"*).
   - Handles negation (*"a dog and no cats"*, *"a boy without a ball"* &rarr; the negated item is left out).
   - Handles colors (*"a blue bike"* &rarr; bike frame rendered in blue).
   - Handles sizes (*"huge tree"* &rarr; scaled up).
   - Handles plurals & irregular forms (*"geese"*, *"leaves"*, *"bicycles"*).
   - Semantic aliases (*"schoolboy"* &rarr; boy, *"automobile"* &rarr; car, *"nemo"* &rarr; fish).
-  - Motion and depth (*"a boy walking towards us"* &rarr; walks from the horizon toward the camera, growing with perspective; *"a girl walking away into the distance"*; *"a man and a dog walking across the park"* &rarr; both walk, at the same pace).
+  - Motion and depth (*"a boy walking towards us"* &rarr; walks from the horizon toward the camera, growing with perspective; *"a girl walking away into the distance"* &rarr; seen from behind, shrinking toward the horizon; *"a man and a dog walking across the park"* &rarr; both walk, at the same pace).
 - 🧩 **Extensible Library**: ~70 hand-drawn concepts (recolorable, with expressions & motion) plus ~3,170 Fluent Emoji library icons (MIT). The hand-drawn core:
   - **Vehicles**: `bike`, `car`, `bus`, `boat`, `plane`
   - **Nature**: `tree`, `neem`, `flower`, `mountain`, `grass`

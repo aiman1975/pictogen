@@ -43,6 +43,11 @@ try {
 
   check((await fetch(`${base}/api/svg?text=apple&mode=card`)).headers.get('content-type').startsWith('image/svg+xml'), 'GET /api/svg serves SVG');
   check((await fetch(`${base}/api/icon?id=no_such_concept`)).status === 404, 'unknown icon is 404');
+
+  const face = /class="pg-face-(?:eyes|mouth)"/;
+  const front = await (await post('/api/render-concept', { id: 'boy' })).json();
+  const back = await (await post('/api/render-concept', { id: 'boy', view: 'back' })).json();
+  check(face.test(front.markup) && !face.test(back.markup), 'POST /api/render-concept honours view: "back"');
 } finally {
   server.kill();
 }

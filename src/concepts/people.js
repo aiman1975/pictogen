@@ -6,6 +6,9 @@ export const HAIR_COLORS = ['#4e342e', '#212121', '#795548', '#e6b94f', '#a1662f
 const SHIRTS = ['#1e88e5', '#e53935', '#43a047', '#fb8c00', '#8e24aa', '#00897b'];
 const DRESSES = ['#ec407a', '#ab47bc', '#e53935', '#42a5f5', '#26a69a'];
 
+/** True when the figure is seen from behind (opts.view === 'back'): no face, back of the head. */
+const fromBehind = (p) => p.opts.view === 'back';
+
 /**
  * Draws expressive facial features (eyes, brows, mouth, cheeks) based on expression.
  * Supported expressions: 'happy', 'laugh', 'sad', 'surprised', 'wink', 'angry', 'talking', 'confused', 'skeptical', 'neutral'
@@ -308,7 +311,7 @@ export function drawStickPerson(d, p, role = 'boy') {
         d.path('M64 18 Q70 28 68 32', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
       }
 
-      drawMinimalFace(d, 50, 18, expr, '#000000');
+      if (!fromBehind(p)) drawMinimalFace(d, 50, 18, expr, '#000000');
     });
   });
 }
@@ -366,10 +369,11 @@ export function drawCutePerson(d, p, role = 'boy') {
       d.circle(50, 41, 27, { fill: bodyColor, stroke: '#000000', sw: 3.6, kind: 'body' });
       d.path('M 25 47 A 27 27 0 0 0 74 46 A 25 25 0 0 1 25 47 Z', { fill: '#000000', opacity: 0.12, kind: 'shadow' });
 
-      d.circle(38, 42, 3.8, { fill: '#f472b6', opacity: 0.65, kind: 'accent' });
-      d.circle(62, 42, 3.8, { fill: '#f472b6', opacity: 0.65, kind: 'accent' });
-
-      drawMinimalFace(d, 50, 38, expr === 'happy' && (role === 'girl' || role === 'woman') ? 'laugh' : expr, '#000000');
+      if (!fromBehind(p)) {
+        d.circle(38, 42, 3.8, { fill: '#f472b6', opacity: 0.65, kind: 'accent' });
+        d.circle(62, 42, 3.8, { fill: '#f472b6', opacity: 0.65, kind: 'accent' });
+        drawMinimalFace(d, 50, 38, expr === 'happy' && (role === 'girl' || role === 'woman') ? 'laugh' : expr, '#000000');
+      }
     });
   });
 }
@@ -420,7 +424,7 @@ export function drawWhiteboardPerson(d, p, role = 'boy') {
       // Marker tie / collar highlight
       d.path('M45 40 L50 47 L55 40', { stroke: accent, sw: 2.8, fill: 'none', kind: 'line' });
       d.circle(50, 23, 15, { fill: '#ffffff', stroke: '#0f172a', sw: 3.5, kind: 'body' });
-      drawMinimalFace(d, 50, 22, expr, '#0f172a');
+      if (!fromBehind(p)) drawMinimalFace(d, 50, 22, expr, '#0f172a');
     });
   });
 }
@@ -464,7 +468,7 @@ export function drawGeometricPerson(d, p, role = 'boy') {
       d.rect(36, 42, 28, 32, { fill: primary, kind: 'body' });
       d.circle(50, 24, 16, { fill: '#f97316', kind: 'body' });
       d.rect(42, 10, 16, 6, { fill: '#1e3a8a', kind: 'body' });
-      drawMinimalFace(d, 50, 23, expr, '#0f172a');
+      if (!fromBehind(p)) drawMinimalFace(d, 50, 23, expr, '#0f172a');
     });
   });
 }
@@ -514,7 +518,7 @@ export function drawDoodlePerson(d, p, role = 'boy') {
       d.rect(34, 13, 32, 27, { fill: '#fffdfa', stroke: '#1e293b', sw: 2.8, rx: 7, kind: 'body' });
       // Spiky messy sketchbook hair
       d.path('M36 14 L40 7 L45 13 L50 6 L55 13 L60 7 L64 14', { stroke: '#1e293b', sw: 2.6, fill: 'none', kind: 'line' });
-      drawMinimalFace(d, 50, 25, expr, '#1e293b');
+      if (!fromBehind(p)) drawMinimalFace(d, 50, 25, expr, '#1e293b');
     });
   });
 }
@@ -682,7 +686,7 @@ export function drawPapercutPerson(d, p, role = 'boy') {
       // Smooth circular paper head
       d.circle(50, 20, 13, { fill: paperColor, kind: 'body' });
       // Subtle paper cutout face details
-      drawMinimalFace(d, 50, 19, expr, '#27272a');
+      if (!fromBehind(p)) drawMinimalFace(d, 50, 19, expr, '#27272a');
     });
   });
 }
@@ -771,9 +775,14 @@ export default [
           d.circle(35.5, 28, 3.5, { fill: skin });
           d.circle(64.5, 28, 3.5, { fill: skin });
           d.circle(50, 27, 15, { fill: skin });
-          d.path('M35 26 C35 13 44 10 51 10 C59 10 66 14 65.5 25 C62 21 57 19 52 21 C48 18 41 19 35 26 Z', { fill: p.c('hair') });
-
-          drawFacialExpression(d, p, 50, 28);
+          if (fromBehind(p)) {
+            // Back of the head: hair down to the nape, a crown swirl
+            d.path('M35 27 C35 13 43 11 50 11 C57 11 65 13 65 27 C65 33 62 37 57 38 L43 38 C38 37 35 33 35 27 Z', { fill: p.c('hair') });
+            d.path('M47 19 Q50 16 53 19', { kind: 'line', stroke: INK, sw: 1, opacity: 0.35 });
+          } else {
+            d.path('M35 26 C35 13 44 10 51 10 C59 10 66 14 65.5 25 C62 21 57 19 52 21 C48 18 41 19 35 26 Z', { fill: p.c('hair') });
+            drawFacialExpression(d, p, 50, 28);
+          }
         });
       });
     },
@@ -835,9 +844,14 @@ export default [
 
           d.circle(32, 22, 7, { fill: p.c('hair'), kind: 'body' });
           d.circle(68, 22, 7, { fill: p.c('hair'), kind: 'body' });
-          d.path('M36 28 C36 12 44 11 50 11 C56 11 64 12 64 28 C60 22 56 20 50 20 C44 20 40 22 36 28 Z', { fill: p.c('hair'), kind: 'body' });
-
-          drawFacialExpression(d, p, 50, 28);
+          if (fromBehind(p)) {
+            // Back of the head: hair covers it, with a centre parting
+            d.path('M36 27 C36 12 44 12 50 12 C56 12 64 12 64 27 C64 34 59 38 50 38 C41 38 36 34 36 27 Z', { fill: p.c('hair'), kind: 'body' });
+            d.line(50, 13, 50, 25, { stroke: INK, sw: 1, opacity: 0.3, kind: 'line' });
+          } else {
+            d.path('M36 28 C36 12 44 11 50 11 C56 11 64 12 64 28 C60 22 56 20 50 20 C44 20 40 22 36 28 Z', { fill: p.c('hair'), kind: 'body' });
+            drawFacialExpression(d, p, 50, 28);
+          }
         });
       });
     },
@@ -891,10 +905,18 @@ export default [
         d.group({ class: 'pg-body-torso' }, () => {
           d.rect(46, 34, 8, 8, { fill: skin });
           d.path('M34 42 L66 42 L64 66 L36 66 Z', { fill: shirt });
+          if (fromBehind(p)) {
+            d.circle(37, 25, 3, { fill: skin });
+            d.circle(63, 25, 3, { fill: skin });
+          }
           d.circle(50, 24, 13, { fill: skin });
-          d.path('M37 22 C37 11 44 9 50 9 C56 9 63 11 63 22 C59 18 55 16 50 16 C45 16 41 18 37 22 Z', { fill: p.c('hair') });
-
-          drawFacialExpression(d, p, 50, 24);
+          if (fromBehind(p)) {
+            // Back of the head: short hair down to the nape
+            d.path('M37 23 C37 11 44 10 50 10 C56 10 63 11 63 23 C63 29 60 32 56 33 L44 33 C40 32 37 29 37 23 Z', { fill: p.c('hair') });
+          } else {
+            d.path('M37 22 C37 11 44 9 50 9 C56 9 63 11 63 22 C59 18 55 16 50 16 C45 16 41 18 37 22 Z', { fill: p.c('hair') });
+            drawFacialExpression(d, p, 50, 24);
+          }
         });
       });
     },
@@ -949,9 +971,13 @@ export default [
           d.rect(47, 34, 6, 8, { fill: skin });
           d.path('M36 42 L64 42 L62 67 L38 67 Z', { fill: top });
           d.circle(50, 24, 13, { fill: skin });
-          d.path('M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L67 46 C67 48 63 48 62 43 L62 26 C57 18 53 18 50 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z', { fill: p.c('hair') });
-
-          drawFacialExpression(d, p, 50, 24);
+          if (fromBehind(p)) {
+            // Back of the head: long hair falling over the shoulders
+            d.path('M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L66 45 C66 49 60 50 50 50 C40 50 34 49 34 45 Z', { fill: p.c('hair') });
+          } else {
+            d.path('M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L67 46 C67 48 63 48 62 43 L62 26 C57 18 53 18 50 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z', { fill: p.c('hair') });
+            drawFacialExpression(d, p, 50, 24);
+          }
         });
       });
     },
