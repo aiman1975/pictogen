@@ -887,6 +887,8 @@
             <button class="btn-action" id="btn-copy-svg">📋 Copy SVG</button>
             <button class="btn-action" id="btn-download-svg">💾 Download SVG</button>
             <button class="btn-action" id="btn-download-png">🖼 Download PNG</button>
+            <button class="btn-action" id="btn-download-gif" title="Animated GIF of this scene">🎞 GIF</button>
+            <button class="btn-action" id="btn-download-video" title="Video of this scene (MP4 where your browser can record it, otherwise WebM)">🎬 Video</button>
           </div>
         </div>
 
@@ -977,6 +979,7 @@
 
             <button class="btn-action" id="story-btn-sound" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Toggle Clip Chimes">🔔</button>
             <button class="btn-action" id="story-btn-export-html" style="background:#10b981; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Export standalone offline animated player">💾 Export Clip (.html)</button>
+            <button class="btn-action" id="story-btn-export-video" style="background:#6366f1; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Render the whole clip, captions included, as a video">🎬 Export Video</button>
           </div>
         </div>
       </div>
@@ -1328,6 +1331,7 @@
         });
         const data = await res.json();
         state.svg = data.svg;
+        state.duration = data.duration || null; // timelines and camera moves report their length
         svgViewport.innerHTML = data.svg;
 
         // Render inspector matches
@@ -2308,6 +2312,70 @@
     renderStoryPresets(state.genre);
     if (!restoreFromUrl()) runGenerate();
     setTimeout(loadConcepts, 150);
+
+    // For the video export module below
+    window.pictogenStudio = { getSvgElement, getState: () => state, getStory: () => storyState, showToast };
+  </script>
+  <script type="module">
+    import { exportGif, exportVideo, videoFormat, mountOffscreen, download } from '/js/video-export.js';
+    window.pictogenVideo = { exportGif, exportVideo, videoFormat, mountOffscreen };
+    const studio = window.pictogenStudio;
+    const slug = (s) => String(s || 'pictogen').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'pictogen';
+
+    // Runs one export with progress on its button; one at a time
+    let busy = false;
+    async function run(button, job) {
+      if (busy) return studio.showToast('An export is already running');
+      busy = true;
+      const label = button.textContent;
+      button.disabled = true;
+      try {
+        await job((p) => { button.textContent = `Rendering ${Math.round(p * 100)}%`; });
+      } catch (err) {
+        console.error(err);
+        studio.showToast(`Export failed: ${err.message}`);
+      } finally {
+        button.textContent = label;
+        button.disabled = false;
+        busy = false;
+      }
+    }
+
+    // The scene on the canvas: its timeline / camera length, or a few seconds of its loops
+    const sceneShot = () => {
+      const svg = studio.getSvgElement();
+      if (!svg) throw new Error('Nothing on the canvas yet');
+      return [{ svg, duration: studio.getState().duration || 4 }];
+    };
+
+    document.getElementById('btn-download-gif').addEventListener('click', (e) => run(e.currentTarget, async (progress) => {
+      const blob = await exportGif(sceneShot(), { fps: 15, onProgress: progress });
+      download(blob, `${slug(studio.getState().prompt)}.gif`);
+      studio.showToast(`GIF saved (${Math.round(blob.size / 1024)} KB)`);
+    }));
+
+    document.getElementById('btn-download-video').addEventListener('click', (e) => run(e.currentTarget, async (progress) => {
+      if (!videoFormat()) throw new Error('this browser cannot record video; try the GIF');
+      const blob = await exportVideo(sceneShot(), { fps: 30, onProgress: progress });
+      download(blob, `${slug(studio.getState().prompt)}.${videoFormat().ext}`);
+      studio.showToast(`Video saved (${Math.round(blob.size / 1024)} KB)`);
+    }));
+
+    // The whole clip: a title card, then every scene for its full length with its caption
+    document.getElementById('story-btn-export-video').addEventListener('click', (e) => run(e.currentTarget, async (progress) => {
+      const story = studio.getStory();
+      if (!story.scenes || !story.scenes.length) throw new Error('Generate a clip first');
+      if (!videoFormat()) throw new Error('this browser cannot record video');
+      const mounted = story.scenes.map((sc) => mountOffscreen(sc.svg));
+      try {
+        const shots = story.scenes.map((sc, i) => ({ svg: mounted[i].svg, duration: sc.duration || 5, scene: sc }));
+        const blob = await exportVideo(shots, { fps: 30, title: story.title, genre: story.genre, onProgress: progress });
+        download(blob, `${slug(story.title)}.${videoFormat().ext}`);
+        studio.showToast(`Clip video saved (${Math.round(blob.size / 1024)} KB)`);
+      } finally {
+        mounted.forEach((m) => m.remove());
+      }
+    }));
   </script>
 </body>
 </html>

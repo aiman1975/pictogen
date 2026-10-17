@@ -91,10 +91,11 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [ ] Recurring characters: the same boy looks the same in every scene (seeded identity)
 
 ### 5. Export
-- [ ] **Video (MP4/WebM/GIF)** by stepping the animations frame by frame in a headless browser
-      (the Web Animations API can seek every keyframe deterministically, which the depth tests
-      already rely on), then encoding with a separately installed ffmpeg (not bundled, because of
-      its LGPL/GPL licensing)
+- [x] **Video and GIF** from the studio: frames rendered exactly by seeking every animation (Web
+      Animations API) and drawing a still copy; GIF with a built-in encoder (median-cut palette, LZW),
+      video with the browser's MediaRecorder (MP4/H.264 where it can, otherwise WebM). Clip Studio
+      exports whole clips with a title card and captions. Nothing to install, no ffmpeg
+- [ ] Export from the command line / server (needs a headless browser; optional dependency)
 - [ ] Lottie JSON export for app developers
 - [ ] Transparent-background PNG sequences for video editors
 
