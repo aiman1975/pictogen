@@ -10,7 +10,8 @@ const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
 const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...ENV_WORDS.snow, ...ENV_WORDS.rain]);
 import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/render.js';
 import { getConcept } from './concepts/index.js';
-import { parseTimeline, extractCamera, editTimeline, lookRelations } from './timeline.js';
+import { parseTimeline, extractCamera, editTimeline, lookRelations, speechRelations } from './timeline.js';
+import { takeQuotes } from './speech.js';
 import { conceptOf, individualNames } from './individuals.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
@@ -19,7 +20,8 @@ export { renderIcon, renderCard, renderSheet, drawConcept, shapesToSvg } from '.
 export { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 export { parseText, tokenize } from './text/matcher.js';
 export { composeScene } from './scene.js';
-export { parseTimeline, hasSequence, cameraAction, extractCamera, editTimeline, lookRelations, POSE_ANIMS, ACTION_TYPES, CAMERA_TYPES } from './timeline.js';
+export { parseTimeline, hasSequence, cameraAction, extractCamera, editTimeline, lookRelations, speechRelations, POSE_ANIMS, ACTION_TYPES, CAMERA_TYPES } from './timeline.js';
+export { lipKeys } from './speech.js';
 export { listConcepts, getConcept, registerConcept } from './concepts/index.js';
 export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './story.js';
 
@@ -49,7 +51,9 @@ export function generate(text, opts = {}) {
   const names = mode === 'scene' ? individuals : new Map([...individuals].map(([k, id]) => [k, conceptOf(id)]));
   // Camera directions ("zoom in on the dog") are not things to draw: read the scene without them,
   // but keep whatever they point at ("a close-up of a cat" still draws the cat).
-  const shot = mode === 'scene' ? extractCamera(text) : { text, moves: [] };
+  // Quoted speech ("says “Hello!”") is said, not drawn: the scene is read without it
+  const { text: unquoted } = takeQuotes(text);
+  const shot = mode === 'scene' ? extractCamera(unquoted) : { text: unquoted, moves: [] };
   let sceneText = shot.text;
   for (const m of shot.moves) {
     const id = m.target && parseText(m.target, { names }).matches[0]?.id;
@@ -113,8 +117,14 @@ export function generate(text, opts = {}) {
     } : null;
     // Who looks at whom in a still scene ("a boy and a girl looking at each other")
     const looks = timeline ? [] : lookRelations(text, { names });
-    svg = composeScene(matches, { ...common, words: parsed.tokens, timeline, camera, looks });
-    if (camera?.duration) common.duration = camera.duration;
+    // Who says what (lip-synced): quoted words, or a clip scene's caption said by whoever talks
+    const speech = timeline ? [] : speechRelations(text, { names });
+    const caption = typeof opts.caption === 'string' && opts.caption.trim() ? opts.caption.trim().slice(0, 400) : null;
+    if (timeline) timeline.caption = caption;
+    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption };
+    svg = composeScene(matches, sceneOpts);
+    if (sceneOpts.speechDuration) common.duration = Math.max(common.duration ?? 0, sceneOpts.speechDuration);
+    if (camera?.duration) common.duration = Math.max(common.duration ?? 0, camera.duration);
   }
   const images = matches.map((m) => ({
     id: m.id, word: m.word, count: m.count, color: m.color, expression: m.expression, animation: m.animation, view: m.view,

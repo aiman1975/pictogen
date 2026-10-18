@@ -30,10 +30,11 @@ const gazeShift = (p) => {
 /** The root of every person drawing: the shared skeleton (src/concepts/rig.js) and its motion. */
 /**
  * Where a face photo goes (the studio's "Your characters"): data-face="cx cy r" on the head joint,
- * the head's centre and radius in drawing units, and data-mood, the expression (a photo's jaw
- * talks, laughs or drops open with it). None from behind, where no face shows.
+ * the head's centre and radius in drawing units, data-mood, the expression (a photo's jaw talks,
+ * laughs or drops open with it), and data-view (a turned photo narrows toward the side it faces).
+ * None from behind, where no face shows.
  */
-const faceArea = (p, cx, cy, r) => (fromBehind(p) ? undefined : { face: `${cx} ${cy} ${r}`, mood: p.opts.expression || p.expression || 'happy' });
+const faceArea = (p, cx, cy, r) => (fromBehind(p) ? undefined : { face: `${cx} ${cy} ${r}`, mood: p.opts.expression || p.expression || 'happy', view: viewOf(p) });
 const personRoot = (p) => `pg-rig pg-rig-person pg-anim-${p.opts.animation || 'blink'}`;
 
 /**

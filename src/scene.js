@@ -2,6 +2,7 @@
 // (sky / ground / water, day / night / sunset / snow / rain) for stories, slides and blog posts.
 
 import { conceptOf, whoOf } from './individuals.js';
+import { lipKeys, lipCss } from './speech.js';
 import { getConcept } from './concepts/index.js';
 import { createKit } from './core/kit.js';
 import { createRng } from './core/rng.js';
@@ -321,6 +322,7 @@ function playTimeline(timeline, slots, props, W) {
   let t = 0;
   const camera = [];
   const beatTimes = []; // when each beat starts and ends (the studio's timeline view)
+  const speeches = []; // who says what when: { key, start, text }
   for (const beat of timeline.beats) {
     if (beat.camera && !beat.actions.length) {
       // A camera beat: everyone holds still while the camera moves
@@ -397,6 +399,13 @@ function playTimeline(timeline, slots, props, W) {
         st.present = true;
         d = GESTURE_SECONDS[a.anim] ?? 2;
         shown = pose(key, { anim: a.anim });
+        // Saying something: the words ("says “Hello!”"), else a clip scene's caption when the figure
+        // talks; the step lasts as long as the words take, lips in sync (src/speech.js)
+        const words = a.anim === 'talk' ? a.speech ?? timeline.caption : null;
+        if (words) {
+          d = Math.max(d, lipKeys(words).duration + 0.4);
+          speeches.push({ key, start: t, text: words });
+        }
       } else {
         // 'expr' / 'appear'
         d = st.present ? 1.4 : 0.8;
@@ -447,7 +456,7 @@ function playTimeline(timeline, slots, props, W) {
     t += beatLen;
   }
   for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + HOLD_SECONDS, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
-  return { T: t + HOLD_SECONDS, tracks, camera, beatTimes };
+  return { T: t + HOLD_SECONDS, tracks, camera, beatTimes, speeches };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -633,6 +642,8 @@ export function composeScene(matches, opts = {}) {
   // A named individual's key and id, and a dressed-differently figure, for the studio (its photo,
   // and redrawing it the same way)
   const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''}${it.alt > 0 ? ' data-vary="1"' : ''}`;
+  // Who says what in a still scene ("Tom says “Hello!”"): figure id -> words
+  const said = new Map((opts.speech || []).map((sp) => [sp.who, sp.text]));
   // Who looks at whom ("a boy and a girl looking at each other"): concept id -> concept id | 'camera'
   const looks = new Map((opts.looks || []).map((l) => [l.who, l.at]));
   const placed = [], later = [];
@@ -677,7 +688,17 @@ export function composeScene(matches, opts = {}) {
     const flip = look ? look.mirror && it.c.flippable !== false : it.k % 2 === 1 && it.c.flippable !== false;
     const tr = flip ? `translate(${x0 + 100 * s} ${y0}) scale(${-s} ${s})` : `translate(${x0} ${y0}) scale(${s})`;
     const olk = clamp(W / 280 / (2.4 * s), 0.35, 4);
-    let animation = it.m.animation;
+    // Words to say: its own ("Tom says “Hi!”"), or a clip scene's caption when the figure talks
+    const words = said.get(it.aid) ?? (opts.caption && (it.m.animation === 'talk' || it.m.expression === 'talking') ? opts.caption : null);
+    let animation = it.m.animation ?? (words ? 'talk' : undefined);
+    let lips = '';
+    if (words) {
+      // The words, then a pause, over and over
+      const name = `${uid}l${out.length}`, loop = r2(lipKeys(words).duration + 2);
+      motionCss.push(lipCss(name, [{ start: 0.5, text: words }], loop));
+      lips = ` data-lips="${name}"`;
+      opts.speechDuration = Math.max(opts.speechDuration ?? 0, loop);
+    }
     if (!animation) {
       if (it.c.category === 'people') animation = 'blink';
       else if (it.c.id === 'sun') animation = 'pulse';
@@ -729,12 +750,12 @@ export function composeScene(matches, opts = {}) {
     const exprAttr = expression ? ` data-expression="${expression}"` : '';
     const viewAttr = view ? ` data-view="${view}"` : '';
     const colorAttr = it.m.color ? ` data-color="${it.m.color}"` : '';
-    out.push(`<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}"${who(it)}${animAttr}${exprAttr}${viewAttr}${colorAttr} transform="${tr.replace(/(\d+\.\d{3})\d+/g, '$1')}" style="cursor: grab;">${wrappedContent}</g>`);
+    out.push(`<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}"${who(it)}${lips}${animAttr}${exprAttr}${viewAttr}${colorAttr} transform="${tr.replace(/(\d+\.\d{3})\d+/g, '$1')}" style="cursor: grab;">${wrappedContent}</g>`);
   };
 
   // One timeline actor: a wrapper moved by keyframes, and one drawing per pose, switched on and off
   // in step with the beats. With animation off (still exports) the last on-screen pose shows in place.
-  const renderActor = ({ it, y, s, base, olk, w }, track, T, name) => {
+  const renderActor = ({ it, y, s, base, olk, w }, track, T, name, lips = null) => {
     // Still renders show the last pose the figure had on screen, in the front row
     const onScreen = track.filter((seg) => seg.x1 > -w / 2 && seg.x1 < W + w / 2 && seg.k1 > 0.5);
     const last = onScreen[onScreen.length - 1] || track[track.length - 1];
@@ -813,7 +834,7 @@ export function composeScene(matches, opts = {}) {
     const rx = 50 * (it.c.width ?? 0.8) * 0.72;
     const shadow = shadows ? `<g style="animation: ${name}s ${r2(T)}s step-end infinite;"><ellipse class="pg-shadow" cx="50" cy="${base}" rx="${r2(rx)}" ry="${r2(Math.max(3, rx * 0.13))}" fill="#000000" opacity="0.16"/></g>` : '';
     const tr = `translate(${r2(home - 50 * s)} ${r2(y - base * s)}) scale(${r2(s * 1000) / 1000})`;
-    return `<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}" data-actor="${it.c.id}"${who(it)}${it.m.color ? ` data-color="${it.m.color}"` : ''} transform="${tr}" style="cursor: grab;"><g class="pg-timeline-move" style="animation: ${name}p ${r2(T)}s linear infinite;">${shadow}${poses}</g></g>`;
+    return `<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}" data-actor="${it.c.id}"${who(it)}${lips ? ` data-lips="${lips}"` : ''}${it.m.color ? ` data-color="${it.m.color}"` : ''} transform="${tr}" style="cursor: grab;"><g class="pg-timeline-move" style="animation: ${name}p ${r2(T)}s linear infinite;">${shadow}${poses}</g></g>`;
   };
 
   // background objects (mountains, rainbows): large, behind everything, sitting on the horizon
@@ -899,10 +920,16 @@ export function composeScene(matches, opts = {}) {
   };
   for (const draw of later) draw();
   if (timeline && actorSlots.size) {
-    const { T, tracks, camera: events, beatTimes } = playTimeline(timeline, actorSlots, propsAt, W);
+    const { T, tracks, camera: events, beatTimes, speeches } = playTimeline(timeline, actorSlots, propsAt, W);
     timeline.duration = r2(T);
     timeline.beatTimes = beatTimes;
-    for (const [key, slot] of actorSlots) out.push(renderActor(slot, tracks.get(key), T, `${uid}a${key.replace(/[^a-zA-Z0-9_-]/g, '_')}`));
+    for (const [key, slot] of actorSlots) {
+      const name = `${uid}a${key.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+      const said = speeches.filter((sp) => sp.key === key);
+      // (a start in the next beat is one in the same loop: keyframes after the loop's end are cut)
+      if (said.length) motionCss.push(lipCss(`${name}l`, said, r2(T)));
+      out.push(renderActor(slot, tracks.get(key), T, name, said.length ? `${name}l` : null));
+    }
     if (events.length || timeline.follow) {
       const followed = timeline.follow && tracks.get(`${timeline.follow}#0`);
       const follow = timeline.follow ? { id: timeline.follow, start: followed?.[0]?.t0 ?? 0 } : null;

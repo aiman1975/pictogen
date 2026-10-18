@@ -460,6 +460,8 @@ export function composeStory(storyInput, opts = {}) {
       ...(Array.isArray(sc.beats) ? { beats: sc.beats } : {}),
       // Named individuals ("pgc1" -> one particular boy), the same in every scene
       ...(opts.individuals ? { individuals: opts.individuals } : {}),
+      // A caption of its own (not the prompt repeated) is what a talking figure says, lip-synced
+      ...(sc.caption && sc.caption.toLowerCase().replace(/[.!?\s]+$/, '') !== sc.prompt.toLowerCase().replace(/[.!?\s]+$/, '') ? { caption: sc.caption } : {}),
     });
 
     return {

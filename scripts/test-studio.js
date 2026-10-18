@@ -299,6 +299,22 @@ try {
   check(/^laugh:pgJawLaugh\/pgMouthLaugh/.test(await jaw()), `laughing, the jaw bounces (${await jaw()})`);
   await draw('a surprised Tom under a tree');
   check(/^surprised:none\/none:open$/.test(await jaw()), `surprised, the mouth hangs open (${await jaw()})`);
+  // Lip-sync: the jaw follows the words said, syllable by syllable, then rests shut
+  await draw('Tom says "Hello Mia, how are you today?"');
+  const lips = await page.evaluate(() => {
+    const item = document.querySelector('#svg-viewport [data-character="Tom"]');
+    const jaw = item.querySelector('.pg-photo-jaw');
+    const anim = jaw.getAnimations()[0];
+    const at = (t) => { anim.pause(); anim.currentTime = t * 1000; return +new DOMMatrix(getComputedStyle(jaw).transform).f.toFixed(2); };
+    const opens = Array.from({ length: 40 }, (_, i) => at(0.5 + i * 0.06));
+    return { lips: item.dataset.lips, name: anim.animationName, opens, rest: at(anim.effect.getComputedTiming().duration / 1000 - 0.3), sent: window.pictogenStudio.getState().result.prompt };
+  });
+  const changes = lips.opens.filter((v, i) => i && Math.abs(v - lips.opens[i - 1]) > 0.15).length;
+  check(lips.lips && lips.name === `${lips.lips}j` && changes >= 8 && lips.rest === 0, `Tom's jaw says the words: ${changes} openings and closings, shut in the pause after`);
+  await draw('a boy says "Hello there"');
+  const drawn = await page.evaluate(() => getComputedStyle(document.querySelector('#svg-viewport [data-lips] .pg-face-mouth')).animationName);
+  check(/l\d*d$|ld$/.test(drawn), `a drawn face lip-syncs too (${drawn})`);
+  check(sent.every((body) => !body.includes('Tom')), 'names in quotes or not, no name reached the server');
   await draw('a boy walks in');
   check((await page.evaluate(() => document.querySelectorAll('#svg-viewport .pg-photo-face').length)) === 0, 'a boy without a name keeps his drawn face');
   await page.reload({ waitUntil: 'networkidle' });

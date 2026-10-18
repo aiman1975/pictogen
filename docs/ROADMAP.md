@@ -75,7 +75,6 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       dog); farther away only the eyes follow the nearest figure; animals face whoever they look at.
       A "looks at…" step and an "At" choice for gestures in the timeline view
 - [ ] Eyes that follow a figure while it moves; eyebrows; a head tilt toward the one looked at
-- [ ] Lip-sync from caption text (map words to mouth shapes), no audio needed
 - [ ] Idle life: breathing, weight shift, occasional glances; secondary motion (hair, ears, tails)
 - [ ] Interactions: holding a ball, sitting on a chair, riding a bike, hugging
 
@@ -115,7 +114,9 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] **Talking photo faces**: a jaw cut at the mouth line (a third guide in the crop) drops to talk,
       bounces to laugh, hangs open in surprise, with a dark mouth that opens with it
 - [x] Photo characters in the HTML clip player: added in the browser before the file is saved
-- [ ] Lip-sync of the jaw to caption text
+- [x] **Lip-sync from text**: quoted speech in prompts ("says “…”", "asks", "whispers", "Tom: “…”") and
+      clip captions said by whoever talks; syllables open the mouth by their vowel, m/b/p close it,
+      punctuation pauses; photo jaws and drawn mouths; speaking steps last as long as the words
 
 ### 5. Export
 - [x] **Video and GIF** from the studio: frames rendered exactly by seeking every animation (Web

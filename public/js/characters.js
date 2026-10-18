@@ -54,7 +54,10 @@ function rewrite(text) {
   for (const c of [...characters].sort((a, b) => b.name.length - a.name.length)) {
     const re = new RegExp(`(\\b(?:the|a|an)\\s+)?\\b${reEsc(c.name)}\\b`, 'gi');
     let first = -1;
+    // (not inside quoted speech: "Tom says “Hi Mia!”" says Mia's name as written)
+    const quoted = [...out.matchAll(/["“][^"“”]*["”]/g)].map((q) => [q.index, q.index + q[0].length]);
     out = out.replace(re, (m, det, offset) => {
+      if (quoted.some(([a, b]) => offset >= a && offset < b)) return m;
       // "a red rose" is a flower even with a Rose among the characters: a name after an article
       // counts only when capitalised ("the Rose we met")
       const word = m.slice(det ? det.length : 0);
@@ -96,6 +99,9 @@ function apply(svg, named) {
           + `<ellipse class="pg-photo-mouth" cx="${cx}" cy="${mouth}" rx="${rx * 0.3}" ry="${r * 0.15}" fill="#3b1a1a" style="transform-box: view-box; transform-origin: ${cx}px ${mouth}px"/>`
           + `<g class="pg-photo-jaw" style="--jaw: ${(r * 0.13).toFixed(2)}px"><g clip-path="url(#${id}j)">${img}</g></g>`
           + `<g clip-path="url(#${id}u)">${img}</g>`;
+        // Turned three-quarters or in profile, the photo narrows toward the side the figure faces
+        const turn = { 'three-quarter': [0.84, 0.22], side: [0.66, 0.36] }[head.dataset.view];
+        if (turn) g.setAttribute('transform', `translate(${cx + r * turn[1]} 0) scale(${turn[0]} 1) translate(${-cx} 0)`);
         // The drawn eyes and mouth hide under the photo (and would blink through it)
         head.querySelectorAll('.pg-face-eyes, .pg-face-mouth').forEach((f) => f.setAttribute('display', 'none'));
         head.appendChild(g);

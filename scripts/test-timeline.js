@@ -1,5 +1,5 @@
 // Scene timelines: several actions one after another ("a boy walks in, then waves, then a dog runs to him").
-import { parseTimeline, hasSequence, generate, composeStory, getConcept, editTimeline, parseText, lookRelations, drawConcept, shapesToSvg } from '../src/index.js';
+import { parseTimeline, hasSequence, generate, composeStory, getConcept, editTimeline, parseText, lookRelations, drawConcept, shapesToSvg, speechRelations, lipKeys } from '../src/index.js';
 import { wellFormedError } from './xml-check.js';
 
 let fails = 0;
@@ -271,6 +271,27 @@ const byWho = (who) => { const i = trio.svg.indexOf(`data-who="${who}"`); return
 const trioHomes = ['pgc1', 'pgc2', 'pgc3'].map((w) => homeOf(byWho(w)));
 const closest = Math.min(...trioHomes.flatMap((a, i) => trioHomes.slice(i + 1).map((b) => Math.abs(a - b))));
 check(closest > 40, `walking up to a group, nobody ends on top of someone (${trioHomes.map(Math.round).join(', ')})`);
+
+// 2j. Speech and lip-sync: quoted words, "says to", captions
+const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
+for (const [t, want] of [
+  ['a boy walks in, then says "Hello! How are you?", then a girl runs to him', 'boy:enter | boy:pose/talk "Hello! How are you?" | girl:moveTo'],
+  ['a boy walks in, then a girl says to him "Hi. Nice day."', 'boy:enter | girl:pose/talk@boy "Hi. Nice day."'],
+  ['a boy talks to the girl, then the girl laughs', 'boy:pose/talk@girl | girl:expr'],
+  ['a girl walks in. Then: "I love my dog!"', 'girl:enter | girl:pose/talk "I love my dog!"'],
+]) check(said(t) === want, `"${t}" -> ${want}${said(t) === want ? '' : ` (got ${said(t)})`}`);
+const sr = (t) => speechRelations(t).map((x) => `${x.who}:${x.text}`).join(' / ');
+check(sr('a boy and a girl in the park, the girl asks "Can I play?"') === 'girl:Can I play?' && sr('a boy: "Hello there"') === 'boy:Hello there', 'still scenes: whoever is named right before "asks" says it; "Name: “...”" works too');
+const lk = lipKeys('Hello Mia, how are you?');
+const opens = lk.keys.filter(([, o]) => o >= 0.7).length, shut = lk.keys.filter(([, o]) => o === 0).length;
+check(lk.duration > 1.2 && lk.duration < 2.5 && opens >= 3 && shut >= 3 && lk.keys.at(-1)[1] === 0, `words become mouth openings: ${lk.keys.length} keys over ${lk.duration}s, ending shut`);
+const quoted = generate('a boy says "I love my dog" in the park');
+check(quoted.matches.map((m) => m.id).join() === 'boy' && (quoted.svg.match(/ data-lips="/g) || []).length === 1 && quoted.duration > 2, 'quoted words are said, not drawn (no dog), and the scene lasts as long as they take');
+const sayStep = generate('a boy walks in, then says "Hello there, how are you today? I am fine."');
+check(sayStep.beats[1].t1 - sayStep.beats[1].t0 > lipKeys('Hello there, how are you today? I am fine.').duration, 'a step saying something lasts as long as the words');
+const captioned = generate('a boy talks to a girl', { caption: 'Look at that big red balloon!' });
+check((captioned.svg.match(/ data-lips="/g) || []).length === 1 && (generate('a boy waves', { caption: 'A happy day.' }).svg.match(/ data-lips="/g) || []).length === 0, 'a caption is said by whoever talks, and by nobody when nobody talks');
+check(!wellFormedError(quoted.svg) && !wellFormedError(sayStep.svg) && !wellFormedError(captioned.svg), 'speaking scenes are well-formed XML');
 
 // 3. Clips: a sequenced scene lasts as long as its timeline
 const story = composeStory([{ prompt, caption: 'x', duration: 3 }]);
