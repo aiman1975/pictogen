@@ -547,28 +547,24 @@ export function pgMusicTrack(ctx, dest, genre, bank, level) {
   ducker.connect(out);
   out.connect(dest);
   const start = ctx.currentTime + 0.05;
-  let timer = null, src = null;
-  if (file) {
-    src = ctx.createBufferSource();
-    src.buffer = file.buffer;
-    src.loop = true;
-    src.connect(ducker);
-    src.start(start);
-  } else {
-    let until = start;
-    const ahead = () => { const to = ctx.currentTime + 1.2; pgMusicBars(ctx, ducker, genre, start, until, to); until = to; };
-    ahead();
-    timer = setInterval(ahead, 400);
-  }
+  let until = start;
+  const ahead = () => {
+    const to = ctx.currentTime + 1.2;
+    if (file) pgMusicLoop(ctx, ducker, file.buffer, start, until, to);
+    else pgMusicBars(ctx, ducker, genre, start, until, to);
+    until = to;
+  };
+  ahead();
+  const timer = setInterval(ahead, 400);
   return {
     duck(at, seconds) {
       ducker.gain.setTargetAtTime(0.35, at, 0.06);
       ducker.gain.setTargetAtTime(1, at + seconds, 0.35);
     },
     stop() {
-      if (timer) clearInterval(timer);
+      clearInterval(timer);
       out.gain.setTargetAtTime(0, ctx.currentTime, 0.25);
-      setTimeout(() => { try { if (src) src.stop(); } catch (e) {} out.disconnect(); }, 1500);
+      setTimeout(() => out.disconnect(), 1500);
     },
   };
 }
@@ -586,16 +582,34 @@ export function pgMusicRender(ctx, dest, genre, bank, t0, seconds, level) {
   out.gain.linearRampToValueAtTime(gain, t0 + 0.8);
   out.gain.setValueAtTime(gain, Math.max(t0 + 0.8, t0 + seconds - 1.2));
   out.gain.linearRampToValueAtTime(0.0001, t0 + seconds);
-  if (file) {
-    const src = ctx.createBufferSource();
-    src.buffer = file.buffer;
-    src.loop = true;
-    src.connect(ducker);
-    src.start(t0);
-    src.stop(t0 + seconds);
-  } else pgMusicBars(ctx, ducker, genre, t0, t0, t0 + seconds);
+  if (file) pgMusicLoop(ctx, ducker, file.buffer, t0, t0, t0 + seconds);
+  else pgMusicBars(ctx, ducker, genre, t0, t0, t0 + seconds);
   return (at, s) => {
     ducker.gain.setTargetAtTime(0.35, at, 0.06);
     ducker.gain.setTargetAtTime(1, at + s, 0.35);
   };
+}
+
+/**
+ * A music file over and over: the repeats starting between ctx times `from` and `to` of a song
+ * that began at `songStart`, each fading into the next (generated music rarely loops seamlessly).
+ */
+export function pgMusicLoop(ctx, dest, buffer, songStart, from, to) {
+  const dur = buffer.duration;
+  const xf = dur > 6 ? Math.min(1.5, dur * 0.1) : Math.min(0.05, dur / 4);
+  const step = dur - xf;
+  for (let k = Math.max(0, Math.ceil((from - songStart) / step - 1e-6)); songStart + k * step < to; k++) {
+    const at = songStart + k * step;
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(k ? 0.0001 : 1, at);
+    if (k) g.gain.linearRampToValueAtTime(1, at + xf);
+    g.gain.setValueAtTime(1, at + dur - xf);
+    g.gain.linearRampToValueAtTime(0.0001, at + dur);
+    src.connect(g);
+    g.connect(dest);
+    src.start(at);
+    src.stop(at + dur + 0.01);
+  }
 }

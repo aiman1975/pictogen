@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
-import { pgSound, pgSoundTrack, pgVoiced, pgBank, pgMusicBars, pgMusicTrack } from './sound-synth.js';
+import { pgSound, pgSoundTrack, pgVoiced, pgBank, pgMusicBars, pgMusicTrack, pgMusicLoop } from './sound-synth.js';
 import { soundOf } from './sound.js';
 import { packForClip } from './sound-pack.js';
 
@@ -953,6 +953,7 @@ ${embeddedFontCss()}
     ${pgBank.toString()}
     ${pgMusicBars.toString()}
     ${pgMusicTrack.toString()}
+    ${pgMusicLoop.toString()}
     const PACK = /*pg-pack*/${packJson}/*pg-pack-end*/;
     const clipGenre = '${genre}';
     let sceneTrack = null, musicTrack = null, bank = null, bankLoading = null, mix = null;

@@ -8,12 +8,12 @@ import { createServer } from 'node:net';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { generate, generateStoryHtml, composeStory, lipKeys, parseTimeline } from '../src/index.js';
 import { voiceOf, soundOf, SOUND_NAMES, actionCues } from '../src/sound.js';
 import { babbleNotes } from '../src/speech.js';
-import { readPack, packForClip, packStatus, CATALOGUE, PACK_DIR } from '../src/sound-pack.js';
+import { readPack, packForClip, packStatus, CATALOGUE, slotFromName, slotOf } from '../src/sound-pack.js';
 
 let fails = 0;
 const check = (ok, msg) => { console.log(`${ok ? '✓ PASS' : '✗ FAIL'}: ${msg}`); if (!ok) fails++; };
@@ -62,11 +62,12 @@ check(a?.beats[0].actions[0].anim === 'wave' && a.beats[0].actions[0].expression
 
 // 4. The sound pack: files listed with a source and a license, the tool adds them, a clip's export
 // carries the ones it uses
-const tone = (hz, seconds, rate = 22050) => {
-  const n = Math.round(seconds * rate), b = Buffer.alloc(44 + n * 2);
+const tone = (hz, seconds, rate = 22050, silence = 0) => {
+  const lead = Math.round(silence * rate);
+  const n = Math.round(seconds * rate) + lead, b = Buffer.alloc(44 + n * 2);
   b.write('RIFF', 0); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVEfmt ', 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22);
   b.writeUInt32LE(rate, 24); b.writeUInt32LE(rate * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(n * 2, 40);
-  for (let i = 0; i < n; i++) b.writeInt16LE(Math.round(Math.sin((2 * Math.PI * hz * i) / rate) * 16000 * Math.min(1, (n - i) / 200)), 44 + i * 2);
+  for (let i = lead; i < n; i++) b.writeInt16LE(Math.round(Math.sin((2 * Math.PI * hz * i) / rate) * 16000 * Math.min(1, (n - i) / 200)), 44 + i * 2);
   return b;
 };
 const repoPack = readPack();
@@ -84,7 +85,7 @@ check(add('ooh.wav', 1000, 0.5, 'woman/ooh').status === 0 && add('a.wav', 800, 0
 check(add('x.wav', 500, 0.2, 'kid/ooh', ['--source', 'someone']).status !== 0, 'a file without a license is refused');
 check(add('x.wav', 500, 0.2, 'kid/sing', ['--source', 'a', '--license', 'b']).status !== 0, 'an unknown slot is refused');
 const tmpPack = readPack(packDir);
-check(tmpPack.files.length === 5 && tmpPack.files.some((e) => e.file === 'voices/woman/ooh-1.wav' && e.voice === 'woman' && e.sound === 'ooh' && e.license === 'own work' && /^\d{4}-\d\d-\d\d$/.test(e.made)), 'each file goes on record: slot, source, license, date');
+check(tmpPack.files.length === 5 && tmpPack.files.some((e) => /^voices\/woman\/ooh-1\.(wav|mp3)$/.test(e.file) && e.voice === 'woman' && e.sound === 'ooh' && e.license === 'own work' && /^\d{4}-\d\d-\d\d$/.test(e.made)), 'each file goes on record: slot, source, license, date');
 check(tool('check').status === 0 && !tmpPack.problems.length, 'a pack made with the tool checks clean');
 check(packStatus(tmpPack).get('kid/syl-a') === 1 && packStatus(tmpPack).get('music/kids') === 1, 'status counts the files per slot');
 writeFileSync(join(packDir, 'effects', 'stray.wav'), tone(200, 0.1));
@@ -92,8 +93,32 @@ check(/stray\.wav: in the pack folder but not in manifest/.test(readPack(packDir
 rmSync(join(packDir, 'effects', 'stray.wav'));
 const forClip = packForClip([soundOf(generate('a woman looks surprised, then a dog runs to her').svg)], { genre: 'kids', dir: packDir });
 const kinds = forClip.map((e) => e.music ? `music:${e.music}` : e.sound).sort();
-check(kinds.join(',') === 'music:kids,ooh,steps,woof' && forClip.every((e) => e.type === 'audio/wav' && e.data.length > 100), `a clip's export carries just the files it uses (${kinds.join(', ')})`);
+check(kinds.join(',') === 'music:kids,ooh,steps,woof' && forClip.every((e) => /^audio\/(wav|mpeg)$/.test(e.type) && e.data.length > 100), `a clip's export carries just the files it uses (${kinds.join(', ')})`);
 check(packForClip([], { genre: 'news', dir: packDir }).length === 0, 'and nothing it does not use');
+
+// A folder of downloads, named by slot, imported at once: silence cut, levelled, MP3, on record
+const names = { 'kid-ooh.mp3': 'kid/ooh', 'Kid_Syl_A (2).wav': 'kid/syl-a', 'music/kids.wav': 'music/kids', 'child-giggle.m4a': 'kid/giggle', 'woof-3.wav': 'woof', 'bogus.wav': 'bogus' };
+check(Object.entries(names).every(([n, slot]) => slotFromName(n) === slot) && !slotOf(slotFromName('bogus.wav')), 'file names map to slots ("Kid_Syl_A (2).wav" -> kid/syl-a, "music/kids.wav" -> music/kids)');
+const inbox = mkdtempSync(join(tmpdir(), 'pictogen-inbox-'));
+const ffmpegHere = spawnSync('ffmpeg', ['-version']).status === 0;
+mkdirSync(join(inbox, 'music'));
+writeFileSync(join(inbox, 'kid-syl-e-2.wav'), tone(700, 0.3, 22050, 0.6));
+writeFileSync(join(inbox, 'music', 'news.wav'), tone(220, 3));
+writeFileSync(join(inbox, 'bogus.wav'), tone(300, 0.2));
+writeFileSync(join(inbox, 'prompts.txt'), 'kid-syl-e-2: A cute child saying "beh"\n');
+const imp = tool('import', inbox, '--source', 'Gemini, paid plan, 2026-10-20', '--license', 'commercial use per plan terms');
+const after = readPack(packDir);
+const syl = after.files.find((e) => e.voice === 'kid' && e.vowel === 'e');
+const news = after.files.find((e) => e.music === 'news');
+check(imp.status === 0 && syl && news && /skipped bogus\.wav: no slot/.test(imp.stdout), `import puts each file in its slot and skips unknown names (${after.files.length - tmpPack.files.length} imported)`);
+check(syl && /beh/.test(syl.notes || '') && syl.source.startsWith('Gemini'), 'the prompt and source go on record with the file');
+if (ffmpegHere && syl) {
+  const dur = +spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', join(packDir, syl.file)], { encoding: 'utf8' }).stdout;
+  const peak = +(spawnSync('ffmpeg', ['-i', join(packDir, syl.file), '-af', 'volumedetect', '-f', 'null', '-'], { encoding: 'utf8' }).stderr.match(/max_volume: (-?[\d.]+) dB/)?.[1] ?? -99);
+  check(syl.file.endsWith('.mp3') && dur < 0.5 && Math.abs(peak + 3) < 1.5, `imports are prepared: leading silence cut (${dur.toFixed(2)} s from 0.9 s), peak ${peak} dB, MP3`);
+}
+check(readPack(packDir).problems.length === 0, 'the pack still checks clean after the import');
+rmSync(inbox, { recursive: true, force: true });
 
 // 5. In a real browser
 let chromium = null;
@@ -228,8 +253,15 @@ if (!chromium) {
       const steps = hz(await render((c) => pgSound(c, c.destination, { s: 'steps', d: 1 }, 0, bank)));
       const happy = hz(await render((c) => pgSound(c, c.destination, { s: 'woof', p: 1, m: 'happy' }, 0, bank)));
       const loop = await render((c) => pgMusicRender(c, c.destination, 'kids', bank, 0, 5, 0.5), 5);
+      // A longer file fades into its next repeat: no gap where it starts again
+      const long = await dec.decodeAudioData(Uint8Array.from(atob(entries.find((e) => e.music === 'kids').b64), (c) => c.charCodeAt(0)).buffer);
+      const ctx8 = new OfflineAudioContext(1, 44100 * 2, 44100);
+      const eight = ctx8.createBuffer(1, 44100 * 8, 44100);
+      for (let i = 0; i < eight.length; i++) eight.getChannelData(0)[i] = long.getChannelData(0)[i % long.length] * 0.5;
+      const { pgMusicLoop } = await import('/js/sound-synth.js');
+      const seam = await render((c) => pgMusicLoop(c, c.destination, eight, 0, 0, 20), 20);
       const synth = await render((c) => { const duck = pgMusicRender(c, c.destination, 'news', null, 0, 6, 0.5); duck(3, 1.5); }, 6);
-      return { woman, kid, manHz: hz(man), babble, steps, happy, loopHz: hz(loop, 44100, 44100 * 4), loudBefore: rms(synth, 44100 * 1.5, 44100 * 3), loudDucked: rms(synth, Math.round(44100 * 3.3), Math.round(44100 * 4.4)) };
+      return { woman, kid, manHz: hz(man), babble, steps, happy, loopHz: hz(loop, 44100, 44100 * 4), loudBefore: rms(synth, 44100 * 1.5, 44100 * 3), loudDucked: rms(synth, Math.round(44100 * 3.3), Math.round(44100 * 4.4)), seam: [6, 7, 7.3, 7.6, 13, 14.6, 14.9].map((t) => rms(seam, Math.round(44100 * t), Math.round(44100 * (t + 0.2)))) };
     }, { entries: packEntries, notes: babbleNotes('Hello Mia, how are you?') });
     check(Math.abs(played.woman - 1000) < 40, `a pack file replaces the synthesized sound (woman's "ooh" plays its file: ${played.woman.toFixed(0)} Hz)`);
     check(Math.abs(played.kid / played.woman - 300 / 215) < 0.06, `a child without a file of its own borrows the woman's, pitched up (${played.kid.toFixed(0)} Hz)`);
@@ -238,6 +270,7 @@ if (!chromium) {
     check(Math.abs(played.steps - 300) < 30, `footsteps play the step file in rhythm (${played.steps.toFixed(0)} Hz)`);
     check(played.happy > 600 * 1.05, `a happy dog's woof is higher (${played.happy.toFixed(0)} Hz from a 600 Hz file)`);
     check(Math.abs(played.loopHz - 440) < 20, `a genre's music file loops under the clip (${played.loopHz.toFixed(0)} Hz)`);
+    check(Math.min(...played.seam) > Math.max(...played.seam) * 0.6, `repeats crossfade: no gap where the music starts again (${played.seam.map((v) => v.toFixed(2)).join(' ')})`);
     check(played.loudBefore > 0.005 && played.loudDucked < played.loudBefore * 0.6, `the music ducks while someone speaks (${played.loudBefore.toFixed(3)} -> ${played.loudDucked.toFixed(3)})`);
 
     // Synthesized music for every genre

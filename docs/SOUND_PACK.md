@@ -5,17 +5,21 @@ Every sound PictoGen plays is synthesized unless the pack has a file for it. Eac
 replaces one sound; add several files to a slot for variety (they take turns). Missing voices
 borrow the nearest voice, pitched (a woman's file for a child and back; a man needs his own).
 
-## How to add a file
+## Handing over a folder
+
+Name each file as in the first column below, in any format the tool gives you (MP3,
+WAV, M4A, OGG): `kid-ooh.mp3`, `woman-syl-a.wav`, `woof.mp3`, `jingle.mp3`, `music-kids.mp3`.
+More takes of one sound: `kid-ooh-2.mp3`, `kid-ooh-3.mp3` (they take turns). Don't edit them:
+the import cuts the silence off both ends, cuts them to length, levels the volume and converts
+them. Optionally add `prompts.txt` with one line per file, `kid-ooh: <the prompt you used>`, which
+goes on record with the file. Then:
 
 ```sh
-npm run sound-pack -- add ~/Downloads/ooh.mp3 kid/ooh --source "ElevenLabs Sound Effects, Creator plan, prompt: ..." --license "ElevenLabs paid plan: commercial use"
+npm run sound-pack -- import ~/pictogen-sounds --source "Gemini (Google AI Pro), October 2026" --license "Gemini terms of <date>: commercial use of outputs"
 npm run sound-pack -- status     # what is there, what is missing
-npm run sound-pack -- check      # every file listed, with a source and a license
 ```
 
-**Files:** MP3 or OGG (WAV works but is large), mono, 44.1 or 48 kHz. Cut the silence at the
-start (the sound must begin at once, or it lags the picture), peaks around -3 dB. Voices and
-effects dry: no music, reverb or background. Music: 30-60 s, instrumental, looping seamlessly.
+Single files: `npm run sound-pack -- add <file> <slot> --source ... --license ...`.
 
 **Licensing:** keep, for every file, the tool, your plan, the date, the prompt, and a copy of the
 terms that day. Only tools or plans that allow commercial use; no "in the style of" a real
@@ -29,7 +33,11 @@ artist; no real person's voice without their written consent. See docs/LICENSE_A
 - **Animals and effects:** a sound-effects generator on a commercial plan, or CC0 libraries
   (Kenney audio packs, Freesound filtered to CC0).
 - **Music:** Gemini's music feature (Lyria), Suno or Udio on a plan that allows commercial use.
-  Gemini makes music, not short effects; its tracks carry an inaudible SynthID watermark.
+  Make two or three per genre and keep the best; they need not loop perfectly (repeats crossfade).
+  Gemini's tracks carry an inaudible SynthID watermark.
+- **Musical effects** (`jingle`, `ding`, `twinkle`): a music generator can make them as a very
+  short piece; if it only makes long tracks, the import keeps the start (ask for the sound "right
+  at the start, then silence").
 - Check each tool's terms on the day you generate; they change often.
 
 ## Voices
@@ -40,67 +48,67 @@ lips (like the babble in Animal Crossing). Record or generate several takes of e
 
 ### kid
 
-| Slot | Have | What it is | Prompt for a sound generator |
+| File name (+ .mp3, .wav...) | Have | What it is | Prompt for a sound generator |
 |---|---|---|---|
-| `kid/ooh` | — | surprised "ooh!" (the pitch swoops up, then down) | A cute cartoon child (about 6 years old) saying a surprised, amazed "Oooh!", the pitch rising then falling. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/aha` | — | happy "a-ha!" (when they smile or are pleased) | A cute cartoon child (about 6 years old) saying a happy, pleased "A-ha!", short and bright. About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/hmm` | — | thinking "hmm..." (mouth closed, a wobbly hum) | A cute cartoon child (about 6 years old) humming a thoughtful, curious "Hmmm..." with the mouth closed. About 0.9 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/hmph` | — | grumpy "hmph!" (angry) | A cute cartoon child (about 6 years old) making a short grumpy, sulky "Hmph!" through the nose. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/aww` | — | sad "aww..." (the pitch falls) | A cute cartoon child (about 6 years old) saying a sad, disappointed "Awww..." with falling pitch. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/giggle` | — | a giggle (laughing) | A cute cartoon child (about 6 years old) giggling happily, 4 or 5 short "hee-hee" sounds. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/yay` | — | cheering "yay!" | A cute cartoon child (about 6 years old) cheering an excited "Yaaay!". About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/hi` | — | a friendly "hey!" (waving) | A cute cartoon child (about 6 years old) calling a friendly, cheerful "Hey!" as a greeting. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/snore` | — | a gentle snore (sleeping), loops | A cute cartoon child (about 6 years old) snoring gently while sleeping, one slow breath in and out, cute not gross. About 2.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/syl-a` | — | one babble syllable with "a": "bah" or "dah", for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "bah" or "dah", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/syl-e` | — | one babble syllable with "e": "beh" or "deh", for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "beh" or "deh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/syl-i` | — | one babble syllable with "i": "bee" or "dee", for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "bee" or "dee", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/syl-o` | — | one babble syllable with "o": "boh" or "doh", for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "boh" or "doh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/syl-u` | — | one babble syllable with "u": "boo" or "doo", for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "boo" or "doo", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `kid/syl-m` | — | one babble syllable with "m": "mm" (a short hum), for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "mm" (a short hum), like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-ooh` | — | surprised "ooh!" (the pitch swoops up, then down) | A cute cartoon child (about 6 years old) saying a surprised, amazed "Oooh!", the pitch rising then falling. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-aha` | — | happy "a-ha!" (when they smile or are pleased) | A cute cartoon child (about 6 years old) saying a happy, pleased "A-ha!", short and bright. About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-hmm` | — | thinking "hmm..." (mouth closed, a wobbly hum) | A cute cartoon child (about 6 years old) humming a thoughtful, curious "Hmmm..." with the mouth closed. About 0.9 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-hmph` | — | grumpy "hmph!" (angry) | A cute cartoon child (about 6 years old) making a short grumpy, sulky "Hmph!" through the nose. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-aww` | — | sad "aww..." (the pitch falls) | A cute cartoon child (about 6 years old) saying a sad, disappointed "Awww..." with falling pitch. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-giggle` | — | a giggle (laughing) | A cute cartoon child (about 6 years old) giggling happily, 4 or 5 short "hee-hee" sounds. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-yay` | — | cheering "yay!" | A cute cartoon child (about 6 years old) cheering an excited "Yaaay!". About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-hi` | — | a friendly "hey!" (waving) | A cute cartoon child (about 6 years old) calling a friendly, cheerful "Hey!" as a greeting. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-snore` | — | a gentle snore (sleeping), loops | A cute cartoon child (about 6 years old) snoring gently while sleeping, one slow breath in and out, cute not gross. About 2.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-syl-a` | — | one babble syllable with "a": "bah" or "dah", for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "bah" or "dah", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-syl-e` | — | one babble syllable with "e": "beh" or "deh", for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "beh" or "deh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-syl-i` | — | one babble syllable with "i": "bee" or "dee", for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "bee" or "dee", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-syl-o` | — | one babble syllable with "o": "boh" or "doh", for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "boh" or "doh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-syl-u` | — | one babble syllable with "u": "boo" or "doo", for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "boo" or "doo", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `kid-syl-m` | — | one babble syllable with "m": "mm" (a short hum), for talking | A cute cartoon child (about 6 years old) saying ONE short cute nonsense syllable, "mm" (a short hum), like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 
 ### woman
 
-| Slot | Have | What it is | Prompt for a sound generator |
+| File name (+ .mp3, .wav...) | Have | What it is | Prompt for a sound generator |
 |---|---|---|---|
-| `woman/ooh` | — | surprised "ooh!" (the pitch swoops up, then down) | A warm, friendly cartoon woman saying a surprised, amazed "Oooh!", the pitch rising then falling. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/aha` | — | happy "a-ha!" (when they smile or are pleased) | A warm, friendly cartoon woman saying a happy, pleased "A-ha!", short and bright. About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/hmm` | — | thinking "hmm..." (mouth closed, a wobbly hum) | A warm, friendly cartoon woman humming a thoughtful, curious "Hmmm..." with the mouth closed. About 0.9 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/hmph` | — | grumpy "hmph!" (angry) | A warm, friendly cartoon woman making a short grumpy, sulky "Hmph!" through the nose. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/aww` | — | sad "aww..." (the pitch falls) | A warm, friendly cartoon woman saying a sad, disappointed "Awww..." with falling pitch. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/giggle` | — | a giggle (laughing) | A warm, friendly cartoon woman giggling happily, 4 or 5 short "hee-hee" sounds. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/yay` | — | cheering "yay!" | A warm, friendly cartoon woman cheering an excited "Yaaay!". About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/hi` | — | a friendly "hey!" (waving) | A warm, friendly cartoon woman calling a friendly, cheerful "Hey!" as a greeting. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/snore` | — | a gentle snore (sleeping), loops | A warm, friendly cartoon woman snoring gently while sleeping, one slow breath in and out, cute not gross. About 2.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/syl-a` | — | one babble syllable with "a": "bah" or "dah", for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "bah" or "dah", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/syl-e` | — | one babble syllable with "e": "beh" or "deh", for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "beh" or "deh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/syl-i` | — | one babble syllable with "i": "bee" or "dee", for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "bee" or "dee", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/syl-o` | — | one babble syllable with "o": "boh" or "doh", for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "boh" or "doh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/syl-u` | — | one babble syllable with "u": "boo" or "doo", for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "boo" or "doo", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `woman/syl-m` | — | one babble syllable with "m": "mm" (a short hum), for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "mm" (a short hum), like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-ooh` | — | surprised "ooh!" (the pitch swoops up, then down) | A warm, friendly cartoon woman saying a surprised, amazed "Oooh!", the pitch rising then falling. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-aha` | — | happy "a-ha!" (when they smile or are pleased) | A warm, friendly cartoon woman saying a happy, pleased "A-ha!", short and bright. About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-hmm` | — | thinking "hmm..." (mouth closed, a wobbly hum) | A warm, friendly cartoon woman humming a thoughtful, curious "Hmmm..." with the mouth closed. About 0.9 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-hmph` | — | grumpy "hmph!" (angry) | A warm, friendly cartoon woman making a short grumpy, sulky "Hmph!" through the nose. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-aww` | — | sad "aww..." (the pitch falls) | A warm, friendly cartoon woman saying a sad, disappointed "Awww..." with falling pitch. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-giggle` | — | a giggle (laughing) | A warm, friendly cartoon woman giggling happily, 4 or 5 short "hee-hee" sounds. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-yay` | — | cheering "yay!" | A warm, friendly cartoon woman cheering an excited "Yaaay!". About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-hi` | — | a friendly "hey!" (waving) | A warm, friendly cartoon woman calling a friendly, cheerful "Hey!" as a greeting. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-snore` | — | a gentle snore (sleeping), loops | A warm, friendly cartoon woman snoring gently while sleeping, one slow breath in and out, cute not gross. About 2.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-syl-a` | — | one babble syllable with "a": "bah" or "dah", for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "bah" or "dah", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-syl-e` | — | one babble syllable with "e": "beh" or "deh", for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "beh" or "deh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-syl-i` | — | one babble syllable with "i": "bee" or "dee", for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "bee" or "dee", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-syl-o` | — | one babble syllable with "o": "boh" or "doh", for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "boh" or "doh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-syl-u` | — | one babble syllable with "u": "boo" or "doo", for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "boo" or "doo", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `woman-syl-m` | — | one babble syllable with "m": "mm" (a short hum), for talking | A warm, friendly cartoon woman saying ONE short cute nonsense syllable, "mm" (a short hum), like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 
 ### man
 
-| Slot | Have | What it is | Prompt for a sound generator |
+| File name (+ .mp3, .wav...) | Have | What it is | Prompt for a sound generator |
 |---|---|---|---|
-| `man/ooh` | — | surprised "ooh!" (the pitch swoops up, then down) | A friendly cartoon man with a low voice saying a surprised, amazed "Oooh!", the pitch rising then falling. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/aha` | — | happy "a-ha!" (when they smile or are pleased) | A friendly cartoon man with a low voice saying a happy, pleased "A-ha!", short and bright. About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/hmm` | — | thinking "hmm..." (mouth closed, a wobbly hum) | A friendly cartoon man with a low voice humming a thoughtful, curious "Hmmm..." with the mouth closed. About 0.9 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/hmph` | — | grumpy "hmph!" (angry) | A friendly cartoon man with a low voice making a short grumpy, sulky "Hmph!" through the nose. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/aww` | — | sad "aww..." (the pitch falls) | A friendly cartoon man with a low voice saying a sad, disappointed "Awww..." with falling pitch. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/giggle` | — | a giggle (laughing) | A friendly cartoon man with a low voice giggling happily, 4 or 5 short "hee-hee" sounds. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/yay` | — | cheering "yay!" | A friendly cartoon man with a low voice cheering an excited "Yaaay!". About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/hi` | — | a friendly "hey!" (waving) | A friendly cartoon man with a low voice calling a friendly, cheerful "Hey!" as a greeting. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/snore` | — | a gentle snore (sleeping), loops | A friendly cartoon man with a low voice snoring gently while sleeping, one slow breath in and out, cute not gross. About 2.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/syl-a` | — | one babble syllable with "a": "bah" or "dah", for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "bah" or "dah", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/syl-e` | — | one babble syllable with "e": "beh" or "deh", for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "beh" or "deh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/syl-i` | — | one babble syllable with "i": "bee" or "dee", for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "bee" or "dee", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/syl-o` | — | one babble syllable with "o": "boh" or "doh", for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "boh" or "doh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/syl-u` | — | one babble syllable with "u": "boo" or "doo", for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "boo" or "doo", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `man/syl-m` | — | one babble syllable with "m": "mm" (a short hum), for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "mm" (a short hum), like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-ooh` | — | surprised "ooh!" (the pitch swoops up, then down) | A friendly cartoon man with a low voice saying a surprised, amazed "Oooh!", the pitch rising then falling. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-aha` | — | happy "a-ha!" (when they smile or are pleased) | A friendly cartoon man with a low voice saying a happy, pleased "A-ha!", short and bright. About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-hmm` | — | thinking "hmm..." (mouth closed, a wobbly hum) | A friendly cartoon man with a low voice humming a thoughtful, curious "Hmmm..." with the mouth closed. About 0.9 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-hmph` | — | grumpy "hmph!" (angry) | A friendly cartoon man with a low voice making a short grumpy, sulky "Hmph!" through the nose. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-aww` | — | sad "aww..." (the pitch falls) | A friendly cartoon man with a low voice saying a sad, disappointed "Awww..." with falling pitch. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-giggle` | — | a giggle (laughing) | A friendly cartoon man with a low voice giggling happily, 4 or 5 short "hee-hee" sounds. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-yay` | — | cheering "yay!" | A friendly cartoon man with a low voice cheering an excited "Yaaay!". About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-hi` | — | a friendly "hey!" (waving) | A friendly cartoon man with a low voice calling a friendly, cheerful "Hey!" as a greeting. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-snore` | — | a gentle snore (sleeping), loops | A friendly cartoon man with a low voice snoring gently while sleeping, one slow breath in and out, cute not gross. About 2.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-syl-a` | — | one babble syllable with "a": "bah" or "dah", for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "bah" or "dah", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-syl-e` | — | one babble syllable with "e": "beh" or "deh", for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "beh" or "deh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-syl-i` | — | one babble syllable with "i": "bee" or "dee", for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "bee" or "dee", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-syl-o` | — | one babble syllable with "o": "boh" or "doh", for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "boh" or "doh", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-syl-u` | — | one babble syllable with "u": "boo" or "doo", for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "boo" or "doo", like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `man-syl-m` | — | one babble syllable with "m": "mm" (a short hum), for talking | A friendly cartoon man with a low voice saying ONE short cute nonsense syllable, "mm" (a short hum), like a video-game character's babble. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 
 ## Animals
 
-| Slot | Have | What it is | Prompt for a sound generator |
+| File name (+ .mp3, .wav...) | Have | What it is | Prompt for a sound generator |
 |---|---|---|---|
 | `woof` | — | a dog: one or two happy barks | A small friendly cartoon dog barking "woof woof" twice, happy. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 | `meow` | — | a cat: one meow | A cute cartoon cat saying one clear "meow". About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
@@ -114,7 +122,7 @@ lips (like the babble in Animal Crossing). Record or generate several takes of e
 
 ## Effects
 
-| Slot | Have | What it is | Prompt for a sound generator |
+| File name (+ .mp3, .wav...) | Have | What it is | Prompt for a sound generator |
 |---|---|---|---|
 | `steps` | — | ONE soft footstep (several files = variety; played in a walking rhythm) | One single soft footstep of a small cartoon character on grass, very short, cute. About 0.15 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 | `pop` | — | something appears ("pop!") | A cute cartoon pop, like a bubble or a cork, very short. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
@@ -133,9 +141,9 @@ lips (like the babble in Animal Crossing). Record or generate several takes of e
 
 Plays quietly under a clip and ducks while someone speaks. A good fit for Gemini's music feature (Lyria), Suno or Udio on a plan that allows commercial use.
 
-| Slot | Have | What it is | Prompt for a sound generator |
+| File name (+ .mp3, .wav...) | Have | What it is | Prompt for a sound generator |
 |---|---|---|---|
-| `music/kids` | — | Kids stories: background music, loops | Happy, playful instrumental children's music: ukulele, glockenspiel, light hand claps, 105 BPM, major key, bright and gentle. Instrumental only, no vocals. 30 to 60 seconds, made to loop seamlessly (the end flows into the start), even volume, no intro or fade-out. |
-| `music/news` | — | News & editorial: background music, loops | Modern news background music: pulsing synth bass, light ticking percussion, confident and neutral, 118 BPM, minor key. Instrumental only, no vocals. 30 to 60 seconds, made to loop seamlessly (the end flows into the start), even volume, no intro or fade-out. |
-| `music/documentary` | — | Science & documentary: background music, loops | Calm ambient documentary music: warm strings and soft piano, slow, curious and wondrous, 70 BPM, no drums. Instrumental only, no vocals. 30 to 60 seconds, made to loop seamlessly (the end flows into the start), even volume, no intro or fade-out. |
-| `music/howto` | — | How-to guides: background music, loops | Light upbeat tutorial background music: marimba, soft claps, friendly and focused, 100 BPM, major key. Instrumental only, no vocals. 30 to 60 seconds, made to loop seamlessly (the end flows into the start), even volume, no intro or fade-out. |
+| `music-kids` | — | Kids stories: background music, loops | Happy, playful instrumental children's music: ukulele, glockenspiel, light hand claps, 105 BPM, major key, bright and gentle. Instrumental only, no vocals. 30 to 60 seconds, made to loop seamlessly (the end flows into the start), even volume, no intro or fade-out. |
+| `music-news` | — | News & editorial: background music, loops | Modern news background music: pulsing synth bass, light ticking percussion, confident and neutral, 118 BPM, minor key. Instrumental only, no vocals. 30 to 60 seconds, made to loop seamlessly (the end flows into the start), even volume, no intro or fade-out. |
+| `music-documentary` | — | Science & documentary: background music, loops | Calm ambient documentary music: warm strings and soft piano, slow, curious and wondrous, 70 BPM, no drums. Instrumental only, no vocals. 30 to 60 seconds, made to loop seamlessly (the end flows into the start), even volume, no intro or fade-out. |
+| `music-howto` | — | How-to guides: background music, loops | Light upbeat tutorial background music: marimba, soft claps, friendly and focused, 100 BPM, major key. Instrumental only, no vocals. 30 to 60 seconds, made to loop seamlessly (the end flows into the start), even volume, no intro or fade-out. |
