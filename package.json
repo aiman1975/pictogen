@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node serve.js",
     "promo": "node scripts/promo/build.js",
-    "test": "node scripts/smoke-test.js && node scripts/test-svg-wellformed.js && node scripts/test-animations.js && node scripts/test-presentations.js && node scripts/test-story.js && node scripts/test-depth.js && node scripts/test-views.js && node scripts/test-skeleton.js && node scripts/test-timeline.js && node scripts/test-camera.js && node scripts/test-video.js && node scripts/test-studio.js && node scripts/test-sound.js && node scripts/test-cli.js && node scripts/test-server.js",
+    "test": "node scripts/smoke-test.js && node scripts/test-svg-wellformed.js && node scripts/test-animations.js && node scripts/test-presentations.js && node scripts/test-story.js && node scripts/test-depth.js && node scripts/test-views.js && node scripts/test-styles.js && node scripts/test-skeleton.js && node scripts/test-timeline.js && node scripts/test-camera.js && node scripts/test-video.js && node scripts/test-studio.js && node scripts/test-sound.js && node scripts/test-cli.js && node scripts/test-server.js",
     "preview": "node scripts/preview.js",
     "export": "node cli.js --export-all out/library",
     "sound-pack": "node scripts/sound-pack.js"

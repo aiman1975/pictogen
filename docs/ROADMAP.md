@@ -41,7 +41,7 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 ### 1. Depth and staging (started)
 - [x] Approach/recede on a perspective path, motion scaled correctly for every figure size
 - [x] Contact shadows, two depth rows for crowds
-- [x] **Back views** of the four people in all 20 styles. Walking away shows the back, and prompts
+- [x] **Back views** of the four people in all 23 styles. Walking away shows the back, and prompts
       can ask for it ("seen from behind", "back view of", "with her back to the camera") or override
       it ("walking away facing us")
 - [x] **Side views** (profile) of the four people: one eye, nose and ear, far arm and leg drawn
@@ -64,10 +64,17 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       quadruped, bird, fish). Motions are written once against the joints, so all nine hand-drawn
       animals in all their views now walk, gallop, leap, sit, lie down, wag, flap, wave and blink;
       tails sway, heads glance and ears twitch when idle
-- [x] The people on the same joints, in all 20 styles: a head that glances when idle, nods walking
+- [x] The people on the same joints, in all 23 styles: a head that glances when idle, nods walking
       and talking, tilts in thought and droops asleep; in profile, knees that fold as the leg swings
       through and forearms that pump when running. Each figure idles at its own phase
-- [ ] Knees and elbows in the stylized styles
+- [ ] Knees and elbows in the stylized styles (Whiteboard and Doodle now draw the full rigged
+      characters, so they have them)
+- [x] **Styles made distinct**, measured: every pair of the 23 styles differs clearly in a rendered
+      scene (test-styles). New: **Watercolor**, **Anime** (big shiny eyes, cel shading, summer sky),
+      **Crayon**. Pixel really pixelates, Comic gets halftone and a panel, Letterlings candy gloss,
+      Geometric a Bauhaus backdrop, rooms take each style's colors
+- [x] **Numberlings 0-9**: digits as characters ("the number seven jumps"), "count to 5", "2026"
+- [ ] Anime hair (bangs, shine) and profile anime eyes; style-specific animal faces
 - [ ] More expressions plus **expression changes over time** ("sad, then happy")
 - [x] **Eye gaze and looking at each other**: "they look at each other", "the boy looks at the dog",
       "watches the bird", "waves at her", "smiles at us", in timelines and still scenes. People turn

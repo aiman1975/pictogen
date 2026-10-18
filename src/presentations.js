@@ -1072,11 +1072,14 @@ export function renderAlphabet(matches, opts = {}) {
 
   // Extract letters to spell
   let rawLetters = [];
-  const cleanText = text.replace(/[^a-zA-Z]/g, '').toUpperCase();
+  const pal = (id) => /^(letter|number)_/.test(id);
+  // "count to 5" -> 1 2 3 4 5; otherwise the letters and digits of the prompt
+  const counting = text.match(/\bcount(?:ing)?\s+(?:from\s+(\d)\s+)?to\s+(\d)\b/i);
+  const cleanText = counting ? '' : text.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
   // Check if prompt is a phonics pair: e.g. "A is for Apple" or "C is for Cat"
-  const isPhonics = /^[A-Z]\s+(is\s+for|for)\s+/i.test(text.trim()) ||
-                    (matches.length > 0 && matches.some(m => !m.id.startsWith('letter_')));
+  const isPhonics = !counting && (/^[A-Z]\s+(is\s+for|for)\s+/i.test(text.trim()) ||
+                    (matches.length > 0 && matches.some(m => !pal(m.id))));
 
   let heroLetter = 'A';
   let phonicsConcept = null;
@@ -1084,14 +1087,15 @@ export function renderAlphabet(matches, opts = {}) {
   if (isPhonics) {
     const firstLetterMatch = text.match(/letter\s+([A-Z])/i) || text.match(/^([A-Z])/i);
     heroLetter = firstLetterMatch ? firstLetterMatch[1].toUpperCase() : 'A';
-    phonicsConcept = matches.find(m => !m.id.startsWith('letter_')) || { id: 'apple' };
+    phonicsConcept = matches.find(m => !pal(m.id)) || { id: 'apple' };
+  } else if (counting) {
+    const from = Math.min(+(counting[1] ?? 1), +counting[2]);
+    for (let n = from; n <= +counting[2] && rawLetters.length < 8; n++) rawLetters.push(String(n));
   } else if (cleanText.length > 0) {
     rawLetters = cleanText.slice(0, 8).split(''); // Max 8 letters on stage
   } else if (matches.length > 0) {
     for (const m of matches) {
-      if (m.id.startsWith('letter_')) {
-        rawLetters.push(m.id.replace('letter_', '').toUpperCase());
-      }
+      if (pal(m.id)) rawLetters.push(m.id.replace(/^(letter|number)_/, '').toUpperCase());
     }
   }
 
@@ -1231,7 +1235,7 @@ export function renderAlphabet(matches, opts = {}) {
       <g transform="translate(${W * 0.5}, 30)">
         <rect x="-100" y="-12" width="200" height="24" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
         <text x="0" y="4" text-anchor="middle" font-family="${FONT}" font-size="11" font-weight="800" fill="#64748b" letter-spacing="0.1em">
-          ALPHABET PALS • ${rawLetters.join('')}
+          ${rawLetters.every((c) => /\d/.test(c)) ? 'NUMBER PALS' : 'ALPHABET PALS'} • ${rawLetters.join('')}
         </text>
       </g>
     `;

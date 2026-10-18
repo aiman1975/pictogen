@@ -9,7 +9,9 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
 ## Highlights
 
 - ⚡ **100% Offline & Zero Dependencies**: Uses native JavaScript & SVG. No npm installs or GPU required.
-- 🎨 **20 Switchable Visual Styles** (the classic seven below, plus cute2d, comic, doodle, editorial, papercut, geometric, whiteboard, blueprint, chalkboard, vintage, pixel, stickman and letterling):
+- 🎨 **23 Switchable Visual Styles** (the classic seven below, plus watercolor, anime, crayon, cute2d, comic, doodle, editorial, papercut, geometric, whiteboard, blueprint, chalkboard, vintage, pixel, stickman and letterling). Each has its own signature, checked by `scripts/test-styles.js` (every pair of styles must look clearly different):
+  - **Watercolor**: soft transparent washes that bleed at the edges, on textured paper. **Anime**: crisp thin line art, cel shading, big shiny eyes, a deep summer sky with clouds. **Crayon**: waxy streaks with the paper showing through.
+  - **Pixel**: really pixelated (the whole picture, in a 32-color retro palette). **Comic Strip**: heavy ink, printed colors, halftone dots and a panel frame. **Letterlings**: glossy candy sheen and polka-dot skies. **Geometric**: a Bauhaus poster. **Whiteboard** and **Doodle**: whole characters in marker and ballpoint pen (not sticks); **Stickman** figures have hair and hands.
   - **Flat**: Clean, modern emoji-like flat colors.
   - **Cartoon**: Bold vibrant colors with dark ink outlines (children's books).
   - **Outline**: Clean black & white line art (coloring books & minimal diagrams).
@@ -17,6 +19,7 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
   - **Silhouette**: High-contrast solid pictograms and signage.
   - **Sketch**: Hand-drawn pencil look with organic wobble.
   - **Neon**: Cyberpunk-style vibrant glowing vectors on a dark canvas.
+- 🔢 **Letterlings and Numberlings**: letters A-Z and digits 0-9 as cute characters (*"the number seven jumps"*, *"a dancing letter b"*); alphabet mode spells words and numbers (*"CAT"*, *"2026"*) and counts (*"count to 5"*).
 - 📐 **13 Layout Modes** (the three core modes below, plus comic strip, stickman, isometric diorama, callout, knolling, before/after split, waffle chart, coloring book, alphabet pals and animated clips):
   - **Scene (`scene`)**: Auto-detects environment (day, night, sunset, rain, snow, water/beach), arranges items by perspective, placement, and realistic relative scale.
   - **Flashcard (`card`)**: Large friendly typography and hero icon on tinted card (ideal for kids' flashcards & language learning).
@@ -88,7 +91,7 @@ import { generate, parseText, renderIcon, renderCard } from './src/index.js';
 
 // Text-to-Image in one call:
 const result = generate('A boy and a dog under the sun', {
-  style: 'cartoon', // 'flat' | 'cartoon' | 'outline' | 'pastel' | 'silhouette' | 'sketch' | 'neon'
+  style: 'cartoon', // any of STYLE_NAMES: 'flat' | 'cartoon' | 'watercolor' | 'anime' | 'pixel' | ...
   mode: 'scene',    // 'scene' | 'card' | 'icons'
   width: 640,
   height: 360,

@@ -1,5 +1,6 @@
-// PictoGen Alphabet Pals / Letterlings: Cute anthropomorphic letter creatures (A-Z)
-// with big glossy kawaii eyes, sweet smiles, rosy blush cheeks, rigged noodle arms and cartoon feet.
+// PictoGen Alphabet Pals / Letterlings: Cute anthropomorphic letter creatures (A-Z), and
+// Numberlings (0-9), with big glossy kawaii eyes, sweet smiles, rosy blush cheeks, rigged noodle
+// arms and cartoon feet.
 import { INK } from '../core/styles.js';
 import { drawFacialExpression } from './people.js';
 
@@ -30,7 +31,19 @@ export const LETTER_PALETTES = {
   X: { main: '#d97706', dark: '#b45309', shadow: '#92400e', accent: '#fef3c7' }, // Amber
   Y: { main: '#ec4899', dark: '#db2777', shadow: '#9d174d', accent: '#fce7f3' }, // Hot Pink
   Z: { main: '#6d28d9', dark: '#5b21b6', shadow: '#4c1d95', accent: '#ede9fe' }, // Deep Purple
+  // Numberlings
+  0: { main: '#64748b', dark: '#475569', shadow: '#334155', accent: '#f1f5f9' }, // Pebble Grey
+  1: { main: '#ef4444', dark: '#dc2626', shadow: '#b91c1c', accent: '#fee2e2' }, // Red
+  2: { main: '#f97316', dark: '#ea580c', shadow: '#c2410c', accent: '#ffedd5' }, // Orange
+  3: { main: '#eab308', dark: '#ca8a04', shadow: '#a16207', accent: '#fef9c3' }, // Yellow
+  4: { main: '#22c55e', dark: '#16a34a', shadow: '#15803d', accent: '#dcfce7' }, // Green
+  5: { main: '#06b6d4', dark: '#0891b2', shadow: '#0e7490', accent: '#cffafe' }, // Cyan
+  6: { main: '#3b82f6', dark: '#2563eb', shadow: '#1d4ed8', accent: '#dbeafe' }, // Blue
+  7: { main: '#8b5cf6', dark: '#7c3aed', shadow: '#6d28d9', accent: '#ede9fe' }, // Violet
+  8: { main: '#ec4899', dark: '#db2777', shadow: '#be185d', accent: '#fce7f3' }, // Pink
+  9: { main: '#a16207', dark: '#854d0e', shadow: '#713f12', accent: '#fef3c7' }, // Caramel
 };
+const DIGIT_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 
 /**
  * Draws the glyph silhouette for a given letter A-Z.
@@ -162,6 +175,54 @@ function drawGlyphShape(d, letter, fill, stroke) {
       d.path('M 22 18 H 78 V 30 L 40 66 H 78 V 78 H 22 V 66 L 60 30 H 22 Z', o);
       break;
 
+    // Numberlings: chunky digits
+    case '0':
+      d.ellipse(50, 47, 25, 32, o);
+      d.ellipse(50, 47, 11, 18, cut);
+      break;
+
+    case '1':
+      d.path('M 42 16 H 58 V 66 H 70 V 78 H 30 V 66 H 42 V 33 L 31 39 V 26 Z', o);
+      break;
+
+    case '2':
+      d.path('M 26 34 C 26 20 38 14 50 14 C 64 14 74 22 74 34 C 74 46 64 52 54 59 L 47 65 H 76 V 78 H 24 V 68 L 47 49 C 56 42 60 39 60 34 C 60 29 56 26 50 26 C 44 26 40 29 40 35 Z', o);
+      break;
+
+    case '3':
+      d.path('M 26 27 C 30 19 40 14 50 14 C 64 14 72 22 72 31 C 72 39 67 44 62 46 C 70 48 76 54 76 63 C 76 73 66 80 50 80 C 38 80 28 75 24 66 L 37 61 C 39 66 44 68 50 68 C 58 68 62 65 62 61 C 62 56 57 53 50 53 H 45 V 41 H 49 C 56 41 59 38 59 34 C 59 29 55 26 50 26 C 45 26 41 28 39 32 Z', o);
+      break;
+
+    case '4':
+      d.path('M 52 16 H 68 V 54 H 78 V 66 H 68 V 78 H 54 V 66 H 22 V 55 Z', o);
+      d.path('M 54 34 V 54 H 39 Z', cut);
+      break;
+
+    case '5':
+      d.path('M 30 16 H 74 V 28 H 43 L 41 40 C 44 38 48 37 53 37 C 67 37 77 46 77 58 C 77 71 66 80 50 80 C 38 80 28 74 24 65 L 37 60 C 39 65 44 68 50 68 C 58 68 63 64 63 58 C 63 52 58 48 51 48 C 46 48 42 50 39 53 L 27 50 Z', o);
+      break;
+
+    case '6':
+      d.path('M 66 18 L 60 28 C 57 26 54 25 50 25 C 42 25 37 32 36 42 C 40 38 46 36 52 36 C 66 36 76 45 76 58 C 76 71 65 80 51 80 C 34 80 24 68 24 50 C 24 28 36 14 52 14 C 58 14 62 15 66 18 Z', o);
+      d.ellipse(51, 58, 11, 10, cut);
+      break;
+
+    case '7':
+      d.path('M 24 16 H 76 V 27 L 51 78 H 35 L 59 28 H 24 Z', o);
+      break;
+
+    case '8':
+      d.ellipse(50, 61, 25, 19, o);
+      d.ellipse(50, 31, 20, 17, o);
+      d.ellipse(50, 31, 8, 7, cut);
+      d.ellipse(50, 62, 10, 8, cut);
+      break;
+
+    case '9':
+      d.path('M 34 76 L 40 66 C 43 68 46 69 50 69 C 58 69 63 62 64 52 C 60 56 54 58 48 58 C 34 58 24 49 24 36 C 24 23 35 14 49 14 C 66 14 76 26 76 44 C 76 66 64 80 48 80 C 42 80 38 79 34 76 Z', o);
+      d.ellipse(49, 36, 11, 10, cut);
+      break;
+
     default:
       d.circle(50, 48, 28, o);
       break;
@@ -177,6 +238,8 @@ const FACE_ANCHORS = {
   M: [50, 46], N: [50, 46], O: [50, 46], P: [48, 36], Q: [48, 44], R: [48, 36],
   S: [48, 46], T: [50, 38], U: [50, 52], V: [50, 42], W: [50, 48], X: [50, 46],
   Y: [50, 34], Z: [50, 48],
+  0: [50, 22], 1: [50, 46], 2: [50, 21], 3: [52, 21], 4: [61, 44], 5: [56, 59],
+  6: [44, 27], 7: [50, 21], 8: [50, 47], 9: [49, 64],
 };
 
 /**
@@ -342,6 +405,34 @@ for (let i = 0; i < 26; i++) {
     colors: { main: pal.main, dark: pal.dark },
     draw(d, p) {
       drawLetterCreature(d, p, letter);
+    },
+  });
+}
+
+// Numberlings 0-9 (number_0 ... number_9): "the number 3", "number three", "digit 7"
+for (let n = 0; n <= 9; n++) {
+  const pal = LETTER_PALETTES[n];
+  alphabetConcepts.push({
+    id: `number_${n}`,
+    label: `Number ${n}`,
+    category: 'alphabet',
+    placement: 'ground',
+    scale: 0.85,
+    baseline: 94,
+    width: 0.8,
+    aliases: [
+      `number ${n}`,
+      `number ${DIGIT_WORDS[n]}`,
+      `digit ${n}`,
+      `digit ${DIGIT_WORDS[n]}`,
+      `numberling ${n}`,
+      `numberling ${DIGIT_WORDS[n]}`,
+      `cute ${n}`,
+    ],
+    tags: ['numbers', 'number', 'digit', 'counting', 'math', 'learning', 'kids', 'character', 'cute'],
+    colors: { main: pal.main, dark: pal.dark },
+    draw(d, p) {
+      drawLetterCreature(d, p, String(n));
     },
   });
 }

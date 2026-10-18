@@ -765,10 +765,14 @@ export function shapesToSvg(shapes, styleName = 'flat', ctx = {}) {
   return out;
 }
 
-/** Wraps markup in the style's group (round joins + optional filter) and returns defs. */
+/**
+ * Wraps markup in the style's group (round joins + optional filter) and returns defs. fx: sizes for
+ * the style's effects (scale, freq, blur; w and h: the drawing's size); fx.noFilter leaves the
+ * filter out (a scene filtering its whole picture, see src/scene.js).
+ */
 export function styleWrap(styleName, uid, inner, fx = {}) {
   const st = getStyle(styleName);
-  const filter = st.filter ? ` filter="url(#${uid}-${st.filter})"` : '';
+  const filter = st.filter && !fx.noFilter ? ` filter="url(#${uid}-${st.filter})"` : '';
   return {
     defs: st.defs ? st.defs(uid, fx) : '',
     g: `<g stroke-linecap="round" stroke-linejoin="round"${filter}>${inner}</g>`,
@@ -852,7 +856,7 @@ export function renderSheet(items, opts = {}) {
     const text = it.label === true || it.label === undefined ? c.label : it.label;
     if (text) labels += labelSvg(text, x + 50, y + 114, 94, 13, st.text || INK);
   });
-  const w = styleWrap(style, uid, icons, ICON_FX);
+  const w = styleWrap(style, uid, icons, { ...ICON_FX, w: W, h: H });
   const bg = opts.background ?? st.background;
   const content = (bg ? `<rect width="${W}" height="${H}" rx="12" fill="${bg}"/>` : '') + w.g + labels;
   return svgDoc({ width: (W / 100) * cell, height: (H / 100) * cell, viewBox: `0 0 ${W} ${H}`, defs: w.defs, content });

@@ -63,7 +63,9 @@ export function drawFacialExpression(d, p, cx = 50, cy = 28) {
 
   // --- EYES & BROWS ---
   // Eyes (and brows) shift toward whoever the figure looks at (opts.gaze)
+  const animeEyes = p.opts.style === 'anime' && !['laugh', 'laughing', 'wink', 'winking'].includes(expr);
   d.group(gazeShift(p), () => d.group({ class: 'pg-face-eyes' }, () => {
+    if (animeEyes) return drawAnimeEyes(d, cx, cy, expr, p);
     switch (expr) {
       case 'laugh':
       case 'laughing':
@@ -210,6 +212,35 @@ export function drawFacialExpression(d, p, cx = 50, cy = 28) {
         break;
     }
   });
+}
+
+/**
+ * Anime eyes: big colored irises with a dark pupil, two white glints and a heavy upper lash line,
+ * thin brows that carry the mood (and a tear when sad).
+ */
+const ANIME_IRIS = ['#3a7bd5', '#8e44ad', '#16a085', '#b9770e', '#2e86c1'];
+function drawAnimeEyes(d, cx, cy, expr, p) {
+  const mood = { shocked: 'surprised', crying: 'sad', mad: 'angry', puzzled: 'confused', suspicious: 'skeptical' }[expr] || expr;
+  const iris = p.opts.eyeColor || ANIME_IRIS[Math.abs(String(p.opts.seed ?? '').split('').reduce((h, ch) => h * 31 + ch.charCodeAt(0), 7)) % ANIME_IRIS.length];
+  const brows = {
+    surprised: [[-8, -7, -3, -7.8], [3, -7.8, 8, -7]],
+    sad: [[-8, -5.2, -3, -6.8], [8, -5.2, 3, -6.8]],
+    angry: [[-8, -7.2, -2.5, -4.6], [8, -7.2, 2.5, -4.6]],
+    confused: [[-8, -6, -3, -5], [3, -7.8, 8, -6.6]],
+    skeptical: [[-8, -5.4, -3, -5.4], [3, -6.8, 8, -5.4]],
+  }[mood] || [[-7.5, -6.4, -3.5, -6.9], [3.5, -6.9, 7.5, -6.4]];
+  for (const [x1, y1, x2, y2] of brows) d.line(cx + x1, cy + y1, cx + x2, cy + y2, { kind: 'line', stroke: '#3b2a20', sw: 1.1 });
+  for (const side of [-1, 1]) {
+    const x = cx + side * 5.3, y = cy + 0.4;
+    const rx = mood === 'surprised' ? 2.7 : 2.45, ry = mood === 'surprised' ? 3.7 : mood === 'angry' || mood === 'skeptical' ? 2.5 : 3.3;
+    d.ellipse(x, y, rx, ry, { fill: iris, kind: 'accent' });
+    d.ellipse(x, y + ry * 0.22, rx * (mood === 'surprised' ? 0.45 : 0.6), ry * 0.55, { fill: '#1e1b2e', kind: 'detail' });
+    d.circle(x - rx * 0.35, y - ry * 0.38, rx * 0.42, { fill: '#ffffff', kind: 'highlight' });
+    d.circle(x + rx * 0.42, y + ry * 0.45, rx * 0.2, { fill: '#ffffff', kind: 'highlight' });
+    // The lash line, flicking out at the outer corner
+    d.path(`M${x - side * rx * 1.15} ${y - ry * 0.45} Q${x - side * rx * 0.2} ${y - ry * 1.35} ${x + side * rx * 1.35} ${y - ry * 0.75}`, { kind: 'line', stroke: '#1e1b2e', sw: 1.5 });
+  }
+  if (mood === 'sad') d.path(`M${cx - 7} ${cy + 3.4} Q${cx - 8} ${cy + 6.2} ${cx - 5.8} ${cy + 6.2} Q${cx - 4.8} ${cy + 4.8} ${cx - 7} ${cy + 3.4} Z`, { fill: '#4fc3f7', kind: 'accent' });
 }
 
 /**
@@ -413,7 +444,7 @@ const SIDE = {
 };
 
 /**
- * Helper for minimalist line-art faces used by Stickman, Whiteboard, and Doodle styles.
+ * Helper for minimalist line-art faces used by the Stickman, Cute 2D and Geometric styles.
  * Wraps eyes in .pg-face-eyes and mouth in .pg-face-mouth for CSS animation compatibility.
  */
 function drawMinimalFace(d, cx, cy, expr, strokeColor = '#000000', p = null) {
@@ -524,6 +555,7 @@ export function drawStickPerson(d, p, role = 'boy') {
         d.circle(42, 30, 2.8, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
       } else {
         d.line(50, 42, 36, 72, { stroke: '#000000', sw: 3.4, strokeLinecap: 'round', kind: 'line' });
+        d.circle(36, 72, 2.6, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
       }
     });
     d.group({ class: 'pg-arm-right' }, () => {
@@ -538,6 +570,7 @@ export function drawStickPerson(d, p, role = 'boy') {
         d.circle(62, 68, 2.8, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
       } else {
         d.line(50, 42, 64, 72, { stroke: '#000000', sw: 3.4, strokeLinecap: 'round', kind: 'line' });
+        d.circle(64, 72, 2.6, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
       }
     });
 
@@ -547,9 +580,21 @@ export function drawStickPerson(d, p, role = 'boy') {
       d.joint('pg-head', [50, 35], () => {
         d.circle(50, 20, 15.5, { fill: '#ffffff', stroke: '#000000', sw: 3.5, kind: 'body' });
 
-        if (role === 'girl' || role === 'woman') {
-          d.path('M36 18 Q30 28 32 32', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-          d.path('M64 18 Q70 28 68 32', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+        // Hair tells them apart: a tuft (boy), pigtails with a bow (girl), long hair (woman), a
+        // short crop (man); seen from behind, just the hair
+        const ink = { stroke: '#000000', strokeLinecap: 'round', fill: 'none', kind: 'line' };
+        if (role === 'girl') {
+          d.path('M37 12 Q50 2 63 12', { ...ink, sw: 3.4 });
+          for (const sx of [-1, 1]) {
+            d.path(`M${50 + sx * 14} 14 Q${50 + sx * 22} 12 ${50 + sx * 24} 22 Q${50 + sx * 20} 26 ${50 + sx * 15} 21`, { fill: '#000000', stroke: '#000000', sw: 1.6, kind: 'detail' });
+          }
+          d.path('M45 5 L50 8 L45 11 Z M55 5 L50 8 L55 11 Z', { fill: '#e11d48', stroke: '#000000', sw: 1.2, kind: 'accent' });
+        } else if (role === 'woman') {
+          d.path('M35 22 Q33 6 50 4.5 Q67 6 65 22 Q67 32 70 38 M35 22 Q33 32 30 38', { ...ink, sw: 3.2 });
+        } else if (role === 'man') {
+          d.path('M36 14 Q40 4.5 52 4.5 Q62 5 65 13', { ...ink, sw: 4.2 });
+        } else {
+          d.path('M44 6 Q46 0.5 49 5 M49 5 Q52 -0.5 54 5.5 M54 5.5 Q58 2 58.5 7.5', { ...ink, sw: 2.6 });
         }
 
         if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 18, expr, '#000000', p);
@@ -622,59 +667,6 @@ export function drawCutePerson(d, p, role = 'boy') {
 }
 
 /**
- * Draws Whiteboard Marker Character (Style 4 from roadmap).
- * Clean marker head & rectangular shirt torso with bold dry-erase strokes.
- */
-export function drawWhiteboardPerson(d, p, role = 'boy') {
-  const anim = p.opts.animation;
-  const animClass = personRoot(p);
-  const expr = p.opts.expression || p.expression || 'happy';
-  const accent = role === 'girl' || role === 'woman' ? '#f97316' : '#0284c7';
-
-  d.group({ class: animClass, style: idleStyle(p) }, () => {
-    d.group({ class: 'pg-leg-left' }, () => {
-      d.line(44, 68, 41, 93, { stroke: '#0f172a', sw: 3.6, strokeLinecap: 'round', kind: 'line' });
-      d.line(41, 93, 35, 93, { stroke: '#0f172a', sw: 3.4, strokeLinecap: 'round', kind: 'line' });
-    });
-    d.group({ class: 'pg-leg-right' }, () => {
-      d.line(56, 68, 59, 93, { stroke: '#0f172a', sw: 3.6, strokeLinecap: 'round', kind: 'line' });
-      d.line(59, 93, 65, 93, { stroke: '#0f172a', sw: 3.4, strokeLinecap: 'round', kind: 'line' });
-    });
-
-    d.group({ class: 'pg-arm-left' }, () => {
-      if (anim === 'point' || anim === 'pointing') {
-        d.polyline([[37, 45], [22, 45], [12, 45]], { stroke: '#0f172a', sw: 3.4, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      } else if (anim === 'thumbsup') {
-        d.polyline([[37, 45], [26, 48], [26, 35]], { stroke: '#0f172a', sw: 3.4, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      } else if (anim === 'hold' || anim === 'holding') {
-        d.polyline([[37, 45], [28, 54], [40, 56]], { stroke: '#0f172a', sw: 3.4, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      } else if (anim === 'wave') {
-        d.path('M37 45 Q24 34 24 20', { stroke: '#0f172a', sw: 3.4, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      } else {
-        d.line(37, 45, 29, 66, { stroke: '#0f172a', sw: 3.4, strokeLinecap: 'round', kind: 'line' });
-      }
-    });
-    d.group({ class: 'pg-arm-right' }, () => {
-      if (anim === 'hold' || anim === 'holding') {
-        d.polyline([[63, 45], [72, 54], [60, 56]], { stroke: '#0f172a', sw: 3.4, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      } else {
-        d.line(63, 45, 71, 66, { stroke: '#0f172a', sw: 3.4, strokeLinecap: 'round', kind: 'line' });
-      }
-    });
-
-    d.group({ class: 'pg-body-torso' }, () => {
-      d.rect(37, 40, 26, 28, { fill: '#ffffff', stroke: '#0f172a', sw: 3.5, rx: 4, kind: 'body' });
-      // Marker tie / collar highlight
-      d.path('M45 40 L50 47 L55 40', { stroke: accent, sw: 2.8, fill: 'none', kind: 'line' });
-      d.joint('pg-head', [50, 38], () => {
-        d.circle(50, 23, 15, { fill: '#ffffff', stroke: '#0f172a', sw: 3.5, kind: 'body' });
-        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 22, expr, '#0f172a', p);
-      }, faceArea(p, 50, 23, 15));
-    });
-  });
-}
-
-/**
  * Draws Geometric Bauhaus vector characters (Style 5 from roadmap).
  */
 export function drawGeometricPerson(d, p, role = 'boy') {
@@ -716,58 +708,6 @@ export function drawGeometricPerson(d, p, role = 'boy') {
         d.rect(42, 10, 16, 6, { fill: '#1e3a8a', kind: 'body' });
         if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 23, expr, '#0f172a', p);
       }, faceArea(p, 50, 24, 16));
-    });
-  });
-}
-
-/**
- * Draws Hand-Drawn Sketchbook Doodle characters (Style 6 from roadmap).
- * Features boxy rounded head, spiky messy ink hair, dark ink shirt, and expressive doodle face.
- */
-export function drawDoodlePerson(d, p, role = 'boy') {
-  const anim = p.opts.animation;
-  const animClass = personRoot(p);
-  const expr = p.opts.expression || p.expression || 'happy';
-
-  d.group({ class: animClass, style: idleStyle(p) }, () => {
-    d.group({ class: 'pg-leg-left' }, () => {
-      d.line(44, 68, 42, 93, { stroke: '#1e293b', sw: 3, strokeLinecap: 'round', kind: 'line' });
-      d.ellipse(39, 94, 5, 2.5, { fill: '#1e293b', kind: 'detail' });
-    });
-    d.group({ class: 'pg-leg-right' }, () => {
-      d.line(56, 68, 58, 93, { stroke: '#1e293b', sw: 3, strokeLinecap: 'round', kind: 'line' });
-      d.ellipse(61, 94, 5, 2.5, { fill: '#1e293b', kind: 'detail' });
-    });
-
-    d.group({ class: 'pg-arm-left' }, () => {
-      if (anim === 'point' || anim === 'pointing') {
-        d.polyline([[36, 46], [20, 46], [10, 46]], { stroke: '#1e293b', sw: 2.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      } else if (anim === 'thumbsup' || anim === 'wave') {
-        d.path('M36 46 Q24 34 25 20', { stroke: '#1e293b', sw: 2.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      } else if (anim === 'hold' || anim === 'holding') {
-        d.polyline([[36, 46], [28, 54], [40, 56]], { stroke: '#1e293b', sw: 2.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      } else {
-        d.path('M36 46 Q30 58 32 68', { stroke: '#1e293b', sw: 2.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      }
-    });
-    d.group({ class: 'pg-arm-right' }, () => {
-      if (anim === 'hold' || anim === 'holding') {
-        d.polyline([[64, 46], [72, 54], [60, 56]], { stroke: '#1e293b', sw: 2.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      } else {
-        d.path('M64 46 Q70 58 68 68', { stroke: '#1e293b', sw: 2.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      }
-    });
-
-    d.group({ class: 'pg-body-torso' }, () => {
-      // Sketchy ink-filled torso shirt
-      d.rect(36, 41, 28, 27, { fill: '#334155', stroke: '#1e293b', sw: 2.8, rx: 3, kind: 'body' });
-      d.joint('pg-head', [50, 41], () => {
-        // Boxy rounded sketchbook head
-        d.rect(34, 13, 32, 27, { fill: '#fffdfa', stroke: '#1e293b', sw: 2.8, rx: 7, kind: 'body' });
-        // Spiky messy sketchbook hair
-        d.path('M36 14 L40 7 L45 13 L50 6 L55 13 L60 7 L64 14', { stroke: '#1e293b', sw: 2.6, fill: 'none', kind: 'line' });
-        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 25, expr, '#1e293b', p);
-      }, faceArea(p, 50, 26.5, 14.5));
     });
   });
 }
@@ -955,9 +895,7 @@ function dispatchStylizedPerson(d, p, role) {
   const st = p.opts.style;
   if (st === 'stickman') { drawStickPerson(d, p, role); return true; }
   if (st === 'cute2d') { drawCutePerson(d, p, role); return true; }
-  if (st === 'whiteboard') { drawWhiteboardPerson(d, p, role); return true; }
   if (st === 'geometric') { drawGeometricPerson(d, p, role); return true; }
-  if (st === 'doodle') { drawDoodlePerson(d, p, role); return true; }
   if (st === 'editorial') { drawEditorialPerson(d, p, role); return true; }
   if (st === 'papercut') { drawPapercutPerson(d, p, role); return true; }
   return false;

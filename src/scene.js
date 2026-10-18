@@ -64,20 +64,18 @@ function palette(env) {
   return { sky, ground, water, sand: env.night ? darken('#f3d39b', 0.5) : '#f3d39b' };
 }
 
+// Indoors: wall and floor colors per style (the rest a light grey room)
+const ROOM_COLORS = {
+  cartoon: ['#ffe8a3', '#c98a4b'], anime: ['#fdf0d5', '#c79a6b'], letterling: ['#ffd6ea', '#f9a8d4'],
+  watercolor: ['#f1e6d0', '#d6bd94'], crayon: ['#fff3b8', '#f4b183'], pastel: ['#e9edff', '#dfe6fb'],
+  comic: ['#fde68a', '#d98b3a'], pixel: ['#7e2553', '#ab5236'], sketch: ['#fffdf5', '#e7e5e4'],
+  vintage: ['#efe2c9', '#c9a882'], neon: ['#14183a', '#0b1026'], blueprint: ['#0e2646', '#0a1d37'],
+  chalkboard: ['#223830', '#192823'], silhouette: ['#eceff1', '#cfd8dc'],
+};
+
 function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
   const d = createKit();
   const bg = { kind: 'bg' };
-
-  if (env.room) {
-    // Exact Image Quadrant 4: Room wall with floor and baseboard line
-    const wallColor = style === 'editorial' || style === 'stickman' ? '#fed136' : '#f8fafc';
-    const floorColor = style === 'editorial' ? '#eab308' : style === 'stickman' ? '#fed136' : '#f1f5f9';
-    const lineStroke = style === 'stickman' ? '#ffffff' : '#000000';
-    d.rect(0, 0, W, H, { ...bg, fill: wallColor });
-    d.rect(0, H * 0.88, W, H * 0.12, { ...bg, fill: floorColor });
-    d.line(0, H * 0.88, W, H * 0.88, { kind: 'line', stroke: lineStroke, sw: 3.5 });
-    return d.shapes;
-  }
 
   if (style === 'editorial') {
     // Exact Image 2: warm golden yellow backdrop with crisp black ground line
@@ -122,10 +120,35 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
     d.line(56, H * 0.88, W - 28, H * 0.88, { kind: 'line', stroke: '#1e293b', sw: 2.2 });
     return d.shapes;
   }
+  if (style === 'geometric') {
+    // Bauhaus poster: a cream ground with a red disc for a sun and hills of half circles
+    d.rect(0, 0, W, H, { ...bg, fill: '#f4ecd8' });
+    d.circle(W * 0.8, H * 0.26, H * 0.15, { ...bg, fill: env.night ? '#e9c46a' : '#e63946' });
+    d.path(`M 0 0 L ${H * 0.34} 0 A ${H * 0.34} ${H * 0.34} 0 0 1 0 ${H * 0.34} Z`, { ...bg, fill: '#e9c46a' });
+    d.path(`M ${-W * 0.05} ${hY} A ${W * 0.3} ${W * 0.3} 0 0 1 ${W * 0.55} ${hY} Z`, { ...bg, fill: '#1d3557' });
+    d.path(`M ${W * 0.42} ${hY} A ${W * 0.22} ${W * 0.22} 0 0 1 ${W * 0.86} ${hY} Z`, { ...bg, fill: '#2a9d8f' });
+    d.rect(0, hY, W, H - hY, { ...bg, fill: '#e9c46a' });
+    d.line(0, hY, W, hY, { kind: 'line', stroke: '#111111', sw: 3 });
+    return d.shapes;
+  }
+  if (style === 'anime' && !env.night && !env.sunset && !env.rain) {
+    // An anime summer sky: deep blue overhead, paling to the horizon
+    pal = { ...pal, sky: ['#2f86ee', '#5aa9f6', '#a4d4fc'] };
+  }
   if (style === 'papercut') {
     // Warm craft paper collage background with layered horizon strip (Roadmap Style 8)
     d.rect(0, 0, W, H, { ...bg, fill: '#f4efe6' });
     d.rect(0, H * 0.86, W, H * 0.14, { ...bg, fill: '#e5dccb' });
+    return d.shapes;
+  }
+
+  // Indoors (styles with their own backdrop above keep it)
+  if (env.room) {
+    // A wall, a floor and a baseboard line, in the style's own colors
+    const [wallColor, floorColor] = ROOM_COLORS[style] ?? ['#f8fafc', '#f1f5f9'];
+    d.rect(0, 0, W, H, { ...bg, fill: wallColor });
+    d.rect(0, H * 0.88, W, H * 0.12, { ...bg, fill: floorColor });
+    d.line(0, H * 0.88, W, H * 0.88, { kind: 'line', stroke: '#000000', sw: 3.5 });
     return d.shapes;
   }
 
@@ -193,7 +216,7 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
 }
 
 // Styles whose background() is a flat studio backdrop (no horizon) and that draw their own ground shadow.
-const FLAT_BACKDROP_STYLES = ['editorial', 'stickman', 'cute2d', 'whiteboard', 'doodle', 'papercut'];
+const FLAT_BACKDROP_STYLES = ['editorial', 'stickman', 'cute2d', 'whiteboard', 'doodle', 'papercut', 'geometric'];
 // Motions that move the whole figure through the scene (the limbs walk in place inside).
 const TRAVEL_MOTIONS = ['walk-across', 'approach', 'recede'];
 // How far away (in multiples of the front-row distance) an approaching/receding figure starts/ends.
@@ -966,14 +989,21 @@ export function composeScene(matches, opts = {}) {
     opts.camera.duration = T;
   }
 
-  const fx = styleWrap(style, uid, out.join(''), { scale: W / 260, freq: 0.02, blur: W / 450 });
-  const bgSvg = shapesToSvg(background(W, H, hY, env, pal, rng, hasGround, style), style);
-  let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${fx.g}`;
+  // The style's touches (src/core/styles.js): a filter over the landscape too (watercolor,
+  // crayon) or over the whole picture (pixel), decoration behind everyone, an overlay on top
+  const st = getStyle(style);
+  const filterRef = st.filter ? `url(#${uid}-${st.filter})` : null;
+  const fx = styleWrap(style, uid, out.join(''), { scale: W / 260, freq: 0.02, blur: W / 450, pixel: Math.round(W / 12) / 10, w: W, h: H, noFilter: st.wholeFilter });
+  let bgSvg = shapesToSvg(background(W, H, hY, env, pal, rng, hasGround, style), style);
+  if (st.bgFilter && filterRef) bgSvg = `<rect width="${W}" height="${H}" fill="${st.background || '#ffffff'}"/><g filter="${filterRef}">${bgSvg}</g>`;
+  const decor = st.decor ? st.decor(uid, W, H, hY) : '';
+  let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${decor}${fx.g}`;
   if (cam) {
     motionCss.push(`@keyframes ${uid}cam { ${cameraCss(cam.keys, cam.T, W, H)}}`);
     content = `<g class="pg-camera" style="animation: ${uid}cam ${r2(cam.T)}s linear infinite;">${content}</g>`;
   }
-  getStyle(style); // (style validated)
+  if (st.wholeFilter && filterRef) content = `<g filter="${filterRef}">${content}</g>`;
+  if (st.overlay) content += `<g class="pg-style-overlay" pointer-events="none">${st.overlay(uid, W, H)}</g>`;
   // The sound goes with the picture, for the studio, the clip player and video export to play
   if (cues.length) {
     opts.sound = soundTrack(cues, soundLoop);

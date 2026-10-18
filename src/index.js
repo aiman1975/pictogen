@@ -34,7 +34,7 @@ export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateS
  *     camera moves ("zoom in on the dog", "the camera follows him") also report their loop length
  *
  * opts.mode   'scene' (default) | 'comic' | 'stickman' | 'callout' | 'knolling' | 'split' | 'isometric' | 'waffle' | 'coloring' | 'icons' | 'card'
- * opts.style  'flat' | 'cartoon' | 'cute2d' | 'comic' | 'whiteboard' | 'geometric' | 'doodle' | 'editorial' | 'papercut' | 'stickman' | 'outline' | 'pastel' | 'silhouette' | 'sketch' | 'neon' | 'blueprint' | 'chalkboard' | 'vintage' | 'pixel'
+ * opts.style  'flat' | 'cartoon' | 'cute2d' | 'comic' | 'whiteboard' | 'geometric' | 'doodle' | 'editorial' | 'papercut' | 'stickman' | 'outline' | 'pastel' | 'silhouette' | 'sketch' | 'neon' | 'blueprint' | 'chalkboard' | 'vintage' | 'pixel' | 'watercolor' | 'anime' | 'crayon' | 'letterling' (STYLE_NAMES)
  * opts.width / opts.height  scene size (default 640x360)
  * opts.seed   any number/string – same seed => same picture
  * opts.vary   randomize palettes (skin, hair, clothes, fruit colors...)

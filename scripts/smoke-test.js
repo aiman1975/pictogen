@@ -87,7 +87,7 @@ for (const [t, want] of [
 if (parseText('a dog and no cats').excluded.join() !== 'cats') fail('parse: "no cats" reported as excluded');
 
 // "alphabet" is an alias of the letterling style, not a style of its own
-if (STYLE_NAMES.length !== 20 || STYLE_NAMES.includes('alphabet') || !isStyle('alphabet') || isStyle('constructor')) fail(`styles: expected 20 distinct styles (got ${STYLE_NAMES.length})`);
+if (STYLE_NAMES.length !== 23 || STYLE_NAMES.includes('alphabet') || !isStyle('alphabet') || isStyle('constructor')) fail(`styles: expected 23 distinct styles (got ${STYLE_NAMES.length})`);
 
 // a scene with no landscape zooms in so a lone small animal is not a speck
 const catScale = +generate('a cat').svg.match(/data-id="cat"[^>]*transform="translate\([^)]*\) scale\(([\d.]+)/)[1];

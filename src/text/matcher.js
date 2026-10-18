@@ -186,11 +186,12 @@ function conceptAt(toks, i, idx) {
     const head = words.slice(0, -1).join(' ');
     const last = words[n - 1];
 
-    if (n === 2 && (MOTION_WORDS[last] || DIRECTIONAL_VERBS.has(last))) {
-      const base = lookupWord(head, idx.single);
+    // "boy waves", and with a name of several words, "the letter a waves", "number 7 jumps"
+    if (MOTION_WORDS[last] || DIRECTIONAL_VERBS.has(last)) {
+      const base = n === 2 ? lookupWord(head, idx.single) : idx.multi.has(head) ? { id: idx.multi.get(head), plural: false } : null;
       const tail = motionTail(toks, i + 2);
       if (base && (MOTION_WORDS[last] || tail)) {
-        return { id: base.id, animation: tail ? tail.anim : MOTION_WORDS[last], plural: base.plural, len: 2 + (tail?.len ?? 0), word: head };
+        return { id: base.id, animation: tail ? tail.anim : MOTION_WORDS[last], plural: base.plural, len: n + (tail?.len ?? 0), word: head };
       }
     }
 

@@ -45,3 +45,25 @@ export function resolveColor(c) {
   if (isHex(c)) return c;
   return COLOR_WORDS[String(c).toLowerCase().trim()];
 }
+
+/** More (t > 0) or less (t < 0) saturated, keeping the lightness: t=0.3 -> 30% further from grey. */
+export function saturate(c, t) {
+  if (!isHex(c)) return c;
+  const rgb = hexToRgb(c);
+  const grey = (rgb[0] + rgb[1] + rgb[2]) / 3;
+  return rgbToHex(rgb.map((v) => v + (v - grey) * t));
+}
+
+/** The color of `palette` (hex list) nearest to c, by an eye-weighted RGB distance. */
+export function nearest(c, palette) {
+  if (!isHex(c)) return c;
+  const [r, g, b] = hexToRgb(c);
+  let best = palette[0], bestD = Infinity;
+  for (const p of palette) {
+    const [R, G, B] = hexToRgb(p);
+    const rm = (r + R) / 2; // ("redmean": close to how different the eye finds them)
+    const d = (2 + rm / 256) * (r - R) ** 2 + 4 * (g - G) ** 2 + (2 + (255 - rm) / 256) * (b - B) ** 2;
+    if (d < bestD) { bestD = d; best = p; }
+  }
+  return best;
+}
