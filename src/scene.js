@@ -276,18 +276,37 @@ function playTimeline(timeline, slots, props, W) {
   }
   const keysOf = (id) => [...slots.keys()].filter((key) => slots.get(key).id === id);
   const off = (id, side) => (side < 0 ? -slots.get(id).w / 2 - 12 : W + slots.get(id).w / 2 + 12);
-  // Standing people face the camera, or turn three-quarters toward someone of another kind nearby
-  // (the boy turns to the dog that ran up to him); animals keep facing the way they last went.
+  // Who a figure looks at: the one it was told to look at ("looks at the dog", "waves at her"), else
+  // the nearest figure of another kind on stage. { x, small, up } or null (nobody, or the camera).
+  const lookTarget = (key) => {
+    const st = state.get(key), slot = slots.get(key);
+    if (st.lookAt === 'camera') return null;
+    let best = null;
+    const consider = (x, h, air) => {
+      if (!best || Math.abs(x - st.x) < Math.abs(best.x - st.x)) best = { x, small: h < slot.h * st.k * 0.7, up: air };
+    };
+    for (const [other, o] of state) {
+      const os = slots.get(other);
+      if (other === key || !o.present || (st.lookAt ? os.id !== st.lookAt : os.id === slot.id)) continue;
+      consider(o.x, os.h * o.k, ['air', 'sky'].includes(os.it.c.placement));
+    }
+    const prop = st.lookAt && !best && props.get(st.lookAt);
+    if (prop) consider(prop.cx, prop.h ?? 0, prop.y < slot.y - slot.h * 0.9);
+    return best;
+  };
+  // Standing people face the camera, or turn three-quarters toward whoever they look at when close
+  // (always when told to look at them) with their eyes on them; farther away only the eyes follow.
+  // Animals face whoever they look at, else the way they last went.
   const pose = (key, extra = {}) => {
     const st = state.get(key), slot = slots.get(key), view = slot.it.m.view;
-    if (!st.isPerson) return { expression: st.expression, view, mirror: st.facing < 0, ...extra };
-    let near = null;
-    for (const [other, o] of state) {
-      if (!o.present || slots.get(other).id === slot.id || Math.abs(o.x - st.x) > W * 0.4) continue;
-      if (!near || Math.abs(o.x - st.x) < Math.abs(near.x - st.x)) near = o;
+    const target = lookTarget(key);
+    if (!st.isPerson) return { expression: st.expression, view, mirror: st.lookAt && target ? target.x < st.x : st.facing < 0, ...extra };
+    if (!target) return { expression: st.expression, view: view ?? 'front', mirror: false, ...extra };
+    const dx = target.x - st.x, gy = target.up ? -1 : target.small ? 0.6 : 0;
+    if (view || (!st.lookAt && Math.abs(dx) > W * 0.4)) {
+      return { expression: st.expression, view: view ?? 'front', mirror: false, gaze: { x: Math.sign(dx), y: gy }, ...extra };
     }
-    if (view || !near) return { expression: st.expression, view: view ?? 'front', mirror: false, ...extra };
-    return { expression: st.expression, view: 'three-quarter', mirror: near.x < st.x, ...extra };
+    return { expression: st.expression, view: 'three-quarter', mirror: dx < 0, gaze: { x: 0.7, y: gy }, ...extra };
   };
   // Where something is: a prop, or the span a group of actors covers ("runs to them" -> beside all of them)
   const posOf = (id) => {
@@ -323,6 +342,8 @@ function playTimeline(timeline, slots, props, W) {
       const wasPresent = st.present;
       if (!st.present) st.k = 1; // (re)appearing figures start in the front row
       let move = null, d = 0, shown = null;
+      if (['approach', 'recede', 'enter', 'moveTo', 'exit'].includes(a.type)) st.lookAt = null; // eyes on the way ahead
+      if (a.lookAt) st.lookAt = a.lookAt; // "waves at her"
       if (a.type === 'approach' || a.type === 'recede') {
         // Toward the camera (from the horizon if not there yet, else a step closer) or away into the
         // distance, where it is gone. Time follows the distance walked, in front-row distances.
@@ -360,6 +381,12 @@ function playTimeline(timeline, slots, props, W) {
         shown = { anim: a.gait, ...pose(key), view: slot.it.m.view ?? (st.isPerson ? 'side' : undefined), mirror: st.facing < 0 };
         st.x = x1;
         if (a.type === 'exit') st.present = false;
+      } else if (a.type === 'look') {
+        // Turns to look at someone (or at us), and keeps looking until it does something else
+        st.present = true;
+        st.lookAt = a.target || 'camera';
+        d = 1.4;
+        shown = pose(key);
       } else if (a.type === 'pose') {
         st.present = true;
         d = GESTURE_SECONDS[a.anim] ?? 2;
@@ -592,6 +619,25 @@ export function composeScene(matches, opts = {}) {
   const acrossSpeed = Math.max(45, 0.9 * Math.max(0, ...items.filter((it) => it.m.animation === 'walk-across').map((it) => it.h)));
 
   const out = [];
+  // Who looks at whom ("a boy and a girl looking at each other"): concept id -> concept id | 'camera'
+  const looks = new Map((opts.looks || []).map((l) => [l.who, l.at]));
+  const placed = [], later = [];
+  // Which way someone looks: people turn three-quarters toward the nearest one they look at with
+  // their eyes on them (up at the sky, down at a dog); animals face them. Not while travelling.
+  const lookFor = (it, cx) => {
+    if (TRAVEL_MOTIONS.includes(it.m.animation)) return null;
+    const at = looks.get(it.c.id), person = it.c.category === 'people';
+    if (at === 'camera') return { view: person ? it.m.view ?? 'front' : it.m.view, mirror: false };
+    const others = placed.filter((p) => p.it !== it && p.it.c.id === at);
+    if (!others.length) return null;
+    const o = others.reduce((a, b) => (Math.abs(b.cx - cx) < Math.abs(a.cx - cx) ? b : a));
+    const dx = o.cx - cx;
+    const up = ['sky', 'air'].includes(o.it.c.placement), small = !up && o.it.h < it.h * 0.7;
+    const gaze = { x: 0.7, y: up ? -1 : small ? 0.6 : 0 };
+    if (!person) return { view: it.m.view, mirror: dx < 0 };
+    if (it.m.view && it.m.view !== 'three-quarter') return { view: it.m.view, mirror: false, gaze: { ...gaze, x: Math.sign(dx) } };
+    return { view: 'three-quarter', mirror: dx < 0, gaze };
+  };
   const actorSlots = new Map(); // timeline actors: drawn last, once every position is known
   const propsAt = new Map(); // where things are, for "walks to the tree"
   const place = (it, cx, y, anchor = 'bottom') => {
@@ -603,8 +649,18 @@ export function composeScene(matches, opts = {}) {
       return;
     }
     if (!propsAt.has(it.c.id)) propsAt.set(it.c.id, { cx, w, y, h: it.h, anchor });
+    // Someone looking at someone is drawn once everyone has a place, to know which way to look
+    if (looks.has(it.c.id) && !it.looking) {
+      placed.push({ it, cx, y });
+      const at = out.length;
+      out.push('');
+      later.push(() => { it.looking = lookFor(it, cx) || {}; place(it, cx, y, anchor); out[at] = out.pop(); });
+      return;
+    }
+    if (!it.looking) placed.push({ it, cx, y });
+    const look = it.looking?.mirror !== undefined ? it.looking : null;
     const x0 = cx - 50 * s, y0 = y - base * s;
-    const flip = it.k % 2 === 1 && it.c.flippable !== false;
+    const flip = look ? look.mirror && it.c.flippable !== false : it.k % 2 === 1 && it.c.flippable !== false;
     const tr = flip ? `translate(${x0 + 100 * s} ${y0}) scale(${-s} ${s})` : `translate(${x0} ${y0}) scale(${s})`;
     const olk = clamp(W / 280 / (2.4 * s), 0.35, 4);
     let animation = it.m.animation;
@@ -623,7 +679,7 @@ export function composeScene(matches, opts = {}) {
     const limbs = motion === 'approach' || motion === 'recede' ? 'walk' : animation;
     // Toward the camera we see the face, away from it the back (unless the prompt said otherwise);
     // walking or running across the scene is drawn in profile by the people themselves.
-    const view = it.m.view ?? (motion === 'recede' ? 'back' : motion === 'approach' ? 'front' : undefined);
+    const view = it.m.view ?? look?.view ?? (motion === 'recede' ? 'back' : motion === 'approach' ? 'front' : undefined);
     const shapes = drawConcept(it.c, {
       seed: `${seed}:${it.c.id}:${it.k}`,
       color: it.m.color,
@@ -631,6 +687,7 @@ export function composeScene(matches, opts = {}) {
       expression,
       animation: limbs,
       view,
+      gaze: look?.gaze,
       style,
     });
     // The drawing sits innermost in .pg-figure, so the studio can redraw it (a new expression)
@@ -672,7 +729,7 @@ export function composeScene(matches, opts = {}) {
     const variants = new Map();
     for (const seg of track) {
       const p = seg.pose;
-      const key = `${p.anim}|${p.expression}|${p.view}|${p.mirror}`;
+      const key = `${p.anim}|${p.expression}|${p.view}|${p.mirror}|${p.gaze ? `${p.gaze.x},${p.gaze.y}` : ''}`;
       if (!variants.has(key)) variants.set(key, { pose: p, windows: [] });
       seg.variant = key;
       variants.get(key).windows.push(seg);
@@ -726,7 +783,7 @@ export function composeScene(matches, opts = {}) {
       motionCss.push(`@keyframes ${name}v${i} { ${frames}}`);
       const shapes = drawConcept(it.c, {
         seed: `${seed}:${it.c.id}:${it.k}`, color: it.m.color, vary: vary || it.k > 0, style,
-        expression: pose.expression || 'happy', animation: pose.anim, view: pose.view,
+        expression: pose.expression || 'happy', animation: pose.anim, view: pose.view, gaze: pose.gaze,
       });
       // The drawing sits innermost in .pg-figure, so the studio can redraw it (a new expression)
       // while the pose's animation wrapper and mirroring around it stay
@@ -826,6 +883,7 @@ export function composeScene(matches, opts = {}) {
     const p = propsAt.get(id);
     return p ? { x: p.cx, y: p.anchor === 'bottom' ? p.y - p.h * 0.55 : p.y, h: p.h } : null;
   };
+  for (const draw of later) draw();
   if (timeline && actorSlots.size) {
     const { T, tracks, camera: events, beatTimes } = playTimeline(timeline, actorSlots, propsAt, W);
     timeline.duration = r2(T);

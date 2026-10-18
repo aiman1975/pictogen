@@ -11,6 +11,7 @@ export const STOPWORDS = new Set(
   do does did done has have had having will would can could should may might must shall while when where who whom which what why how
   comes coming toward towards seen viewed shown
   finally afterwards afterward meanwhile
+  watches watched stares stared staring gazes gazed gazing glances glanced glancing smiles smiled laughs laughed cries cried frowns frowned each another
   all any each every such only own same other s t let lets get gets got go goes going went come came see saw look looks looking
   like likes liked once upon time day one's its very really
   stand standing stands stood play playing plays played
@@ -18,7 +19,7 @@ export const STOPWORDS = new Set(
 );
 
 export const EXPRESSION_WORDS = {
-  happy: 'happy', smiling: 'happy', smile: 'happy', glad: 'happy', cheerful: 'happy',
+  happy: 'happy', smiling: 'happy', smile: 'happy', smiles: 'happy', smiled: 'happy', laughs: 'laugh', laughed: 'laugh', cries: 'sad', cried: 'sad', glad: 'happy', cheerful: 'happy',
   laugh: 'laugh', laughing: 'laugh', laughter: 'laugh', giggle: 'laugh', joyful: 'laugh', funny: 'laugh',
   sad: 'sad', crying: 'sad', cry: 'sad', unhappy: 'sad', tearful: 'sad', sorrow: 'sad', weeping: 'sad',
   surprised: 'surprised', shocked: 'surprised', amazed: 'surprised', astonished: 'surprised', wow: 'surprised',

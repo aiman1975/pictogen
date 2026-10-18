@@ -67,9 +67,14 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] The people on the same joints, in all 20 styles: a head that glances when idle, nods walking
       and talking, tilts in thought and droops asleep; in profile, knees that fold as the leg swings
       through and forearms that pump when running. Each figure idles at its own phase
-- [ ] Head turns toward whoever a figure looks at; knees and elbows in the stylized styles
+- [ ] Knees and elbows in the stylized styles
 - [ ] More expressions plus **expression changes over time** ("sad, then happy")
-- [ ] Eye gaze (look at another character, follow a moving object), eyebrows, head tilt
+- [x] **Eye gaze and looking at each other**: "they look at each other", "the boy looks at the dog",
+      "watches the bird", "waves at her", "smiles at us", in timelines and still scenes. People turn
+      three-quarters toward whoever they look at with their eyes on them (up at the sky, down at a
+      dog); farther away only the eyes follow the nearest figure; animals face whoever they look at.
+      A "looks at…" step and an "At" choice for gestures in the timeline view
+- [ ] Eyes that follow a figure while it moves; eyebrows; a head tilt toward the one looked at
 - [ ] Lip-sync from caption text (map words to mouth shapes), no audio needed
 - [ ] Idle life: breathing, weight shift, occasional glances; secondary motion (hair, ears, tails)
 - [ ] Interactions: holding a ball, sitting on a chair, riding a bike, hugging

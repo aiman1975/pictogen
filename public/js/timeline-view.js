@@ -24,14 +24,14 @@ const DOES = [
   ['recede:walk', 'walks away'], ['recede:run', 'runs away'],
   ['exit:walk', 'walks off'], ['exit:run', 'runs off'],
   ...POSES.map(([anim, label]) => [`pose:${anim}`, label]),
-  ['expr', 'shows a feeling'], ['appear', 'appears'],
+  ['look', 'looks at…'], ['expr', 'shows a feeling'], ['appear', 'appears'],
 ];
 const CAMERA = [['zoomIn', 'zoom in on…'], ['zoomOut', 'zoom out'], ['pan:-1', 'pan left'], ['pan:1', 'pan right'], ['panTo', 'pan to…']];
 const ICON = {
   play: '<svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true"><path d="M1 1l8 5-8 5z" fill="currentColor"/></svg>',
   pause: '<svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true"><path d="M1 1h3v10H1zM6 1h3v10H6z" fill="currentColor"/></svg>',
 };
-const KIND = { enter: 'move', moveTo: 'move', approach: 'move', recede: 'move', appear: 'move', exit: 'leave', pose: 'gesture', expr: 'feeling' };
+const KIND = { enter: 'move', moveTo: 'move', approach: 'move', recede: 'move', appear: 'move', exit: 'leave', pose: 'gesture', expr: 'feeling', look: 'feeling' };
 
 let result = null; // the generate() result on screen
 let beats = []; // editable copy of its steps
@@ -47,7 +47,10 @@ const pct = (v) => `${Math.max(0, Math.min(100, v)).toFixed(3)}%`;
 /** What one action looks like on its block: "runs to dog 😃" */
 function describe(a) {
   const icon = a.expression ? ` ${FEELING_LABEL[a.expression]?.split(' ')[0] ?? ''}` : '';
-  if (a.type === 'expr') return `${FEELING_LABEL[a.expression]?.split(' ').slice(1).join(' ') ?? 'a feeling'}${icon}`;
+  const at = (id) => (id === 'camera' ? 'us' : nameOf(id));
+  if (a.type === 'look') return `looks at ${at(a.target)}${icon}`;
+  const aimed = a.lookAt ? ` at ${at(a.lookAt)}` : '';
+  if (a.type === 'expr') return `${FEELING_LABEL[a.expression]?.split(' ').slice(1).join(' ') ?? 'a feeling'}${aimed}${icon}`;
   const gait = a.gait === 'run' ? 'runs' : 'walks';
   const text = {
     enter: `${gait} in`,
@@ -58,7 +61,7 @@ function describe(a) {
     pose: POSE_LABEL[a.anim] ?? a.anim,
     appear: 'appears',
   }[a.type] ?? a.type;
-  return text + icon;
+  return text + aimed + icon;
 }
 function describeCamera(c) {
   if (c.type === 'zoomIn') return c.target ? `zoom in on ${nameOf(c.target)}` : 'zoom in';
@@ -66,7 +69,7 @@ function describeCamera(c) {
   if (c.type === 'panTo') return `pan to ${nameOf(c.target)}`;
   return c.dir < 0 ? 'pan left' : 'pan right';
 }
-const doesValue = (a) => (a.type === 'pose' ? `pose:${a.anim}` : a.type === 'expr' || a.type === 'appear' ? a.type : `${a.type}:${a.gait === 'run' ? 'run' : 'walk'}`);
+const doesValue = (a) => (a.type === 'pose' ? `pose:${a.anim}` : ['expr', 'appear', 'look'].includes(a.type) ? a.type : `${a.type}:${a.gait === 'run' ? 'run' : 'walk'}`);
 const cameraValue = (c) => (c.type === 'pan' ? `pan:${c.dir < 0 ? -1 : 1}` : c.type);
 
 /** Called by the studio after every render: the scene result, or null to hide the view. */
@@ -241,6 +244,7 @@ function editor() {
       <label>Who <select data-field="actor">${options(cast, a.actor, busy)}</select></label>
       <label>Does <select data-field="does">${options(DOES, doesValue(a))}</select></label>
       ${a.type === 'moveTo' ? `<label>To <select data-field="target">${options(cast, a.target, (id) => id === a.actor)}</select></label>` : ''}
+      ${['look', 'pose', 'expr'].includes(a.type) ? `<label title="Who they look at while doing it">At <select data-field="at">${a.type === 'look' ? '' : '<option value="">nobody</option>'}${options([['camera', 'us (the camera)'], ...cast], a.type === 'look' ? a.target : a.lookAt ?? '', (id) => id === a.actor)}</select></label>` : ''}
       <label>Feeling <select data-field="expression"><option value="">${a.type === 'expr' ? '' : 'as before'}</option>${options(FEELINGS, a.expression)}</select></label>
       <span class="tl-spacer"><button class="tl-btn danger" data-do="delete">✕ Delete</button><button class="tl-btn" data-do="close">Done</button></span>
     </div>`;
@@ -351,10 +355,16 @@ function change(field, value) {
     delete a.anim;
     if (type === 'pose') a.anim = rest;
     else if (rest) a.gait = rest;
-    if (type === 'moveTo' && (!a.target || a.target === a.actor)) a.target = result.cast.find((c) => c.id !== a.actor)?.id;
-    if (type !== 'moveTo') delete a.target;
+    if ((type === 'moveTo' || type === 'look') && (!a.target || a.target === a.actor)) a.target = result.cast.find((c) => c.id !== a.actor)?.id ?? 'camera';
+    if (type !== 'moveTo' && type !== 'look') delete a.target;
+    if (type !== 'pose' && type !== 'expr') delete a.lookAt;
     if (type === 'expr' && !a.expression) a.expression = 'happy';
   } else if (field === 'target') a.target = value;
+  else if (field === 'at') {
+    if (a.type === 'look') a.target = value || 'camera';
+    else if (value) a.lookAt = value;
+    else delete a.lookAt;
+  }
   else if (field === 'expression') {
     if (value) a.expression = value;
     else delete a.expression;

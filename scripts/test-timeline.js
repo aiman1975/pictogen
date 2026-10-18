@@ -1,5 +1,5 @@
 // Scene timelines: several actions one after another ("a boy walks in, then waves, then a dog runs to him").
-import { parseTimeline, hasSequence, generate, composeStory, getConcept, editTimeline, parseText } from '../src/index.js';
+import { parseTimeline, hasSequence, generate, composeStory, getConcept, editTimeline, parseText, lookRelations, drawConcept, shapesToSvg } from '../src/index.js';
 import { wellFormedError } from './xml-check.js';
 
 let fails = 0;
@@ -220,6 +220,36 @@ const squeezed = generate('a boy walks in, then waves, then a dog runs to him', 
 ] });
 const sq = squeezed.beats.map((b) => +(b.t1 - b.t0).toFixed(2));
 check(sq[0] === 0.5 && sq[1] === 20 && sq[2] > 0.5 && !wellFormedError(squeezed.svg), `edited lengths: a walk squeezed into 0.5s, a step capped at 20s, nonsense ignored (${sq.join(', ')}s)`);
+
+// 2h. Eye gaze and looking at each other
+const looksOf = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.target ? '>' + a.target : ''}${a.lookAt ? '@' + a.lookAt : ''}`).join('+')).join(' | ');
+for (const [t, want] of [
+  ['a boy and a girl walk in, then they look at each other', 'boy:enter+girl:enter | boy:look>girl+girl:look>boy'],
+  ['a boy walks in, then a dog runs in, then the boy looks at the dog', 'boy:enter | dog:enter | boy:look>dog'],
+  ['a girl walks in, then waves at us', 'girl:enter | girl:pose@camera'],
+  ['a boy walks in, then a girl runs to him, then she smiles at him', 'boy:enter | girl:moveTo>boy | girl:expr@boy'],
+  ['two boys walk in, then they look at each other', 'boy:enter | boy:look>boy'],
+  ['a boy walks in, then watches the bird', 'boy:enter | boy:look>bird'],
+  ['a boy walks in, then looks toward the house', 'boy:enter | boy:look>house'],
+]) check(looksOf(t) === want, `"${t}" -> ${want}${looksOf(t) === want ? '' : ` (got ${looksOf(t)})`}`);
+const rel = (t) => lookRelations(t).map((l) => `${l.who}>${l.at}`).join(' ');
+check(rel('a boy and a girl looking at each other') === 'boy>girl girl>boy' && rel('a cat staring at the bird') === 'cat>bird' && rel('a boy waving at us') === 'boy>camera' && rel('a dog and a cat') === '',
+  'still scenes know who looks at whom ("looking at each other", "staring at", "waving at us")');
+const stray = ['a boy watches the dog', 'a girl stares at the cat', 'the boy smiles at her'].map((t) => parseText(t).matches.map((m) => m.id).join(','));
+check(stray.join(' / ') === 'boy,dog / girl,cat / boy', `looking verbs draw nothing extra (no wristwatches, stars or cats: ${stray.join(' / ')})`);
+const eyes = (o, style = 'flat') => shapesToSvg(drawConcept('girl', { seed: 1, style, ...o }), style);
+check(eyes({ gaze: { x: 1, y: 0 } }).includes('translate(2.6 0)') && eyes({ gaze: { x: 1, y: 0 } }, 'stickman').includes('translate(2.6 0)') && !eyes({}).includes('translate(2.6'),
+  'gaze moves the eyes toward the target, in the hand-drawn and the stylized faces');
+const mutual = generate('a boy and a girl looking at each other');
+const mutualItems = [...mutual.svg.matchAll(/<g class="movable-item" data-id="(boy|girl)"[^>]*data-view="([a-z-]+)"[^>]*transform="([^"]+)"/g)].map((m) => [m[1], m[2], m[3].includes('scale(-')]);
+check(mutualItems.length === 2 && mutualItems.every(([, v]) => v === 'three-quarter') && mutualItems.filter(([, , mirrored]) => mirrored).length === 1,
+  `"looking at each other": both turn three-quarters, toward each other (${JSON.stringify(mutualItems)})`);
+const looked = generate('a boy and a girl walk in, then they look at each other, then a dog runs in, then the boy looks at the dog');
+const boyPoses = actor(looked.svg, 'boy').match(/class="pg-timeline-pose"[^>]*data-view="three-quarter"/g) || [];
+check(boyPoses.length >= 1 && /translate\(1\.82 0\)/.test(actor(looked.svg, 'boy')), `in a timeline, looking at someone turns the figure and its eyes (${boyPoses.length} turned poses)`);
+const edLook = editTimeline([{ actions: [{ actor: 'boy', type: 'look', target: 'nobody' }, { actor: 'girl', type: 'pose', anim: 'wave', lookAt: 'boy' }] }], parseText('a boy and a girl').matches);
+check(edLook.beats[0].actions.map((a) => `${a.actor}:${a.type}>${a.target ?? ''}@${a.lookAt ?? ''}`).join(' ') === 'boy:look>camera@ girl:pose>@boy', 'edited steps: a look at nobody looks at us; a wave can be aimed at someone');
+check(!wellFormedError(mutual.svg) && !wellFormedError(looked.svg), 'scenes with looks are well-formed XML');
 
 // 3. Clips: a sequenced scene lasts as long as its timeline
 const story = composeStory([{ prompt, caption: 'x', duration: 3 }]);

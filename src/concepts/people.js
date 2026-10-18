@@ -19,6 +19,14 @@ const fromBehind = (p) => viewOf(p) === 'back';
 /** Stylized faces slide toward the facing direction in profile: a simple turned-head look. */
 const faceX = (p) => 50 + ({ side: 7, 'three-quarter': 4 }[viewOf(p)] ?? 0);
 const turned = (p) => viewOf(p) === 'three-quarter';
+/**
+ * Where the eyes look: opts.gaze { x, y } in -1..1 (x toward the drawing's right, y down), a shift
+ * of eyes and brows within the face. Null when looking straight ahead.
+ */
+const gazeShift = (p) => {
+  const g = p.opts.gaze;
+  return g && (g.x || g.y) ? `translate(${Math.round((g.x || 0) * 260) / 100} ${Math.round((g.y || 0) * 160) / 100})` : null;
+};
 /** The root of every person drawing: the shared skeleton (src/concepts/rig.js) and its motion. */
 const personRoot = (p) => `pg-rig pg-rig-person pg-anim-${p.opts.animation || 'blink'}`;
 
@@ -47,7 +55,8 @@ export function drawFacialExpression(d, p, cx = 50, cy = 28) {
   }
 
   // --- EYES & BROWS ---
-  d.group({ class: 'pg-face-eyes' }, () => {
+  // Eyes (and brows) shift toward whoever the figure looks at (opts.gaze)
+  d.group(gazeShift(p), () => d.group({ class: 'pg-face-eyes' }, () => {
     switch (expr) {
       case 'laugh':
       case 'laughing':
@@ -126,7 +135,7 @@ export function drawFacialExpression(d, p, cx = 50, cy = 28) {
         d.circle(cx + 6.2, cy - 0.7, 0.7, { kind: 'highlight', opacity: 0.9 });
         break;
     }
-  });
+  }));
 
   // --- MOUTH ---
   d.group({ class: 'pg-face-mouth' }, () => {
@@ -400,8 +409,8 @@ const SIDE = {
  * Helper for minimalist line-art faces used by Stickman, Whiteboard, and Doodle styles.
  * Wraps eyes in .pg-face-eyes and mouth in .pg-face-mouth for CSS animation compatibility.
  */
-function drawMinimalFace(d, cx, cy, expr, strokeColor = '#000000') {
-  d.group({ class: 'pg-face-eyes' }, () => {
+function drawMinimalFace(d, cx, cy, expr, strokeColor = '#000000', p = null) {
+  d.group(p && gazeShift(p), () => d.group({ class: 'pg-face-eyes' }, () => {
     if (expr === 'laugh' || expr === 'laughing') {
       d.path(`M${cx - 8} ${cy} Q${cx - 5.5} ${cy - 4} ${cx - 3} ${cy}`, { stroke: strokeColor, sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
       d.path(`M${cx + 3} ${cy} Q${cx + 5.5} ${cy - 4} ${cx + 8} ${cy}`, { stroke: strokeColor, sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
@@ -428,7 +437,7 @@ function drawMinimalFace(d, cx, cy, expr, strokeColor = '#000000') {
         d.path(`M${cx + 3} ${cy - 4.5} Q${cx + 6} ${cy - 7.5} ${cx + 9} ${cy - 4.5}`, { stroke: strokeColor, sw: 2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
       }
     }
-  });
+  }));
 
   d.group({ class: 'pg-face-mouth' }, () => {
     if (expr === 'laugh' || expr === 'laughing') {
@@ -536,7 +545,7 @@ export function drawStickPerson(d, p, role = 'boy') {
           d.path('M64 18 Q70 28 68 32', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
         }
 
-        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 18, expr, '#000000');
+        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 18, expr, '#000000', p);
       });
     });
   });
@@ -598,7 +607,7 @@ export function drawCutePerson(d, p, role = 'boy') {
       if (!fromBehind(p)) {
         d.circle(faceX(p) - 12, 42, 3.8, { fill: '#f472b6', opacity: 0.65, kind: 'accent' });
         d.circle(faceX(p) + 12, 42, 3.8, { fill: '#f472b6', opacity: 0.65, kind: 'accent' });
-        drawMinimalFace(d, faceX(p), 38, expr === 'happy' && (role === 'girl' || role === 'woman') ? 'laugh' : expr, '#000000');
+        drawMinimalFace(d, faceX(p), 38, expr === 'happy' && (role === 'girl' || role === 'woman') ? 'laugh' : expr, '#000000', p);
       }
     });
   });
@@ -651,7 +660,7 @@ export function drawWhiteboardPerson(d, p, role = 'boy') {
       d.path('M45 40 L50 47 L55 40', { stroke: accent, sw: 2.8, fill: 'none', kind: 'line' });
       d.joint('pg-head', [50, 38], () => {
         d.circle(50, 23, 15, { fill: '#ffffff', stroke: '#0f172a', sw: 3.5, kind: 'body' });
-        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 22, expr, '#0f172a');
+        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 22, expr, '#0f172a', p);
       });
     });
   });
@@ -697,7 +706,7 @@ export function drawGeometricPerson(d, p, role = 'boy') {
       d.joint('pg-head', [50, 40], () => {
         d.circle(50, 24, 16, { fill: '#f97316', kind: 'body' });
         d.rect(42, 10, 16, 6, { fill: '#1e3a8a', kind: 'body' });
-        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 23, expr, '#0f172a');
+        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 23, expr, '#0f172a', p);
       });
     });
   });
@@ -749,7 +758,7 @@ export function drawDoodlePerson(d, p, role = 'boy') {
         d.rect(34, 13, 32, 27, { fill: '#fffdfa', stroke: '#1e293b', sw: 2.8, rx: 7, kind: 'body' });
         // Spiky messy sketchbook hair
         d.path('M36 14 L40 7 L45 13 L50 6 L55 13 L60 7 L64 14', { stroke: '#1e293b', sw: 2.6, fill: 'none', kind: 'line' });
-        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 25, expr, '#1e293b');
+        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 25, expr, '#1e293b', p);
       });
     });
   });
@@ -925,7 +934,7 @@ export function drawPapercutPerson(d, p, role = 'boy') {
         // Smooth circular paper head
         d.circle(50, 20, 13, { fill: paperColor, kind: 'body' });
         // Subtle paper cutout face details
-        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 19, expr, '#27272a');
+        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 19, expr, '#27272a', p);
       });
     });
   });

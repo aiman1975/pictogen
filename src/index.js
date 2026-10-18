@@ -10,7 +10,7 @@ const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
 const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...ENV_WORDS.snow, ...ENV_WORDS.rain]);
 import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/render.js';
 import { getConcept } from './concepts/index.js';
-import { parseTimeline, extractCamera, editTimeline } from './timeline.js';
+import { parseTimeline, extractCamera, editTimeline, lookRelations } from './timeline.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
 export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
@@ -18,7 +18,7 @@ export { renderIcon, renderCard, renderSheet, drawConcept, shapesToSvg } from '.
 export { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 export { parseText, tokenize } from './text/matcher.js';
 export { composeScene } from './scene.js';
-export { parseTimeline, hasSequence, cameraAction, extractCamera, editTimeline, POSE_ANIMS, ACTION_TYPES, CAMERA_TYPES } from './timeline.js';
+export { parseTimeline, hasSequence, cameraAction, extractCamera, editTimeline, lookRelations, POSE_ANIMS, ACTION_TYPES, CAMERA_TYPES } from './timeline.js';
 export { listConcepts, getConcept, registerConcept } from './concepts/index.js';
 export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './story.js';
 
@@ -106,7 +106,9 @@ export function generate(text, opts = {}) {
         target: m.target && (parseText(m.target).matches[0]?.id ?? (/^(him|her|it|them)$/.test(m.target) ? matches[0]?.id : null)),
       })),
     } : null;
-    svg = composeScene(matches, { ...common, words: parsed.tokens, timeline, camera });
+    // Who looks at whom in a still scene ("a boy and a girl looking at each other")
+    const looks = timeline ? [] : lookRelations(text);
+    svg = composeScene(matches, { ...common, words: parsed.tokens, timeline, camera, looks });
     if (camera?.duration) common.duration = camera.duration;
   }
   const images = matches.map((m) => ({

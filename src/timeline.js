@@ -98,6 +98,9 @@ export const hasSequence = (text) => SEQUENCE_RE.test(String(text || ''));
 
 const ENTER_VERBS = new Set(['enter', 'enters', 'entering', 'entered', 'arrive', 'arrives', 'arriving', 'arrived', 'appear', 'appears', 'appearing', 'appeared', 'come', 'comes', 'coming', 'came']);
 const EXIT_VERBS = new Set(['leave', 'leaves', 'leaving', 'left', 'exit', 'exits', 'exiting', 'exited', 'disappear', 'disappears', 'disappeared', 'gone']);
+// Looking at someone: "looks at the dog", "watches him", "stares at us", "they look at each other"
+const LOOK_VERBS = new Set(['look', 'looks', 'looking', 'looked', 'watch', 'watches', 'watching', 'watched', 'stare', 'stares', 'staring', 'stared',
+  'gaze', 'gazes', 'gazing', 'gazed', 'glance', 'glances', 'glancing', 'glanced']);
 // Walking up to someone or something named right after the verb ("reaches the boy", "joins her")
 const REACH_VERBS = new Set(['reach', 'reaches', 'reached', 'reaching', 'join', 'joins', 'joined', 'meet', 'meets', 'met']);
 const EXPRESSION_VERBS = { smile: 'happy', smiles: 'happy', grin: 'happy', grins: 'happy', frown: 'sad', frowns: 'sad', cries: 'sad', laughs: 'laugh' };
@@ -202,7 +205,7 @@ const stems = (t) => [t, t.replace(/ies$/, 'y'), t.replace(/es$/, ''), t.replace
 const motionOf = (t) => stems(t).map((w) => MOTION_WORDS[w]).find(Boolean);
 const expressionOf = (t) => EXPRESSION_VERBS[t] || stems(t).map((w) => EXPRESSION_WORDS[w]).find(Boolean);
 // A word that makes something happen (adjectives like "happy" only count inside a clause)
-const isVerb = (t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has(t) || EXPRESSION_VERBS[t] || !!motionOf(t);
+const isVerb = (t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has(t) || LOOK_VERBS.has(t) || EXPRESSION_VERBS[t] || !!motionOf(t);
 
 /**
  * parseTimeline(text) -> { beats, actors, props, follow? } or null when the text has no sequence.
@@ -212,15 +215,17 @@ const isVerb = (t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has
  *     type: 'enter' (walks/runs in from off-screen), 'exit' (leaves, walks off), 'moveTo' (walks/runs to target),
  *           'approach' (walks toward the camera, from the horizon if not there yet), 'recede' (walks away
  *           into the distance and is gone),
- *           'pose' (waves, jumps, dances...), 'expr' (smiles, cries...), 'appear' (just shows up)
+ *           'pose' (waves, jumps, dances...), 'expr' (smiles, cries...), 'appear' (just shows up),
+ *           'look' (turns to look at target: a concept id, or 'camera'; none = straight ahead)
+ *     lookAt: on a pose or expr, who the gesture or feeling is aimed at ("waves at her")
  *   actors: [{ id, match }]  concepts that act, keyed by concept id; match.count figures of each
  *                            ("two boys walk in" -> two boys, both doing what "the boys" do)
  *   props:  [match]          everything else mentioned (trees, the sun...), drawn as usual
  */
-export function parseTimeline(text) {
-  if (!hasSequence(text)) return null;
+export function parseTimeline(text, { force = false } = {}) {
+  if (!force && !hasSequence(text)) return null;
   const clauses = String(text).split(BEAT_SPLIT_RE).map((c) => (c || '').trim()).filter((c) => /[a-z]/i.test(c));
-  if (clauses.length < 2 && !clauses.some(splitClause)) return null;
+  if (!force && clauses.length < 2 && !clauses.some(splitClause)) return null;
 
   const mentioned = new Map(); // concept id -> first match (colour, expression...)
   const actorIds = [];
@@ -230,6 +235,17 @@ export function parseTimeline(text) {
   let follow = null;
 
   const remember = (m) => { if (!mentioned.has(m.id)) mentioned.set(m.id, m); };
+  // The words after "at": someone named, a pronoun, "each other", or the viewer ("at us")
+  const lookTarget = (words) => {
+    const w = words.filter((t) => !['the', 'a', 'an'].includes(t));
+    if (!w.length) return null;
+    if ((w[0] === 'each' && w[1] === 'other') || (w[0] === 'one' && w[1] === 'another')) return { each: true };
+    if (VIEWER.has(w[0])) return { camera: true };
+    if (['him', 'her', 'it', 'them'].includes(w[0])) return { pronoun: w[0] };
+    const hit = parseText(w.join(' ')).matches[0];
+    if (hit) { remember(hit); return { id: hit.id }; }
+    return null;
+  };
   let ahead = []; // concepts named later in the sentence being read ("runs to her after the girl waves")
   const lastActorWhere = (test) => [...actorIds].reverse().find(test) ?? ahead.find(test);
   const resolvePronoun = (word, exclude = []) => {
@@ -261,7 +277,7 @@ export function parseTimeline(text) {
     }
     const toks = tokenize(clause);
     // The first verb that makes something happen
-    let v = toks.findIndex((t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has(t) || motionOf(t) || expressionOf(t));
+    let v = toks.findIndex((t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has(t) || LOOK_VERBS.has(t) || motionOf(t) || expressionOf(t));
     const before = v >= 0 ? toks.slice(0, v) : toks;
     let after = v >= 0 ? toks.slice(v + 1) : [];
     // Toward or away from the camera (not a target: "toward the camera" must not draw a camera)
@@ -288,6 +304,17 @@ export function parseTimeline(text) {
       targetAt = toAt;
     }
 
+    // Who they look at: "looks at the dog", "watches him", "waves at her", "at each other", "at us"
+    const isLook = v >= 0 && LOOK_VERBS.has(toks[v]);
+    let gazeWords = null;
+    if (isLook && toAt >= 0) { gazeWords = after.slice(toAt + 1); target = null; targetAt = -1; } // "looks toward the house"
+    else if (v >= 0 && toAt < 0) {
+      const atAt = after.indexOf('at');
+      if (atAt >= 0) gazeWords = after.slice(atAt + 1);
+      else if (isLook && /^watch/.test(toks[v])) gazeWords = after;
+    }
+    const gaze = gazeWords && lookTarget(gazeWords);
+
     // Subjects: concepts before the verb, else a pronoun, else whoever acted last
     let subjects = parseText(before.join(' ')).matches;
     subjects.forEach(remember);
@@ -311,9 +338,18 @@ export function parseTimeline(text) {
       const targetId = target && !mentioned.has(target) && !['him', 'her', 'it', 'them'].includes(target) ? null : target;
       const intoScene = next === 'in' && (!next2 || !DETERMINERS.has(next2)) || next === 'into' && next2 === 'the' && toks[v + 3] === 'scene';
       const outOfScene = EXIT_VERBS.has(verb) || (motion && ['out', 'off'].includes(next));
+      // The one an actor looks at: "each other" is the other subject (or another of its kind)
+      const gazeAt = (actor) => {
+        if (!gaze) return null;
+        if (gaze.camera) return 'camera';
+        if (gaze.each) return subjectIds.find((id) => id !== actor) ?? ((mentioned.get(actor)?.count ?? 1) > 1 ? actor : resolvePronoun('them', [actor]) ?? null);
+        if (gaze.pronoun) return resolvePronoun(gaze.pronoun, [actor]) ?? null;
+        return gaze.id !== actor ? gaze.id : null;
+      };
       for (const actor of subjectIds) {
         let type, extra = {};
-        if (depth) type = depth; // walks toward us / away into the distance
+        if (isLook) { type = 'look'; extra = { target: gazeAt(actor) }; } // looks at someone (or around)
+        else if (depth) type = depth; // walks toward us / away into the distance
         else if (outOfScene) type = 'exit';
         else if (targetId) {
           const tid = ['him', 'her', 'it', 'them'].includes(targetId) ? resolvePronoun(targetId, [actor]) : targetId;
@@ -324,6 +360,8 @@ export function parseTimeline(text) {
         else if (motion) type = 'enter';
         else type = 'expr';
         const expression = expressionOf(verb) || toks.map(expressionOf).find(Boolean);
+        // A gesture or a feeling aimed at someone: "waves at her", "smiles at the dog"
+        if ((type === 'pose' || type === 'expr') && gazeAt(actor)) extra = { ...extra, lookAt: gazeAt(actor) };
         actions.push({ actor, type, gait, ...extra, ...(expression ? { expression } : {}) });
         if (!actorIds.includes(actor)) actorIds.push(actor);
       }
@@ -405,13 +443,25 @@ export function parseTimeline(text) {
   return { beats, actors, props, ...(follow ? { follow } : {}) };
 }
 
+/**
+ * Who looks at whom in a scene without a timeline ("a boy and a girl looking at each other",
+ * "a cat staring at the bird", "a boy waving at us"): [{ who, at }] with concept ids, at = id | 'camera'.
+ */
+export function lookRelations(text) {
+  const tl = parseTimeline(text, { force: true });
+  if (!tl) return [];
+  return tl.beats.flatMap((b) => b.actions)
+    .filter((a) => (a.type === 'look' && a.target) || a.lookAt)
+    .map((a) => ({ who: a.actor, at: a.type === 'look' ? a.target : a.lookAt }));
+}
+
 // ---------------------------------------------------------------------------------------------
 // Edited timelines (the studio's timeline view): beats as the user arranged them, checked against
 // what the scene has.
 
 /** Gestures a figure can do in place (the 'pose' action's anim). */
 export const POSE_ANIMS = ['wave', 'jump', 'dance', 'cheer', 'point', 'thumbsup', 'hold', 'think', 'talk', 'sit', 'sleep', 'fly', 'swim', 'spin', 'sway', 'float', 'rock', 'flap', 'wag'];
-export const ACTION_TYPES = ['enter', 'moveTo', 'approach', 'recede', 'exit', 'pose', 'expr', 'appear'];
+export const ACTION_TYPES = ['enter', 'moveTo', 'approach', 'recede', 'exit', 'pose', 'expr', 'appear', 'look'];
 export const CAMERA_TYPES = ['zoomIn', 'zoomOut', 'pan', 'panTo'];
 const EXPRESSIONS = new Set(Object.values(EXPRESSION_WORDS));
 
@@ -442,6 +492,10 @@ export function editTimeline(beats, cast, base = null) {
         if (!known(a.target) || a.target === a.actor) continue;
         action.target = a.target;
       }
+      // Looking at someone (or at us): a 'look' step, or a gesture or feeling aimed at someone
+      const lookable = (id) => id === 'camera' || (known(id) && id !== a.actor) || (id === a.actor && (byId.get(id).count ?? 1) > 1);
+      if (a.type === 'look') action.target = lookable(a.target) ? a.target : 'camera';
+      if ((a.type === 'pose' || a.type === 'expr') && lookable(a.lookAt)) action.lookAt = a.lookAt;
       if (EXPRESSIONS.has(a.expression)) action.expression = a.expression;
       if (a.type === 'expr' && !action.expression) continue;
       actions.push(action);
