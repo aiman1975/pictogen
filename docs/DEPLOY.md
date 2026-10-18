@@ -1,5 +1,8 @@
 # Publishing the studio on the web (Firebase Hosting)
 
+**Live at https://pictogen-daab2.web.app** (Firebase project `pictogen-daab2`), published by
+`.github/workflows/deploy-web.yml` on every push to `main`.
+
 The web version is a **static site**: the PictoGen engine runs in each visitor's browser, so
 there is no server to run or pay for (Firebase's free Spark plan is enough), and what people make
 (their prompts, scenes and face photos) never leaves their browser.
