@@ -117,6 +117,12 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] **Lip-sync from text**: quoted speech in prompts ("says “…”", "asks", "whispers", "Tom: “…”") and
       clip captions said by whoever talks; syllables open the mouth by their vowel, m/b/p close it,
       punctuation pauses; photo jaws and drawn mouths; speaking steps last as long as the words
+- [x] **Sound**: every figure has a voice (children high, adults lower, two of a kind differ;
+      animals woof, meow, quack, tweet, roar...) and what it does is heard: footsteps, a whoosh
+      when running, a boing on a jump, "ooh" when surprised, "a-ha!", "hmm", "aww", giggles, and a
+      cute babble in time with the lip-sync ("?" rises). All synthesized in code (no recordings,
+      nothing to license); played in the studio (🔊), the clip player, the HTML export and videos
+- [ ] Sound: background music beds per genre; a volume per figure; recorded CC0 effects as an option
 
 ### 5. Export
 - [x] **Video and GIF** from the studio: frames rendered exactly by seeking every animation (Web

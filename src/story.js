@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
+import { pgSound, pgSoundTrack } from './sound-synth.js';
 
 const FONT_DIR = new URL('../public/fonts/', import.meta.url);
 let fontCss = null;
@@ -787,7 +788,7 @@ ${embeddedFontCss()}
         <span class="badge-genre">${genre.toUpperCase()}</span>
       </div>
       <div>
-        <button class="btn-sound on" id="btn-sound" title="Toggle Audio Chimes">🔔</button>
+        <button class="btn-sound on" id="btn-sound" title="Sound on or off (chimes, voices and effects)">🔔</button>
       </div>
     </div>
 
@@ -937,6 +938,26 @@ ${embeddedFontCss()}
       } catch (e) {}
     }
 
+    // Each scene's voices and effects (its <metadata class="pg-sound">), made by the synthesizer
+    // below (src/sound-synth.js): nothing to load, works offline
+    ${pgSound.toString()}
+    ${pgSoundTrack.toString()}
+    let sceneTrack = null;
+    function playSceneSound(resume) {
+      if (sceneTrack) { sceneTrack.stop(); sceneTrack = null; }
+      const m = stage.querySelector('metadata.pg-sound');
+      if (!soundEnabled || !isPlaying || !m) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const svg = stage.querySelector('svg');
+        const ms = resume && svg && svg.getAnimations ? Math.max(0, ...svg.getAnimations({ subtree: true }).map((a) => Number(a.currentTime) || 0)) : 0;
+        sceneTrack = pgSoundTrack(audioCtx, audioCtx.destination, JSON.parse(m.textContent), ms / 1000);
+      } catch (e) {}
+    }
+    // Browsers start sound only after a click: the first one starts the scene's sound
+    document.addEventListener('pointerdown', () => { if (!sceneTrack) playSceneSound(true); }, { once: true });
+
     dotsContainer.innerHTML = scenes.map((_, i) =>
       \`<div class="scene-dot \${i === 0 ? 'active' : ''}" onclick="goToScene(\${i})"></div>\`
     ).join('');
@@ -957,6 +978,7 @@ ${embeddedFontCss()}
       });
 
       if (withChime) playChime();
+      playSceneSound(false);
       startProgress();
     }
 
@@ -994,6 +1016,7 @@ ${embeddedFontCss()}
         clearInterval(progressInterval);
         clearTimeout(sceneTimer);
       }
+      playSceneSound(true);
     }
 
     btnPlay.addEventListener('click', togglePlay);
@@ -1004,6 +1027,7 @@ ${embeddedFontCss()}
       btnSound.classList.toggle('on', soundEnabled);
       btnSound.textContent = soundEnabled ? '🔔' : '🔕';
       if (soundEnabled) playChime();
+      playSceneSound(true);
     });
 
     progressTrack.addEventListener('click', (e) => {

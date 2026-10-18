@@ -415,6 +415,7 @@ function seek(t) {
     a.pause();
     a.currentTime = t * 1000;
   }
+  window.pictogenSound?.stop();
   playing = false;
   const btn = panel.querySelector('[data-do="play"]');
   if (btn) { btn.innerHTML = ICON.play; btn.setAttribute('aria-label', 'Play'); }
@@ -422,6 +423,7 @@ function seek(t) {
 
 function play() {
   for (const a of animations()) a.play();
+  window.pictogenSound?.resume(studio.getSvgElement());
   playing = true;
   const btn = panel.querySelector('[data-do="play"]');
   if (btn) { btn.innerHTML = ICON.pause; btn.setAttribute('aria-label', 'Pause'); }

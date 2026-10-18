@@ -168,7 +168,8 @@ if (!chromium) {
     if (ffprobe) {
       const info = probe(vfile);
       const d = +info.format.duration;
-      check(info.streams[0].width === 1280 && info.streams[0].height === 720 && Math.abs(d - 2) < 0.4, `video is 1280x720 and lasts ~2s (${info.streams[0].width}x${info.streams[0].height}, ${d.toFixed(2)}s)`);
+      const v = info.streams.find((st) => st.width) ?? {}; // (the sound is a stream too)
+      check(v.width === 1280 && v.height === 720 && Math.abs(d - 2) < 0.4, `video is 1280x720 and lasts ~2s (${v.width}x${v.height}, ${d.toFixed(2)}s)`);
     }
 
     // A clip: title card + two short captioned scenes, as Clip Studio exports it

@@ -242,6 +242,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // The sound synthesizer lives with the library (the HTML clip export embeds it too)
+  if (pathname === '/js/sound-synth.js') {
+    res.writeHead(200, { 'Content-Type': MIME['.js'] });
+    res.end(readFileSync(resolve(__dirname, 'src', 'sound-synth.js')));
+    return;
+  }
+
   // Static file serving from public/
   let filePath = resolve(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname === '/showcase' ? 'showcase.html' : '.' + pathname);
   if (filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + sep)) {

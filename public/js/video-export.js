@@ -4,8 +4,10 @@
 // Frames are exact, not a screen recording: every CSS animation in the SVG is paused and set to the
 // frame's time, the resulting state (transform, opacity) is copied onto a still copy of the SVG, and
 // that copy is drawn to a canvas. Clips (several scenes with captions) are rendered scene by scene.
+// Videos carry the scenes' sound (voices and effects, public/js/scene-sound.js), rendered ahead.
 
 import { encodeGif } from './gif-encoder.js';
+import { soundOf, renderClipSound } from './scene-sound.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -81,18 +83,20 @@ export async function renderFrames(svg, { duration, fps, ctx, box, onFrame }) {
  * The best video format this browser can record: MP4/H.264 plays everywhere (Chrome, Edge, Safari
  * record it); otherwise WebM; MP4 with other codecs (VP9) last, as QuickTime and iOS can't play it.
  */
-export function videoFormat() {
-  const types = ['video/mp4;codecs=avc1.42E01E', 'video/mp4;codecs=avc1', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+export function videoFormat({ audio = false } = {}) {
+  const types = audio
+    ? ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']
+    : ['video/mp4;codecs=avc1.42E01E', 'video/mp4;codecs=avc1', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
   const type = typeof MediaRecorder !== 'undefined' && types.find((t) => MediaRecorder.isTypeSupported(t));
   return type ? { type, ext: type.startsWith('video/mp4') ? 'mp4' : 'webm' } : null;
 }
 
 /**
  * Plays pre-rendered frames into a MediaRecorder at an exact frame rate and returns the video Blob.
- * frames: ImageBitmaps (or canvases) of equal size.
+ * frames: ImageBitmaps (or canvases) of equal size; audio: an AudioBuffer played alongside, or null.
  */
-export async function recordFrames(frames, { fps, width, height, bitrate = 8e6 }) {
-  const format = videoFormat();
+export async function recordFrames(frames, { fps, width, height, bitrate = 8e6, audio = null }) {
+  const format = videoFormat({ audio: !!audio });
   if (!format) throw new Error('This browser cannot record video (no MediaRecorder support)');
   const canvas = document.createElement('canvas');
   canvas.width = width; canvas.height = height;
@@ -100,11 +104,23 @@ export async function recordFrames(frames, { fps, width, height, bitrate = 8e6 }
   ctx.drawImage(frames[0], 0, 0);
   const stream = canvas.captureStream(0);
   const track = stream.getVideoTracks()[0];
+  // The sound goes in as a second track, started with the recording
+  let actx = null, source = null;
+  if (audio) {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') await actx.resume().catch(() => {});
+    const dest = actx.createMediaStreamDestination();
+    source = actx.createBufferSource();
+    source.buffer = audio;
+    source.connect(dest);
+    stream.addTrack(dest.stream.getAudioTracks()[0]);
+  }
   const recorder = new MediaRecorder(stream, { mimeType: format.type, videoBitsPerSecond: bitrate });
   const chunks = [];
   recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
   const stopped = new Promise((resolve) => { recorder.onstop = resolve; });
   recorder.start();
+  if (source) source.start();
   const start = performance.now();
   for (let i = 0; i < frames.length; i++) {
     const due = start + (i * 1000) / fps;
@@ -118,6 +134,7 @@ export async function recordFrames(frames, { fps, width, height, bitrate = 8e6 }
   recorder.stop();
   await stopped;
   stream.getTracks().forEach((t) => t.stop());
+  if (actx) actx.close().catch(() => {});
   return new Blob(chunks, { type: format.type.split(';')[0] });
 }
 
@@ -238,14 +255,33 @@ export async function exportGif(shots, { fps = 15, title, genre, onProgress } = 
   return new Blob([bytes], { type: 'image/gif' });
 }
 
-/** Video (MP4 or WebM, whatever this browser records) of the shots -> Blob; recording runs in real time. */
-export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, onProgress } = {}) {
+/**
+ * The shots' sound as one AudioBuffer, each scene's from where it starts in the video (after the
+ * title card), or null when there is nothing to hear.
+ */
+export async function clipSound(shots, { fps = 30, title } = {}) {
+  let at = title ? Math.round(1.5 * fps) / fps : 0;
+  const parts = shots.map((sh) => {
+    const duration = Math.max(1, Math.round(sh.duration * fps)) / fps;
+    const part = { sound: soundOf(sh.svg), at, duration };
+    at += duration;
+    return part;
+  });
+  return renderClipSound(parts, at + 0.1);
+}
+
+/**
+ * Video (MP4 or WebM, whatever this browser records) of the shots -> Blob; recording runs in real
+ * time. sound: with the scenes' voices and effects (default true).
+ */
+export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, sound = true, onProgress } = {}) {
   const { frames, width, height } = await renderShots(shots, { fps, scale, format: 'video', title, genre, onProgress: (p) => onProgress && onProgress(p * 0.6) });
+  const audio = sound ? await clipSound(shots, { fps, title }).catch(() => null) : null;
   const n = frames.length;
   let shown = 0;
   const tick = setInterval(() => { shown = Math.min(n, shown + fps / 4); onProgress && onProgress(0.6 + 0.4 * (shown / n)); }, 250);
   try {
-    return await recordFrames(frames, { fps, width, height });
+    return await recordFrames(frames, { fps, width, height, audio });
   } finally {
     clearInterval(tick);
     frames.forEach((f) => f.close && f.close());

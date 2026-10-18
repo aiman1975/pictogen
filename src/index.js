@@ -21,7 +21,8 @@ export { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaff
 export { parseText, tokenize } from './text/matcher.js';
 export { composeScene } from './scene.js';
 export { parseTimeline, hasSequence, cameraAction, extractCamera, editTimeline, lookRelations, speechRelations, POSE_ANIMS, ACTION_TYPES, CAMERA_TYPES } from './timeline.js';
-export { lipKeys } from './speech.js';
+export { lipKeys, babbleNotes } from './speech.js';
+export { voiceOf, soundOf, SOUND_NAMES } from './sound.js';
 export { listConcepts, getConcept, registerConcept } from './concepts/index.js';
 export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './story.js';
 

@@ -10,6 +10,7 @@ font, data file or dependency is added.
 | Fluent Emoji Flat (~3,170 icons) | `src/data/fluent-emoji-flat.json` | MIT, © Microsoft | Yes | Ship the MIT notice with the product (`THIRD_PARTY_NOTICES.md`) | ✅ notice added |
 | Nunito font | `public/fonts/`, embedded in exported clips | SIL OFL 1.1 | Yes | Ship `OFL-Nunito.txt`; can't sell the font on its own | ✅ self-hosted |
 | JetBrains Mono font | `public/fonts/`, embedded in exported clips | SIL OFL 1.1 | Yes | Ship `OFL-JetBrainsMono.txt` | ✅ self-hosted |
+| Scene sound: voices and effects | `src/sound.js`, `src/sound-synth.js` | MIT (`LICENSE`): synthesized in code, no recordings or samples | Yes | none beyond PictoGen's own | ✅ |
 | Showcase narration audio | `public/audio/showcase-*.wav` | Recorded with the Windows "Microsoft Zira" desktop voice | **Unclear** | See below | ⚠️ decide before release |
 
 ## Findings and what was done
@@ -31,6 +32,12 @@ font, data file or dependency is added.
    Options: leave the WAVs out of a commercial build (the showcase already falls back to the
    browser's speech synthesis), re-record with a human voice or a voice whose license explicitly
    allows commercial output, or license Azure TTS. **Not changed. This is a product decision.**
+
+5. **Scene sound needs no third-party audio.** Voices ("ooh", "a-ha!", "hmm", giggles, a babble
+   that follows the lip-sync), animal calls and effects are generated at playback time from
+   oscillators, noise and filters (`src/sound-synth.js`). No sample library, so nothing to
+   license or credit. Recorded packs could be added later; take only CC0 ones (Kenney, CC0-filtered
+   Freesound) and list each in `THIRD_PARTY_NOTICES.md`.
 
 ## Rules for new material
 

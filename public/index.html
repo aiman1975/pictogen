@@ -999,6 +999,7 @@
             <button class="btn-action" id="btn-download-png">🖼 Download PNG</button>
             <button class="btn-action" id="btn-download-gif" title="Animated GIF of this scene">🎞 GIF</button>
             <button class="btn-action" id="btn-download-video" title="Video of this scene (MP4 where your browser can record it, otherwise WebM)">🎬 Video</button>
+            <button class="btn-action" id="btn-sound" title="Sound on or off: voices and effects, made by PictoGen itself">🔊 Sound</button>
           </div>
         </div>
 
@@ -1492,6 +1493,7 @@
         state.duration = data.duration || null; // timelines and camera moves report their length
         svgViewport.innerHTML = data.svg;
         window.pictogenCharacters?.apply(getSvgElement(), cast.named);
+        window.pictogenSound?.play(getSvgElement()); // its voices and effects, with the animation
 
         // Render inspector matches
         matchBadgeCount.textContent = data.matches.length;
@@ -2054,6 +2056,8 @@
       renderStoryDots();
 
       if (withChime) playStoryChime();
+      if (storyState.sound && storyState.isPlaying) window.pictogenSound?.play(getSvgElement());
+      else window.pictogenSound?.stop();
       startStoryProgress();
     }
 
@@ -2087,9 +2091,11 @@
       if (storyState.isPlaying) {
         storyState.startTime = Date.now();
         startStoryProgress();
+        if (storyState.sound) window.pictogenSound?.resume(getSvgElement());
       } else {
         clearInterval(storyState.progressInterval);
         clearTimeout(storyState.timer);
+        window.pictogenSound?.stop();
       }
     }
 
@@ -2100,7 +2106,28 @@
       storyState.sound = !storyState.sound;
       storyBtnSound.style.color = storyState.sound ? '#f59e0b' : '#64748b';
       storyBtnSound.textContent = storyState.sound ? '🔔' : '🔕';
+      setSound(storyState.sound);
       if (storyState.sound) playStoryChime();
+    });
+
+    // Sound: the scenes' voices and effects (public/js/scene-sound.js); one switch for the canvas and the clip
+    const btnSound = document.getElementById('btn-sound');
+    function setSound(on) {
+      storyState.sound = on;
+      storyBtnSound.style.color = on ? '#f59e0b' : '#64748b';
+      storyBtnSound.textContent = on ? '🔔' : '🔕';
+      btnSound.textContent = on ? '🔊 Sound' : '🔇 Sound';
+      btnSound.classList.toggle('active', on);
+      window.pictogenSound?.setEnabled(on);
+      if (on) window.pictogenSound?.resume(getSvgElement());
+    }
+    btnSound.addEventListener('click', () => setSound(!storyState.sound));
+    window.addEventListener('load', () => {
+      const on = window.pictogenSound ? window.pictogenSound.isEnabled() : true;
+      storyState.sound = on;
+      storyBtnSound.style.color = on ? '#f59e0b' : '#64748b';
+      storyBtnSound.textContent = on ? '🔔' : '🔕';
+      btnSound.textContent = on ? '🔊 Sound' : '🔇 Sound';
     });
 
     storyProgressTrack.addEventListener('click', (e) => {
@@ -2494,6 +2521,7 @@
     // For the video export module below
     window.pictogenStudio = { getSvgElement, getState: () => state, getStory: () => storyState, showToast, regenerate: () => runGenerate() };
   </script>
+  <script type="module" src="/js/scene-sound.js"></script>
   <script type="module" src="/js/timeline-view.js"></script>
   <script type="module" src="/js/clip-tray.js"></script>
   <script type="module" src="/js/characters.js"></script>
@@ -2537,8 +2565,8 @@
 
     document.getElementById('btn-download-video').addEventListener('click', (e) => run(e.currentTarget, async (progress) => {
       if (!videoFormat()) throw new Error('this browser cannot record video; try the GIF');
-      const blob = await exportVideo(sceneShot(), { fps: 30, onProgress: progress });
-      download(blob, `${slug(studio.getState().prompt)}.${videoFormat().ext}`);
+      const blob = await exportVideo(sceneShot(), { fps: 30, sound: studio.getStory().sound, onProgress: progress });
+      download(blob, `${slug(studio.getState().prompt)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
       studio.showToast(`Video saved (${Math.round(blob.size / 1024)} KB)`);
     }));
 
@@ -2550,8 +2578,8 @@
       const mounted = story.scenes.map((sc) => mountOffscreen(sc.svg));
       try {
         const shots = story.scenes.map((sc, i) => ({ svg: mounted[i].svg, duration: sc.duration || 5, scene: sc }));
-        const blob = await exportVideo(shots, { fps: 30, title: story.title, genre: story.genre, onProgress: progress });
-        download(blob, `${slug(story.title)}.${videoFormat().ext}`);
+        const blob = await exportVideo(shots, { fps: 30, title: story.title, genre: story.genre, sound: story.sound, onProgress: progress });
+        download(blob, `${slug(story.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
         studio.showToast(`Clip video saved (${Math.round(blob.size / 1024)} KB)`);
       } finally {
         mounted.forEach((m) => m.remove());

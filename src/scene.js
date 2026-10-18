@@ -3,10 +3,11 @@
 
 import { conceptOf, whoOf } from './individuals.js';
 import { lipKeys, lipCss } from './speech.js';
+import { actionCues, stillCues, soundTrack, voiceOf } from './sound.js';
 import { getConcept } from './concepts/index.js';
 import { createKit } from './core/kit.js';
 import { createRng } from './core/rng.js';
-import { drawConcept, shapesToSvg, svgDoc, newUid, styleWrap } from './core/render.js';
+import { drawConcept, shapesToSvg, svgDoc, newUid, styleWrap, esc } from './core/render.js';
 import { getStyle } from './core/styles.js';
 import { darken, lighten, mix } from './core/color.js';
 
@@ -323,6 +324,7 @@ function playTimeline(timeline, slots, props, W) {
   const camera = [];
   const beatTimes = []; // when each beat starts and ends (the studio's timeline view)
   const speeches = []; // who says what when: { key, start, text }
+  const doings = []; // what each figure does when, for the sound: { key, t0, act }
   for (const beat of timeline.beats) {
     if (beat.camera && !beat.actions.length) {
       // A camera beat: everyone holds still while the camera moves
@@ -344,7 +346,7 @@ function playTimeline(timeline, slots, props, W) {
       if (a.expression) st.expression = a.expression;
       const wasPresent = st.present;
       if (!st.present) st.k = 1; // (re)appearing figures start in the front row
-      let move = null, d = 0, shown = null;
+      let move = null, d = 0, shown = null, words = null;
       if (['approach', 'recede', 'enter', 'moveTo', 'exit'].includes(a.type)) st.lookAt = null; // eyes on the way ahead
       if (a.lookAt) st.lookAt = a.lookAt; // "waves at her"
       if (a.type === 'approach' || a.type === 'recede') {
@@ -401,7 +403,7 @@ function playTimeline(timeline, slots, props, W) {
         shown = pose(key, { anim: a.anim });
         // Saying something: the words ("says “Hello!”"), else a clip scene's caption when the figure
         // talks; the step lasts as long as the words take, lips in sync (src/speech.js)
-        const words = a.anim === 'talk' ? a.speech ?? timeline.caption : null;
+        words = a.anim === 'talk' ? a.speech ?? timeline.caption : null;
         if (words) {
           d = Math.max(d, lipKeys(words).duration + 0.4);
           speeches.push({ key, start: t, text: words });
@@ -411,7 +413,7 @@ function playTimeline(timeline, slots, props, W) {
         d = st.present ? 1.4 : 0.8;
         st.present = true;
       }
-      group.push({ key, d, move, shown, wasPresent });
+      group.push({ key, d, move, shown, wasPresent, act: { type: a.type, gait: a.gait, anim: a.anim, expression: a.expression, words } });
       });
       // Group members set off one after another, the one going furthest first so nobody walks
       // through the others (gestures stay in unison)
@@ -442,6 +444,7 @@ function playTimeline(timeline, slots, props, W) {
       const act = acting.get(id);
       const track = tracks.get(id);
       let t1 = t;
+      if (act) doings.push({ key: id, t0: t + act.delay, act: { ...act.act, d: act.d - act.delay, wasPresent: act.wasPresent } });
       if (act?.shown) {
         const t0 = t + act.delay;
         const m = act.move;
@@ -456,7 +459,7 @@ function playTimeline(timeline, slots, props, W) {
     t += beatLen;
   }
   for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + HOLD_SECONDS, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
-  return { T: t + HOLD_SECONDS, tracks, camera, beatTimes, speeches };
+  return { T: t + HOLD_SECONDS, tracks, camera, beatTimes, speeches, doings };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -635,6 +638,8 @@ export function composeScene(matches, opts = {}) {
   const landscape = !env.room && !FLAT_BACKDROP_STYLES.includes(style);
   const shadows = landscape && style !== 'outline';
   const motionCss = [];
+  const cues = []; // what is heard (src/sound.js)
+  let soundLoop = null;
   // Everyone walking across keeps the pace of the tallest walker (about 0.9 body heights a second).
   const acrossSpeed = Math.max(45, 0.9 * Math.max(0, ...items.filter((it) => it.m.animation === 'walk-across').map((it) => it.h)));
 
@@ -698,7 +703,10 @@ export function composeScene(matches, opts = {}) {
       motionCss.push(lipCss(name, [{ start: 0.5, text: words }], loop));
       lips = ` data-lips="${name}"`;
       opts.speechDuration = Math.max(opts.speechDuration ?? 0, loop);
+      soundLoop = Math.max(soundLoop ?? 0, loop);
     }
+    // Its mood said out loud (one after another), its words babbled in time with its lips
+    if (it.m.expression || words) cues.push(...stillCues({ expression: it.m.expression, words, at: 0.3 + cues.length * 0.45 }, voiceOf(it.c.id, it.alt)));
     if (!animation) {
       if (it.c.category === 'people') animation = 'blink';
       else if (it.c.id === 'sun') animation = 'pulse';
@@ -920,9 +928,14 @@ export function composeScene(matches, opts = {}) {
   };
   for (const draw of later) draw();
   if (timeline && actorSlots.size) {
-    const { T, tracks, camera: events, beatTimes, speeches } = playTimeline(timeline, actorSlots, propsAt, W);
+    const { T, tracks, camera: events, beatTimes, speeches, doings } = playTimeline(timeline, actorSlots, propsAt, W);
     timeline.duration = r2(T);
     timeline.beatTimes = beatTimes;
+    for (const { key, t0, act } of doings) {
+      const { it } = actorSlots.get(key);
+      cues.push(...actionCues(act, t0, voiceOf(it.c.id, it.alt)));
+    }
+    soundLoop = r2(T); // (the animation's loop)
     for (const [key, slot] of actorSlots) {
       const name = `${uid}a${key.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
       const said = speeches.filter((sp) => sp.key === key);
@@ -961,6 +974,11 @@ export function composeScene(matches, opts = {}) {
     content = `<g class="pg-camera" style="animation: ${uid}cam ${r2(cam.T)}s linear infinite;">${content}</g>`;
   }
   getStyle(style); // (style validated)
+  // The sound goes with the picture, for the studio, the clip player and video export to play
+  if (cues.length) {
+    opts.sound = soundTrack(cues, soundLoop);
+    content += `<metadata class="pg-sound">${esc(JSON.stringify(opts.sound))}</metadata>`;
+  }
   const motionDefs = motionCss.length ? `<style><![CDATA[${motionCss.join('\n')}]]></style>` : '';
   return svgDoc({ width: W, height: H, viewBox: `0 0 ${W} ${H}`, defs: fx.defs + motionDefs, content });
 }

@@ -289,7 +289,13 @@ export function parseTimeline(text, { force = false, names = null } = {}) {
     const speech = quoteAt >= 0 ? quotes[+toks[quoteAt].slice(2)] : null;
     if (quoteAt >= 0) toks = toks.filter((t) => !/^qq\d+$/.test(t));
     // The first verb that makes something happen
-    let v = toks.findIndex((t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has(t) || LOOK_VERBS.has(t) || speaks(t) || motionOf(t) || expressionOf(t));
+    const acts = (t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has(t) || LOOK_VERBS.has(t) || speaks(t) || motionOf(t);
+    let v = toks.findIndex((t) => acts(t) || expressionOf(t));
+    // "a happy girl waves": a feeling before anyone is named describes who comes next, the verb is later
+    if (v >= 0 && !acts(toks[v]) && !parse(toks.slice(0, v).join(' ')).matches.length) {
+      const later = toks.findIndex((t, i) => i > v && acts(t));
+      if (later >= 0) v = later;
+    }
     if (v < 0 && speech) v = Math.min(quoteAt, toks.length); // Tom: “Hello!” - saying it is the verb
     const before = v >= 0 ? toks.slice(0, v) : toks;
     let after = v >= 0 ? toks.slice(v + 1) : [];
