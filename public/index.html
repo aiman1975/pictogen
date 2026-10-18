@@ -1361,6 +1361,19 @@
     // go on the drawings here (names and photos never leave the browser)
     const named = (text) => window.pictogenCharacters?.rewrite(text) ?? { text, named: [] };
     const usePrompt = () => { state.clipActive = false; };
+    // The clip player (HTML export) gets the photo faces here, in the browser: its scenes sit between
+    // /*pg-scenes*/ markers (src/story.js), each scene's figures marked with their character's key
+    function withPhotoFaces(html) {
+      const chars = window.pictogenCharacters;
+      const start = '/*pg-scenes*/', end = '/*pg-scenes-end*/';
+      const i = html.indexOf(start), j = html.indexOf(end);
+      if (!chars?.list().length || i < 0 || j < i) return html;
+      const clipScenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
+      const scenes = JSON.parse(html.slice(i + start.length, j)).map((sc, k) => ({
+        ...sc, svg: chars.withFaces(sc.svg, named(clipScenes?.[k]?.prompt ?? state.prompt).named),
+      }));
+      return html.slice(0, i + start.length) + JSON.stringify(scenes).replace(/</g, '\\u003c') + html.slice(j);
+    }
 
     async function runGenerate() {
       state.prompt = promptInput.value.trim() || 'apple';
@@ -2114,7 +2127,7 @@
             vary: state.vary,
           }),
         });
-        const html = await res.text();
+        const html = withPhotoFaces(await res.text());
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

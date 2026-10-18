@@ -6,6 +6,7 @@ import { spawn, execSync } from 'node:child_process';
 import { createServer } from 'node:net';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 let fails = 0;
@@ -303,12 +304,31 @@ try {
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForFunction(() => window.pictogenCharacters);
   check((await page.evaluate(() => window.pictogenCharacters.list().map((c) => c.name).join())) === 'Tom', 'Tom is still there after a reload');
-  await draw('Tom waves under a tree');
+  await draw('Tom talks under a tree');
   await page.click('#clip-tray [data-do="add"]');
   await page.click('#clip-tray [data-do="play"]');
   await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'story' && window.pictogenStudio.getStory().scenes?.length);
   const inClip = await page.evaluate(() => window.pictogenStudio.getStory().scenes.some((sc) => sc.svg.includes('pg-photo-face')));
   check(inClip, 'a clip scene with Tom carries his photo (and so does its video export)');
+  // The clip as a standalone HTML player: the faces are added here before saving, and play offline
+  const posted = sent.length;
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#story-btn-export-html')]);
+  const exported = readFileSync(await download.path(), 'utf8');
+  check(/pg-photo-face/.test(exported) && /data:image\/(webp|png|jpeg)/.test(exported) && sent.slice(posted).every((body) => !body.includes('data:image')),
+    'the exported clip player carries Tom\'s photo, added in the browser (the server never got it)');
+  const player = await browser.newPage();
+  const playerErrors = [];
+  player.on('pageerror', (e) => playerErrors.push(e.message));
+  await player.setContent(exported, { waitUntil: 'load' });
+  // (the clip still holds the scenes saved earlier in this test: Tom's is the last)
+  await player.evaluate(() => renderScene(scenes.length - 1, false));
+  await player.waitForTimeout(400);
+  const shown = await player.evaluate(() => ({
+    faces: document.querySelectorAll('.pg-photo-face image').length,
+    jaw: [...document.querySelectorAll('.pg-photo-jaw')].map((j) => getComputedStyle(j).animationName).join(),
+  }));
+  check(shown.faces >= 2 && /pgJawTalk/.test(shown.jaw) && !playerErrors.length, `opened on its own, the player shows the face, jaw talking (${JSON.stringify(shown)})`);
+  await player.close();
   await page.click('#modes-group .pill-btn[data-mode="scene"]');
   await page.waitForFunction(() => !document.getElementById('characters-panel').hidden);
   await page.click('#characters-panel [data-remove="0"]');

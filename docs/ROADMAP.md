@@ -114,7 +114,8 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       walk in, then Tom waves at Max": two boys, own faces, own clothes); the engine sees neutral keys
 - [x] **Talking photo faces**: a jaw cut at the mouth line (a third guide in the crop) drops to talk,
       bounces to laugh, hangs open in surprise, with a dark mouth that opens with it
-- [ ] Photo characters in the HTML clip export; lip-sync of the jaw to caption text
+- [x] Photo characters in the HTML clip player: added in the browser before the file is saved
+- [ ] Lip-sync of the jaw to caption text
 
 ### 5. Export
 - [x] **Video and GIF** from the studio: frames rendered exactly by seeking every animation (Web

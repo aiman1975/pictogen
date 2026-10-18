@@ -494,7 +494,8 @@ export function composeStory(storyInput, opts = {}) {
  * Renders Lower-Third editorial graphics according to the chosen genre and aspect ratio.
  */
 export function generateStoryHtml(story) {
-  // \u003c keeps user captions like "</script>" from closing the inline <script> block.
+  // \u003c keeps user captions like "</script>" from closing the inline <script> block. The markers
+  // around it let the studio add photo faces to the scenes on the user's own machine before saving.
   const scenesJson = JSON.stringify(story.scenes).replace(/</g, '\\u003c');
   const title = esc(story.title || 'PictoGen Animated Clip');
   const genre = story.genre || 'kids';
@@ -843,7 +844,7 @@ ${embeddedFontCss()}
   </div>
 
   <script>
-    const scenes = ${scenesJson};
+    const scenes = /*pg-scenes*/${scenesJson}/*pg-scenes-end*/;
     let curIndex = 0;
     let isPlaying = true;
     let soundEnabled = true;
