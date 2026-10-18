@@ -8,7 +8,7 @@ import { createServer } from 'node:net';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { generate, generateStoryHtml, composeStory, lipKeys, parseTimeline } from '../src/index.js';
 import { voiceOf, soundOf, SOUND_NAMES, actionCues } from '../src/sound.js';
@@ -71,6 +71,8 @@ const tone = (hz, seconds, rate = 22050, silence = 0) => {
   return b;
 };
 const repoPack = readPack();
+check(repoPack.files.filter((e) => /CC0/.test(e.license) && /Kenney/.test(e.source)).length >= 20 && existsSync(new URL('../public/audio/pack/licenses/kenney-interface-sounds.txt', import.meta.url)),
+  'the shipped pack has Kenney\'s CC0 interface sounds, with their license text');
 check(!repoPack.problems.length, `the shipped sound pack is clean: every file listed with a source and a license${repoPack.problems.length ? ': ' + repoPack.problems.join('; ') : ''}`);
 check(CATALOGUE.length === 70 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') && CATALOGUE.some((c) => c.slot === 'music/documentary'), `the catalogue lists ${CATALOGUE.length} slots (voices, syllables, animals, effects, music)`);
 const packDir = mkdtempSync(join(tmpdir(), 'pictogen-pack-'));
@@ -118,6 +120,12 @@ if (ffmpegHere && syl) {
   check(syl.file.endsWith('.mp3') && dur < 0.5 && Math.abs(peak + 3) < 1.5, `imports are prepared: leading silence cut (${dur.toFixed(2)} s from 0.9 s), peak ${peak} dB, MP3`);
 }
 check(readPack(packDir).problems.length === 0, 'the pack still checks clean after the import');
+const boardFile = join(packDir, '..', `board-${process.pid}.html`);
+const board = tool('board', boardFile);
+const boardHtml = board.status === 0 ? readFileSync(boardFile, 'utf8') : '';
+check(boardHtml.includes('function pgSound(') && (boardHtml.match(/data-slot=/g) || []).length === CATALOGUE.length && (boardHtml.match(/data-file=/g) || []).length === readPack(packDir).files.length,
+  'the sound board lists every slot with its pack files, to listen to side by side');
+rmSync(boardFile, { force: true });
 rmSync(inbox, { recursive: true, force: true });
 
 // 5. In a real browser

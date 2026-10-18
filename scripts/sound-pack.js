@@ -8,6 +8,7 @@
 //   npm run sound-pack -- remove <pack file, e.g. voices/kid/ooh-1.mp3>
 //   npm run sound-pack -- check            (exit code 1 when something is wrong)
 //   npm run sound-pack -- list [--md]      (every slot with its prompt; --md: docs/SOUND_PACK.md)
+//   npm run sound-pack -- board <out.html> (a page to listen to every slot: built-in vs. pack files)
 //   --dir <folder>                         another pack folder (default public/audio/pack)
 //   --raw                                  keep files as they are (no trimming or converting)
 //
@@ -19,7 +20,9 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdir
 import { join, extname, basename, relative } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
-import { PACK_DIR, CATALOGUE, AUDIO_TYPES, readPack, packStatus, slotOf, slotFromName, catalogueMarkdown } from '../src/sound-pack.js';
+import { PACK_DIR, CATALOGUE, AUDIO_TYPES, readPack, packStatus, slotOf, slotFromName, slotKey, catalogueMarkdown } from '../src/sound-pack.js';
+import { pgSound, pgBank, pgMusicBars, pgMusicTrack, pgMusicLoop } from '../src/sound-synth.js';
+import { babbleNotes } from '../src/speech.js';
 
 const args = process.argv.slice(2);
 const flag = (name) => { const i = args.indexOf(`--${name}`); if (i < 0) return null; const v = args[i + 1]; args.splice(i, 2); return v ?? ''; };
@@ -129,17 +132,18 @@ if (cmd === 'add') {
 } else if (cmd === 'import') {
   // A folder of files named by slot: kid-ooh.mp3, kid-syl-a-2.wav, woof.mp3, music-kids.mp3 (or
   // in folders: kid/ooh.mp3, music/kids.mp3). An optional prompts.txt ("kid-ooh: <prompt>" per
-  // line) goes on record with each file.
+  // line) or notes.txt ("pop: <anything>") goes on record with each file.
   const [folder] = rest;
   if (!folder || !existsSync(folder) || !statSync(folder).isDirectory()) fail('usage: import <folder> --source "..." --license "..."');
   needRecord();
   const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((x) => (x.isDirectory() ? walk(join(d, x.name)) : [join(d, x.name)]));
   const prompts = new Map();
-  const promptFile = ['prompts.txt', 'PROMPTS.txt', 'prompts.md'].map((f) => join(folder, f)).find(existsSync);
-  if (promptFile) {
-    for (const line of readFileSync(promptFile, 'utf8').split(/\r?\n/)) {
+  for (const [name, label] of [['prompts.txt', 'prompt: '], ['prompts.md', 'prompt: '], ['notes.txt', '']]) {
+    const path = readdirSync(folder).find((f) => f.toLowerCase() === name);
+    if (!path) continue;
+    for (const line of readFileSync(join(folder, path), 'utf8').split(/\r?\n/)) {
       const at = line.indexOf(':');
-      if (at > 0) prompts.set(line.slice(0, at).trim().toLowerCase().replace(/\.[a-z0-9]+$/, ''), line.slice(at + 1).trim());
+      if (at > 0) prompts.set(line.slice(0, at).trim().toLowerCase().replace(/\.[a-z0-9]+$/, ''), label + line.slice(at + 1).trim());
     }
   }
   const m = newManifest();
@@ -147,7 +151,7 @@ if (cmd === 'add') {
   for (const f of walk(folder).sort()) {
     const rel = relative(folder, f).split('\\').join('/');
     if (!AUDIO_TYPES[extname(f).toLowerCase()]) {
-      if (!/^prompts\.(txt|md)$/i.test(rel) && !/(^|\/)\./.test(rel)) skipped.push(`${rel}: not an audio file`);
+      if (!/^(prompts\.(txt|md)|notes\.txt)$/i.test(rel) && !/(^|\/)\./.test(rel)) skipped.push(`${rel}: not an audio file`);
       continue;
     }
     const slot = slotFromName(rel);
@@ -155,7 +159,7 @@ if (cmd === 'add') {
     if (!c) { skipped.push(`${rel}: no slot by that name${slot ? ` ("${slot}")` : ''} - see docs/SOUND_PACK.md`); continue; }
     const stem = rel.toLowerCase().replace(/\.[a-z0-9]+$/, '');
     const prompt = prompts.get(stem) ?? prompts.get(basename(stem));
-    const r = addFile(m, f, c, prompt ? `prompt: ${prompt}` : null);
+    const r = addFile(m, f, c, prompt || null);
     if (r.skip) skipped.push(`${rel}: ${r.skip}`);
     else added.push(`${rel} -> ${r.name}${r.warn ? ` (${r.warn})` : ''}`);
   }
@@ -163,6 +167,11 @@ if (cmd === 'add') {
   for (const a of added) console.log(`✓ ${a}`);
   for (const s of skipped) console.log(`· skipped ${s}`);
   console.log(`\nimported ${added.length} file(s)${skipped.length ? `, skipped ${skipped.length}` : ''}${!hasFfmpeg && !raw ? ' (ffmpeg not found: files kept as they were)' : ''}`);
+} else if (cmd === 'board') {
+  const [out] = rest;
+  if (!out) fail('usage: board <out.html>');
+  writeFileSync(out, boardHtml(readPack(dir)));
+  console.log(`wrote ${out}: open it in a browser and click to listen`);
 } else if (cmd === 'remove') {
   const [file] = rest;
   const m = loadManifest();
@@ -193,4 +202,91 @@ if (cmd === 'add') {
   console.log(`\n${filled}/${CATALOGUE.length} slots have files; the rest are synthesized.${pack.problems.length ? `\n${pack.problems.length} problem(s): npm run sound-pack -- check` : ''}`);
 } else {
   fail(`unknown command "${cmd}" (status, import, add, remove, check, list)`);
+}
+
+// ---- The sound board: every slot, built-in and pack files side by side ---------------------------
+function boardHtml(pack) {
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const files = pack.files.filter((e) => existsSync(join(dir, e.file)));
+  const data = files.map((e) => ({ slot: slotKey(e), file: e.file, notes: e.notes || '', source: e.source, license: e.license, sound: e.sound, voice: e.voice, vowel: e.vowel, music: e.music, type: AUDIO_TYPES[extname(e.file).toLowerCase()], b64: readFileSync(join(dir, e.file)).toString('base64') }));
+  const groups = [['Effects', (c) => c.dir === 'effects'], ['Animals', (c) => c.dir === 'animals'], ['Music', (c) => c.music], ['Voices: kid', (c) => c.voice === 'kid'], ['Voices: woman', (c) => c.voice === 'woman'], ['Voices: man', (c) => c.voice === 'man']];
+  const notes = babbleNotes('Hello there! How are you today?');
+  const rows = groups.map(([title, pred]) => `<h2>${title}</h2>` + CATALOGUE.filter(pred).map((c) => {
+    const mine = data.map((d, i) => [d, i]).filter(([d]) => d.slot === c.slot);
+    return `<div class="row"><div class="slot"><code>${esc(c.slot.replace('/', '-'))}</code><span>${esc(c.what)}</span></div><div class="btns">`
+      + `<button data-slot="${esc(c.slot)}">▶ built-in</button>`
+      + mine.map(([d, i]) => `<button class="file" data-file="${i}" title="${esc(`${d.notes}\n${d.source}\n${d.license}`)}">▶ ${esc(d.file.split('/').pop())}</button>`).join('')
+      + `</div></div>`;
+  }).join('')).join('');
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PictoGen Sound Board</title>
+<style>
+:root{--bg:#f8fafc;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--btn:#e0e7ff;--btn2:#dcfce7}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1120;--card:#111827;--ink:#e2e8f0;--muted:#94a3b8;--line:#1f2937;--btn:#312e81;--btn2:#14532d}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:.2em 0}h2{font-size:1.05rem;margin:1.4em 0 .4em;color:var(--muted)}
+p{color:var(--muted);margin:.3em 0 1em}
+.row{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:6px 0;flex-wrap:wrap}
+.slot{display:flex;flex-direction:column;min-width:200px;flex:1}.slot span{color:var(--muted);font-size:.85rem}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+button{border:0;border-radius:8px;padding:6px 10px;background:var(--btn);color:var(--ink);cursor:pointer;font:inherit;font-size:.85rem}
+button.file{background:var(--btn2)}button.on{outline:2px solid #f59e0b}
+#stop{position:sticky;top:8px;float:right;background:#f59e0b;color:#111}
+</style></head><body><main>
+<button id="stop">■ Stop</button>
+<h1>PictoGen sound board</h1>
+<p>Every sound slot: <b>▶ built-in</b> is the synthesized sound; green buttons are the sound pack's files (hover for source and license). Missing a green button means the built-in sound plays.</p>
+${rows}
+</main><script>
+${pgSound.toString()}
+${pgBank.toString()}
+${pgMusicBars.toString()}
+${pgMusicTrack.toString()}
+${pgMusicLoop.toString()}
+const FILES = ${JSON.stringify(data).replace(/</g, '\\u003c')};
+const NOTES = ${JSON.stringify(notes)};
+const VOICES = { kid: 1, woman: 1, man: 1 };
+let ctx = null, music = null, bus = null;
+const decoded = new Map();
+function audio() {
+  if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+function freshBus() {
+  if (bus) { bus.gain.setTargetAtTime(0, ctx.currentTime, 0.02); }
+  if (music) { music.stop(); music = null; }
+  bus = ctx.createGain(); bus.gain.value = 1.2; bus.connect(ctx.destination);
+  return bus;
+}
+async function buffer(i) {
+  if (!decoded.has(i)) {
+    const bytes = Uint8Array.from(atob(FILES[i].b64), (c) => c.charCodeAt(0));
+    decoded.set(i, await audio().decodeAudioData(bytes.buffer));
+  }
+  return decoded.get(i);
+}
+// A cue that plays slot's sound the way a scene would
+function cueFor(slot, f) {
+  const [a, b] = slot.split('/');
+  if (VOICES[a]) return b.startsWith('syl-') ? { s: 'babble', v: a, p: 1, n: NOTES } : { s: b, v: a, p: 1, d: 3 };
+  return { s: a, p: 1, d: 2, m: 'happy' };
+}
+async function play(slot, fileIndex) {
+  const c = audio(), out = freshBus();
+  const f = fileIndex == null ? null : FILES[fileIndex];
+  const bank = f ? pgBank([{ ...f, buffer: await buffer(fileIndex) }]) : null;
+  if (slot.startsWith('music/')) { music = pgMusicTrack(c, out, slot.slice(6), bank, f ? 0.5 : 0.9); return; }
+  pgSound(c, out, cueFor(slot, f), c.currentTime + 0.05, bank);
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  document.querySelectorAll('button.on').forEach((x) => x.classList.remove('on'));
+  if (b.id === 'stop') { if (ctx) freshBus(); return; }
+  b.classList.add('on');
+  const i = b.dataset.file;
+  play(i != null ? FILES[+i].slot : b.dataset.slot, i != null ? +i : null);
+});
+</script></body></html>`;
 }

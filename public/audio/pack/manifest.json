@@ -1,4 +1,189 @@
 {
   "about": "PictoGen sound pack: each file with its source and license (docs/SOUND_PACK.md, docs/LICENSE_AUDIT.md)",
-  "files": []
+  "files": [
+    {
+      "file": "animals/blub-1.mp3",
+      "sound": "blub",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from blub.wav (0.11 s after trimming silence, levelled, MP3); Kenney Interface Sounds, drop_001.wav"
+    },
+    {
+      "file": "effects/blip-1.mp3",
+      "sound": "blip",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from blip-2.wav (0.05 s after trimming silence, levelled, MP3); Kenney Interface Sounds, select_002.wav"
+    },
+    {
+      "file": "effects/blip-2.mp3",
+      "sound": "blip",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from blip-3.wav (0.05 s after trimming silence, levelled, MP3); Kenney Interface Sounds, select_007.wav"
+    },
+    {
+      "file": "effects/blip-3.mp3",
+      "sound": "blip",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from blip.wav (0.04 s after trimming silence, levelled, MP3); Kenney Interface Sounds, select_001.wav"
+    },
+    {
+      "file": "effects/boing-1.mp3",
+      "sound": "boing",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from boing-2.wav (0.37 s after trimming silence, levelled, MP3); Kenney Interface Sounds, maximize_006.wav"
+    },
+    {
+      "file": "effects/boing-2.mp3",
+      "sound": "boing",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from boing.wav (0.22 s after trimming silence, levelled, MP3); Kenney Interface Sounds, maximize_008.wav"
+    },
+    {
+      "file": "effects/bubble-1.mp3",
+      "sound": "bubble",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from bubble-2.wav (0.14 s after trimming silence, levelled, MP3); Kenney Interface Sounds, drop_004.wav"
+    },
+    {
+      "file": "effects/bubble-2.mp3",
+      "sound": "bubble",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from bubble.wav (0.11 s after trimming silence, levelled, MP3); Kenney Interface Sounds, drop_001.wav"
+    },
+    {
+      "file": "effects/ding-1.mp3",
+      "sound": "ding",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from ding-2.wav (0.13 s after trimming silence, levelled, MP3); Kenney Interface Sounds, glass_003.wav"
+    },
+    {
+      "file": "effects/ding-2.mp3",
+      "sound": "ding",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from ding.wav (0.24 s after trimming silence, levelled, MP3); Kenney Interface Sounds, glass_001.wav"
+    },
+    {
+      "file": "effects/jingle-1.mp3",
+      "sound": "jingle",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from jingle-2.wav (0.52 s after trimming silence, levelled, MP3); Kenney Interface Sounds, confirmation_002.wav"
+    },
+    {
+      "file": "effects/jingle-2.mp3",
+      "sound": "jingle",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from jingle-3.wav (0.49 s after trimming silence, levelled, MP3); Kenney Interface Sounds, confirmation_004.wav"
+    },
+    {
+      "file": "effects/jingle-3.mp3",
+      "sound": "jingle",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from jingle.wav (0.29 s after trimming silence, levelled, MP3); Kenney Interface Sounds, confirmation_001.wav"
+    },
+    {
+      "file": "effects/plop-1.mp3",
+      "sound": "plop",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from plop.wav (0.13 s after trimming silence, levelled, MP3); Kenney Interface Sounds, bong_001.wav"
+    },
+    {
+      "file": "effects/pop-1.mp3",
+      "sound": "pop",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from pop-2.wav (0.18 s after trimming silence, levelled, MP3); Kenney Interface Sounds, drop_003.wav"
+    },
+    {
+      "file": "effects/pop-2.mp3",
+      "sound": "pop",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from pop-3.wav (0.14 s after trimming silence, levelled, MP3); Kenney Interface Sounds, drop_004.wav"
+    },
+    {
+      "file": "effects/pop-3.mp3",
+      "sound": "pop",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from pop.wav (0.18 s after trimming silence, levelled, MP3); Kenney Interface Sounds, drop_002.wav"
+    },
+    {
+      "file": "effects/twinkle-1.mp3",
+      "sound": "twinkle",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from twinkle-2.wav (0.07 s after trimming silence, levelled, MP3); Kenney Interface Sounds, glass_006.wav"
+    },
+    {
+      "file": "effects/twinkle-2.mp3",
+      "sound": "twinkle",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from twinkle.wav (0.61 s after trimming silence, levelled, MP3); Kenney Interface Sounds, glass_004.wav"
+    },
+    {
+      "file": "effects/whirl-1.mp3",
+      "sound": "whirl",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from whirl-2.wav (0.52 s after trimming silence, levelled, MP3); Kenney Interface Sounds, maximize_005.wav"
+    },
+    {
+      "file": "effects/whirl-2.mp3",
+      "sound": "whirl",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from whirl.wav (0.41 s after trimming silence, levelled, MP3); Kenney Interface Sounds, maximize_004.wav"
+    },
+    {
+      "file": "effects/whoosh-1.mp3",
+      "sound": "whoosh",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from whoosh-2.wav (0.32 s after trimming silence, levelled, MP3); Kenney Interface Sounds, open_003.wav"
+    },
+    {
+      "file": "effects/whoosh-2.mp3",
+      "sound": "whoosh",
+      "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-10-18",
+      "notes": "prepared from whoosh.wav (0.32 s after trimming silence, levelled, MP3); Kenney Interface Sounds, open_002.wav"
+    }
+  ]
 }

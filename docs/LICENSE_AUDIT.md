@@ -11,6 +11,7 @@ font, data file or dependency is added.
 | Nunito font | `public/fonts/`, embedded in exported clips | SIL OFL 1.1 | Yes | Ship `OFL-Nunito.txt`; can't sell the font on its own | ✅ self-hosted |
 | JetBrains Mono font | `public/fonts/`, embedded in exported clips | SIL OFL 1.1 | Yes | Ship `OFL-JetBrainsMono.txt` | ✅ self-hosted |
 | Scene sound: voices and effects | `src/sound.js`, `src/sound-synth.js` | MIT (`LICENSE`): synthesized in code, no recordings or samples | Yes | none beyond PictoGen's own | ✅ |
+| Kenney Interface Sounds 1.0 (23 effects: pop, jingle, ding, twinkle, blip, whoosh, whirl, plop, boing, bubble, blub) | `public/audio/pack/effects/` | CC0 1.0 (`public/audio/pack/licenses/kenney-interface-sounds.txt`) | Yes | None (credited in `THIRD_PARTY_NOTICES.md` as a courtesy) | ✅ |
 | Sound pack (recorded / generated audio) | `public/audio/pack/` | Per file, recorded in `manifest.json` (source, license, date) | Only files whose license allows it | Keep the generator's terms and the prompt for each file | ✅ checked by `npm run sound-pack -- check` and `npm test` (empty so far) |
 | Showcase narration audio | `public/audio/showcase-*.wav` | Recorded with the Windows "Microsoft Zira" desktop voice | **Unclear** | See below | ⚠️ decide before release |
 

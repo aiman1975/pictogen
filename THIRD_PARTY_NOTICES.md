@@ -45,3 +45,12 @@ Also embedded (base64) in exported clip HTML files.
 Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono).
 Licensed under the SIL Open Font License 1.1 — full text in `public/fonts/OFL-JetBrainsMono.txt`.
 Also embedded (base64) in exported clip HTML files.
+
+## Kenney Interface Sounds — `public/audio/pack/effects/`
+
+Short interface sounds by Kenney (https://kenney.nl/assets/interface-sounds), version 1.0,
+obtained from the Godot packaging at https://github.com/Calinou/kenney-interface-sounds. Trimmed,
+levelled and converted to MP3 on import; each file's original name is in
+`public/audio/pack/manifest.json`. License: Creative Commons Zero (CC0 1.0), public domain: no
+attribution required; credited here as a courtesy. License text:
+`public/audio/pack/licenses/kenney-interface-sounds.txt`.

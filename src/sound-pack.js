@@ -137,7 +137,7 @@ export function readPack(dir = PACK_DIR) {
   if (existsSync(dir)) {
     for (const f of walk(dir)) {
       const rel = relative(dir, f).split('\\').join('/');
-      if (rel === 'manifest.json' || rel === 'README.md' || rel.endsWith('.gitkeep')) continue;
+      if (rel === 'manifest.json' || rel === 'README.md' || rel.endsWith('.gitkeep') || /^licenses\/[^/]+\.(txt|md)$/.test(rel)) continue; // (license texts that came with files)
       if (!listed.has(rel)) problems.push(`${rel}: in the pack folder but not in manifest.json (no source or license on record)`);
     }
   }
@@ -201,7 +201,8 @@ export function catalogueMarkdown(status = new Map()) {
     'npm run sound-pack -- status     # what is there, what is missing',
     '```',
     '',
-    'Single files: `npm run sound-pack -- add <file> <slot> --source ... --license ...`.',
+    'Single files: `npm run sound-pack -- add <file> <slot> --source ... --license ...`. To listen to',
+    'every slot, built-in against the pack\'s files: `npm run sound-pack -- board board.html`.',
     '',
     '**Licensing:** keep, for every file, the tool, your plan, the date, the prompt, and a copy of the',
     'terms that day. Only tools or plans that allow commercial use; no "in the style of" a real',

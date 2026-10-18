@@ -19,7 +19,8 @@ npm run sound-pack -- import ~/pictogen-sounds --source "Gemini (Google AI Pro),
 npm run sound-pack -- status     # what is there, what is missing
 ```
 
-Single files: `npm run sound-pack -- add <file> <slot> --source ... --license ...`.
+Single files: `npm run sound-pack -- add <file> <slot> --source ... --license ...`. To listen to
+every slot, built-in against the pack's files: `npm run sound-pack -- board board.html`.
 
 **Licensing:** keep, for every file, the tool, your plan, the date, the prompt, and a copy of the
 terms that day. Only tools or plans that allow commercial use; no "in the style of" a real
@@ -118,24 +119,24 @@ lips (like the babble in Animal Crossing). Record or generate several takes of e
 | `roar` | — | a lion: a friendly roar | A cartoon lion cub roar, playful, not scary. About 1.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 | `trumpet` | — | an elephant: a trumpet call | A cartoon baby elephant trumpeting happily. About 1 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 | `squawk` | — | a penguin: a squawk | A cute penguin squawk, short. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `blub` | — | a fish: little bubbles | Three small underwater bubbles popping, "blub blub". About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `blub` | ✅ 1 | a fish: little bubbles | Three small underwater bubbles popping, "blub blub". About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 
 ## Effects
 
 | File name (+ .mp3, .wav...) | Have | What it is | Prompt for a sound generator |
 |---|---|---|---|
 | `steps` | — | ONE soft footstep (several files = variety; played in a walking rhythm) | One single soft footstep of a small cartoon character on grass, very short, cute. About 0.15 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `pop` | — | something appears ("pop!") | A cute cartoon pop, like a bubble or a cork, very short. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `boing` | — | a jump (spring "boing") | A cartoon spring "boing" for a jump, bouncy. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `whoosh` | — | someone runs past (whoosh) | A quick soft cartoon whoosh, someone running past. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `jingle` | — | dancing (a little sparkly jingle) | A short happy sparkly bell jingle, 4 rising notes, for dancing. About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `ding` | — | thumbs up (a bright "ding") | A single bright bell "ding", positive, like a correct answer. About 1 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `blip` | — | pointing (a soft UI blip) | A soft short user-interface blip, friendly. About 0.15 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `twinkle` | — | a wink (twinkle) | A tiny magical twinkle sparkle, very short and high. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `plop` | — | sitting down (plop) | A soft cartoon plop of someone sitting down on a cushion. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `whirl` | — | spinning around (whirl) | A cartoon whirl, spinning around quickly, rising. About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `pop` | ✅ 3 | something appears ("pop!") | A cute cartoon pop, like a bubble or a cork, very short. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `boing` | ✅ 2 | a jump (spring "boing") | A cartoon spring "boing" for a jump, bouncy. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `whoosh` | ✅ 2 | someone runs past (whoosh) | A quick soft cartoon whoosh, someone running past. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `jingle` | ✅ 3 | dancing (a little sparkly jingle) | A short happy sparkly bell jingle, 4 rising notes, for dancing. About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `ding` | ✅ 2 | thumbs up (a bright "ding") | A single bright bell "ding", positive, like a correct answer. About 1 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `blip` | ✅ 3 | pointing (a soft UI blip) | A soft short user-interface blip, friendly. About 0.15 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `twinkle` | ✅ 2 | a wink (twinkle) | A tiny magical twinkle sparkle, very short and high. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `plop` | ✅ 1 | sitting down (plop) | A soft cartoon plop of someone sitting down on a cushion. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `whirl` | ✅ 2 | spinning around (whirl) | A cartoon whirl, spinning around quickly, rising. About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 | `flutter` | — | flying / flapping wings | Small bird wings fluttering, flapping quickly. About 0.6 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
-| `bubble` | — | swimming (bubbles) | A few small water bubbles rising, cute. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `bubble` | ✅ 2 | swimming (bubbles) | A few small water bubbles rising, cute. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 
 ## Music (per clip genre)
 

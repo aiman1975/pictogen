@@ -183,9 +183,11 @@ export function pgSound(ctx, dest, cue, when, bank) {
       if (pick) {
         // People's voices at their pitch; animals in a mood (happy higher, sad lower)
         const rate = pick.rate * (cue.v ? p : p * (MOODS[cue.m] || 1));
+        // Effects a little under voices and calls (files come levelled to the same peak)
+        const gain = cue.v || cue.m ? 1 : 0.6;
         let t = t0;
         const times = cue.s === 'snore' ? Math.max(1, Math.min(6, Math.round((cue.d || 2) / (pick.buffer.duration / rate)))) : cue.x || 1;
-        for (let i = 0; i < times; i++) t += play(i ? bank.pick(cue.s, cue.v, null, n + i) || pick : pick, t, rate) + 0.04;
+        for (let i = 0; i < times; i++) t += play(i ? bank.pick(cue.s, cue.v, null, n + i) || pick : pick, t, rate, { gain }) + 0.04;
         return;
       }
     }
