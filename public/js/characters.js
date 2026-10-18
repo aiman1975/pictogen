@@ -17,6 +17,7 @@ const OVAL = { w: 196, h: Math.round(196 * RATIO) };
 OVAL.x = (STAGE_W - OVAL.w) / 2;
 OVAL.y = (STAGE_H - OVAL.h) / 2 - 6;
 const EYE_LINE = 0.43; // eyes this far down the oval
+const MOUTH_LINE = 0.76; // the mouth: where the jaw is cut, to talk
 
 let characters = load();
 let uid = 0;
@@ -83,10 +84,18 @@ function apply(svg, named) {
         const id = `pgface${Date.now().toString(36)}${uid++}`;
         const g = document.createElementNS(SVG, 'g');
         g.setAttribute('class', 'pg-photo-face');
-        // The photo fades out toward the oval's edge, so the drawn hair and head frame it softly
+        g.setAttribute('data-mood', head.dataset.mood || 'happy');
+        // Cut at the mouth line: the upper face stays, the jaw below it drops to talk, showing a dark
+        // mouth behind. Both fade out toward the oval's edge, so the drawn hair and head frame them.
+        const top = oy - ry, mouth = top + 2 * ry * MOUTH_LINE, seam = 0.35;
+        const img = `<image href="${c.photo}" x="${cx - rx}" y="${top}" width="${2 * rx}" height="${2 * ry}" preserveAspectRatio="none" mask="url(#${id})"/>`;
         g.innerHTML = `<defs><radialGradient id="${id}g"><stop offset="0.7" stop-color="#fff"/><stop offset="0.97" stop-color="#000"/></radialGradient>`
-          + `<mask id="${id}" maskUnits="userSpaceOnUse"><ellipse cx="${cx}" cy="${oy}" rx="${rx}" ry="${ry}" fill="url(#${id}g)"/></mask></defs>`
-          + `<image href="${c.photo}" x="${cx - rx}" y="${oy - ry}" width="${2 * rx}" height="${2 * ry}" preserveAspectRatio="none" mask="url(#${id})"/>`;
+          + `<mask id="${id}" maskUnits="userSpaceOnUse"><ellipse cx="${cx}" cy="${oy}" rx="${rx}" ry="${ry}" fill="url(#${id}g)"/></mask>`
+          + `<clipPath id="${id}u"><rect x="${cx - rx}" y="${top}" width="${2 * rx}" height="${mouth - top + seam}"/></clipPath>`
+          + `<clipPath id="${id}j"><rect x="${cx - rx}" y="${mouth - seam}" width="${2 * rx}" height="${top + 2 * ry - mouth + seam}"/></clipPath></defs>`
+          + `<ellipse class="pg-photo-mouth" cx="${cx}" cy="${mouth}" rx="${rx * 0.3}" ry="${r * 0.15}" fill="#3b1a1a" style="transform-box: view-box; transform-origin: ${cx}px ${mouth}px"/>`
+          + `<g class="pg-photo-jaw" style="--jaw: ${(r * 0.13).toFixed(2)}px"><g clip-path="url(#${id}j)">${img}</g></g>`
+          + `<g clip-path="url(#${id}u)">${img}</g>`;
         // The drawn eyes and mouth hide under the photo (and would blink through it)
         head.querySelectorAll('.pg-face-eyes, .pg-face-mouth').forEach((f) => f.setAttribute('display', 'none'));
         head.appendChild(g);
@@ -207,7 +216,7 @@ function openCrop(img, done) {
   modal.innerHTML = `
     <div class="face-card" role="dialog" aria-modal="true" aria-labelledby="face-title">
       <h3 id="face-title">Fit the face in the oval</h3>
-      <p class="face-help">Drag the photo so the face fills the oval: <b>eyes on the line</b>, <b>chin at the bottom</b> of the oval. Hair may go outside it.</p>
+      <p class="face-help">Drag the photo so the face fills the oval: <b>eyes on the yellow line</b>, <b>mouth on the pink line</b>, <b>chin at the bottom</b> of the oval. Hair may go outside it. (The mouth line is where the face opens to talk.)</p>
       <div class="face-stage" style="width:${STAGE_W}px;height:${STAGE_H}px">
         <canvas width="${STAGE_W * 2}" height="${STAGE_H * 2}" style="width:${STAGE_W}px;height:${STAGE_H}px"></canvas>
         <svg viewBox="0 0 ${STAGE_W} ${STAGE_H}" aria-hidden="true">
@@ -215,6 +224,8 @@ function openCrop(img, done) {
           <ellipse cx="${STAGE_W / 2}" cy="${OVAL.y + OVAL.h / 2}" rx="${OVAL.w / 2}" ry="${OVAL.h / 2}" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="6 5"/>
           <line x1="${OVAL.x + 18}" x2="${OVAL.x + OVAL.w - 18}" y1="${OVAL.y + OVAL.h * EYE_LINE}" y2="${OVAL.y + OVAL.h * EYE_LINE}" stroke="#fde68a" stroke-width="1.5" stroke-dasharray="4 4"/>
           <text x="${OVAL.x + OVAL.w + 6}" y="${OVAL.y + OVAL.h * EYE_LINE + 4}" fill="#fde68a" font-size="12" font-weight="700">eyes</text>
+          <line x1="${OVAL.x + 46}" x2="${OVAL.x + OVAL.w - 46}" y1="${OVAL.y + OVAL.h * MOUTH_LINE}" y2="${OVAL.y + OVAL.h * MOUTH_LINE}" stroke="#fda4af" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <text x="${OVAL.x + OVAL.w - 40}" y="${OVAL.y + OVAL.h * MOUTH_LINE + 4}" fill="#fda4af" font-size="12" font-weight="700">mouth</text>
           <path d="M${STAGE_W / 2 - 14} ${OVAL.y + OVAL.h} h28" stroke="#fde68a" stroke-width="3" stroke-linecap="round"/>
           <text x="${STAGE_W / 2}" y="${OVAL.y + OVAL.h + 17}" fill="#fde68a" font-size="12" font-weight="700" text-anchor="middle">chin</text>
         </svg>

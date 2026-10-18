@@ -614,6 +614,35 @@ export const ANIMATION_CSS = `
   animation: pgWaddle 0.8s ease-in-out infinite alternate;
 }
 
+/* Photo faces (the studio's "Your characters"): the lower jaw, cut at the mouth, drops to talk
+   (--jaw: how far, set per face), bounces wider to laugh, hangs open in surprise */
+@keyframes pgJawTalk {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(var(--jaw, 1.6px)); }
+  70% { transform: translateY(calc(var(--jaw, 1.6px) * 0.35)); }
+}
+@keyframes pgJawLaugh {
+  0%, 100% { transform: translateY(calc(var(--jaw, 1.6px) * 0.5)); }
+  50% { transform: translateY(calc(var(--jaw, 1.6px) * 1.3)); }
+}
+/* the dark mouth behind the jaw opens and closes with it: shut, there is none */
+@keyframes pgMouthTalk {
+  0%, 100% { transform: scaleY(0); }
+  45% { transform: scaleY(1); }
+  70% { transform: scaleY(0.35); }
+}
+@keyframes pgMouthLaugh {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1.3); }
+}
+.pg-photo-mouth { transform: scaleY(0); }
+.pg-anim-talk .pg-photo-jaw, .pg-photo-face[data-mood="talking"] .pg-photo-jaw { animation: pgJawTalk 0.32s ease-in-out infinite; }
+.pg-anim-talk .pg-photo-mouth, .pg-photo-face[data-mood="talking"] .pg-photo-mouth { animation: pgMouthTalk 0.32s ease-in-out infinite; }
+.pg-photo-face[data-mood="laugh"] .pg-photo-jaw { animation: pgJawLaugh 0.22s ease-in-out infinite; }
+.pg-photo-face[data-mood="laugh"] .pg-photo-mouth { animation: pgMouthLaugh 0.22s ease-in-out infinite; }
+.pg-photo-face[data-mood="surprised"] .pg-photo-jaw { transform: translateY(calc(var(--jaw, 1.6px) * 1.2)); }
+.pg-photo-face[data-mood="surprised"] .pg-photo-mouth { transform: scaleY(1.2); }
+
 /* Environment Keyframes: Rain, Snow, Stars, Water, Sun Glow, Parallax */
 @keyframes pgRainFall {
   0% { transform: translateY(-50px) translateX(0); opacity: 0; }

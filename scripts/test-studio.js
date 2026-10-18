@@ -242,7 +242,7 @@ try {
   await page.setInputFiles('#characters-panel input[type=file]', { name: 'face.png', mimeType: 'image/png', buffer: photo });
   await page.waitForSelector('.face-modal');
   const guide = await page.evaluate(() => [...document.querySelectorAll('.face-stage svg text')].map((t) => t.textContent).join(','));
-  check(guide === 'eyes,chin', `the crop shows the face oval with its eye line and chin mark (${guide})`);
+  check(guide === 'eyes,mouth,chin', `the crop shows the face oval with its eye line, mouth line and chin mark (${guide})`);
   await page.click('.face-modal [data-do="save"]');
   check(/name/i.test(await page.textContent('.face-error')), 'a character needs a name');
   await page.fill('.face-name', 'Tom');
@@ -285,6 +285,19 @@ try {
   check(two.who === 'Max,Tom' && two.photos.every(Boolean) && two.tomWaves && !two.maxWaves && two.lanes === 'Steps,Tom,Max',
     `two boys, Tom and Max: each wears his own face, only Tom waves, the timeline names them (${JSON.stringify(two)})`);
   await page.click('#characters-panel [data-remove="1"]');
+  // The jaw: cut at the mouth line, it drops to talk (and laughs, and hangs open in surprise)
+  const jaw = () => page.evaluate(() => [...document.querySelectorAll('#svg-viewport [data-character="Tom"] .pg-photo-face')].map((f) => {
+    const j = getComputedStyle(f.querySelector('.pg-photo-jaw')), m = getComputedStyle(f.querySelector('.pg-photo-mouth'));
+    return `${f.dataset.mood}:${j.animationName}/${m.animationName}:${new DOMMatrix(j.transform).f > 0.5 ? 'open' : 'shut'}`;
+  }).join(' '));
+  await draw('Tom talks under a tree');
+  check(/^\w+:pgJawTalk\/pgMouthTalk/.test(await jaw()), `a talking photo face moves its jaw (${await jaw()})`);
+  await draw('Tom waves under a tree');
+  check(/:none\/none:shut$/.test(await jaw()), `not talking, the jaw stays shut (${await jaw()})`);
+  await draw('a laughing Tom under a tree');
+  check(/^laugh:pgJawLaugh\/pgMouthLaugh/.test(await jaw()), `laughing, the jaw bounces (${await jaw()})`);
+  await draw('a surprised Tom under a tree');
+  check(/^surprised:none\/none:open$/.test(await jaw()), `surprised, the mouth hangs open (${await jaw()})`);
   await draw('a boy walks in');
   check((await page.evaluate(() => document.querySelectorAll('#svg-viewport .pg-photo-face').length)) === 0, 'a boy without a name keeps his drawn face');
   await page.reload({ waitUntil: 'networkidle' });
