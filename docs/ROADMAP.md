@@ -108,6 +108,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [ ] Camera: cuts between shots, shake, dolly-zoom
 - [ ] Scene transitions (cut, fade, wipe) and caption timing tied to the beats
 - [ ] Recurring characters: the same boy looks the same in every scene (seeded identity)
+- [x] **Your characters from photos**: crop a face into the head's oval (eye line, chin mark,
+      plain backgrounds removed), name it, use the name in prompts; the photo stays in the browser
+- [ ] Photo characters: several of one kind in a scene ("Tom and Max", two boys), in the HTML
+      clip export, and a talking mouth (a simple jaw cut) for photo faces
 
 ### 5. Export
 - [x] **Video and GIF** from the studio: frames rendered exactly by seeking every animation (Web

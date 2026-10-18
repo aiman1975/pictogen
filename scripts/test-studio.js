@@ -226,6 +226,59 @@ try {
   const clip = await page.evaluate(() => window.pictogenStudio.getStory().scenes.map((sc) => ({ caption: sc.caption, jump: sc.svg.includes('data-anim="jump"'), wave: sc.svg.includes('data-anim="wave"') })));
   check(clip.length === 2 && clip[0].caption === 'The cat naps.' && clip[1].jump && !clip[1].wave, `"Play clip" plays the saved scenes in order, with captions and timeline edits (${JSON.stringify(clip)})`);
 
+  // 6. Your characters: a face photo, cropped to the head's oval, on the figure named in a prompt;
+  // the name and the photo never reach the server
+  await page.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
+  const sent = [];
+  page.on('request', (r) => { if (r.method() === 'POST') sent.push(r.postData() || ''); });
+  const photoPage = await browser.newPage({ viewport: { width: 400, height: 500 } });
+  await photoPage.setContent(`<canvas id=c width=400 height=500></canvas><script>
+    const c = document.getElementById('c').getContext('2d'); c.fillStyle = '#cfe0f0'; c.fillRect(0, 0, 400, 500);
+    c.fillStyle = '#e8b48a'; c.beginPath(); c.ellipse(200, 230, 95, 120, 0, 0, 7); c.fill();
+    c.fillStyle = '#222'; c.beginPath(); c.arc(165, 210, 9, 0, 7); c.arc(235, 210, 9, 0, 7); c.fill();</script>`);
+  const photo = await (await photoPage.$('#c')).screenshot({ type: 'png' });
+  await photoPage.close();
+  await page.click('#characters-panel [data-do="add"]');
+  await page.setInputFiles('#characters-panel input[type=file]', { name: 'face.png', mimeType: 'image/png', buffer: photo });
+  await page.waitForSelector('.face-modal');
+  const guide = await page.evaluate(() => [...document.querySelectorAll('.face-stage svg text')].map((t) => t.textContent).join(','));
+  check(guide === 'eyes,chin', `the crop shows the face oval with its eye line and chin mark (${guide})`);
+  await page.click('.face-modal [data-do="save"]');
+  check(/name/i.test(await page.textContent('.face-error')), 'a character needs a name');
+  await page.fill('.face-name', 'Tom');
+  await page.selectOption('.face-base', 'boy');
+  await page.click('.face-modal [data-do="save"]');
+  await page.waitForSelector('.face-modal', { state: 'detached' });
+  check((await page.textContent('#characters-panel')).includes('Tom'), 'Tom is listed under "Your characters"');
+  await draw('Tom walks in, then waves');
+  const tom = await page.evaluate(() => {
+    const item = document.querySelector('#svg-viewport .movable-item[data-character="Tom"]');
+    const heads = item ? [...item.querySelectorAll('[data-face]')] : [];
+    return {
+      id: item?.dataset.id, photos: heads.filter((h) => h.querySelector('.pg-photo-face image')).length, heads: heads.length,
+      eyesHidden: heads.every((h) => [...h.querySelectorAll('.pg-face-eyes')].every((e) => e.getAttribute('display') === 'none')),
+      matches: window.pictogenStudio.getState().result.matches.map((m) => m.id).join(),
+    };
+  });
+  check(tom.id === 'boy' && tom.heads >= 2 && tom.photos === tom.heads && tom.eyesHidden && tom.matches === 'boy',
+    `"Tom walks in, then waves": the boy wears Tom's photo in all ${tom.heads} poses, drawn eyes hidden`);
+  check(sent.length > 0 && sent.every((body) => !body.includes('Tom') && !body.includes('data:image')), 'the server only saw "the boy": no name, no photo');
+  await draw('a boy walks in');
+  check((await page.evaluate(() => document.querySelectorAll('#svg-viewport .pg-photo-face').length)) === 0, 'a boy without a name keeps his drawn face');
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForFunction(() => window.pictogenCharacters);
+  check((await page.evaluate(() => window.pictogenCharacters.list().map((c) => c.name).join())) === 'Tom', 'Tom is still there after a reload');
+  await draw('Tom waves under a tree');
+  await page.click('#clip-tray [data-do="add"]');
+  await page.click('#clip-tray [data-do="play"]');
+  await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'story' && window.pictogenStudio.getStory().scenes?.length);
+  const inClip = await page.evaluate(() => window.pictogenStudio.getStory().scenes.some((sc) => sc.svg.includes('pg-photo-face')));
+  check(inClip, 'a clip scene with Tom carries his photo (and so does its video export)');
+  await page.click('#modes-group .pill-btn[data-mode="scene"]');
+  await page.waitForFunction(() => !document.getElementById('characters-panel').hidden);
+  await page.click('#characters-panel [data-remove="0"]');
+  check((await page.evaluate(() => window.pictogenCharacters.list().length)) === 0, 'a character can be removed');
+
   check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
 } finally {
   if (browser) await browser.close();

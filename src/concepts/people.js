@@ -28,6 +28,11 @@ const gazeShift = (p) => {
   return g && (g.x || g.y) ? `translate(${Math.round((g.x || 0) * 260) / 100} ${Math.round((g.y || 0) * 160) / 100})` : null;
 };
 /** The root of every person drawing: the shared skeleton (src/concepts/rig.js) and its motion. */
+/**
+ * Where a face photo goes (the studio's "Your characters"): data-face="cx cy r" on the head joint,
+ * the head's centre and radius in drawing units. None from behind, where no face shows.
+ */
+const faceArea = (p, cx, cy, r) => (fromBehind(p) ? undefined : { face: `${cx} ${cy} ${r}` });
 const personRoot = (p) => `pg-rig pg-rig-person pg-anim-${p.opts.animation || 'blink'}`;
 
 /**
@@ -363,7 +368,7 @@ function drawSidePerson(d, p, s) {
           d.path(`M${s.ear[0] - 1} ${s.ear[1] - 1} Q${s.ear[0] + 1} ${s.ear[1]} ${s.ear[0] - 0.5} ${s.ear[1] + 1.2}`, { kind: 'line', stroke: far(skin), sw: 0.9 });
         }
         drawProfileFace(d, p, cx, cy + (s.faceDy ?? 0), r);
-      });
+      }, faceArea(p, cx, cy, r));
     });
     d.joint('pg-arm-left', shoulder, () => arm(same));
   }));
@@ -546,7 +551,7 @@ export function drawStickPerson(d, p, role = 'boy') {
         }
 
         if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 18, expr, '#000000', p);
-      });
+      }, faceArea(p, 50, 20, 15.5));
     });
   });
 }
@@ -600,7 +605,8 @@ export function drawCutePerson(d, p, role = 'boy') {
       }
     });
 
-    d.group({ class: 'pg-body-torso' }, () => {
+    // (the kawaii ball is all head: a face photo goes in its middle)
+    d.group({ class: 'pg-body-torso', data: faceArea(p, 50, 39, 17) }, () => {
       d.circle(50, 41, 27, { fill: bodyColor, stroke: '#000000', sw: 3.6, kind: 'body' });
       d.path('M 25 47 A 27 27 0 0 0 74 46 A 25 25 0 0 1 25 47 Z', { fill: '#000000', opacity: 0.12, kind: 'shadow' });
 
@@ -661,7 +667,7 @@ export function drawWhiteboardPerson(d, p, role = 'boy') {
       d.joint('pg-head', [50, 38], () => {
         d.circle(50, 23, 15, { fill: '#ffffff', stroke: '#0f172a', sw: 3.5, kind: 'body' });
         if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 22, expr, '#0f172a', p);
-      });
+      }, faceArea(p, 50, 23, 15));
     });
   });
 }
@@ -707,7 +713,7 @@ export function drawGeometricPerson(d, p, role = 'boy') {
         d.circle(50, 24, 16, { fill: '#f97316', kind: 'body' });
         d.rect(42, 10, 16, 6, { fill: '#1e3a8a', kind: 'body' });
         if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 23, expr, '#0f172a', p);
-      });
+      }, faceArea(p, 50, 24, 16));
     });
   });
 }
@@ -759,7 +765,7 @@ export function drawDoodlePerson(d, p, role = 'boy') {
         // Spiky messy sketchbook hair
         d.path('M36 14 L40 7 L45 13 L50 6 L55 13 L60 7 L64 14', { stroke: '#1e293b', sw: 2.6, fill: 'none', kind: 'line' });
         if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 25, expr, '#1e293b', p);
-      });
+      }, faceArea(p, 50, 26.5, 14.5));
     });
   });
 }
@@ -807,7 +813,7 @@ export function drawEditorialPerson(d, p, role = 'boy') {
           d.line(46, 23, 30, 21, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
           d.line(47, 26, 32, 27, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
           d.line(48, 29, 35, 32, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
-        });
+        }, faceArea(p, 52.5, 23, 9));
       });
     } else if (expr === 'sad' || role === 'man') {
       // 2nd figure from Image 2: Hunched silhouette with slumped posture & hair wisps
@@ -839,7 +845,7 @@ export function drawEditorialPerson(d, p, role = 'boy') {
           d.ellipse(54, 23, 9, 11, { fill: '#000000', kind: 'body' });
           d.path('M51 14 Q59 12 63 19', { stroke: '#000000', sw: 2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
           d.path('M56 13 Q62 16 63 22', { stroke: '#000000', sw: 1.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-        });
+        }, faceArea(p, 54, 23, 10));
       });
     } else {
       // 1st figure from Image 2: Tall slender silhouette with solid black head & finger notches
@@ -877,7 +883,7 @@ export function drawEditorialPerson(d, p, role = 'boy') {
         d.poly([[47, 28], [53, 28], [52, 60], [48, 60]], { fill: '#000000', kind: 'body' });
         d.joint('pg-head', [50, 27], () => {
           d.circle(50, 16, 9.5, { fill: '#000000', kind: 'body' });
-        });
+        }, faceArea(p, 50, 16, 9.5));
       });
     }
   });
@@ -935,7 +941,7 @@ export function drawPapercutPerson(d, p, role = 'boy') {
         d.circle(50, 20, 13, { fill: paperColor, kind: 'body' });
         // Subtle paper cutout face details
         if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 19, expr, '#27272a', p);
-      });
+      }, faceArea(p, 50, 20, 13));
     });
   });
 }
@@ -1035,7 +1041,7 @@ export default [
               d.path('M35 26 C35 13 44 10 51 10 C59 10 66 14 65.5 25 C62 21 57 19 52 21 C48 18 41 19 35 26 Z', { fill: p.c('hair') });
               drawFace(d, p, 50, 28);
             }
-          });
+          }, faceArea(p, 50, 27, 15));
         });
       });
     },
@@ -1107,7 +1113,7 @@ export default [
               d.path('M36 28 C36 12 44 11 50 11 C56 11 64 12 64 28 C60 22 56 20 50 20 C44 20 40 22 36 28 Z', { fill: p.c('hair'), kind: 'body' });
               drawFace(d, p, 50, 28);
             }
-          });
+          }, faceArea(p, 50, 27, 14));
         });
       });
     },
@@ -1175,7 +1181,7 @@ export default [
               d.path('M37 22 C37 11 44 9 50 9 C56 9 63 11 63 22 C59 18 55 16 50 16 C45 16 41 18 37 22 Z', { fill: p.c('hair') });
               drawFace(d, p, 50, 24);
             }
-          });
+          }, faceArea(p, 50, 24, 13));
         });
       });
     },
@@ -1242,7 +1248,7 @@ export default [
                 : 'M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L67 46 C67 48 63 48 62 43 L62 26 C57 18 53 18 50 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z', { fill: p.c('hair') });
               drawFace(d, p, 50, 24);
             }
-          });
+          }, faceArea(p, 50, 24, 13));
         });
       });
     },

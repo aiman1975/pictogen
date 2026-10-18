@@ -371,6 +371,26 @@
       .clip-row { grid-template-columns: 1.4rem minmax(0, 1fr) auto; }
       .clip-caption { grid-column: 2 / -1; grid-row: 2; }
     }
+    .char-list { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+    .char-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 4px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-subtle); }
+    .char-row img { width: 34px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .char-name { font-weight: 800; }
+    .char-base { color: var(--text-muted); font-size: 0.75rem; }
+    .face-modal { position: fixed; inset: 0; z-index: 100; background: rgb(15 23 42 / 0.55); display: grid; place-items: center; padding: 16px; overflow: auto; }
+    .face-card { background: var(--surface); color: var(--text); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 1.1rem 1.25rem; width: min(360px, 100%); display: flex; flex-direction: column; gap: 0.6rem; }
+    .face-card h3 { font-size: 1.05rem; font-weight: 800; }
+    .face-help, .face-note { font-size: 0.82rem; color: var(--text-muted); }
+    .face-help b { color: var(--text); }
+    .face-stage { position: relative; align-self: center; border-radius: 12px; overflow: hidden; cursor: grab; touch-action: none; max-width: 100%; }
+    .face-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .face-zoom { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.85rem; }
+    .face-zoom input { flex: 1; }
+    .face-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .face-row label { display: flex; flex-direction: column; gap: 2px; font-weight: 700; font-size: 0.8rem; color: var(--text-muted); flex: 1; min-width: 120px; }
+    .face-row input, .face-row select { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--text); background: var(--surface); }
+    .face-check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; font-weight: 700; }
+    .face-error { color: #b91c1c; font-size: 0.82rem; font-weight: 700; min-height: 1em; }
+    .face-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
     .tl-grip {
       position: absolute; top: 0; bottom: 0; width: 12px; margin-left: -6px; cursor: ew-resize; touch-action: none; z-index: 1;
     }
@@ -1040,6 +1060,8 @@
         <div class="timeline-panel" id="timeline-panel" hidden></div>
         <!-- Your clip: saved scenes played together in Clip Studio (public/js/clip-tray.js) -->
         <div class="timeline-panel clip-tray" id="clip-tray" hidden></div>
+        <!-- Your characters: face photos on figures, called by name (public/js/characters.js) -->
+        <div class="timeline-panel characters-panel" id="characters-panel" hidden></div>
 
         <!-- Animated Clip Player & Lower-Third Bar (active when mode === 'story') -->
         <div id="story-player-bar" style="display: none; background: #0f172a; color: #fff; border-top: 1px solid var(--border);">
@@ -1333,8 +1355,11 @@
     // Playing "Your clip" (saved scenes) instead of the prompt's story: until a prompt or preset is chosen
     function clipRequest() {
       const scenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
-      return scenes?.length ? { scenes, title: 'My Clip' } : {};
+      return scenes?.length ? { scenes: scenes.map((sc) => ({ ...sc, prompt: named(sc.prompt).text })), title: 'My Clip' } : {};
     }
+    // Your characters: their names become "the boy"/"the girl"... for the server, and their photos go
+    // on the drawings here (the photo never leaves the browser)
+    const named = (text) => window.pictogenCharacters?.rewrite(text) ?? { text, named: [] };
     const usePrompt = () => { state.clipActive = false; };
 
     async function runGenerate() {
@@ -1343,6 +1368,7 @@
       deselectItem();
       if (state.mode !== 'scene') window.pictogenTimeline?.update(null);
       window.pictogenClip?.refresh();
+      window.pictogenCharacters?.refresh();
       syncUrl();
 
       if (state.mode === 'story') {
@@ -1368,7 +1394,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              text: state.prompt,
+              text: named(state.prompt).text,
               ...clipRequest(),
               style: state.style,
               genre: state.genre,
@@ -1378,7 +1404,12 @@
             }),
           });
           const data = await res.json();
-          storyState.scenes = data.scenes;
+          // Faces of named characters go into each scene's markup (so a clip's video export has them)
+          const clipScenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
+          storyState.scenes = data.scenes.map((sc, i) => ({
+            ...sc,
+            svg: window.pictogenCharacters?.withFaces(sc.svg, named(clipScenes?.[i]?.prompt ?? state.prompt).named) ?? sc.svg,
+          }));
           storyState.genre = data.genre || state.genre;
           storyState.aspect = data.aspect || state.aspect;
           storyState.title = data.title;
@@ -1424,13 +1455,14 @@
       }
 
       svgViewport.innerHTML = '<div style="color: #64748b; font-weight: 700;">Rendering vector graphic...</div>';
+      const cast = state.mode === 'scene' ? named(state.prompt) : { text: state.prompt, named: [] };
 
       try {
         const res = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            text: state.prompt,
+            text: cast.text,
             style: state.style,
             mode: state.mode,
             vary: state.vary,
@@ -1441,8 +1473,10 @@
         const data = await res.json();
         state.svg = data.svg;
         state.result = data;
+        state.named = cast.named;
         state.duration = data.duration || null; // timelines and camera moves report their length
         svgViewport.innerHTML = data.svg;
+        window.pictogenCharacters?.apply(getSvgElement(), cast.named);
 
         // Render inspector matches
         matchBadgeCount.textContent = data.matches.length;
@@ -1779,6 +1813,7 @@
         }
         item.dataset.expression = targetExpr;
         addHitArea(item);
+        window.pictogenCharacters?.apply(getSvgElement(), state.named); // a redrawn figure keeps its photo
         state.svg = svgViewport.innerHTML;
         updateToolbarPosition();
         showToast(`Expression: ${targetExpr}`);
@@ -1810,6 +1845,7 @@
         console.error('Failed to update motion:', e);
       }
 
+      window.pictogenCharacters?.apply(getSvgElement(), state.named); // a redrawn figure keeps its photo
       state.svg = svgViewport.innerHTML;
       updateToolbarPosition();
       showToast(`Motion: ${targetAnim}`);
@@ -2066,7 +2102,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            text: state.prompt,
+            text: named(state.prompt).text,
             ...clipRequest(),
             style: state.style,
             genre: state.genre,
@@ -2444,6 +2480,7 @@
   </script>
   <script type="module" src="/js/timeline-view.js"></script>
   <script type="module" src="/js/clip-tray.js"></script>
+  <script type="module" src="/js/characters.js"></script>
   <script type="module">
     import { exportGif, exportVideo, videoFormat, mountOffscreen, download } from '/js/video-export.js';
     window.pictogenVideo = { exportGif, exportVideo, videoFormat, mountOffscreen };

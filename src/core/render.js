@@ -711,7 +711,8 @@ export function shapesToSvg(shapes, styleName = 'flat', ctx = {}) {
       const style = s.style ? ` style="${esc(s.style)}"` : '';
       const id = s.id ? ` id="${esc(s.id)}"` : '';
       const tr = s.transform ? ` transform="${esc(s.transform)}"` : '';
-      out += `<g${id}${cls}${style}${tr}>`;
+      const data = s.data ? Object.entries(s.data).filter(([, v]) => v != null).map(([k, v]) => ` data-${k}="${esc(v)}"`).join('') : '';
+      out += `<g${id}${cls}${style}${tr}${data}>`;
       continue;
     }
     if (s.type === 'g-end') {
