@@ -3,7 +3,9 @@
 import { readFileSync } from 'node:fs';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
-import { pgSound, pgSoundTrack } from './sound-synth.js';
+import { pgSound, pgSoundTrack, pgVoiced, pgBank, pgMusicBars, pgMusicTrack } from './sound-synth.js';
+import { soundOf } from './sound.js';
+import { packForClip } from './sound-pack.js';
 
 const FONT_DIR = new URL('../public/fonts/', import.meta.url);
 let fontCss = null;
@@ -496,12 +498,15 @@ export function composeStory(storyInput, opts = {}) {
  * Generates a standalone, zero-dependency offline HTML player for this story clip.
  * Renders Lower-Third editorial graphics according to the chosen genre and aspect ratio.
  */
-export function generateStoryHtml(story) {
+export function generateStoryHtml(story, opts = {}) {
   // \u003c keeps user captions like "</script>" from closing the inline <script> block. The markers
   // around it let the studio add photo faces to the scenes on the user's own machine before saving.
   const scenesJson = JSON.stringify(story.scenes).replace(/</g, '\\u003c');
   const title = esc(story.title || 'PictoGen Animated Clip');
   const genre = story.genre || 'kids';
+  // The sound pack's files this clip uses (public/audio/pack), carried inside the file
+  const pack = opts.pack ?? packForClip((story.scenes || []).map((sc) => soundOf(sc.svg)), { genre });
+  const packJson = JSON.stringify(pack).replace(/</g, '\\u003c');
   const aspect = story.aspect || '16:9';
   const dims = ASPECT_RATIOS[aspect] || ASPECT_RATIOS['16:9'];
 
@@ -789,6 +794,7 @@ ${embeddedFontCss()}
       </div>
       <div>
         <button class="btn-sound on" id="btn-sound" title="Sound on or off (chimes, voices and effects)">🔔</button>
+        <button class="btn-sound on" id="btn-music" title="Background music on or off">🎵</button>
       </div>
     </div>
 
@@ -938,25 +944,70 @@ ${embeddedFontCss()}
       } catch (e) {}
     }
 
-    // Each scene's voices and effects (its <metadata class="pg-sound">), made by the synthesizer
-    // below (src/sound-synth.js): nothing to load, works offline
+    // Each scene's voices and effects (its <metadata class="pg-sound">) and the genre's music: from
+    // the sound pack's files carried below, else made by the synthesizer (src/sound-synth.js).
+    // Nothing to load, works offline.
     ${pgSound.toString()}
     ${pgSoundTrack.toString()}
-    let sceneTrack = null;
+    ${pgVoiced.toString()}
+    ${pgBank.toString()}
+    ${pgMusicBars.toString()}
+    ${pgMusicTrack.toString()}
+    const PACK = /*pg-pack*/${packJson}/*pg-pack-end*/;
+    const clipGenre = '${genre}';
+    let sceneTrack = null, musicTrack = null, bank = null, bankLoading = null, mix = null;
+    let musicEnabled = true;
+    const btnMusic = document.getElementById('btn-music');
+    function audio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (!mix) {
+        const comp = audioCtx.createDynamicsCompressor();
+        comp.threshold.value = -14; comp.ratio.value = 4;
+        mix = audioCtx.createGain();
+        mix.gain.value = 1.2;
+        mix.connect(comp);
+        comp.connect(audioCtx.destination);
+      }
+      return audioCtx;
+    }
+    function loadBank() {
+      if (bankLoading || !PACK.length) return bankLoading;
+      const ctx = audio();
+      bankLoading = Promise.all(PACK.map((e) => {
+        const bytes = Uint8Array.from(atob(e.data), (c) => c.charCodeAt(0));
+        return ctx.decodeAudioData(bytes.buffer).then((buffer) => ({ ...e, data: null, buffer })).catch(() => null);
+      })).then((list) => {
+        bank = pgBank(list.filter(Boolean));
+        // Now with the pack's files
+        if (sceneTrack) playSceneSound(true);
+        if (musicTrack) { musicTrack.stop(); musicTrack = null; playMusic(); }
+      });
+      return bankLoading;
+    }
     function playSceneSound(resume) {
       if (sceneTrack) { sceneTrack.stop(); sceneTrack = null; }
       const m = stage.querySelector('metadata.pg-sound');
       if (!soundEnabled || !isPlaying || !m) return;
       try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const ctx = audio();
         const svg = stage.querySelector('svg');
         const ms = resume && svg && svg.getAnimations ? Math.max(0, ...svg.getAnimations({ subtree: true }).map((a) => Number(a.currentTime) || 0)) : 0;
-        sceneTrack = pgSoundTrack(audioCtx, audioCtx.destination, JSON.parse(m.textContent), ms / 1000);
+        sceneTrack = pgSoundTrack(ctx, mix, JSON.parse(m.textContent), ms / 1000, { bank, onVoice: (at, s) => musicTrack && musicTrack.duck(at, s) });
       } catch (e) {}
     }
-    // Browsers start sound only after a click: the first one starts the scene's sound
-    document.addEventListener('pointerdown', () => { if (!sceneTrack) playSceneSound(true); }, { once: true });
+    function playMusic() {
+      if (!musicEnabled || !isPlaying) { if (musicTrack) { musicTrack.stop(); musicTrack = null; } return; }
+      if (musicTrack) return;
+      try { musicTrack = pgMusicTrack(audio(), mix, clipGenre, bank); } catch (e) {}
+    }
+    btnMusic.addEventListener('click', () => {
+      musicEnabled = !musicEnabled;
+      btnMusic.classList.toggle('on', musicEnabled);
+      playMusic();
+    });
+    // Browsers start sound only after a click: the first one starts the scene's sound and the music
+    document.addEventListener('pointerdown', () => { audio(); loadBank(); if (!sceneTrack) playSceneSound(true); playMusic(); }, { once: true });
 
     dotsContainer.innerHTML = scenes.map((_, i) =>
       \`<div class="scene-dot \${i === 0 ? 'active' : ''}" onclick="goToScene(\${i})"></div>\`
@@ -979,6 +1030,7 @@ ${embeddedFontCss()}
 
       if (withChime) playChime();
       playSceneSound(false);
+      if (audioCtx) playMusic();
       startProgress();
     }
 
@@ -1017,6 +1069,7 @@ ${embeddedFontCss()}
         clearTimeout(sceneTimer);
       }
       playSceneSound(true);
+      playMusic();
     }
 
     btnPlay.addEventListener('click', togglePlay);

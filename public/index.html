@@ -1095,7 +1095,8 @@
 
             <div id="story-dots-container" style="display: flex; gap: 6px;"></div>
 
-            <button class="btn-action" id="story-btn-sound" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Toggle Clip Chimes">🔔</button>
+            <button class="btn-action" id="story-btn-sound" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Sound on or off: chimes, voices and effects">🔔</button>
+            <button class="btn-action" id="story-btn-music" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Background music for the clip's genre, on or off">🎵</button>
             <button class="btn-action" id="story-btn-export-html" style="background:#10b981; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Export standalone offline animated player">💾 Export Clip (.html)</button>
             <button class="btn-action" id="story-btn-export-video" style="background:#6366f1; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Render the whole clip, captions included, as a video">🎬 Export Video</button>
           </div>
@@ -1238,6 +1239,7 @@
       curIndex: 0,
       isPlaying: true,
       sound: true,
+      music: true,
       timer: null,
       progressInterval: null,
       startTime: 0,
@@ -1258,6 +1260,7 @@
     const storyBtnPrev = document.getElementById('story-btn-prev');
     const storyBtnNext = document.getElementById('story-btn-next');
     const storyBtnSound = document.getElementById('story-btn-sound');
+    const storyBtnMusic = document.getElementById('story-btn-music');
     const storyBtnExportHtml = document.getElementById('story-btn-export-html');
     const storyProgressTrack = document.getElementById('story-progress-track');
     const storyProgressFill = document.getElementById('story-progress-fill');
@@ -1493,6 +1496,7 @@
         state.duration = data.duration || null; // timelines and camera moves report their length
         svgViewport.innerHTML = data.svg;
         window.pictogenCharacters?.apply(getSvgElement(), cast.named);
+        window.pictogenSound?.stopMusic(); // (a clip's music, if one was playing)
         window.pictogenSound?.play(getSvgElement()); // its voices and effects, with the animation
 
         // Render inspector matches
@@ -2058,6 +2062,8 @@
       if (withChime) playStoryChime();
       if (storyState.sound && storyState.isPlaying) window.pictogenSound?.play(getSvgElement());
       else window.pictogenSound?.stop();
+      // The genre's background music, across the scenes
+      if (storyState.isPlaying) window.pictogenSound?.startMusic(storyState.genre || 'kids');
       startStoryProgress();
     }
 
@@ -2092,10 +2098,12 @@
         storyState.startTime = Date.now();
         startStoryProgress();
         if (storyState.sound) window.pictogenSound?.resume(getSvgElement());
+        window.pictogenSound?.startMusic(storyState.genre || 'kids');
       } else {
         clearInterval(storyState.progressInterval);
         clearTimeout(storyState.timer);
         window.pictogenSound?.stop();
+        window.pictogenSound?.stopMusic();
       }
     }
 
@@ -2122,12 +2130,24 @@
       if (on) window.pictogenSound?.resume(getSvgElement());
     }
     btnSound.addEventListener('click', () => setSound(!storyState.sound));
+    function showMusic(on) {
+      storyBtnMusic.style.color = on ? '#f59e0b' : '#64748b';
+      storyBtnMusic.style.opacity = on ? '1' : '0.6';
+    }
+    storyBtnMusic.addEventListener('click', () => {
+      storyState.music = !storyState.music;
+      showMusic(storyState.music);
+      window.pictogenSound?.setMusic(storyState.music);
+      if (storyState.music && storyState.isPlaying && storyState.scenes?.length) window.pictogenSound?.startMusic(storyState.genre || 'kids');
+    });
     window.addEventListener('load', () => {
       const on = window.pictogenSound ? window.pictogenSound.isEnabled() : true;
       storyState.sound = on;
       storyBtnSound.style.color = on ? '#f59e0b' : '#64748b';
       storyBtnSound.textContent = on ? '🔔' : '🔕';
       btnSound.textContent = on ? '🔊 Sound' : '🔇 Sound';
+      storyState.music = window.pictogenSound ? window.pictogenSound.isMusicOn() : true;
+      showMusic(storyState.music);
     });
 
     storyProgressTrack.addEventListener('click', (e) => {
@@ -2578,7 +2598,7 @@
       const mounted = story.scenes.map((sc) => mountOffscreen(sc.svg));
       try {
         const shots = story.scenes.map((sc, i) => ({ svg: mounted[i].svg, duration: sc.duration || 5, scene: sc }));
-        const blob = await exportVideo(shots, { fps: 30, title: story.title, genre: story.genre, sound: story.sound, onProgress: progress });
+        const blob = await exportVideo(shots, { fps: 30, title: story.title, genre: story.genre, sound: story.sound, music: story.music, onProgress: progress });
         download(blob, `${slug(story.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
         studio.showToast(`Clip video saved (${Math.round(blob.size / 1024)} KB)`);
       } finally {

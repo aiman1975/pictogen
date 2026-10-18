@@ -122,7 +122,12 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       when running, a boing on a jump, "ooh" when surprised, "a-ha!", "hmm", "aww", giggles, and a
       cute babble in time with the lip-sync ("?" rises). All synthesized in code (no recordings,
       nothing to license); played in the studio (🔊), the clip player, the HTML export and videos
-- [ ] Sound: background music beds per genre; a volume per figure; recorded CC0 effects as an option
+- [x] **Background music per genre** for clips (kids, news, documentary, how-to), quieter while
+      someone speaks; in the clip player (🎵), clip videos and HTML exports
+- [x] **Sound pack**: recorded or AI-generated files replace sounds one by one (voices, babble
+      syllables, animals, effects, music), each on record with its source and license
+      (`npm run sound-pack`, `docs/SOUND_PACK.md`); whatever is missing stays synthesized
+- [ ] Fill the sound pack (70 slots); a volume per figure; music for single scenes
 
 ### 5. Export
 - [x] **Video and GIF** from the studio: frames rendered exactly by seeking every animation (Web

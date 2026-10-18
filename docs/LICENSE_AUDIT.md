@@ -11,6 +11,7 @@ font, data file or dependency is added.
 | Nunito font | `public/fonts/`, embedded in exported clips | SIL OFL 1.1 | Yes | Ship `OFL-Nunito.txt`; can't sell the font on its own | ✅ self-hosted |
 | JetBrains Mono font | `public/fonts/`, embedded in exported clips | SIL OFL 1.1 | Yes | Ship `OFL-JetBrainsMono.txt` | ✅ self-hosted |
 | Scene sound: voices and effects | `src/sound.js`, `src/sound-synth.js` | MIT (`LICENSE`): synthesized in code, no recordings or samples | Yes | none beyond PictoGen's own | ✅ |
+| Sound pack (recorded / generated audio) | `public/audio/pack/` | Per file, recorded in `manifest.json` (source, license, date) | Only files whose license allows it | Keep the generator's terms and the prompt for each file | ✅ checked by `npm run sound-pack -- check` and `npm test` (empty so far) |
 | Showcase narration audio | `public/audio/showcase-*.wav` | Recorded with the Windows "Microsoft Zira" desktop voice | **Unclear** | See below | ⚠️ decide before release |
 
 ## Findings and what was done
@@ -36,8 +37,16 @@ font, data file or dependency is added.
 5. **Scene sound needs no third-party audio.** Voices ("ooh", "a-ha!", "hmm", giggles, a babble
    that follows the lip-sync), animal calls and effects are generated at playback time from
    oscillators, noise and filters (`src/sound-synth.js`). No sample library, so nothing to
-   license or credit. Recorded packs could be added later; take only CC0 ones (Kenney, CC0-filtered
-   Freesound) and list each in `THIRD_PARTY_NOTICES.md`.
+   license or credit.
+6. **Sound pack for better quality.** Recorded or AI-generated files can replace any synthesized
+   sound and give each clip genre its music (`public/audio/pack/`, `docs/SOUND_PACK.md`). Each
+   file must be added with `npm run sound-pack -- add ... --source ... --license ...`; a file in
+   the folder without a source and license on record fails `npm test`. For AI-generated audio:
+   use only tools and plans that grant commercial use (free tiers usually don't; Meta's
+   MusicGen/AudioGen weights are non-commercial), keep the terms of the day and the prompt, and
+   note that purely AI-made sound is generally not protected by copyright in the US or EU (usable,
+   but not exclusively ours). No imitation of real people's voices or of named artists. CC0
+   files need no notice; anything else that requires attribution goes in `THIRD_PARTY_NOTICES.md`.
 
 ## Rules for new material
 

@@ -4,7 +4,8 @@
 // Frames are exact, not a screen recording: every CSS animation in the SVG is paused and set to the
 // frame's time, the resulting state (transform, opacity) is copied onto a still copy of the SVG, and
 // that copy is drawn to a canvas. Clips (several scenes with captions) are rendered scene by scene.
-// Videos carry the scenes' sound (voices and effects, public/js/scene-sound.js), rendered ahead.
+// Videos carry the scenes' sound (voices and effects) and a clip's music (public/js/scene-sound.js),
+// rendered ahead.
 
 import { encodeGif } from './gif-encoder.js';
 import { soundOf, renderClipSound } from './scene-sound.js';
@@ -259,7 +260,7 @@ export async function exportGif(shots, { fps = 15, title, genre, onProgress } = 
  * The shots' sound as one AudioBuffer, each scene's from where it starts in the video (after the
  * title card), or null when there is nothing to hear.
  */
-export async function clipSound(shots, { fps = 30, title } = {}) {
+export async function clipSound(shots, { fps = 30, title, music = null } = {}) {
   let at = title ? Math.round(1.5 * fps) / fps : 0;
   const parts = shots.map((sh) => {
     const duration = Math.max(1, Math.round(sh.duration * fps)) / fps;
@@ -267,16 +268,19 @@ export async function clipSound(shots, { fps = 30, title } = {}) {
     at += duration;
     return part;
   });
-  return renderClipSound(parts, at + 0.1);
+  return renderClipSound(parts, at + 0.1, { music });
 }
 
 /**
  * Video (MP4 or WebM, whatever this browser records) of the shots -> Blob; recording runs in real
- * time. sound: with the scenes' voices and effects (default true).
+ * time. sound: with the scenes' voices and effects (default true); music: with the genre's
+ * background music under it (default false).
  */
-export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, sound = true, onProgress } = {}) {
+export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, sound = true, music = false, onProgress } = {}) {
   const { frames, width, height } = await renderShots(shots, { fps, scale, format: 'video', title, genre, onProgress: (p) => onProgress && onProgress(p * 0.6) });
-  const audio = sound ? await clipSound(shots, { fps, title }).catch(() => null) : null;
+  const audio = sound || music
+    ? await clipSound(sound ? shots : shots.map((sh) => ({ ...sh, svg: null })), { fps, title, music: music ? { genre: genre || 'kids' } : null }).catch(() => null)
+    : null;
   const n = frames.length;
   let shown = 0;
   const tick = setInterval(() => { shown = Math.min(n, shown + fps / 4); onProgress && onProgress(0.6 + 0.4 * (shown / n)); }, 250);

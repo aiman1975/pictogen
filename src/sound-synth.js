@@ -6,14 +6,20 @@
 // "a-ha!" rises, "hmm" hums with the mouth shut, a babble sings one syllable per syllable of the
 // words. Children's voices are higher with a smaller mouth (formants scaled up), men's lower.
 //
-// The functions are self-contained (no imports, no outside names) so the HTML clip export can
-// embed their source as is (src/story.js); the studio loads this file at /js/sound-synth.js.
+// A sound pack (public/audio/pack, src/sound-pack.js) can replace any of these with recorded or
+// generated files: pgSound plays a file from the bank when there is one, else synthesizes. Clips
+// get background music per genre (pgMusic*): the pack's loop for the genre, else a synthesized one.
+//
+// The functions are self-contained (no imports, no outside names but each other) so the HTML clip
+// export can embed their source as is (src/story.js); the studio loads this file at
+// /js/sound-synth.js.
 
 /**
  * Plays one cue ({ s: sound, v?: voice, p?: pitch, d?, n?, m?, x?, g? }, see src/sound.js) into
- * `dest` at time `when` (seconds on ctx's clock). Works with AudioContext and OfflineAudioContext.
+ * `dest` at time `when` (seconds on ctx's clock), from the sound pack's `bank` (pgBank) when it has
+ * the sound, else synthesized. Works with AudioContext and OfflineAudioContext.
  */
-export function pgSound(ctx, dest, cue, when) {
+export function pgSound(ctx, dest, cue, when, bank) {
   const t0 = Math.max(when, ctx.currentTime);
   const p = cue.p || 1;
   const out = ctx.createGain();
@@ -128,6 +134,62 @@ export function pgSound(ctx, dest, cue, when) {
     noise(t, t + dur, f);
     return g;
   };
+
+  // ---- From the sound pack ----------------------------------------------------------------------
+  if (bank) {
+    const n = Math.floor(when * 1000);
+    // A file at `at`, sped up or slowed down by `rate` (pitch), cut after `dur` if given
+    const play = (pick, at, rate, { dur, rateEnd, gain = 1 } = {}) => {
+      const src = ctx.createBufferSource();
+      src.buffer = pick.buffer;
+      src.playbackRate.setValueAtTime(rate, at);
+      const g = ctx.createGain();
+      g.gain.value = gain;
+      src.connect(g);
+      g.connect(out);
+      src.start(at);
+      if (dur) {
+        if (rateEnd) src.playbackRate.linearRampToValueAtTime(rateEnd, at + dur);
+        g.gain.setValueAtTime(gain, at + dur);
+        g.gain.linearRampToValueAtTime(0, at + dur + 0.05);
+        src.stop(at + dur + 0.06);
+      }
+      return pick.buffer.duration / rate;
+    };
+    if (cue.s === 'babble') {
+      // A syllable file per sung syllable ("ba", "do", "mi"... by vowel), with the babble's tune
+      const notes = cue.n || [];
+      if (notes.length && bank.pick('syl', cue.v, notes[0][2], 0)) {
+        notes.forEach(([at, dur, v, mark], i) => {
+          const pick = bank.pick('syl', cue.v, v === 'y' ? 'i' : v, i + n);
+          const nextAt = notes[i + 1] ? notes[i + 1][0] : undefined;
+          const lastOfSentence = nextAt === undefined || nextAt - (at + dur) > 0.3 || notes[i + 1][3] !== mark;
+          const wander = 1 + (((i * 7919 + Math.round(at * 1000)) % 23) / 23 - 0.5) * 0.16;
+          const r = pick.rate * p * wander * (mark === '!' ? 1.08 : 1);
+          const end = mark === '?' && lastOfSentence ? 1.25 : lastOfSentence ? 0.92 : 1;
+          play(pick, t0 + at, r, { dur: Math.max(0.08, Math.min(dur + 0.04, pick.buffer.duration / r)), rateEnd: r * end });
+        });
+        return;
+      }
+    } else if (cue.s === 'steps') {
+      if (bank.pick('steps', null, null, 0)) {
+        const gap = cue.g === 'run' ? 0.19 : 0.36;
+        const count = Math.max(1, Math.min(24, Math.floor((cue.d || 1) / gap)));
+        for (let i = 0; i < count; i++) play(bank.pick('steps', null, null, i), t0 + 0.05 + i * gap, 1 + (i % 2) * 0.04, { gain: cue.g === 'run' ? 0.8 : 1 });
+        return;
+      }
+    } else {
+      const pick = bank.pick(cue.s, cue.v, null, n);
+      if (pick) {
+        // People's voices at their pitch; animals in a mood (happy higher, sad lower)
+        const rate = pick.rate * (cue.v ? p : p * (MOODS[cue.m] || 1));
+        let t = t0;
+        const times = cue.s === 'snore' ? Math.max(1, Math.min(6, Math.round((cue.d || 2) / (pick.buffer.duration / rate)))) : cue.x || 1;
+        for (let i = 0; i < times; i++) t += play(i ? bank.pick(cue.s, cue.v, null, n + i) || pick : pick, t, rate) + 0.04;
+        return;
+      }
+    }
+  }
 
   switch (cue.s) {
     // Voices
@@ -276,8 +338,10 @@ export function pgSound(ctx, dest, cue, when) {
 /**
  * Plays a scene's sound ({ loop, cues }) in time with its animation, from now (scene time `from`
  * seconds, e.g. after a seek), over and over if it loops. Returns { stop() }.
+ *   opts.bank     the sound pack (pgBank), if any
+ *   opts.onVoice  (at, seconds) whenever someone speaks or calls (the music ducks under it)
  */
-export function pgSoundTrack(ctx, dest, sound, from = 0) {
+export function pgSoundTrack(ctx, dest, sound, from = 0, opts = {}) {
   const bus = ctx.createGain();
   bus.connect(dest);
   const zero = ctx.currentTime + 0.05 - from; // ctx time of the scene's time 0
@@ -291,7 +355,10 @@ export function pgSoundTrack(ctx, dest, sound, from = 0) {
     for (let k = first; k <= last; k++) {
       for (const c of cues) {
         const at = zero + k * loop + c.t;
-        if (at >= until && at < to) pgSound(ctx, bus, c, at);
+        if (at >= until && at < to) {
+          pgSound(ctx, bus, c, at, opts.bank);
+          if (opts.onVoice && pgVoiced(c)) opts.onVoice(at, pgVoiced(c));
+        }
       }
     }
     until = to;
@@ -304,5 +371,231 @@ export function pgSoundTrack(ctx, dest, sound, from = 0) {
       bus.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
       setTimeout(() => bus.disconnect(), 300);
     },
+  };
+}
+
+/** How long a cue is someone's voice (people talking, mooding, animals calling), or 0 */
+export function pgVoiced(cue) {
+  if (cue.s === 'babble') return (cue.n && cue.n.length ? cue.n[cue.n.length - 1][0] + cue.n[cue.n.length - 1][1] : 1) + 0.2;
+  if (cue.v || ['woof', 'meow', 'tweet', 'quack', 'squeak', 'roar', 'trumpet', 'squawk'].includes(cue.s)) return cue.s === 'snore' ? 0 : 0.9;
+  return 0;
+}
+
+/**
+ * A sound pack's files, decoded, ready to play: entries [{ buffer, sound?, voice?, vowel?, music? }]
+ * (src/sound-pack.js). pick(sound, voice, vowel, i) chooses a file (the i-th variant, round and
+ * round) in the voice asked for, else in the nearest voice pitched to it (a woman's file for a
+ * child, up to about half an octave) -> { buffer, rate } or null. music(genre) -> an entry or null.
+ */
+export function pgBank(entries) {
+  const F0 = { kid: 300, woman: 215, man: 118 };
+  const NEAR = { kid: ['kid', 'woman', 'man'], woman: ['woman', 'kid', 'man'], man: ['man', 'woman', 'kid'] };
+  const by = new Map();
+  for (const e of entries || []) {
+    if (!e || !e.buffer) continue;
+    const key = e.music ? 'music:' + e.music : e.sound;
+    if (!by.has(key)) by.set(key, []);
+    by.get(key).push(e);
+  }
+  return {
+    size: [...by.values()].reduce((s, l) => s + l.length, 0),
+    has: (sound) => by.has(sound),
+    pick(sound, voice, vowel, i) {
+      const all = by.get(sound);
+      if (!all) return null;
+      const k = Math.abs(Math.floor(i || 0));
+      const choose = (list, rate) => {
+        const same = vowel ? list.filter((e) => e.vowel === vowel) : list;
+        const from = same.length ? same : list;
+        return { buffer: from[k % from.length].buffer, rate };
+      };
+      if (!voice || !F0[voice]) return choose(all, 1);
+      for (const v of NEAR[voice]) {
+        const list = all.filter((e) => (e.voice || v) === v);
+        const rate = F0[voice] / F0[v];
+        if (list.length && rate >= 0.7 && rate <= 1.45) return choose(list, rate);
+      }
+      return null;
+    },
+    music: (genre) => (by.get('music:' + genre) || [])[0] || null,
+  };
+}
+
+/**
+ * Synthesized background music for a genre, the notes starting between ctx times t0 and t1 of a
+ * song that began at `songStart`: kids (a ukulele strum, glockenspiel, a soft beat), news (a
+ * pulsing bass, ticking hats, stabs), documentary (warm pads, a sparse piano, no drums), howto (a
+ * marimba, claps). A four-bar chord loop, the tune varying from bar to bar.
+ */
+export function pgMusicBars(ctx, dest, genre, songStart, t0, t1) {
+  const SONGS = {
+    kids: { bpm: 108, chords: [[48, 52, 55], [43, 47, 50], [45, 48, 52], [41, 45, 48]] },
+    news: { bpm: 118, chords: [[45, 48, 52], [41, 45, 48], [48, 52, 55], [43, 47, 50]] },
+    documentary: { bpm: 66, chords: [[50, 53, 57], [46, 50, 53], [41, 45, 48], [48, 52, 55]] },
+    howto: { bpm: 100, chords: [[41, 45, 48], [48, 52, 55], [50, 53, 57], [46, 50, 53]] },
+  };
+  const song = SONGS[genre] || SONGS.kids;
+  const beat = 60 / song.bpm, bar = beat * 4;
+  const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const rnd = (x) => (((x * 2654435761) >>> 0) % 1000) / 1000;
+  if (!ctx.__pgNoise) {
+    const b = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = b.getChannelData(0);
+    let s = 7;
+    for (let i = 0; i < d.length; i++) { s = (s * 16807) % 2147483647; d[i] = s / 1073741823.5 - 1; }
+    ctx.__pgNoise = b;
+  }
+  // Instruments: each note its own little graph
+  const voice = (t, type, f, peak, attack, decay, lp, hold = 0) => {
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(peak, t + attack);
+    if (hold) g.gain.setValueAtTime(peak, t + attack + hold);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + hold + decay);
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.value = f;
+    let node = o;
+    if (lp) { const f2 = ctx.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = lp; o.connect(f2); node = f2; }
+    node.connect(g);
+    g.connect(dest);
+    o.start(t);
+    o.stop(t + attack + hold + decay + 0.05);
+    return o;
+  };
+  const noise = (t, type, freq, peak, decay) => {
+    const n = ctx.createBufferSource();
+    n.buffer = ctx.__pgNoise;
+    const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(peak, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+    n.connect(f); f.connect(g); g.connect(dest);
+    n.start(t, (t * 3.7) % 0.9);
+    n.stop(t + decay + 0.02);
+  };
+  const pluck = (t, m, a) => { voice(t, 'triangle', hz(m), a, 0.004, 0.45, 2400); voice(t, 'sawtooth', hz(m), a * 0.12, 0.004, 0.15, 1800); };
+  const bell = (t, m, a) => { voice(t, 'sine', hz(m), a, 0.003, 0.9); voice(t, 'sine', hz(m) * 2.76, a * 0.25, 0.003, 0.3); };
+  const marimba = (t, m, a) => { voice(t, 'sine', hz(m), a, 0.003, 0.3); voice(t, 'sine', hz(m) * 4, a * 0.18, 0.002, 0.06); };
+  const piano = (t, m, a) => { voice(t, 'sine', hz(m), a, 0.005, 1.6); voice(t, 'sine', hz(m) * 2, a * 0.3, 0.005, 0.8); voice(t, 'triangle', hz(m) * 3, a * 0.06, 0.005, 0.4); };
+  const bass = (t, m, a, d) => voice(t, 'sawtooth', hz(m), a, 0.01, d, 320);
+  const pad = (t, notes, a, d) => notes.forEach((m) => [-6, 6].forEach((c) => {
+    const o = voice(t, 'sawtooth', hz(m), a, d * 0.3, d * 0.5, 900, d * 0.2);
+    o.detune.value = c;
+  }));
+  const kick = (t, a) => {
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(a, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    const o = ctx.createOscillator();
+    o.frequency.setValueAtTime(120, t);
+    o.frequency.exponentialRampToValueAtTime(42, t + 0.18);
+    o.connect(g); g.connect(dest);
+    o.start(t); o.stop(t + 0.25);
+  };
+  const hat = (t, a) => noise(t, 'highpass', 7000, a, 0.04);
+  const clap = (t, a) => [0, 0.012, 0.024].forEach((d) => noise(t + d, 'bandpass', 1500, a, 0.1));
+
+  const first = Math.max(0, Math.floor((t0 - songStart) / bar) - 1);
+  const last = Math.floor((t1 - songStart) / bar);
+  for (let b = first; b <= last; b++) {
+    const start = songStart + b * bar;
+    const chord = song.chords[b % song.chords.length];
+    const at = (beats) => start + beats * beat;
+    const notes = [];
+    const add = (beats, fn) => notes.push([at(beats), fn]);
+    if (genre === 'news') {
+      for (let i = 0; i < 16; i++) add(i / 4, (t) => bass(t, chord[0] - 12 + (i % 4 === 2 ? 12 : 0), 0.09, 0.12));
+      for (let i = 0; i < 16; i++) add(i / 4, (t) => hat(t, i % 2 ? 0.025 : 0.045));
+      [0, 2].forEach((i) => add(i, (t) => kick(t, 0.5)));
+      add(0, (t) => pad(t, chord.map((m) => m + 12), 0.03, bar * 0.9));
+      if (b % 2 === 0) add(0, (t) => bell(t, chord[2] + 24, 0.05));
+      add(3.5, (t) => bell(t, chord[0] + 24 + (rnd(b) > 0.5 ? 7 : 0), 0.03));
+    } else if (genre === 'documentary') {
+      add(0, (t) => pad(t, chord.map((m) => m + 12), 0.035, bar * 1.05));
+      add(0, (t) => voice(t, 'sine', hz(chord[0] - 12), 0.045, 0.8, bar * 0.5, null, bar * 0.4));
+      [0, 1.5, 2.5].forEach((i, j) => { if (j === 0 || rnd(b * 3 + j) > 0.4) add(i, (t) => piano(t, chord[Math.floor(rnd(b * 7 + j) * 3)] + 24, 0.07)); });
+    } else if (genre === 'howto') {
+      const arp = [0, 1, 2, 1];
+      for (let i = 0; i < 8; i++) add(i / 2, (t) => marimba(t, chord[arp[i % 4]] + 12 + (i >= 4 && rnd(b + i) > 0.6 ? 12 : 0), 0.11));
+      [0, 2].forEach((i) => add(i, (t) => { kick(t, 0.45); bass(t, chord[0] - 12, 0.1, beat * 1.4); }));
+      [1, 3].forEach((i) => add(i, (t) => clap(t, 0.08)));
+      for (let i = 0; i < 8; i++) add(i / 2, (t) => hat(t, 0.025));
+    } else {
+      // kids
+      for (let i = 0; i < 8; i++) add(i / 2, (t) => chord.forEach((m, k) => pluck(t + (i % 2 ? (2 - k) : k) * 0.012, m + 12, i % 2 ? 0.045 : 0.07)));
+      [0, 2].forEach((i) => add(i, (t) => { kick(t, 0.35); bass(t, chord[0] - 12, 0.1, beat * 1.2); }));
+      for (let i = 0; i < 8; i++) add(i / 2, (t) => hat(t, i % 2 ? 0.015 : 0.025));
+      const scale = [0, 2, 4, 7, 9];
+      [0, 1, 2, 3].forEach((i) => { if (rnd(b * 5 + i) > 0.35) add(i, (t) => bell(t, 72 + scale[Math.floor(rnd(b * 11 + i) * 5)] + (chord[0] % 12 === 9 ? -3 : 0), 0.05)); });
+    }
+    for (const [t, fn] of notes) if (t >= t0 && t < t1) fn(t);
+  }
+}
+
+/**
+ * A clip's background music, playing from now until stop(): the sound pack's loop for the genre
+ * (bank.music), else pgMusicBars. Quiet under the scenes (a file at 0.18: they come mastered
+ * loud; the synthesized music at 0.6), quieter still while someone speaks: duck(at, seconds).
+ * Returns { stop(), duck(at, seconds) }.
+ */
+export function pgMusicTrack(ctx, dest, genre, bank, level) {
+  const file = bank && bank.music(genre);
+  const out = ctx.createGain();
+  out.gain.value = level || (file ? 0.18 : 0.6);
+  const ducker = ctx.createGain();
+  ducker.connect(out);
+  out.connect(dest);
+  const start = ctx.currentTime + 0.05;
+  let timer = null, src = null;
+  if (file) {
+    src = ctx.createBufferSource();
+    src.buffer = file.buffer;
+    src.loop = true;
+    src.connect(ducker);
+    src.start(start);
+  } else {
+    let until = start;
+    const ahead = () => { const to = ctx.currentTime + 1.2; pgMusicBars(ctx, ducker, genre, start, until, to); until = to; };
+    ahead();
+    timer = setInterval(ahead, 400);
+  }
+  return {
+    duck(at, seconds) {
+      ducker.gain.setTargetAtTime(0.35, at, 0.06);
+      ducker.gain.setTargetAtTime(1, at + seconds, 0.35);
+    },
+    stop() {
+      if (timer) clearInterval(timer);
+      out.gain.setTargetAtTime(0, ctx.currentTime, 0.25);
+      setTimeout(() => { try { if (src) src.stop(); } catch (e) {} out.disconnect(); }, 1500);
+    },
+  };
+}
+
+/** Renders `seconds` of a genre's music from ctx time t0 (offline, e.g. for video): returns duck(at, s) */
+export function pgMusicRender(ctx, dest, genre, bank, t0, seconds, level) {
+  const file = bank && bank.music(genre);
+  const gain = level || (file ? 0.18 : 0.6);
+  const out = ctx.createGain();
+  const ducker = ctx.createGain();
+  ducker.connect(out);
+  out.connect(dest);
+  // Fade in and out at the ends
+  out.gain.setValueAtTime(0.0001, t0);
+  out.gain.linearRampToValueAtTime(gain, t0 + 0.8);
+  out.gain.setValueAtTime(gain, Math.max(t0 + 0.8, t0 + seconds - 1.2));
+  out.gain.linearRampToValueAtTime(0.0001, t0 + seconds);
+  if (file) {
+    const src = ctx.createBufferSource();
+    src.buffer = file.buffer;
+    src.loop = true;
+    src.connect(ducker);
+    src.start(t0);
+    src.stop(t0 + seconds);
+  } else pgMusicBars(ctx, ducker, genre, t0, t0, t0 + seconds);
+  return (at, s) => {
+    ducker.gain.setTargetAtTime(0.35, at, 0.06);
+    ducker.gain.setTargetAtTime(1, at + s, 0.35);
   };
 }
