@@ -46,6 +46,28 @@ for (const [id, kind] of Object.entries(SKELETONS)) {
 }
 check(!issues.length, `9 animals name their joints in every view (legs in trot pairs, head, tail, wings)${issues.length ? ': ' + issues.join('; ') : ''}`);
 
+// 1b. People: the same root and a head joint in every style and view (the cute2d ball is all head);
+// in profile, knees and elbows with fixed hip and shoulder pivots
+const personIssues = [];
+for (const id of ['boy', 'girl', 'man', 'woman']) {
+  for (const style of STYLE_NAMES) {
+    for (const view of ['front', 'three-quarter', 'side', 'back']) {
+      const svg = svgOf(id, { view }, style);
+      const where = `${id}/${style}/${view}`;
+      if (!/class="pg-rig pg-rig-person pg-anim-blink"/.test(svg)) personIssues.push(`${where}: no person root`);
+      if (style !== 'cute2d' && count(svg, 'pg-head') !== 1) personIssues.push(`${where}: ${count(svg, 'pg-head')} head joints`);
+      const head = svg.slice(svg.indexOf('class="pg-head"'));
+      if (style !== 'cute2d' && view !== 'back' && /pg-face-eyes/.test(svg) && !/pg-face-eyes/.test(head)) personIssues.push(`${where}: face not on the head`);
+    }
+  }
+  const side = svgOf(id, { view: 'side', animation: 'walk' });
+  if (count(side, 'pg-shin') !== 2 || count(side, 'pg-forearm') !== 2) personIssues.push(`${id}: profile without knees and elbows`);
+  if (!/class="pg-leg-left" style="transform-box: view-box; transform-origin: [\d.]+px [\d.]+px"/.test(side)) personIssues.push(`${id}: profile hip has no fixed pivot`);
+}
+check(!personIssues.length, `people join the skeleton: root and head in 4 people x ${STYLE_NAMES.length} styles x 4 views, knees and elbows in profile${personIssues.length ? ': ' + personIssues.slice(0, 8).join('; ') : ''}`);
+const idleA = svgOf('dog', { seed: 'a' }).match(/--pg-idle: (-[\d.]+s)/)?.[1], idleB = svgOf('dog', { seed: 'b' }).match(/--pg-idle: (-[\d.]+s)/)?.[1];
+check(idleA && idleB && idleA !== idleB, `figures start their idle cycle at different points (${idleA}, ${idleB})`);
+
 // 2. Every style keeps the skeleton
 const lost = [];
 for (const style of STYLE_NAMES) {
@@ -82,6 +104,7 @@ if (!chromium) {
       ['dog', { animation: 'walk' }], ['dog', { animation: 'run' }], ['dog', { animation: 'wag' }], ['dog', { animation: 'jump' }],
       ['dog', { animation: 'walk', view: 'front' }], ['bird', { animation: 'flap' }], ['penguin', { animation: 'wave' }],
       ['elephant', { animation: 'wave' }], ['fish', {}], ['cat', { animation: 'sleep' }],
+      ['boy', { animation: 'run', view: 'side' }], ['woman', { animation: 'walk', view: 'side' }], ['girl', { animation: 'talk' }], ['man', { seed: 'idle' }],
     ];
     await page.setContent(`<style>${ANIMATION_CSS}</style>` + cells.map(([id, o], i) => `<svg id="c${i}" viewBox="0 0 100 100" width="100">${svgOf(id, o)}</svg>`).join(''));
     const at = (i, sel, t) => page.evaluate(([i, sel, t]) => {
@@ -113,6 +136,15 @@ if (!chromium) {
     check(angle(trunk[0].m) < -30, `an elephant waves with its trunk (${angle(trunk[0].m)}°)`);
     const fin = await at(8, '.pg-tail', 0);
     check(fin[0].name === 'pgTailWag' && Math.abs(angle(fin[0].m)) > 5, 'a fish beats its tail fin');
+    const runKnee = await at(10, '.pg-leg-left .pg-shin', 0.75 * 450);
+    const runArm = await at(10, '.pg-forearm', 0);
+    check(angle(runKnee[0].m) > 60 && runArm.every((f) => angle(f.m) < -60), `running in profile, the trailing knee folds (${angle(runKnee[0].m)}°) and the forearms pump (${runArm.map((f) => angle(f.m))}°)`);
+    const stance = await at(11, '.pg-leg-left .pg-shin', 0.25 * 800), swing = await at(11, '.pg-leg-left .pg-shin', 0.75 * 800);
+    check(angle(stance[0].m) === 0 && angle(swing[0].m) > 30, `walking, the knee is straight on the ground (${angle(stance[0].m)}°) and bends as the leg swings through (${angle(swing[0].m)}°)`);
+    const nod = await at(12, '.pg-head', 125);
+    check(nod[0].name === 'pgHeadNod' && Math.abs(angle(nod[0].m)) >= 2, `a talking girl nods (${angle(nod[0].m)}°)`);
+    const delays = await page.evaluate(() => [...document.querySelectorAll('#c0 .pg-tail, #c13 .pg-head')].map((e) => getComputedStyle(e).animationDelay));
+    check(delays.length === 2 && delays.every((d) => d.startsWith('-')), `idle cycles start at each figure's own point (${delays.join(', ')})`);
     const asleep = await at(9, '.pg-face-eyes', 0);
     check(asleep[0].m.d < 0.2, 'a sleeping cat closes its eyes');
   } finally {

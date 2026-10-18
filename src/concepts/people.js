@@ -1,4 +1,5 @@
 // People concepts with procedural facial mimics (expressions) and rigged animatable limbs.
+import { idleStyle } from './rig.js';
 import { INK } from '../core/styles.js';
 import { darken } from '../core/color.js';
 
@@ -18,6 +19,8 @@ const fromBehind = (p) => viewOf(p) === 'back';
 /** Stylized faces slide toward the facing direction in profile: a simple turned-head look. */
 const faceX = (p) => 50 + ({ side: 7, 'three-quarter': 4 }[viewOf(p)] ?? 0);
 const turned = (p) => viewOf(p) === 'three-quarter';
+/** The root of every person drawing: the shared skeleton (src/concepts/rig.js) and its motion. */
+const personRoot = (p) => `pg-rig pg-rig-person pg-anim-${p.opts.animation || 'blink'}`;
 
 /**
  * The face, turned when the figure is seen three-quarters (opts.view 'three-quarter', facing right):
@@ -313,36 +316,47 @@ function drawSidePerson(d, p, s) {
     } else if (anim === 'hold' || anim === 'holding') {
       d.rect(a.x, a.y + 4, a.h - 2, a.w, { fill: shade(skin), rx: a.w / 2 });
     } else {
-      d.rect(a.x, a.y, a.w, a.h, { fill: shade(skin), rx: a.w / 2 });
+      // Upper arm and forearm, bending at the elbow (the forearms pump when running)
+      const half = a.h / 2;
+      d.rect(a.x, a.y, a.w, half + 2, { fill: shade(skin), rx: a.w / 2 });
+      d.joint('pg-forearm', [a.x + a.w / 2, a.y + half], () => d.rect(a.x, a.y + half - 2, a.w, half + 2, { fill: shade(skin), rx: a.w / 2 }));
     }
     if (s.arm.sleeve) d.rect(a.x - 0.5, a.y - 1, a.w + 1, 10, { fill: shade(main), rx: 3 });
   };
+  // Thigh and shin with the shoe, bending at the knee as the leg swings through
   const leg = (shade) => {
-    const l = s.legs;
-    d.rect(l.x, l.y, l.w, l.h, { fill: shade(legFill), rx: l.rx ?? 2 });
-    d.ellipse(s.shoe.x, s.shoe.y, s.shoe.rx, s.shoe.ry, { fill: shade(p.c('shoe')) });
+    const l = s.legs, half = l.h / 2;
+    d.rect(l.x, l.y, l.w, half + 2, { fill: shade(legFill), rx: l.rx ?? 2 });
+    d.joint('pg-shin', [l.x + l.w / 2, l.y + half], () => {
+      d.rect(l.x, l.y + half - 1, l.w, half + 1, { fill: shade(legFill), rx: l.rx ?? 2 });
+      d.ellipse(s.shoe.x, s.shoe.y, s.shoe.rx, s.shoe.ry, { fill: shade(p.c('shoe')) });
+    });
   };
+  // Limbs turn at the shoulder and hip (fixed pivots: a bending knee must not move the hip)
+  const shoulder = [s.arm.x + s.arm.w / 2, s.arm.y + 1], hip = [s.legs.x + s.legs.w / 2, s.legs.y];
   const same = (c) => c;
 
-  d.group({ class: anim ? `pg-anim-${anim}` : 'pg-anim-blink' }, () => d.group({ class: 'pg-profile' }, () => {
-    d.group({ class: 'pg-arm-right' }, () => arm(far));
-    d.group({ class: 'pg-leg-right' }, () => leg(far));
-    d.group({ class: 'pg-leg-left' }, () => leg(same));
+  d.group({ class: personRoot(p), style: idleStyle(p) }, () => d.group({ class: 'pg-profile' }, () => {
+    d.joint('pg-arm-right', shoulder, () => arm(far));
+    d.joint('pg-leg-right', hip, () => leg(far));
+    d.joint('pg-leg-left', hip, () => leg(same));
     d.group({ class: 'pg-body-torso' }, () => {
       d.rect(...s.neck, { fill: skin });
       if (s.torso.poly) d.poly(s.torso.poly, { fill: main, kind: 'body' });
       else d.path(s.torso.path, { fill: main });
-      if (s.hairBehind) d.path(s.hairBehind, { fill: hair, kind: 'body' });
-      d.circle(cx + r - 0.6, cy + 2.5, 2.4, { fill: skin }); // nose: behind the head so only its tip shows
-      d.circle(cx, cy, r, { fill: skin });
-      d.path(s.hair, { fill: hair, kind: 'body' });
-      if (s.ear) {
-        d.circle(s.ear[0], s.ear[1], s.ear[2], { fill: darken(skin, 0.08), kind: 'accent' });
-        d.path(`M${s.ear[0] - 1} ${s.ear[1] - 1} Q${s.ear[0] + 1} ${s.ear[1]} ${s.ear[0] - 0.5} ${s.ear[1] + 1.2}`, { kind: 'line', stroke: far(skin), sw: 0.9 });
-      }
-      drawProfileFace(d, p, cx, cy + (s.faceDy ?? 0), r);
+      d.joint('pg-head', [cx, cy + r], () => {
+        if (s.hairBehind) d.path(s.hairBehind, { fill: hair, kind: 'body' });
+        d.circle(cx + r - 0.6, cy + 2.5, 2.4, { fill: skin }); // nose: behind the head so only its tip shows
+        d.circle(cx, cy, r, { fill: skin });
+        d.path(s.hair, { fill: hair, kind: 'body' });
+        if (s.ear) {
+          d.circle(s.ear[0], s.ear[1], s.ear[2], { fill: darken(skin, 0.08), kind: 'accent' });
+          d.path(`M${s.ear[0] - 1} ${s.ear[1] - 1} Q${s.ear[0] + 1} ${s.ear[1]} ${s.ear[0] - 0.5} ${s.ear[1] + 1.2}`, { kind: 'line', stroke: far(skin), sw: 0.9 });
+        }
+        drawProfileFace(d, p, cx, cy + (s.faceDy ?? 0), r);
+      });
     });
-    d.group({ class: 'pg-arm-left' }, () => arm(same));
+    d.joint('pg-arm-left', shoulder, () => arm(same));
   }));
 }
 
@@ -444,11 +458,11 @@ function drawMinimalFace(d, cx, cy, expr, strokeColor = '#000000') {
  */
 export function drawStickPerson(d, p, role = 'boy') {
   const anim = p.opts.animation;
-  const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
+  const animClass = personRoot(p);
   const expr = p.opts.expression || p.expression || 'happy';
   const sw = 3.6;
 
-  d.group({ class: animClass }, () => {
+  d.group({ class: animClass, style: idleStyle(p) }, () => {
     // Legs rigged with joint pivots
     d.group({ class: 'pg-leg-left' }, () => {
       if (anim === 'sit' || anim === 'sitting') {
@@ -514,14 +528,16 @@ export function drawStickPerson(d, p, role = 'boy') {
     // Torso Spine & Head
     d.group({ class: 'pg-body-torso' }, () => {
       d.line(50, 35, 50, 66, { stroke: '#000000', sw: 4.2, strokeLinecap: 'round', kind: 'line' });
-      d.circle(50, 20, 15.5, { fill: '#ffffff', stroke: '#000000', sw: 3.5, kind: 'body' });
+      d.joint('pg-head', [50, 35], () => {
+        d.circle(50, 20, 15.5, { fill: '#ffffff', stroke: '#000000', sw: 3.5, kind: 'body' });
 
-      if (role === 'girl' || role === 'woman') {
-        d.path('M36 18 Q30 28 32 32', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-        d.path('M64 18 Q70 28 68 32', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-      }
+        if (role === 'girl' || role === 'woman') {
+          d.path('M36 18 Q30 28 32 32', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+          d.path('M64 18 Q70 28 68 32', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+        }
 
-      if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 18, expr, '#000000');
+        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 18, expr, '#000000');
+      });
     });
   });
 }
@@ -532,11 +548,11 @@ export function drawStickPerson(d, p, role = 'boy') {
  */
 export function drawCutePerson(d, p, role = 'boy') {
   const anim = p.opts.animation;
-  const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
+  const animClass = personRoot(p);
   const expr = p.opts.expression || p.expression || 'happy';
   const bodyColor = p.opts.color || (role === 'girl' ? '#fbcfe8' : role === 'man' ? '#ffffff' : role === 'woman' ? '#f5d0fe' : '#7dd3fc');
 
-  d.group({ class: animClass }, () => {
+  d.group({ class: animClass, style: idleStyle(p) }, () => {
     d.ellipse(50, 95, 17, 3.8, { fill: '#000000', opacity: 0.16, kind: 'shadow' });
 
     d.group({ class: 'pg-leg-left' }, () => {
@@ -594,11 +610,11 @@ export function drawCutePerson(d, p, role = 'boy') {
  */
 export function drawWhiteboardPerson(d, p, role = 'boy') {
   const anim = p.opts.animation;
-  const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
+  const animClass = personRoot(p);
   const expr = p.opts.expression || p.expression || 'happy';
   const accent = role === 'girl' || role === 'woman' ? '#f97316' : '#0284c7';
 
-  d.group({ class: animClass }, () => {
+  d.group({ class: animClass, style: idleStyle(p) }, () => {
     d.group({ class: 'pg-leg-left' }, () => {
       d.line(44, 68, 41, 93, { stroke: '#0f172a', sw: 3.6, strokeLinecap: 'round', kind: 'line' });
       d.line(41, 93, 35, 93, { stroke: '#0f172a', sw: 3.4, strokeLinecap: 'round', kind: 'line' });
@@ -633,8 +649,10 @@ export function drawWhiteboardPerson(d, p, role = 'boy') {
       d.rect(37, 40, 26, 28, { fill: '#ffffff', stroke: '#0f172a', sw: 3.5, rx: 4, kind: 'body' });
       // Marker tie / collar highlight
       d.path('M45 40 L50 47 L55 40', { stroke: accent, sw: 2.8, fill: 'none', kind: 'line' });
-      d.circle(50, 23, 15, { fill: '#ffffff', stroke: '#0f172a', sw: 3.5, kind: 'body' });
-      if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 22, expr, '#0f172a');
+      d.joint('pg-head', [50, 38], () => {
+        d.circle(50, 23, 15, { fill: '#ffffff', stroke: '#0f172a', sw: 3.5, kind: 'body' });
+        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 22, expr, '#0f172a');
+      });
     });
   });
 }
@@ -644,12 +662,12 @@ export function drawWhiteboardPerson(d, p, role = 'boy') {
  */
 export function drawGeometricPerson(d, p, role = 'boy') {
   const anim = p.opts.animation;
-  const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
+  const animClass = personRoot(p);
   const expr = p.opts.expression || p.expression || 'happy';
   const primary = role === 'girl' ? '#ea580c' : role === 'man' ? '#1d4ed8' : role === 'woman' ? '#b45309' : '#0284c7';
   const secondary = role === 'girl' ? '#fb923c' : '#38bdf8';
 
-  d.group({ class: animClass }, () => {
+  d.group({ class: animClass, style: idleStyle(p) }, () => {
     d.group({ class: 'pg-leg-left' }, () => {
       d.rect(38, 72, 10, 22, { fill: primary, kind: 'body' });
     });
@@ -676,9 +694,11 @@ export function drawGeometricPerson(d, p, role = 'boy') {
     });
     d.group({ class: 'pg-body-torso' }, () => {
       d.rect(36, 42, 28, 32, { fill: primary, kind: 'body' });
-      d.circle(50, 24, 16, { fill: '#f97316', kind: 'body' });
-      d.rect(42, 10, 16, 6, { fill: '#1e3a8a', kind: 'body' });
-      if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 23, expr, '#0f172a');
+      d.joint('pg-head', [50, 40], () => {
+        d.circle(50, 24, 16, { fill: '#f97316', kind: 'body' });
+        d.rect(42, 10, 16, 6, { fill: '#1e3a8a', kind: 'body' });
+        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 23, expr, '#0f172a');
+      });
     });
   });
 }
@@ -689,10 +709,10 @@ export function drawGeometricPerson(d, p, role = 'boy') {
  */
 export function drawDoodlePerson(d, p, role = 'boy') {
   const anim = p.opts.animation;
-  const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
+  const animClass = personRoot(p);
   const expr = p.opts.expression || p.expression || 'happy';
 
-  d.group({ class: animClass }, () => {
+  d.group({ class: animClass, style: idleStyle(p) }, () => {
     d.group({ class: 'pg-leg-left' }, () => {
       d.line(44, 68, 42, 93, { stroke: '#1e293b', sw: 3, strokeLinecap: 'round', kind: 'line' });
       d.ellipse(39, 94, 5, 2.5, { fill: '#1e293b', kind: 'detail' });
@@ -724,11 +744,13 @@ export function drawDoodlePerson(d, p, role = 'boy') {
     d.group({ class: 'pg-body-torso' }, () => {
       // Sketchy ink-filled torso shirt
       d.rect(36, 41, 28, 27, { fill: '#334155', stroke: '#1e293b', sw: 2.8, rx: 3, kind: 'body' });
-      // Boxy rounded sketchbook head
-      d.rect(34, 13, 32, 27, { fill: '#fffdfa', stroke: '#1e293b', sw: 2.8, rx: 7, kind: 'body' });
-      // Spiky messy sketchbook hair
-      d.path('M36 14 L40 7 L45 13 L50 6 L55 13 L60 7 L64 14', { stroke: '#1e293b', sw: 2.6, fill: 'none', kind: 'line' });
-      if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 25, expr, '#1e293b');
+      d.joint('pg-head', [50, 41], () => {
+        // Boxy rounded sketchbook head
+        d.rect(34, 13, 32, 27, { fill: '#fffdfa', stroke: '#1e293b', sw: 2.8, rx: 7, kind: 'body' });
+        // Spiky messy sketchbook hair
+        d.path('M36 14 L40 7 L45 13 L50 6 L55 13 L60 7 L64 14', { stroke: '#1e293b', sw: 2.6, fill: 'none', kind: 'line' });
+        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 25, expr, '#1e293b');
+      });
     });
   });
 }
@@ -739,10 +761,10 @@ export function drawDoodlePerson(d, p, role = 'boy') {
  */
 export function drawEditorialPerson(d, p, role = 'boy') {
   const anim = p.opts.animation;
-  const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
+  const animClass = personRoot(p);
   const expr = p.opts.expression || p.expression || 'happy';
 
-  d.group({ class: animClass }, () => {
+  d.group({ class: animClass, style: idleStyle(p) }, () => {
     if (role === 'girl' || role === 'woman') {
       // 3rd figure from Image 2: Walking silhouette in A-line dress with pointy nose & windblown hair
       d.group({ class: 'pg-leg-left' }, () => {
@@ -769,12 +791,14 @@ export function drawEditorialPerson(d, p, role = 'boy') {
 
       d.group({ class: 'pg-body-torso' }, () => {
         d.poly([[49, 34], [55, 34], [63, 68], [41, 68]], { fill: '#000000', kind: 'body' });
-        d.path('M48 14 A 9 9 0 0 1 57 23 L62 24 L57 26 A 9 9 0 0 1 48 32 A 9 9 0 0 1 48 14 Z', { fill: '#000000', kind: 'body' });
-        d.line(46, 17, 33, 11, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
-        d.line(47, 20, 31, 16, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
-        d.line(46, 23, 30, 21, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
-        d.line(47, 26, 32, 27, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
-        d.line(48, 29, 35, 32, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
+        d.joint('pg-head', [52, 34], () => {
+          d.path('M48 14 A 9 9 0 0 1 57 23 L62 24 L57 26 A 9 9 0 0 1 48 32 A 9 9 0 0 1 48 14 Z', { fill: '#000000', kind: 'body' });
+          d.line(46, 17, 33, 11, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
+          d.line(47, 20, 31, 16, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
+          d.line(46, 23, 30, 21, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
+          d.line(47, 26, 32, 27, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
+          d.line(48, 29, 35, 32, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
+        });
       });
     } else if (expr === 'sad' || role === 'man') {
       // 2nd figure from Image 2: Hunched silhouette with slumped posture & hair wisps
@@ -802,9 +826,11 @@ export function drawEditorialPerson(d, p, role = 'boy') {
 
       d.group({ class: 'pg-body-torso' }, () => {
         d.path('M48 30 Q44 45 47 62 L53 62 Q50 45 54 30 Z', { fill: '#000000', kind: 'body' });
-        d.ellipse(54, 23, 9, 11, { fill: '#000000', kind: 'body' });
-        d.path('M51 14 Q59 12 63 19', { stroke: '#000000', sw: 2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
-        d.path('M56 13 Q62 16 63 22', { stroke: '#000000', sw: 1.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+        d.joint('pg-head', [52, 33], () => {
+          d.ellipse(54, 23, 9, 11, { fill: '#000000', kind: 'body' });
+          d.path('M51 14 Q59 12 63 19', { stroke: '#000000', sw: 2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+          d.path('M56 13 Q62 16 63 22', { stroke: '#000000', sw: 1.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+        });
       });
     } else {
       // 1st figure from Image 2: Tall slender silhouette with solid black head & finger notches
@@ -840,7 +866,9 @@ export function drawEditorialPerson(d, p, role = 'boy') {
 
       d.group({ class: 'pg-body-torso' }, () => {
         d.poly([[47, 28], [53, 28], [52, 60], [48, 60]], { fill: '#000000', kind: 'body' });
-        d.circle(50, 16, 9.5, { fill: '#000000', kind: 'body' });
+        d.joint('pg-head', [50, 27], () => {
+          d.circle(50, 16, 9.5, { fill: '#000000', kind: 'body' });
+        });
       });
     }
   });
@@ -853,7 +881,7 @@ export function drawEditorialPerson(d, p, role = 'boy') {
  */
 export function drawPapercutPerson(d, p, role = 'boy') {
   const anim = p.opts.animation;
-  const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
+  const animClass = personRoot(p);
   const expr = p.opts.expression || p.expression || 'happy';
   const paletteMap = {
     boy: '#9a4632',    // Warm terracotta craft paper
@@ -863,7 +891,7 @@ export function drawPapercutPerson(d, p, role = 'boy') {
   };
   const paperColor = p.opts.color || paletteMap[role] || '#9a4632';
 
-  d.group({ class: animClass }, () => {
+  d.group({ class: animClass, style: idleStyle(p) }, () => {
     d.group({ class: 'pg-leg-left' }, () => {
       d.rect(39, 66, 9, 27, { fill: paperColor, rx: 4, kind: 'body' });
     });
@@ -893,10 +921,12 @@ export function drawPapercutPerson(d, p, role = 'boy') {
     d.group({ class: 'pg-body-torso' }, () => {
       // Smooth rounded paper cutout torso
       d.rect(34, 36, 32, 34, { fill: paperColor, rx: 8, kind: 'body' });
-      // Smooth circular paper head
-      d.circle(50, 20, 13, { fill: paperColor, kind: 'body' });
-      // Subtle paper cutout face details
-      if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 19, expr, '#27272a');
+      d.joint('pg-head', [50, 34], () => {
+        // Smooth circular paper head
+        d.circle(50, 20, 13, { fill: paperColor, kind: 'body' });
+        // Subtle paper cutout face details
+        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 19, expr, '#27272a');
+      });
     });
   });
 }
@@ -933,9 +963,9 @@ export default [
       if (viewOf(p) === 'side') return drawSidePerson(d, p, SIDE.boy);
       const skin = p.c('skin'), shirt = p.c('main');
       const anim = p.opts.animation;
-      const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
+      const animClass = personRoot(p);
 
-      d.group({ class: animClass }, () => {
+      d.group({ class: animClass, style: idleStyle(p) }, () => {
         // Legs rigged with joint pivots
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(40, 66, 9, 25, { fill: p.c('pants'), rx: 3 });
@@ -983,17 +1013,20 @@ export default [
           d.rect(46, 37, 8, 8, { fill: skin });
           d.path('M36 50 Q36 43 43 43 L57 43 Q64 43 64 50 L64 70 Q64 72 62 72 L38 72 Q36 72 36 70 Z', { fill: shirt });
 
-          d.circle(turned(p) ? 37 : 35.5, 28, 3.5, { fill: skin });
-          if (!turned(p)) d.circle(64.5, 28, 3.5, { fill: skin });
-          d.circle(50, 27, 15, { fill: skin });
-          if (fromBehind(p)) {
-            // Back of the head: hair down to the nape, a crown swirl
-            d.path('M35 27 C35 13 43 11 50 11 C57 11 65 13 65 27 C65 33 62 37 57 38 L43 38 C38 37 35 33 35 27 Z', { fill: p.c('hair') });
-            d.path('M47 19 Q50 16 53 19', { kind: 'line', stroke: INK, sw: 1, opacity: 0.35 });
-          } else {
-            d.path('M35 26 C35 13 44 10 51 10 C59 10 66 14 65.5 25 C62 21 57 19 52 21 C48 18 41 19 35 26 Z', { fill: p.c('hair') });
-            drawFace(d, p, 50, 28);
-          }
+          // The head turns at the neck: glances, nods, tilts
+          d.joint('pg-head', [50, 41], () => {
+            d.circle(turned(p) ? 37 : 35.5, 28, 3.5, { fill: skin });
+            if (!turned(p)) d.circle(64.5, 28, 3.5, { fill: skin });
+            d.circle(50, 27, 15, { fill: skin });
+            if (fromBehind(p)) {
+              // Back of the head: hair down to the nape, a crown swirl
+              d.path('M35 27 C35 13 43 11 50 11 C57 11 65 13 65 27 C65 33 62 37 57 38 L43 38 C38 37 35 33 35 27 Z', { fill: p.c('hair') });
+              d.path('M47 19 Q50 16 53 19', { kind: 'line', stroke: INK, sw: 1, opacity: 0.35 });
+            } else {
+              d.path('M35 26 C35 13 44 10 51 10 C59 10 66 14 65.5 25 C62 21 57 19 52 21 C48 18 41 19 35 26 Z', { fill: p.c('hair') });
+              drawFace(d, p, 50, 28);
+            }
+          });
         });
       });
     },
@@ -1014,9 +1047,9 @@ export default [
       if (viewOf(p) === 'side') return drawSidePerson(d, p, SIDE.girl);
       const skin = p.c('skin'), dress = p.c('main');
       const anim = p.opts.animation;
-      const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
+      const animClass = personRoot(p);
 
-      d.group({ class: animClass }, () => {
+      d.group({ class: animClass, style: idleStyle(p) }, () => {
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(42, 74, 6, 17, { fill: skin, rx: 2 });
           d.ellipse(44, 92, 6, 3.5, { fill: p.c('shoe') });
@@ -1052,18 +1085,20 @@ export default [
         d.group({ class: 'pg-body-torso' }, () => {
           d.poly([[42, 45], [58, 45], [68, 76], [32, 76]], { fill: dress, kind: 'body' });
           d.rect(47, 37, 6, 8, { fill: skin });
-          d.circle(50, 27, 14, { fill: skin });
+          d.joint('pg-head', [50, 40], () => {
+            d.circle(50, 27, 14, { fill: skin });
 
-          d.circle(32, 22, 7, { fill: p.c('hair'), kind: 'body' });
-          d.circle(68, 22, 7, { fill: p.c('hair'), kind: 'body' });
-          if (fromBehind(p)) {
-            // Back of the head: hair covers it, with a centre parting
-            d.path('M36 27 C36 12 44 12 50 12 C56 12 64 12 64 27 C64 34 59 38 50 38 C41 38 36 34 36 27 Z', { fill: p.c('hair'), kind: 'body' });
-            d.line(50, 13, 50, 25, { stroke: INK, sw: 1, opacity: 0.3, kind: 'line' });
-          } else {
-            d.path('M36 28 C36 12 44 11 50 11 C56 11 64 12 64 28 C60 22 56 20 50 20 C44 20 40 22 36 28 Z', { fill: p.c('hair'), kind: 'body' });
-            drawFace(d, p, 50, 28);
-          }
+            d.circle(32, 22, 7, { fill: p.c('hair'), kind: 'body' });
+            d.circle(68, 22, 7, { fill: p.c('hair'), kind: 'body' });
+            if (fromBehind(p)) {
+              // Back of the head: hair covers it, with a centre parting
+              d.path('M36 27 C36 12 44 12 50 12 C56 12 64 12 64 27 C64 34 59 38 50 38 C41 38 36 34 36 27 Z', { fill: p.c('hair'), kind: 'body' });
+              d.line(50, 13, 50, 25, { stroke: INK, sw: 1, opacity: 0.3, kind: 'line' });
+            } else {
+              d.path('M36 28 C36 12 44 11 50 11 C56 11 64 12 64 28 C60 22 56 20 50 20 C44 20 40 22 36 28 Z', { fill: p.c('hair'), kind: 'body' });
+              drawFace(d, p, 50, 28);
+            }
+          });
         });
       });
     },
@@ -1084,9 +1119,9 @@ export default [
       if (viewOf(p) === 'side') return drawSidePerson(d, p, SIDE.man);
       const skin = p.c('skin'), shirt = p.c('main');
       const anim = p.opts.animation;
-      const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
+      const animClass = personRoot(p);
 
-      d.group({ class: animClass }, () => {
+      d.group({ class: animClass, style: idleStyle(p) }, () => {
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(39, 64, 10, 28, { fill: p.c('pants'), rx: 2 });
           d.ellipse(43, 93, 8, 4, { fill: p.c('shoe') });
@@ -1118,18 +1153,20 @@ export default [
         d.group({ class: 'pg-body-torso' }, () => {
           d.rect(46, 34, 8, 8, { fill: skin });
           d.path('M34 42 L66 42 L64 66 L36 66 Z', { fill: shirt });
-          if (fromBehind(p)) {
-            d.circle(37, 25, 3, { fill: skin });
-            d.circle(63, 25, 3, { fill: skin });
-          }
-          d.circle(50, 24, 13, { fill: skin });
-          if (fromBehind(p)) {
-            // Back of the head: short hair down to the nape
-            d.path('M37 23 C37 11 44 10 50 10 C56 10 63 11 63 23 C63 29 60 32 56 33 L44 33 C40 32 37 29 37 23 Z', { fill: p.c('hair') });
-          } else {
-            d.path('M37 22 C37 11 44 9 50 9 C56 9 63 11 63 22 C59 18 55 16 50 16 C45 16 41 18 37 22 Z', { fill: p.c('hair') });
-            drawFace(d, p, 50, 24);
-          }
+          d.joint('pg-head', [50, 37], () => {
+            if (fromBehind(p)) {
+              d.circle(37, 25, 3, { fill: skin });
+              d.circle(63, 25, 3, { fill: skin });
+            }
+            d.circle(50, 24, 13, { fill: skin });
+            if (fromBehind(p)) {
+              // Back of the head: short hair down to the nape
+              d.path('M37 23 C37 11 44 10 50 10 C56 10 63 11 63 23 C63 29 60 32 56 33 L44 33 C40 32 37 29 37 23 Z', { fill: p.c('hair') });
+            } else {
+              d.path('M37 22 C37 11 44 9 50 9 C56 9 63 11 63 22 C59 18 55 16 50 16 C45 16 41 18 37 22 Z', { fill: p.c('hair') });
+              drawFace(d, p, 50, 24);
+            }
+          });
         });
       });
     },
@@ -1150,9 +1187,9 @@ export default [
       if (viewOf(p) === 'side') return drawSidePerson(d, p, SIDE.woman);
       const skin = p.c('skin'), top = p.c('main');
       const anim = p.opts.animation;
-      const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
+      const animClass = personRoot(p);
 
-      d.group({ class: animClass }, () => {
+      d.group({ class: animClass, style: idleStyle(p) }, () => {
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(40, 66, 9, 26, { fill: p.c('pants'), rx: 2 });
           d.ellipse(43, 93, 7, 3.5, { fill: p.c('shoe') });
@@ -1184,17 +1221,19 @@ export default [
         d.group({ class: 'pg-body-torso' }, () => {
           d.rect(47, 34, 6, 8, { fill: skin });
           d.path('M36 42 L64 42 L62 67 L38 67 Z', { fill: top });
-          d.circle(50, 24, 13, { fill: skin });
-          if (fromBehind(p)) {
-            // Back of the head: long hair falling over the shoulders
-            d.path('M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L66 45 C66 49 60 50 50 50 C40 50 34 49 34 45 Z', { fill: p.c('hair') });
-          } else {
-            // Turned three-quarters, the near strand falls behind the face: only the far one shows
-            d.path(turned(p)
-              ? 'M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 C61 19 56 17 52 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z'
-              : 'M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L67 46 C67 48 63 48 62 43 L62 26 C57 18 53 18 50 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z', { fill: p.c('hair') });
-            drawFace(d, p, 50, 24);
-          }
+          d.joint('pg-head', [50, 37], () => {
+            d.circle(50, 24, 13, { fill: skin });
+            if (fromBehind(p)) {
+              // Back of the head: long hair falling over the shoulders
+              d.path('M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L66 45 C66 49 60 50 50 50 C40 50 34 49 34 45 Z', { fill: p.c('hair') });
+            } else {
+              // Turned three-quarters, the near strand falls behind the face: only the far one shows
+              d.path(turned(p)
+                ? 'M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 C61 19 56 17 52 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z'
+                : 'M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L67 46 C67 48 63 48 62 43 L62 26 C57 18 53 18 50 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z', { fill: p.c('hair') });
+              drawFace(d, p, 50, 24);
+            }
+          });
         });
       });
     },

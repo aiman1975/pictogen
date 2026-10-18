@@ -53,7 +53,7 @@ node serve.js
 ```
 Enjoy an interactive prompt bar, style toggles, live SVG viewport, concept dictionary, and one-click SVG/PNG export!
 
-**Living animals:** the dog, cat, rabbit, lion, elephant, bird, duck, penguin and fish share one skeleton with the people (legs, head, tail, wings), so motions work on all of them: a dog gallops and wags its tail, a bird flaps its wings, a penguin waddles and waves its flipper, an elephant waves its trunk. Idle animals blink, sway their tails and twitch their ears.
+**One skeleton for everyone:** the people and the dog, cat, rabbit, lion, elephant, bird, duck, penguin and fish share one skeleton (legs, head, tail, wings; knees and elbows for people in profile), so motions work on all of them: people glance around, nod as they talk, and bend their knees as they walk and run: a dog gallops and wags its tail, a bird flaps its wings, a penguin waddles and waves its flipper, an elephant waves its trunk. Idle animals blink, sway their tails and twitch their ears.
 
 **Timeline view:** under a scene that moves, the timeline shows its steps, one lane per figure and one for the camera. Drag on the ruler to scrub. Click a step to change who does what ("walks in" → "runs to the dog", "waves" → "jumps", a feeling, a camera move), move it earlier or later, add a figure to it or delete it. **＋ Step** adds steps, also to a still scene. Edits stay while you change style or seed; **↺ Use the prompt** drops them.
 

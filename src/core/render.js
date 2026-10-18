@@ -436,9 +436,10 @@ export const ANIMATION_CSS = `
   91% { transform: rotate(-12deg); }
   96% { transform: rotate(5deg); }
 }
-.pg-tail { animation: pgTailSway 2.4s ease-in-out infinite; }
-.pg-head { animation: pgHeadIdle 6s ease-in-out infinite; }
-.pg-ear { animation: pgEarTwitch 4.6s ease-in-out infinite; }
+/* (each figure starts its idle cycle at its own point: --pg-idle on the rig's root) */
+.pg-tail { animation: pgTailSway 2.4s ease-in-out var(--pg-idle, 0s) infinite; }
+.pg-head { animation: pgHeadIdle 6s ease-in-out var(--pg-idle, 0s) infinite; }
+.pg-ear { animation: pgEarTwitch 4.6s ease-in-out var(--pg-idle, 0s) infinite; }
 
 /* Tails wag when the figure is excited; "wag" moves the tail only, not the whole animal */
 @keyframes pgTailWag {
@@ -470,6 +471,34 @@ export const ANIMATION_CSS = `
 .pg-anim-run .pg-head { animation: pgHeadNod 0.225s ease-in-out infinite; }
 .pg-anim-sleep .pg-head { animation: pgHeadDroop 2.4s ease-in-out infinite; }
 .pg-anim-think .pg-head { animation: none; transform: rotate(-8deg); }
+.pg-anim-talk .pg-head { animation: pgHeadNod 0.5s ease-in-out infinite; }
+.pg-anim-dance .pg-head { animation: pgHeadNod 0.275s ease-in-out infinite; }
+
+/* Knees and elbows (people in profile): the shin folds back as its leg swings through - in time
+   with the walk and run cycles above, where the near leg swings back in the first half - and the
+   forearms bend forward, pumping when running */
+@keyframes pgKneeNear {
+  0%, 50%, 100% { transform: rotate(0deg); }
+  75% { transform: rotate(40deg); }
+}
+@keyframes pgKneeFar {
+  0%, 50%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(40deg); }
+}
+@keyframes pgKneeRunNear {
+  0%, 45%, 100% { transform: rotate(4deg); }
+  75% { transform: rotate(80deg); }
+}
+@keyframes pgKneeRunFar {
+  0%, 50%, 95%, 100% { transform: rotate(4deg); }
+  25% { transform: rotate(80deg); }
+}
+.pg-anim-walk .pg-leg-left .pg-shin, .pg-anim-walk-across .pg-leg-left .pg-shin { animation: pgKneeNear 0.8s ease-in-out infinite; }
+.pg-anim-walk .pg-leg-right .pg-shin, .pg-anim-walk-across .pg-leg-right .pg-shin { animation: pgKneeFar 0.8s ease-in-out infinite; }
+.pg-anim-run .pg-leg-left .pg-shin { animation: pgKneeRunNear 0.45s ease-in-out infinite; }
+.pg-anim-run .pg-leg-right .pg-shin { animation: pgKneeRunFar 0.45s ease-in-out infinite; }
+.pg-anim-walk .pg-forearm, .pg-anim-walk-across .pg-forearm { transform: rotate(-18deg); }
+.pg-anim-run .pg-forearm { transform: rotate(-85deg); }
 .pg-rig.pg-anim-sleep .pg-face-eyes { animation: none; transform: scaleY(0.12); }
 
 /* Four legs: a gallop that pitches the body, a leap with legs stretched fore and aft, sitting,

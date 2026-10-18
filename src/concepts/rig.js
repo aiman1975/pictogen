@@ -11,6 +11,7 @@
 //   pg-tail                   the tail, turning at its base: sways idly, wags
 //   pg-ear                    an ear that twitches or flaps
 //   pg-face-eyes / -mouth     blink / talk
+//   pg-shin / pg-forearm      inside a leg / arm, turning at the knee / elbow (people in profile)
 //
 // Joints turn around a pivot in drawing units (d.joint(name, [x, y], fn)); legs without one turn
 // around the top centre of their shapes, their hip. The figure's root says what kind of skeleton it
@@ -21,8 +22,18 @@
 // pg-rig-head-on marks a figure seen from the front or back, whose legs step up and down instead
 // of swinging. The root also carries the motion class (pg-anim-walk...), so the scene adds no wrapper.
 
+/**
+ * Where in its idle cycle a figure starts (a CSS variable on the root, read by the idle glances,
+ * tail sways and ear twitches), from its seed: two dogs side by side don't move in unison.
+ */
+export function idleStyle(p) {
+  let h = 2166136261;
+  for (const ch of String(p.opts.seed ?? '')) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return `--pg-idle: -${((h >>> 0) % 600) / 100}s`;
+}
+
 /** Draws a rigged figure: the root group with its skeleton kind and motion. */
 export function rigged(d, p, kind, fn, { headOn = false } = {}) {
   const anim = p.opts.animation;
-  d.group({ class: `pg-rig pg-rig-${kind}${headOn ? ' pg-rig-head-on' : ''} pg-anim-${anim || 'blink'}` }, fn);
+  d.group({ class: `pg-rig pg-rig-${kind}${headOn ? ' pg-rig-head-on' : ''} pg-anim-${anim || 'blink'}`, style: idleStyle(p) }, fn);
 }

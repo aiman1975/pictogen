@@ -64,7 +64,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       quadruped, bird, fish). Motions are written once against the joints, so all nine hand-drawn
       animals in all their views now walk, gallop, leap, sit, lie down, wag, flap, wave and blink;
       tails sway, heads glance and ears twitch when idle
-- [ ] The people on the same joints: a head that turns and nods, knees and elbows
+- [x] The people on the same joints, in all 20 styles: a head that glances when idle, nods walking
+      and talking, tilts in thought and droops asleep; in profile, knees that fold as the leg swings
+      through and forearms that pump when running. Each figure idles at its own phase
+- [ ] Head turns toward whoever a figure looks at; knees and elbows in the stylized styles
 - [ ] More expressions plus **expression changes over time** ("sad, then happy")
 - [ ] Eye gaze (look at another character, follow a moving object), eyebrows, head tilt
 - [ ] Lip-sync from caption text (map words to mouth shapes), no audio needed
