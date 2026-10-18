@@ -104,6 +104,12 @@ console.log(result.matches); // [{ id: 'boy', count: 1 }, { id: 'dog', count: 1 
 
 ---
 
+## On the web (for friends and family)
+
+The studio also builds as a static web site where the engine runs in the visitor's browser: no
+server, nothing uploaded. `npm run web:preview` tries it locally; [`docs/DEPLOY.md`](docs/DEPLOY.md)
+publishes it on Firebase Hosting (e.g. https://pictogen.web.app), automatically on every push.
+
 ## Adding New Concepts
 
 Every concept is written once in a style-agnostic manner inside `src/concepts/`. See [`docs/CONCEPT_GUIDE.md`](docs/CONCEPT_GUIDE.md) for full instructions and drawing examples.

@@ -1,0 +1,32 @@
+# Publishes the studio to Firebase Hosting (https://<project>.web.app) on every push to main.
+# One-time setup: docs/DEPLOY.md (a Firebase project, and its service account key saved as the
+# repository secret FIREBASE_SERVICE_ACCOUNT). Without the secret, the site is built but not published.
+name: Deploy web studio
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Quick checks
+        run: node scripts/smoke-test.js && node scripts/test-timeline.js && node scripts/test-styles.js
+      - name: Build the static site
+        run: node scripts/build-web.js
+      - name: Publish to Firebase Hosting
+        if: env.HAS_KEY == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID || 'pictogen' }}
+          channelId: live
