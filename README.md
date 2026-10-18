@@ -59,6 +59,8 @@ Enjoy an interactive prompt bar, style toggles, live SVG viewport, concept dicti
 
 **Your clip:** under a scene, **＋ Add this scene** saves it, timeline edits included, as the next scene of a clip. Give each scene a caption, reorder or remove scenes, and **▶ Play clip** plays them in 🎬 Clip Studio, where they export as a video or a standalone HTML player. The clip stays in your browser between visits.
 
+**Promo video:** `npm run promo` builds a 90-second product video (`out/promo/pictogen-promo.mp4`, 1080p, with music) that shows what PictoGen can do. Every picture in it is drawn by PictoGen, the studio part is a real recording of the studio, and the music and sound effects are synthesized by `scripts/promo/audio.js`, so there is nothing to license. Needs Playwright and ffmpeg; `--preview slides` renders one still per slide.
+
 **Video & GIF export:** the 🎞 GIF and 🎬 Video buttons under the canvas render the animated scene, timelines and camera moves included, frame by frame in your browser. Video is MP4 (H.264) where the browser can record it (Chrome, Edge, Safari), otherwise WebM. In 🎬 Clip Studio, **Export Video** renders the whole clip with a title card and each scene's caption. Everything runs locally; nothing is uploaded and nothing needs installing.
 
 ### 2. Command Line Interface (CLI)
