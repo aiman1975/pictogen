@@ -125,7 +125,9 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] Step lengths: drag a step's edge in the timeline view or type its length (walks speed up to fit,
       gestures fill the time), or say it in the prompt ("waves for 3 seconds", "for a while");
       undo/redo (Ctrl+Z / Ctrl+Shift+Z) for every timeline edit
-- [ ] Save edited scenes into Clip Studio
+- [x] **Your clip**: save scenes one by one from the studio (timeline edits included), caption and
+      reorder them, and play them as one clip in Clip Studio (video and HTML export included); kept
+      in the browser between visits
 
 ## Known issues to fix along the way
 - The bicycle drawing loses its wheels at small sizes

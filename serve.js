@@ -130,6 +130,17 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Scenes saved one by one in the studio ("Your clip"): prompt, caption and edited steps each
+  const clipScenes = (payload) => (Array.isArray(payload.scenes)
+    ? payload.scenes.slice(0, 30)
+      .filter((sc) => sc && typeof sc.prompt === 'string' && sc.prompt.trim())
+      .map((sc) => ({
+        prompt: sc.prompt.slice(0, 500),
+        ...(typeof sc.caption === 'string' && sc.caption.trim() ? { caption: sc.caption.slice(0, 300) } : {}),
+        ...(Array.isArray(sc.beats) ? { beats: sc.beats } : {}),
+      }))
+    : []);
+
   // API: Generate multi-scene animated clip (Kids, Documentary, News, How-To)
   if (pathname === '/api/story/generate' && req.method === 'POST') {
     withJsonBody(req, res, (payload) => {
@@ -142,7 +153,8 @@ const server = http.createServer((req, res) => {
         vary: Boolean(payload.vary),
         title: payload.title,
       };
-      const story = composeStory(text, opts);
+      const scenes = clipScenes(payload);
+      const story = composeStory(scenes.length ? scenes : text, opts);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(story));
     });
@@ -152,7 +164,8 @@ const server = http.createServer((req, res) => {
   // API: Export story as standalone offline HTML player
   if (pathname === '/api/story/export-html' && req.method === 'POST') {
     withJsonBody(req, res, (payload) => {
-      const story = composeStory(payload.text || 'puppy-friend', {
+      const scenes = clipScenes(payload);
+      const story = composeStory(scenes.length ? scenes : payload.text || 'puppy-friend', {
         style: payload.style || 'flat',
         genre: payload.genre || 'kids',
         aspect: payload.aspect || '16:9',

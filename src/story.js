@@ -421,6 +421,8 @@ export function parseStoryText(text) {
 
 /**
  * Composes a full multi-scene animated clip with custom genre, aspect ratio, style, and seed.
+ * storyInput: story text (one scene per line, "prompt | caption"), a template id, or the scenes
+ * themselves: [{ prompt, caption?, tag?, headline?, duration?, beats? }] (beats: edited steps).
  */
 export function composeStory(storyInput, opts = {}) {
   const { style = 'flat', seed = 1, vary = false, genre = 'kids', aspect = '16:9' } = opts;
@@ -454,6 +456,8 @@ export function composeStory(storyInput, opts = {}) {
       height: dims.height,
       seed,
       vary,
+      // Steps edited in the studio's timeline view travel with a saved scene
+      ...(Array.isArray(sc.beats) ? { beats: sc.beats } : {}),
     });
 
     return {
@@ -461,7 +465,7 @@ export function composeStory(storyInput, opts = {}) {
       prompt: sc.prompt,
       tag: sc.tag || (detectedGenre === 'howto' ? `STEP ${i + 1}` : detectedGenre === 'news' ? 'UPDATE' : detectedGenre === 'documentary' ? `CHAPTER ${i + 1}` : undefined),
       headline: sc.headline || '',
-      caption: sc.caption || sc.prompt,
+      caption: sc.caption || `${sc.prompt.charAt(0).toUpperCase()}${sc.prompt.slice(1)}${/[.!?]$/.test(sc.prompt) ? '' : '.'}`,
       // A scene told as a sequence ("walks in, then waves...") lasts at least as long as its timeline
       duration: Math.max(sc.duration || 5.0, result.duration || 0),
       svg: result.svg,

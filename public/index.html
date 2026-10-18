@@ -359,6 +359,18 @@
     .tl-block.camera { background: var(--tl-camera); color: var(--tl-camera-ink); }
     .tl-block:hover { filter: brightness(0.96); }
     .tl-block.selected { border-color: currentColor; box-shadow: 0 0 0 2px rgb(37 99 235 / 0.25); }
+    .clip-tray { border-top: 1px dashed var(--border); }
+    .clip-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .clip-row { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr) minmax(0, 1.1fr) auto; gap: 0.5rem; align-items: center; }
+    .clip-num { font-weight: 800; color: var(--text-muted); text-align: center; }
+    .clip-prompt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+    .clip-badge { color: #92400e; background: #fef3c7; border-radius: 999px; padding: 0 6px; font-size: 0.7rem; }
+    .clip-caption { font: inherit; padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); min-width: 0; }
+    .clip-actions { display: flex; gap: 3px; }
+    @media (max-width: 640px) {
+      .clip-row { grid-template-columns: 1.4rem minmax(0, 1fr) auto; }
+      .clip-caption { grid-column: 2 / -1; grid-row: 2; }
+    }
     .tl-grip {
       position: absolute; top: 0; bottom: 0; width: 12px; margin-left: -6px; cursor: ew-resize; touch-action: none; z-index: 1;
     }
@@ -1026,6 +1038,8 @@
 
         <!-- Timeline view: the scene's steps per figure, editable (scene mode; public/js/timeline-view.js) -->
         <div class="timeline-panel" id="timeline-panel" hidden></div>
+        <!-- Your clip: saved scenes played together in Clip Studio (public/js/clip-tray.js) -->
+        <div class="timeline-panel clip-tray" id="clip-tray" hidden></div>
 
         <!-- Animated Clip Player & Lower-Third Bar (active when mode === 'story') -->
         <div id="story-player-bar" style="display: none; background: #0f172a; color: #fff; border-top: 1px solid var(--border);">
@@ -1256,6 +1270,7 @@
       storyPresetsContainer.querySelectorAll('.story-preset-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const storyId = btn.dataset.story;
+          usePrompt();
           state.prompt = storyId;
           promptInput.value = storyId;
           runGenerate();
@@ -1315,11 +1330,19 @@
       return false;
     }
 
+    // Playing "Your clip" (saved scenes) instead of the prompt's story: until a prompt or preset is chosen
+    function clipRequest() {
+      const scenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
+      return scenes?.length ? { scenes, title: 'My Clip' } : {};
+    }
+    const usePrompt = () => { state.clipActive = false; };
+
     async function runGenerate() {
       state.prompt = promptInput.value.trim() || 'apple';
       state.vary = optVary.checked;
       deselectItem();
       if (state.mode !== 'scene') window.pictogenTimeline?.update(null);
+      window.pictogenClip?.refresh();
       syncUrl();
 
       if (state.mode === 'story') {
@@ -1346,6 +1369,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               text: state.prompt,
+              ...clipRequest(),
               style: state.style,
               genre: state.genre,
               aspect: state.aspect,
@@ -2043,6 +2067,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: state.prompt,
+            ...clipRequest(),
             style: state.style,
             genre: state.genre,
             aspect: state.aspect,
@@ -2088,6 +2113,7 @@
         renderStoryPresets(state.genre);
         const presets = STORY_PRESETS[state.genre] || [];
         if (presets.length > 0) {
+          usePrompt();
           state.prompt = presets[0].id;
           promptInput.value = presets[0].id;
           if (state.mode === 'story') runGenerate();
@@ -2313,9 +2339,9 @@
 
     // Prompt input Enter key
     promptInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') runGenerate();
+      if (e.key === 'Enter') { usePrompt(); runGenerate(); }
     });
-    btnGenerate.addEventListener('click', runGenerate);
+    btnGenerate.addEventListener('click', () => { usePrompt(); runGenerate(); });
 
     // Quick prompt chips
     document.querySelectorAll('.chip').forEach(chip => {
@@ -2417,6 +2443,7 @@
     window.pictogenStudio = { getSvgElement, getState: () => state, getStory: () => storyState, showToast, regenerate: () => runGenerate() };
   </script>
   <script type="module" src="/js/timeline-view.js"></script>
+  <script type="module" src="/js/clip-tray.js"></script>
   <script type="module">
     import { exportGif, exportVideo, videoFormat, mountOffscreen, download } from '/js/video-export.js';
     window.pictogenVideo = { exportGif, exportVideo, videoFormat, mountOffscreen };

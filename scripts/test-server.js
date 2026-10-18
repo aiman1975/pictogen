@@ -52,6 +52,14 @@ try {
     'POST /api/generate plays edited steps, timed, dropping unknown figures and gestures');
   check(edit.cast.map((c) => c.id).join() === 'boy,dog', 'the result lists who can act (cast)');
 
+  const clip = await (await post('/api/story/generate', { text: 'ignored', title: 'My Clip', scenes: [
+    { prompt: 'a cat sleeping under a tree', caption: 'The cat naps.' },
+    { prompt: 'a boy walks in, then waves', beats: [{ actions: [{ actor: 'boy', type: 'pose', anim: 'jump' }] }] },
+    { prompt: 42 }, null,
+  ] })).json();
+  check(clip.title === 'My Clip' && clip.scenes.length === 2 && clip.scenes[0].caption === 'The cat naps.' && clip.scenes[1].caption === 'A boy walks in, then waves.'
+    && clip.scenes[1].svg.includes('data-anim="jump"'), 'POST /api/story/generate plays saved scenes with captions and edited steps, skipping bad ones');
+
   const face = /class="pg-face-(?:eyes|mouth)"/;
   const front = await (await post('/api/render-concept', { id: 'boy' })).json();
   const back = await (await post('/api/render-concept', { id: 'boy', view: 'back' })).json();

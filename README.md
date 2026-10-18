@@ -57,6 +57,8 @@ Enjoy an interactive prompt bar, style toggles, live SVG viewport, concept dicti
 
 **Timeline view:** under a scene that moves, the timeline shows its steps, one lane per figure and one for the camera. Drag on the ruler to scrub. Click a step to change who does what ("walks in" → "runs to the dog", "waves" → "jumps", a feeling, a camera move), move it earlier or later, add a figure to it or delete it. **＋ Step** adds steps, also to a still scene. Drag a step's right edge (or type its length) to make it longer or shorter; prompts can set lengths too (*"waves for 3 seconds"*). ↶ / ↷ or Ctrl+Z / Ctrl+Shift+Z undo and redo. Edits stay while you change style or seed; **↺ Use the prompt** drops them.
 
+**Your clip:** under a scene, **＋ Add this scene** saves it, timeline edits included, as the next scene of a clip. Give each scene a caption, reorder or remove scenes, and **▶ Play clip** plays them in 🎬 Clip Studio, where they export as a video or a standalone HTML player. The clip stays in your browser between visits.
+
 **Video & GIF export:** the 🎞 GIF and 🎬 Video buttons under the canvas render the animated scene, timelines and camera moves included, frame by frame in your browser. Video is MP4 (H.264) where the browser can record it (Chrome, Edge, Safari), otherwise WebM. In 🎬 Clip Studio, **Export Video** renders the whole clip with a title card and each scene's caption. Everything runs locally; nothing is uploaded and nothing needs installing.
 
 ### 2. Command Line Interface (CLI)

@@ -203,6 +203,29 @@ try {
   });
   check(scrub.paused && Math.abs(scrub.at - 0.5) < 0.03, `clicking the ruler pauses the clip at that moment (${(scrub.at * 100).toFixed(1)}%)`);
 
+  // 5. Your clip: scenes saved with their edits and captions, reordered, played in Clip Studio, kept
+  // across a reload
+  const tray = () => page.evaluate(() => [...document.querySelectorAll('#clip-tray .clip-row')].map((r) => r.querySelector('.clip-prompt').textContent.trim()));
+  await draw('a boy walks in, then waves, then a dog runs to him');
+  await page.click('.tl-block[data-actor="boy"][data-beat="1"]');
+  await rerender(() => page.selectOption('#tl-editor select[data-field="does"]', 'pose:jump'));
+  await page.click('#clip-tray [data-do="add"]');
+  await draw('a cat sleeping under a tree');
+  await page.click('#clip-tray [data-do="add"]');
+  let rows = await tray();
+  check(rows.length === 2 && rows[0].includes('✎ edited') && !rows[1].includes('edited'), `two scenes saved, the edited one marked (${rows.join(' / ')})`);
+  await page.fill('#clip-tray .clip-caption[data-i="1"]', 'The cat naps.');
+  await page.click('#clip-tray [data-up="1"]');
+  rows = await tray();
+  check(rows[0].startsWith('a cat sleeping') && (await page.inputValue('#clip-tray .clip-caption[data-i="0"]')) === 'The cat naps.', 'a scene moves earlier with its caption');
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForFunction(() => window.pictogenClip);
+  check((await tray()).length === 2, 'the clip is still there after a reload');
+  await page.click('#clip-tray [data-do="play"]');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.length && window.pictogenStudio.getState().mode === 'story');
+  const clip = await page.evaluate(() => window.pictogenStudio.getStory().scenes.map((sc) => ({ caption: sc.caption, jump: sc.svg.includes('data-anim="jump"'), wave: sc.svg.includes('data-anim="wave"') })));
+  check(clip.length === 2 && clip[0].caption === 'The cat naps.' && clip[1].jump && !clip[1].wave, `"Play clip" plays the saved scenes in order, with captions and timeline edits (${JSON.stringify(clip)})`);
+
   check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
 } finally {
   if (browser) await browser.close();
