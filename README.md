@@ -10,7 +10,7 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
 
 - ⚡ **100% Offline & Zero Dependencies**: Uses native JavaScript & SVG. No npm installs or GPU required.
 - 🎨 **23 Switchable Visual Styles** (the classic seven below, plus watercolor, anime, crayon, cute2d, comic, doodle, editorial, papercut, geometric, whiteboard, blueprint, chalkboard, vintage, pixel, stickman and letterling). Each has its own signature, checked by `scripts/test-styles.js` (every pair of styles must look clearly different):
-  - **Watercolor**: soft transparent washes that bleed at the edges, on textured paper. **Anime**: crisp thin line art, cel shading, big shiny eyes, a deep summer sky with clouds. **Crayon**: waxy streaks with the paper showing through.
+  - **Watercolor**: soft transparent washes that bleed at the edges, on textured paper. **Anime**: crisp thin line art, cel shading, big shiny eyes, hair with a pointed fringe and a shine, a deep summer sky with clouds. **Crayon**: waxy streaks with the paper showing through.
   - **Pixel**: really pixelated (the whole picture, in a 32-color retro palette). **Comic Strip**: heavy ink, printed colors, halftone dots and a panel frame. **Letterlings**: glossy candy sheen and polka-dot skies. **Geometric**: a Bauhaus poster. **Whiteboard** and **Doodle**: whole characters in marker and ballpoint pen (not sticks); **Stickman** figures have hair and hands.
   - **Flat**: Clean, modern emoji-like flat colors.
   - **Cartoon**: Bold vibrant colors with dark ink outlines (children's books).

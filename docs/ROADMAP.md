@@ -74,7 +74,9 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       **Crayon**. Pixel really pixelates, Comic gets halftone and a panel, Letterlings candy gloss,
       Geometric a Bauhaus backdrop, rooms take each style's colors
 - [x] **Numberlings 0-9**: digits as characters ("the number seven jumps"), "count to 5", "2026"
-- [ ] Anime hair (bangs, shine) and profile anime eyes; style-specific animal faces
+- [x] Anime hair: a fringe of pointed locks, spikes or face-framing locks, the shine across the crown,
+      in all four views
+- [ ] Profile anime eyes; style-specific animal faces
 - [ ] More expressions plus **expression changes over time** ("sad, then happy")
 - [x] **Eye gaze and looking at each other**: "they look at each other", "the boy looks at the dog",
       "watches the bird", "waves at her", "smiles at us", in timelines and still scenes. People turn

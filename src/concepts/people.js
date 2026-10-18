@@ -1,7 +1,7 @@
 // People concepts with procedural facial mimics (expressions) and rigged animatable limbs.
 import { idleStyle } from './rig.js';
 import { INK } from '../core/styles.js';
-import { darken } from '../core/color.js';
+import { darken, mix } from '../core/color.js';
 
 export const SKIN_TONES = ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524'];
 export const HAIR_COLORS = ['#4e342e', '#212121', '#795548', '#e6b94f', '#a1662f'];
@@ -215,6 +215,55 @@ export function drawFacialExpression(d, p, cx = 50, cy = 28) {
 }
 
 /**
+ * Anime hair over a person's own hair (the Anime style): a fringe of pointed locks over the
+ * forehead, locks framing the face for girls and women, spikes on top for boys and men, and the
+ * shine ("angel ring") across the crown. view: 'front' (turned with the face when three-quarter),
+ * 'back' or 'side' (facing right). Head centred at (cx, cy), radius r.
+ */
+const isAnime = (p) => p.opts.style === 'anime';
+function drawAnimeHair(d, p, role, cx, cy, r, view = 'front') {
+  const hair = p.c('hair');
+  const f = (v) => Math.round(v * 100) / 100;
+  const pt = (x, y) => `${f(cx + x * r)} ${f(cy + y * r)}`;
+  const lock = { fill: hair, kind: 'body' };
+  const long = role === 'girl' || role === 'woman';
+  const draw = () => {
+    if (!long && view !== 'side') {
+      // Spikes on top (shorter for a man)
+      const h = role === 'man' ? 0.82 : 1;
+      d.path(`M${pt(-0.78, -0.62)} L${pt(-0.6, -0.62 - 0.66 * h)} L${pt(-0.22, -0.95)} L${pt(0.02, -0.62 - 0.78 * h)} L${pt(0.28, -0.95)} L${pt(0.62, -0.62 - 0.6 * h)} L${pt(0.8, -0.58)} Z`, lock);
+    }
+    if (view === 'front') {
+      // The fringe: pointed locks from temple to temple, the middle ones short of the brows
+      const n = role === 'man' ? 4 : 5;
+      const left = -0.94, right = 0.94, base = -0.64, w = (right - left) / n;
+      let path = `M${pt(left, -0.08)} L${pt(left + 0.04, base)}`;
+      for (let k = 0; k < n; k++) {
+        const x0 = left + k * w, x1 = x0 + w, xm = x0 + w * (k % 2 ? 0.45 : 0.6);
+        const tip = (role === 'man' ? -0.44 : -0.33) + (k === 0 || k === n - 1 ? 0.2 : (k % 2) * 0.07);
+        path += ` Q${pt(x0 + w * 0.2, base + (tip - base) * 0.45)} ${pt(xm, tip)} Q${pt(xm + w * 0.12, base + (tip - base) * 0.5)} ${pt(x1, base)}`;
+      }
+      path += ` L${pt(right, -0.08)} C${pt(right + 0.12, -1.25)} ${pt(left - 0.12, -1.25)} ${pt(left, -0.08)} Z`;
+      d.path(path, lock);
+      if (long) {
+        // Long locks framing the face, down past the cheeks
+        for (const sx of [-1, 1]) d.path(`M${pt(sx * 0.98, -0.5)} Q${pt(sx * 1.06, 0.15)} ${pt(sx * 0.9, 0.62)} Q${pt(sx * 0.8, 0.2)} ${pt(sx * 0.72, -0.35)} Z`, lock);
+      }
+    } else if (view === 'side') {
+      // In profile, the fringe sweeps forward over the brow in two points
+      d.path(`M${pt(-0.2, -0.98)} Q${pt(0.62, -0.9)} ${pt(0.96, -0.3)} L${pt(0.68, -0.5)} L${pt(0.74, -0.12)} L${pt(0.42, -0.46)} L${pt(0.34, -0.2)} L${pt(0.1, -0.62)} Z`, lock);
+    }
+    // The shine across the crown, notched like light catching strands
+    const shine = { fill: mix(hair, '#eaf6ff', 0.62), opacity: 0.9, kind: 'accent' };
+    const y = view === 'side' ? -0.74 : -0.8;
+    d.path(`M${pt(-0.62, y + 0.14)} Q${pt(-0.22, y - 0.12)} ${pt(0.42, y + 0.04)} L${pt(0.36, y + 0.13)} L${pt(0.2, y + 0.07)} L${pt(0.12, y + 0.16)} Q${pt(-0.2, y + 0.04)} ${pt(-0.54, y + 0.22)} Z`, shine);
+  };
+  // Turned three-quarters, the fringe turns with the face (see drawFace)
+  if (view === 'front' && turned(p)) d.group(`translate(${cx + 5} 0) scale(0.78 1) translate(${-cx} 0)`, draw);
+  else draw();
+}
+
+/**
  * Anime eyes: big colored irises with a dark pupil, two white glints and a heavy upper lash line,
  * thin brows that carry the mood (and a tear when sad).
  */
@@ -396,6 +445,7 @@ function drawSidePerson(d, p, s) {
         d.circle(cx + r - 0.6, cy + 2.5, 2.4, { fill: skin }); // nose: behind the head so only its tip shows
         d.circle(cx, cy, r, { fill: skin });
         d.path(s.hair, { fill: hair, kind: 'body' });
+        if (isAnime(p)) drawAnimeHair(d, p, s.role, cx, cy, r, 'side');
         if (s.ear) {
           d.circle(s.ear[0], s.ear[1], s.ear[2], { fill: darken(skin, 0.08), kind: 'accent' });
           d.path(`M${s.ear[0] - 1} ${s.ear[1] - 1} Q${s.ear[0] + 1} ${s.ear[1]} ${s.ear[0] - 0.5} ${s.ear[1] + 1.2}`, { kind: 'line', stroke: far(skin), sw: 0.9 });
@@ -410,6 +460,7 @@ function drawSidePerson(d, p, s) {
 // Per-person side-view proportions, matching each front drawing's height, head and clothes.
 const SIDE = {
   boy: {
+    role: 'boy',
     head: { cx: 50, cy: 27, r: 15 }, faceDy: 1, neck: [46, 37, 8, 8],
     torso: { path: 'M42 50 Q42 43 47 43 L54 43 Q59 43 59 50 L59 70 Q59 72 57 72 L44 72 Q42 72 42 70 Z' },
     legs: { x: 46, y: 66, w: 9, h: 25, rx: 3 }, shoe: { x: 53, y: 92, rx: 7.5, ry: 4 },
@@ -418,6 +469,7 @@ const SIDE = {
     ear: [46.5, 29, 3.2],
   },
   girl: {
+    role: 'girl',
     head: { cx: 50, cy: 27, r: 14 }, faceDy: 1, neck: [47, 37, 6, 8],
     torso: { poly: [[45, 45], [56, 45], [64, 76], [38, 76]] },
     legs: { x: 47, y: 74, w: 6, h: 17, skin: true }, shoe: { x: 52, y: 92, rx: 6, ry: 3.5 },
@@ -427,6 +479,7 @@ const SIDE = {
     ear: [47, 29, 3],
   },
   man: {
+    role: 'man',
     head: { cx: 50, cy: 24, r: 13 }, neck: [46, 34, 8, 8],
     torso: { path: 'M42 42 L59 42 L58 66 L43 66 Z' },
     legs: { x: 45, y: 64, w: 10, h: 28 }, shoe: { x: 53, y: 93, rx: 8, ry: 4 },
@@ -435,6 +488,7 @@ const SIDE = {
     ear: [47, 25, 2.8],
   },
   woman: {
+    role: 'woman',
     head: { cx: 50, cy: 24, r: 13 }, neck: [47, 34, 6, 8],
     torso: { path: 'M43 42 L58 42 L57 67 L44 67 Z' },
     legs: { x: 46, y: 66, w: 9, h: 26 }, shoe: { x: 53, y: 93, rx: 7, ry: 3.5 },
@@ -977,8 +1031,10 @@ export default [
               // Back of the head: hair down to the nape, a crown swirl
               d.path('M35 27 C35 13 43 11 50 11 C57 11 65 13 65 27 C65 33 62 37 57 38 L43 38 C38 37 35 33 35 27 Z', { fill: p.c('hair') });
               d.path('M47 19 Q50 16 53 19', { kind: 'line', stroke: INK, sw: 1, opacity: 0.35 });
+              if (isAnime(p)) drawAnimeHair(d, p, 'boy', 50, 27, 15, 'back');
             } else {
               d.path('M35 26 C35 13 44 10 51 10 C59 10 66 14 65.5 25 C62 21 57 19 52 21 C48 18 41 19 35 26 Z', { fill: p.c('hair') });
+              if (isAnime(p)) drawAnimeHair(d, p, 'boy', 50, 27, 15);
               drawFace(d, p, 50, 28);
             }
           }, faceArea(p, 50, 27, 15));
@@ -1049,8 +1105,10 @@ export default [
               // Back of the head: hair covers it, with a centre parting
               d.path('M36 27 C36 12 44 12 50 12 C56 12 64 12 64 27 C64 34 59 38 50 38 C41 38 36 34 36 27 Z', { fill: p.c('hair'), kind: 'body' });
               d.line(50, 13, 50, 25, { stroke: INK, sw: 1, opacity: 0.3, kind: 'line' });
+              if (isAnime(p)) drawAnimeHair(d, p, 'girl', 50, 27, 14, 'back');
             } else {
               d.path('M36 28 C36 12 44 11 50 11 C56 11 64 12 64 28 C60 22 56 20 50 20 C44 20 40 22 36 28 Z', { fill: p.c('hair'), kind: 'body' });
+              if (isAnime(p)) drawAnimeHair(d, p, 'girl', 50, 27, 14);
               drawFace(d, p, 50, 28);
             }
           }, faceArea(p, 50, 27, 14));
@@ -1117,8 +1175,10 @@ export default [
             if (fromBehind(p)) {
               // Back of the head: short hair down to the nape
               d.path('M37 23 C37 11 44 10 50 10 C56 10 63 11 63 23 C63 29 60 32 56 33 L44 33 C40 32 37 29 37 23 Z', { fill: p.c('hair') });
+              if (isAnime(p)) drawAnimeHair(d, p, 'man', 50, 24, 13, 'back');
             } else {
               d.path('M37 22 C37 11 44 9 50 9 C56 9 63 11 63 22 C59 18 55 16 50 16 C45 16 41 18 37 22 Z', { fill: p.c('hair') });
+              if (isAnime(p)) drawAnimeHair(d, p, 'man', 50, 24, 13);
               drawFace(d, p, 50, 24);
             }
           }, faceArea(p, 50, 24, 13));
@@ -1181,11 +1241,13 @@ export default [
             if (fromBehind(p)) {
               // Back of the head: long hair falling over the shoulders
               d.path('M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L66 45 C66 49 60 50 50 50 C40 50 34 49 34 45 Z', { fill: p.c('hair') });
+              if (isAnime(p)) drawAnimeHair(d, p, 'woman', 50, 24, 13, 'back');
             } else {
               // Turned three-quarters, the near strand falls behind the face: only the far one shows
               d.path(turned(p)
                 ? 'M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 C61 19 56 17 52 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z'
                 : 'M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L67 46 C67 48 63 48 62 43 L62 26 C57 18 53 18 50 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z', { fill: p.c('hair') });
+              if (isAnime(p)) drawAnimeHair(d, p, 'woman', 50, 24, 13);
               drawFace(d, p, 50, 24);
             }
           }, faceArea(p, 50, 24, 13));

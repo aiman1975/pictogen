@@ -29,6 +29,14 @@ check(/-wax"/.test(cr) && /<rect width="640" height="360" fill="#fffdf6"\/><g fi
 const an = scene('anime', 'a girl');
 check(/fill="#ffffff" opacity="0.92"><circle/.test(an) && /fill="#[0-9a-f]{6}"/.test(an), 'Anime: big summer clouds in the sky');
 check(/fill="#2f86ee"|fill="#[0-9a-f]{6}"/.test(an) && (an.match(/<ellipse[^>]*fill="#(3a7bd5|8e44ad|16a085|b9770e|2e86c1|[0-9a-f]{6})"/g) || []).length >= 4, 'Anime: big colored irises with pupils');
+// Anime hair: a fringe of pointed locks, spikes (boy, man) or face-framing locks (girl, woman), and
+// the shine across the crown, in every view; other styles keep their own hair
+const paths = (svg) => (svg.match(/<path/g) || []).length;
+const hairOk = ['boy', 'girl', 'man', 'woman'].every((r) => ['front', 'three-quarter', 'side', 'back'].every((view) => {
+  const a = renderIcon(r, { style: 'anime', view, seed: 1 }), c = renderIcon(r, { style: 'cartoon', view, seed: 1 });
+  return paths(a) >= paths(c) + (view === 'back' ? 1 : 2) && /opacity="0.9"/.test(a);
+}));
+check(hairOk, 'Anime: hair with a fringe and a shine for boy, girl, man and woman, from the front, three-quarter, side and back');
 const ll = scene('letterling');
 check(/-candy"/.test(ll) && /feSpecularLighting/.test(ll) && /-polka\)"/.test(ll), 'Letterlings: glossy candy sheen and a polka-dot sky');
 const ink = (st) => (scene(st).match(/stroke-width="([\d.]+)"/g) || []).map((w) => +w.slice(14, -1));
