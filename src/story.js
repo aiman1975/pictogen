@@ -458,6 +458,8 @@ export function composeStory(storyInput, opts = {}) {
       vary,
       // Steps edited in the studio's timeline view travel with a saved scene
       ...(Array.isArray(sc.beats) ? { beats: sc.beats } : {}),
+      // Named individuals ("pgc1" -> one particular boy), the same in every scene
+      ...(opts.individuals ? { individuals: opts.individuals } : {}),
     });
 
     return {

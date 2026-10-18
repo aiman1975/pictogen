@@ -1357,8 +1357,8 @@
       const scenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
       return scenes?.length ? { scenes: scenes.map((sc) => ({ ...sc, prompt: named(sc.prompt).text })), title: 'My Clip' } : {};
     }
-    // Your characters: their names become "the boy"/"the girl"... for the server, and their photos go
-    // on the drawings here (the photo never leaves the browser)
+    // Your characters: their names become neutral keys ("pgc1", a boy) for the server, and their photos
+    // go on the drawings here (names and photos never leave the browser)
     const named = (text) => window.pictogenCharacters?.rewrite(text) ?? { text, named: [] };
     const usePrompt = () => { state.clipActive = false; };
 
@@ -1395,6 +1395,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               text: named(state.prompt).text,
+              individuals: window.pictogenCharacters?.individuals() ?? [],
               ...clipRequest(),
               style: state.style,
               genre: state.genre,
@@ -1463,6 +1464,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: cast.text,
+            individuals: window.pictogenCharacters?.individuals() ?? [],
             style: state.style,
             mode: state.mode,
             vary: state.vary,
@@ -1487,7 +1489,7 @@
             <div class="match-item">
               <div>
                 ${m.color ? `<span class="match-color-swatch" style="background:${m.color}"></span>` : ''}
-                <span class="match-id">${escHtml(m.id.replace(/_/g, ' '))}</span>
+                <span class="match-id">${escHtml(window.pictogenCharacters?.nameOfKey(m.id.split('~')[1]) ?? m.id.split('~')[0].replace(/_/g, ' '))}</span>
                 ${m.color ? `<span style="font-size:0.75rem; color:#64748b;">(${m.color})</span>` : ''}
                 ${m.expression ? `<span style="font-size:0.72rem; background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:999px; margin-left:4px; font-weight:700;">${m.expression}</span>` : ''}
                 ${m.animation ? `<span style="font-size:0.72rem; background:#dbeafe; color:#1e40af; padding:1px 6px; border-radius:999px; margin-left:4px; font-weight:700;">${m.animation}</span>` : ''}
@@ -1778,8 +1780,8 @@
           expression,
           animation,
           view,
-          seed: `${state.seed}:${item.dataset.id}:${k}`,
-          vary: state.vary || k > 0,
+          seed: `${state.seed}:${item.dataset.aid || item.dataset.id}:${k}`,
+          vary: state.vary || k > 0 || item.dataset.vary === '1',
           color: item.dataset.color,
         }),
       });
@@ -2103,6 +2105,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: named(state.prompt).text,
+            individuals: window.pictogenCharacters?.individuals() ?? [],
             ...clipRequest(),
             style: state.style,
             genre: state.genre,

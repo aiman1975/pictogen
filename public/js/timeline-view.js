@@ -41,7 +41,9 @@ let clock = null; // the animation that spans the whole clip
 let raf = 0;
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const nameOf = (id) => result?.cast.find((c) => c.id === id)?.label.replace(/_/g, ' ') ?? id;
+// A named character shows by name ("boy~pgc1" -> "Tom", from public/js/characters.js)
+const nameOf = (id) => window.pictogenCharacters?.nameOfKey(String(id).split('~')[1])
+  ?? result?.cast.find((c) => c.id === id)?.label.replace(/_/g, ' ') ?? id;
 const pct = (v) => `${Math.max(0, Math.min(100, v)).toFixed(3)}%`;
 
 /** What one action looks like on its block: "runs to dog 😃" */
@@ -226,7 +228,7 @@ function options(list, value, disabled = () => false) {
 function editor() {
   if (!selected || !beats[selected.beat]) return '';
   const i = selected.beat, beat = beats[i];
-  const cast = result.cast.map((c) => [c.id, c.label.replace(/_/g, ' ')]);
+  const cast = result.cast.map((c) => [c.id, nameOf(c.id)]);
   const title = `<span class="tl-editor-title">Step ${i + 1}</span>`;
   if (selected.camera && beat.camera) {
     const c = beat.camera;

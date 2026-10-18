@@ -293,8 +293,19 @@ function mergeMatches(found) {
  *   { matches: [{ id:'apple', word:'apples', count:3, color:'red' }, { id:'boy', ... }], unknown: [...], excluded: [...], tokens: [...] }
  *   excluded: concept words negated in the prompt ("no cats", "without a hat") and left out
  */
-export function parseText(text, { fuzzy = false } = {}) {
+export function parseText(text, { fuzzy = false, names = null } = {}) {
   const idx = getIndex();
+  // Named individuals ("pgc1" -> "boy~pgc1", see src/individuals.js) read as words for their figure
+  // ("pgc1 waves", "pgc1 walks toward us": its motion, as for "boy waves")
+  const at = (toks, i) => {
+    const id = names?.get(toks[i]);
+    if (!id) return conceptAt(toks, i, idx);
+    const verb = toks[i + 1], tail = verb && motionTail(toks, i + 2);
+    if (verb && (MOTION_WORDS[verb] || (DIRECTIONAL_VERBS.has(verb) && tail))) {
+      return { id, word: toks[i], plural: false, animation: tail ? tail.anim : MOTION_WORDS[verb], len: 2 + (tail?.len ?? 0) };
+    }
+    return { id, word: toks[i], plural: false, len: 1 };
+  };
   const toks = tokenize(text);
   const found = [];
   const unknown = [];
@@ -305,7 +316,7 @@ export function parseText(text, { fuzzy = false } = {}) {
 
   const spreadMotion = (anim) => {
     for (const j of list) {
-      if (!found[j].animation && MOVERS.has(getConcept(found[j].id)?.category)) found[j].animation = anim;
+      if (!found[j].animation && MOVERS.has(getConcept(found[j].id.split('~')[0])?.category)) found[j].animation = anim;
     }
     list = [];
   };
@@ -351,19 +362,19 @@ export function parseText(text, { fuzzy = false } = {}) {
       continue;
     }
 
-    const hasNextConcept = next && (SIZE_WORDS[next] || COLOR_WORDS[next] || EXPRESSION_WORDS[next] || conceptAt(toks, i + 1, idx));
+    const hasNextConcept = next && (SIZE_WORDS[next] || COLOR_WORDS[next] || EXPRESSION_WORDS[next] || at(toks, i + 1));
     let isModifierAdjective = (COLOR_WORDS[t] || EXPRESSION_WORDS[t] || MOTION_WORDS[t]) && hasNextConcept;
     // "black circle" / "white flag" name a library icon outright; "red apple" stays a recolored handmade apple.
     if (isModifierAdjective) {
-      const whole = conceptAt(toks, i, idx);
-      const rest = conceptAt(toks, i + 1, idx);
+      const whole = at(toks, i);
+      const rest = at(toks, i + 1);
       if (whole && whole.len >= 2 && !whole.animation && rest && getConcept(rest.id)?.isLibrary) isModifierAdjective = false;
     }
     const isStopword = STOPWORDS.has(t);
     // A bare numeral is a count ("3 dogs"), never the keycap icon that also answers to "3".
     const isNumeral = /^\d+$/.test(t);
 
-    const hit = (isModifierAdjective || isStopword || isNumeral) ? null : conceptAt(toks, i, idx);
+    const hit = (isModifierAdjective || isStopword || isNumeral) ? null : at(toks, i);
     if (hit) {
       push(hit);
       lastConceptIndex = i + hit.len - 1;

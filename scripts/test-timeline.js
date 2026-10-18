@@ -251,6 +251,27 @@ const edLook = editTimeline([{ actions: [{ actor: 'boy', type: 'look', target: '
 check(edLook.beats[0].actions.map((a) => `${a.actor}:${a.type}>${a.target ?? ''}@${a.lookAt ?? ''}`).join(' ') === 'boy:look>camera@ girl:pose>@boy', 'edited steps: a look at nobody looks at us; a wave can be aimed at someone');
 check(!wellFormedError(mutual.svg) && !wellFormedError(looked.svg), 'scenes with looks are well-formed XML');
 
+// 2i. Named individuals: two of a kind, each its own figure ("pgc1", "pgc2": two boys)
+const IND = [{ key: 'pgc1', base: 'boy' }, { key: 'pgc2', base: 'boy' }, { key: 'pgc3', base: 'girl' }];
+const ind = generate('pgc1 walks in, then pgc2 runs to him, then they look at each other', { individuals: IND });
+const indActs = ind.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.target ? '>' + a.target : ''}`).join('+')).join(' | ');
+check(indActs === 'boy~pgc1:enter | boy~pgc2:moveTo>boy~pgc1 | boy~pgc2:look>boy~pgc1+boy~pgc1:look>boy~pgc2', `two boys act on their own: ${indActs}`);
+const whoAttrs = [...ind.svg.matchAll(/data-who="(pgc\d)"/g)].map((m) => m[1]).join();
+check(whoAttrs === 'pgc1,pgc2' && (ind.svg.match(/data-vary="1"/g) || []).length === 1, 'each is marked with its key, and the second boy is dressed differently');
+const stillTwo = generate('pgc1 and pgc2 dancing under the stars', { individuals: IND });
+check(stillTwo.matches.map((m) => `${m.id}/${m.animation}`).join() === 'boy~pgc1/dance,boy~pgc2/dance,star/undefined' && !wellFormedError(stillTwo.svg), 'a still scene draws both, both dancing');
+const mixed = generate('pgc1 and a boy walk in, then pgc1 waves', { individuals: IND });
+check(mixed.beats[1].actions.map((a) => a.actor).join() === 'boy~pgc1', 'a named boy and an unnamed boy are different figures ("pgc1 waves": only he waves)');
+check(generate('pgc1 eats an apple', { individuals: IND, mode: 'icons' }).matches.map((m) => m.id).join() === 'boy,apple', 'outside scenes a named boy is just a boy');
+check(generate('pgc9 walks in, then waves', { individuals: [{ key: 'pgc9', base: 'nonsense' }, { key: 'tom', base: 'boy' }] }).beats === undefined, 'unknown kinds and keys that are not neutral ("tom") are ignored');
+const indEdit = generate('pgc1 walks in, then waves', { individuals: IND, beats: [{ actions: [{ actor: 'boy~pgc1', type: 'pose', anim: 'jump' }] }] });
+check(indEdit.edited && indEdit.beats[0].actions[0].actor === 'boy~pgc1', 'edited steps keep the individual');
+const trio = generate('pgc1 and pgc2 walk in, then pgc3 runs to them', { individuals: IND });
+const byWho = (who) => { const i = trio.svg.indexOf(`data-who="${who}"`); return trio.svg.slice(trio.svg.lastIndexOf('<g class="movable-item"', i), trio.svg.indexOf('class="movable-item"', i + 1) >>> 0); };
+const trioHomes = ['pgc1', 'pgc2', 'pgc3'].map((w) => homeOf(byWho(w)));
+const closest = Math.min(...trioHomes.flatMap((a, i) => trioHomes.slice(i + 1).map((b) => Math.abs(a - b))));
+check(closest > 40, `walking up to a group, nobody ends on top of someone (${trioHomes.map(Math.round).join(', ')})`);
+
 // 3. Clips: a sequenced scene lasts as long as its timeline
 const story = composeStory([{ prompt, caption: 'x', duration: 3 }]);
 check(story.scenes[0].duration >= r.duration, `a clip scene lasts as long as its timeline (${story.scenes[0].duration}s >= ${r.duration}s)`);

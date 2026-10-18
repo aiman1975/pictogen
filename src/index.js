@@ -11,6 +11,7 @@ const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...EN
 import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/render.js';
 import { getConcept } from './concepts/index.js';
 import { parseTimeline, extractCamera, editTimeline, lookRelations } from './timeline.js';
+import { conceptOf, individualNames } from './individuals.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
 export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
@@ -42,15 +43,19 @@ export function generate(text, opts = {}) {
   const dim = (v, d) => (Number.isFinite(+v) && +v > 0 ? +v : d);
   const width = dim(opts.width, 640), height = dim(opts.height, 360);
   text = String(text ?? '');
+  // Named individuals (opts.individuals: [{ key: 'pgc1', base: 'boy' }], see src/individuals.js): in a
+  // scene each is its own figure ("boy~pgc1"); elsewhere (icons, comics...) simply its kind
+  const individuals = individualNames(opts.individuals, (id) => getConcept(id)?.category === 'people' || !!getConcept(id));
+  const names = mode === 'scene' ? individuals : new Map([...individuals].map(([k, id]) => [k, conceptOf(id)]));
   // Camera directions ("zoom in on the dog") are not things to draw: read the scene without them,
   // but keep whatever they point at ("a close-up of a cat" still draws the cat).
   const shot = mode === 'scene' ? extractCamera(text) : { text, moves: [] };
   let sceneText = shot.text;
   for (const m of shot.moves) {
-    const id = m.target && parseText(m.target).matches[0]?.id;
-    if (id && !parseText(sceneText).matches.some((x) => x.id === id)) sceneText += ` and ${m.target}`;
+    const id = m.target && parseText(m.target, { names }).matches[0]?.id;
+    if (id && !parseText(sceneText, { names }).matches.some((x) => x.id === id)) sceneText += ` and ${m.target}`;
   }
-  const parsed = parseText(sceneText, { fuzzy });
+  const parsed = parseText(sceneText, { fuzzy, names });
   let { matches } = parsed;
   const backdrop = mode === 'scene'
     ? matches.filter((m) => ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)
@@ -58,7 +63,7 @@ export function generate(text, opts = {}) {
   if (backdrop.length) matches = matches.filter((m) => !backdrop.includes(m));
   // Several things happening one after another: actors follow a timeline of beats - the prompt's,
   // or the beats as edited in the studio (opts.beats), which can also bring a still scene to life
-  let timeline = mode === 'scene' ? parseTimeline(text) : null;
+  let timeline = mode === 'scene' ? parseTimeline(text, { names }) : null;
   const cast = timeline
     ? [...timeline.actors.map(({ id, match }) => ({ ...match, id, count: match.count ?? 1, animation: undefined })), ...timeline.props]
     : matches.map((m) => ({ ...m, animation: undefined }));
@@ -103,17 +108,17 @@ export function generate(text, opts = {}) {
     const camera = !timeline && shot.moves.length ? {
       moves: shot.moves.map((m) => ({
         ...m,
-        target: m.target && (parseText(m.target).matches[0]?.id ?? (/^(him|her|it|them)$/.test(m.target) ? matches[0]?.id : null)),
+        target: m.target && (parseText(m.target, { names }).matches[0]?.id ?? (/^(him|her|it|them)$/.test(m.target) ? matches[0]?.id : null)),
       })),
     } : null;
     // Who looks at whom in a still scene ("a boy and a girl looking at each other")
-    const looks = timeline ? [] : lookRelations(text);
+    const looks = timeline ? [] : lookRelations(text, { names });
     svg = composeScene(matches, { ...common, words: parsed.tokens, timeline, camera, looks });
     if (camera?.duration) common.duration = camera.duration;
   }
   const images = matches.map((m) => ({
     id: m.id, word: m.word, count: m.count, color: m.color, expression: m.expression, animation: m.animation, view: m.view,
-    svg: renderIcon(m.id, { ...common, color: m.color, expression: m.expression, animation: m.animation, view: m.view, size }),
+    svg: renderIcon(conceptOf(m.id), { ...common, color: m.color, expression: m.expression, animation: m.animation, view: m.view, size }),
   }));
   const setting = mode === 'scene'
     ? [...backdrop.map((m) => m.word), ...parsed.unknown.filter((w) => SETTING_WORDS.has(w))]
@@ -124,8 +129,8 @@ export function generate(text, opts = {}) {
     : common.duration ? { duration: common.duration } : {};
   // Who and what a timeline can use (the studio's timeline editor)
   const castOut = mode === 'scene'
-    ? cast.filter((m) => getConcept(m.id) && !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary))
-      .map((m) => ({ id: m.id, label: getConcept(m.id).label || m.id, person: getConcept(m.id).category === 'people' }))
+    ? cast.filter((m) => getConcept(conceptOf(m.id)) && !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary))
+      .map((m) => ({ id: m.id, label: getConcept(conceptOf(m.id)).label || m.id, person: getConcept(conceptOf(m.id)).category === 'people' }))
     : [];
   return { svg, ...parsed, matches, unknown, setting, images, ...clip, cast: castOut, ...(edited ? { edited: true } : {}) };
 }

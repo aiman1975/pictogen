@@ -3,6 +3,7 @@
 
 import { parseText, tokenize, MOTION_WORDS, EXPRESSION_WORDS } from './text/matcher.js';
 import { getConcept } from './concepts/index.js';
+import { conceptOf } from './individuals.js';
 
 // "then", "after that", "afterwards", "finally" split a prompt into beats (not "next": "next to");
 // "while", "meanwhile" and "at the same time" put actions side by side in one beat; "when",
@@ -29,7 +30,7 @@ const hasAction = (text) => tokenize(text).some(isVerb) || !!cameraAction(text);
  * "when the dog arrives the boy jumps" (no comma): where the second half starts, at the subject of
  * the first verb after the first one that has a subject right before it ("he", "the boy", "boy").
  */
-function cutWithoutComma(text) {
+function cutWithoutComma(text, names) {
   const toks = tokenize(text);
   const v1 = toks.findIndex(isVerb);
   for (let v = v1 + 1; v1 >= 0 && v < toks.length; v++) {
@@ -38,7 +39,7 @@ function cutWithoutComma(text) {
     if (SUBJECT_PRONOUNS.has(toks[v - 1])) s = v - 1;
     else {
       for (let i = v - 1; i >= Math.max(v1 + 1, v - 3) && s < 0; i--) if (DETERMINERS.has(toks[i])) s = i;
-      if (s < 0 && parseText(toks[v - 1]).matches.length) s = v - 1;
+      if (s < 0 && (names?.has(toks[v - 1]) || parseText(toks[v - 1]).matches.length)) s = v - 1;
     }
     if (s > v1) return [toks.slice(0, s).join(' '), toks.slice(s).join(' ')];
   }
@@ -74,13 +75,13 @@ function splitAnd(clause) {
  * order: 'together' | 'first' | 'last' (when the linked half plays). The main half wins if both
  * give the same figure something to do at once. Returns null for a plain clause.
  */
-function splitClause(clause) {
+function splitClause(clause, names = null) {
   const lead = clause.match(LEAD_RE);
   if (lead) {
     const order = LINKS[lead[1].toLowerCase().replace(/\s+/g, ' ')];
     const comma = lead[2].match(/^([^,]+),(.+)$/);
     if (comma && (lead[1].toLowerCase() === 'while' || hasAction(comma[1]))) return { parts: [comma[1], comma[2]], main: 1, order };
-    const cut = !comma && cutWithoutComma(lead[2]);
+    const cut = !comma && cutWithoutComma(lead[2], names);
     if (cut) return { parts: cut, main: 1, order };
   }
   const mid = clause.match(MID_RE);
@@ -222,10 +223,12 @@ const isVerb = (t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has
  *                            ("two boys walk in" -> two boys, both doing what "the boys" do)
  *   props:  [match]          everything else mentioned (trees, the sun...), drawn as usual
  */
-export function parseTimeline(text, { force = false } = {}) {
+export function parseTimeline(text, { force = false, names = null } = {}) {
   if (!force && !hasSequence(text)) return null;
   const clauses = String(text).split(BEAT_SPLIT_RE).map((c) => (c || '').trim()).filter((c) => /[a-z]/i.test(c));
-  if (!force && clauses.length < 2 && !clauses.some(splitClause)) return null;
+  if (!force && clauses.length < 2 && !clauses.some((c) => splitClause(c, names))) return null;
+  // Named individuals ("pgc1" -> "boy~pgc1") are words for their figure, each its own actor
+  const parse = (words) => parseText(words, { names });
 
   const mentioned = new Map(); // concept id -> first match (colour, expression...)
   const actorIds = [];
@@ -242,7 +245,7 @@ export function parseTimeline(text, { force = false } = {}) {
     if ((w[0] === 'each' && w[1] === 'other') || (w[0] === 'one' && w[1] === 'another')) return { each: true };
     if (VIEWER.has(w[0])) return { camera: true };
     if (['him', 'her', 'it', 'them'].includes(w[0])) return { pronoun: w[0] };
-    const hit = parseText(w.join(' ')).matches[0];
+    const hit = parse(w.join(' ')).matches[0];
     if (hit) { remember(hit); return { id: hit.id }; }
     return null;
   };
@@ -250,9 +253,9 @@ export function parseTimeline(text, { force = false } = {}) {
   const lastActorWhere = (test) => [...actorIds].reverse().find(test) ?? ahead.find(test);
   const resolvePronoun = (word, exclude = []) => {
     const others = (id) => !exclude.includes(id);
-    if (word === 'him' || word === 'he') return lastActorWhere((id) => MALE.has(id) && others(id));
-    if (word === 'her' || word === 'she') return lastActorWhere((id) => FEMALE.has(id) && others(id));
-    if (word === 'it') return lastActorWhere((id) => getConcept(id)?.category !== 'people' && others(id));
+    if (word === 'him' || word === 'he') return lastActorWhere((id) => MALE.has(conceptOf(id)) && others(id));
+    if (word === 'her' || word === 'she') return lastActorWhere((id) => FEMALE.has(conceptOf(id)) && others(id));
+    if (word === 'it') return lastActorWhere((id) => getConcept(conceptOf(id))?.category !== 'people' && others(id));
     return lastActorWhere(others);
   };
 
@@ -269,7 +272,7 @@ export function parseTimeline(text, { force = false } = {}) {
       let id = null;
       if (cam.target && ['him', 'her', 'it', 'them', 'he', 'she', 'they'].includes(cam.target)) id = resolvePronoun(cam.target);
       else if (cam.target) {
-        const hit = parseText(cam.target).matches[0];
+        const hit = parse(cam.target).matches[0];
         if (hit) { id = hit.id; remember(hit); }
       }
       if (cam.type === 'follow') { follow = id || lastSubjects[0] || actorIds[0] || null; return null; }
@@ -286,7 +289,7 @@ export function parseTimeline(text, { force = false } = {}) {
     // "reaches the boy", "approaches him": walking up to whoever is named right after the verb
     const objectWords = after.filter((t) => !DETERMINERS.has(t) || t === 'him' || t === 'her');
     const reaches = v >= 0 && (REACH_VERBS.has(toks[v]) || verbMotion === 'approach' && !depthWords && objectWords.length > 0
-      && !VIEWER.has(objectWords[0]) && (['him', 'her', 'it', 'them'].includes(objectWords[0]) || parseText(objectWords[0]).matches.length > 0));
+      && !VIEWER.has(objectWords[0]) && (['him', 'her', 'it', 'them'].includes(objectWords[0]) || parse(objectWords[0]).matches.length > 0));
     if (reaches) after = ['to', ...after];
     const depth = reaches ? null : depthWords?.type || (verbMotion === 'approach' || verbMotion === 'recede' ? verbMotion : null);
     if (depthWords && !reaches) after = after.slice(depthWords.len);
@@ -298,7 +301,7 @@ export function parseTimeline(text, { force = false } = {}) {
       const rest = after.slice(toAt + 1).filter((t) => t !== 'the' && t !== 'a' && t !== 'an');
       if (['him', 'her', 'it', 'them'].includes(rest[0])) target = rest[0];
       else {
-        const hit = parseText(rest.join(' ')).matches[0];
+        const hit = parse(rest.join(' ')).matches[0];
         if (hit) { target = hit.id; remember(hit); }
       }
       targetAt = toAt;
@@ -316,7 +319,7 @@ export function parseTimeline(text, { force = false } = {}) {
     const gaze = gazeWords && lookTarget(gazeWords);
 
     // Subjects: concepts before the verb, else a pronoun, else whoever acted last
-    let subjects = parseText(before.join(' ')).matches;
+    let subjects = parse(before.join(' ')).matches;
     subjects.forEach(remember);
     let subjectIds = subjects.map((m) => m.id);
     if (!subjectIds.length) {
@@ -328,7 +331,7 @@ export function parseTimeline(text, { force = false } = {}) {
     }
     // Everything else named after the verb is part of the set ("walks in under the sun")
     const tail = targetAt >= 0 ? after.slice(0, targetAt) : after;
-    parseText(tail.join(' ')).matches.forEach(remember);
+    parse(tail.join(' ')).matches.forEach(remember);
 
     const actions = [];
     if (v >= 0 && subjectIds.length) {
@@ -394,11 +397,11 @@ export function parseTimeline(text, { force = false } = {}) {
   const groupOf = (beats) => [...new Set(beats.flatMap((b) => b.actions.flatMap((a) => [a.actor, a.target]).filter(Boolean)))];
 
   for (const clause of clauses) {
-    const split = splitClause(clause);
+    const split = splitClause(clause, names);
     if (split) {
       // Read both halves in the order written, with everything the sentence names known to pronouns;
       // afterwards the main half's subjects are the ones a following "then waves" is about
-      ahead = parseText(clause).matches.map((m) => m.id);
+      ahead = parse(clause).matches.map((m) => m.id);
       let mainSubjects = [];
       const read = split.parts.map((part, i) => {
         const r = readPart(part.trim());
@@ -447,8 +450,8 @@ export function parseTimeline(text, { force = false } = {}) {
  * Who looks at whom in a scene without a timeline ("a boy and a girl looking at each other",
  * "a cat staring at the bird", "a boy waving at us"): [{ who, at }] with concept ids, at = id | 'camera'.
  */
-export function lookRelations(text) {
-  const tl = parseTimeline(text, { force: true });
+export function lookRelations(text, { names = null } = {}) {
+  const tl = parseTimeline(text, { force: true, names });
   if (!tl) return [];
   return tl.beats.flatMap((b) => b.actions)
     .filter((a) => (a.type === 'look' && a.target) || a.lookAt)

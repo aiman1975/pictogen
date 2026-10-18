@@ -260,9 +260,31 @@ try {
       matches: window.pictogenStudio.getState().result.matches.map((m) => m.id).join(),
     };
   });
-  check(tom.id === 'boy' && tom.heads >= 2 && tom.photos === tom.heads && tom.eyesHidden && tom.matches === 'boy',
+  check(tom.id === 'boy' && tom.heads >= 2 && tom.photos === tom.heads && tom.eyesHidden && tom.matches === 'boy~pgc1',
     `"Tom walks in, then waves": the boy wears Tom's photo in all ${tom.heads} poses, drawn eyes hidden`);
-  check(sent.length > 0 && sent.every((body) => !body.includes('Tom') && !body.includes('data:image')), 'the server only saw "the boy": no name, no photo');
+  check(sent.length > 0 && sent.every((body) => !body.includes('Tom') && !body.includes('data:image')), 'the server only saw a neutral key for a boy: no name, no photo');
+  // A second boy: Tom and Max each act and wear their own face
+  await page.click('#characters-panel [data-do="add"]');
+  await page.setInputFiles('#characters-panel input[type=file]', { name: 'face.png', mimeType: 'image/png', buffer: photo });
+  await page.waitForSelector('.face-modal');
+  await page.fill('.face-name', 'Max');
+  await page.selectOption('.face-base', 'boy');
+  await page.click('.face-modal [data-do="save"]');
+  await page.waitForSelector('.face-modal', { state: 'detached' });
+  await draw('Tom walks in, then Max runs to him, then Tom waves at Max');
+  const two = await page.evaluate(() => {
+    const items = [...document.querySelectorAll('#svg-viewport .movable-item[data-id="boy"]')];
+    return {
+      who: items.map((i) => i.dataset.character).sort().join(),
+      photos: items.map((i) => i.querySelectorAll('.pg-photo-face').length > 0),
+      tomWaves: !!document.querySelector('#svg-viewport [data-character="Tom"] [data-anim="wave"]'),
+      maxWaves: !!document.querySelector('#svg-viewport [data-character="Max"] [data-anim="wave"]'),
+      lanes: [...document.querySelectorAll('#timeline-panel .tl-label')].map((l) => l.textContent.trim()).filter(Boolean).join(),
+    };
+  });
+  check(two.who === 'Max,Tom' && two.photos.every(Boolean) && two.tomWaves && !two.maxWaves && two.lanes === 'Steps,Tom,Max',
+    `two boys, Tom and Max: each wears his own face, only Tom waves, the timeline names them (${JSON.stringify(two)})`);
+  await page.click('#characters-panel [data-remove="1"]');
   await draw('a boy walks in');
   check((await page.evaluate(() => document.querySelectorAll('#svg-viewport .pg-photo-face').length)) === 0, 'a boy without a name keeps his drawn face');
   await page.reload({ waitUntil: 'networkidle' });

@@ -97,6 +97,8 @@ const server = http.createServer((req, res) => {
         fuzzy: Boolean(payload.fuzzy),
         // Steps as edited in the studio's timeline view (checked by generate)
         ...(Array.isArray(payload.beats) ? { beats: payload.beats } : {}),
+        // Named individuals: neutral keys and their kind only (src/individuals.js)
+        ...(Array.isArray(payload.individuals) ? { individuals: payload.individuals } : {}),
       };
       const result = generate(text, opts);
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -152,6 +154,7 @@ const server = http.createServer((req, res) => {
         seed: payload.seed || 1,
         vary: Boolean(payload.vary),
         title: payload.title,
+        individuals: Array.isArray(payload.individuals) ? payload.individuals : undefined,
       };
       const scenes = clipScenes(payload);
       const story = composeStory(scenes.length ? scenes : text, opts);
@@ -172,6 +175,7 @@ const server = http.createServer((req, res) => {
         seed: payload.seed || 1,
         vary: Boolean(payload.vary),
         title: payload.title,
+        individuals: Array.isArray(payload.individuals) ? payload.individuals : undefined,
       });
       const html = generateStoryHtml(story);
       res.writeHead(200, {

@@ -1,6 +1,7 @@
 // Scene composer: places matched concepts into a simple illustrated scene
 // (sky / ground / water, day / night / sunset / snow / rain) for stories, slides and blog posts.
 
+import { conceptOf, whoOf } from './individuals.js';
 import { getConcept } from './concepts/index.js';
 import { createKit } from './core/kit.js';
 import { createRng } from './core/rng.js';
@@ -364,9 +365,14 @@ function playTimeline(timeline, slots, props, W) {
           const tgt = posOf(a.target);
           // Come in from the side with more room, or approach from the side you are on;
           // a group lines up beside the target, the nth one further out
-          const side = st.present ? Math.sign(st.x - tgt.cx) || 1 : tgt.cx < W / 2 ? 1 : -1;
+          let side = st.present ? Math.sign(st.x - tgt.cx) || 1 : tgt.cx < W / 2 ? 1 : -1;
+          const spot = (sd) => clamp(tgt.cx + sd * (tgt.w / 2 + slot.w / 2 + W * 0.04 + n * (slot.w + W * 0.02)), slot.w / 2, W - slot.w / 2);
+          // Not on top of someone else standing there: then the target's other side, if that is free
+          const taken = (x) => [...state].some(([other, o]) => other !== key && o.present && slots.get(other).id !== a.target
+            && Math.abs(o.x - x) < (slot.w + slots.get(other).w) * 0.4);
+          if (taken(spot(side)) && !taken(spot(-side))) side = -side;
           if (!st.present) x0 = off(key, side);
-          x1 = clamp(tgt.cx + side * (tgt.w / 2 + slot.w / 2 + W * 0.04 + n * (slot.w + W * 0.02)), slot.w / 2, W - slot.w / 2);
+          x1 = spot(side);
         } else {
           if (!st.present) x0 = off(key, slot.cx < W / 2 ? -1 : 1);
           x1 = slot.cx;
@@ -563,12 +569,17 @@ export function composeScene(matches, opts = {}) {
   const { width: W = 640, height: H = 360, style = 'flat', seed = 1, vary = false, words = [], maxItems = 14 } = opts;
   const rng = createRng(`scene:${seed}`);
 
+  // Each item is one figure: c draws it, aid is who it is (its concept id, or a named individual's
+  // "boy~pgc1"); alt counts the figures of the same kind before it, which are dressed differently
   const items = [];
+  const ofKind = new Map();
   for (const m of matches) {
-    const c = getConcept(m.id);
+    const c = getConcept(conceptOf(m.id));
     if (!c) continue;
     const n = clamp(m.count || 1, 1, c.maxCount ?? 5);
-    for (let k = 0; k < n; k++) items.push({ c, m, k });
+    const before = ofKind.get(c.id) ?? 0;
+    ofKind.set(c.id, before + n);
+    for (let k = 0; k < n; k++) items.push({ c, m, k, aid: m.id, alt: before + k });
   }
   items.splice(maxItems);
 
@@ -619,6 +630,9 @@ export function composeScene(matches, opts = {}) {
   const acrossSpeed = Math.max(45, 0.9 * Math.max(0, ...items.filter((it) => it.m.animation === 'walk-across').map((it) => it.h)));
 
   const out = [];
+  // A named individual's key and id, and a dressed-differently figure, for the studio (its photo,
+  // and redrawing it the same way)
+  const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''}${it.alt > 0 ? ' data-vary="1"' : ''}`;
   // Who looks at whom ("a boy and a girl looking at each other"): concept id -> concept id | 'camera'
   const looks = new Map((opts.looks || []).map((l) => [l.who, l.at]));
   const placed = [], later = [];
@@ -626,9 +640,9 @@ export function composeScene(matches, opts = {}) {
   // their eyes on them (up at the sky, down at a dog); animals face them. Not while travelling.
   const lookFor = (it, cx) => {
     if (TRAVEL_MOTIONS.includes(it.m.animation)) return null;
-    const at = looks.get(it.c.id), person = it.c.category === 'people';
+    const at = looks.get(it.aid), person = it.c.category === 'people';
     if (at === 'camera') return { view: person ? it.m.view ?? 'front' : it.m.view, mirror: false };
-    const others = placed.filter((p) => p.it !== it && p.it.c.id === at);
+    const others = placed.filter((p) => p.it !== it && p.it.aid === at);
     if (!others.length) return null;
     const o = others.reduce((a, b) => (Math.abs(b.cx - cx) < Math.abs(a.cx - cx) ? b : a));
     const dx = o.cx - cx;
@@ -645,12 +659,12 @@ export function composeScene(matches, opts = {}) {
     const base = anchor === 'bottom' ? it.c.baseline ?? 96 : 50;
     const w = it.w ?? it.h * (it.c.width ?? 0.8);
     if (timeline && it.m.actor) {
-      actorSlots.set(`${it.c.id}#${it.k}`, { id: it.c.id, it, cx, y, s, base, w, h: it.h, olk: clamp(W / 280 / (2.4 * s), 0.35, 4) });
+      actorSlots.set(`${it.aid}#${it.k}`, { id: it.aid, it, cx, y, s, base, w, h: it.h, olk: clamp(W / 280 / (2.4 * s), 0.35, 4) });
       return;
     }
-    if (!propsAt.has(it.c.id)) propsAt.set(it.c.id, { cx, w, y, h: it.h, anchor });
+    if (!propsAt.has(it.aid)) propsAt.set(it.aid, { cx, w, y, h: it.h, anchor });
     // Someone looking at someone is drawn once everyone has a place, to know which way to look
-    if (looks.has(it.c.id) && !it.looking) {
+    if (looks.has(it.aid) && !it.looking) {
       placed.push({ it, cx, y });
       const at = out.length;
       out.push('');
@@ -681,9 +695,9 @@ export function composeScene(matches, opts = {}) {
     // walking or running across the scene is drawn in profile by the people themselves.
     const view = it.m.view ?? look?.view ?? (motion === 'recede' ? 'back' : motion === 'approach' ? 'front' : undefined);
     const shapes = drawConcept(it.c, {
-      seed: `${seed}:${it.c.id}:${it.k}`,
+      seed: `${seed}:${it.aid}:${it.k}`,
       color: it.m.color,
-      vary: vary || it.k > 0,
+      vary: vary || it.alt > 0,
       expression,
       animation: limbs,
       view,
@@ -715,7 +729,7 @@ export function composeScene(matches, opts = {}) {
     const exprAttr = expression ? ` data-expression="${expression}"` : '';
     const viewAttr = view ? ` data-view="${view}"` : '';
     const colorAttr = it.m.color ? ` data-color="${it.m.color}"` : '';
-    out.push(`<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}"${animAttr}${exprAttr}${viewAttr}${colorAttr} transform="${tr.replace(/(\d+\.\d{3})\d+/g, '$1')}" style="cursor: grab;">${wrappedContent}</g>`);
+    out.push(`<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}"${who(it)}${animAttr}${exprAttr}${viewAttr}${colorAttr} transform="${tr.replace(/(\d+\.\d{3})\d+/g, '$1')}" style="cursor: grab;">${wrappedContent}</g>`);
   };
 
   // One timeline actor: a wrapper moved by keyframes, and one drawing per pose, switched on and off
@@ -782,7 +796,7 @@ export function composeScene(matches, opts = {}) {
       });
       motionCss.push(`@keyframes ${name}v${i} { ${frames}}`);
       const shapes = drawConcept(it.c, {
-        seed: `${seed}:${it.c.id}:${it.k}`, color: it.m.color, vary: vary || it.k > 0, style,
+        seed: `${seed}:${it.aid}:${it.k}`, color: it.m.color, vary: vary || it.alt > 0, style,
         expression: pose.expression || 'happy', animation: pose.anim, view: pose.view, gaze: pose.gaze,
       });
       // The drawing sits innermost in .pg-figure, so the studio can redraw it (a new expression)
@@ -799,7 +813,7 @@ export function composeScene(matches, opts = {}) {
     const rx = 50 * (it.c.width ?? 0.8) * 0.72;
     const shadow = shadows ? `<g style="animation: ${name}s ${r2(T)}s step-end infinite;"><ellipse class="pg-shadow" cx="50" cy="${base}" rx="${r2(rx)}" ry="${r2(Math.max(3, rx * 0.13))}" fill="#000000" opacity="0.16"/></g>` : '';
     const tr = `translate(${r2(home - 50 * s)} ${r2(y - base * s)}) scale(${r2(s * 1000) / 1000})`;
-    return `<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}" data-actor="${it.c.id}"${it.m.color ? ` data-color="${it.m.color}"` : ''} transform="${tr}" style="cursor: grab;"><g class="pg-timeline-move" style="animation: ${name}p ${r2(T)}s linear infinite;">${shadow}${poses}</g></g>`;
+    return `<g class="movable-item" data-id="${it.c.id}" data-k="${it.k}" data-label="${it.c.label || it.c.id}" data-actor="${it.c.id}"${who(it)}${it.m.color ? ` data-color="${it.m.color}"` : ''} transform="${tr}" style="cursor: grab;"><g class="pg-timeline-move" style="animation: ${name}p ${r2(T)}s linear infinite;">${shadow}${poses}</g></g>`;
   };
 
   // background objects (mountains, rainbows): large, behind everything, sitting on the horizon
@@ -888,7 +902,7 @@ export function composeScene(matches, opts = {}) {
     const { T, tracks, camera: events, beatTimes } = playTimeline(timeline, actorSlots, propsAt, W);
     timeline.duration = r2(T);
     timeline.beatTimes = beatTimes;
-    for (const [key, slot] of actorSlots) out.push(renderActor(slot, tracks.get(key), T, `${uid}a${key.replace('#', '_')}`));
+    for (const [key, slot] of actorSlots) out.push(renderActor(slot, tracks.get(key), T, `${uid}a${key.replace(/[^a-zA-Z0-9_-]/g, '_')}`));
     if (events.length || timeline.follow) {
       const followed = timeline.follow && tracks.get(`${timeline.follow}#0`);
       const follow = timeline.follow ? { id: timeline.follow, start: followed?.[0]?.t0 ?? 0 } : null;
@@ -896,7 +910,7 @@ export function composeScene(matches, opts = {}) {
     }
   } else if (opts.camera?.moves?.length) {
     // Camera directions without a timeline: play them in order, then ease back so the loop is seamless
-    const ids = new Set(items.map((it) => it.c.id));
+    const ids = new Set(items.map((it) => it.aid));
     let t = 0.8;
     const events = opts.camera.moves.map((m) => {
       const id = m.target && [...ids].find((x) => x === m.target);

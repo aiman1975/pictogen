@@ -38,10 +38,14 @@ const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // ---------------------------------------------------------------------------------------------
 // Names in prompts, faces on drawings
 
+/** The neutral key a character's name becomes in a prompt ("Tom" -> "pgc1"): no name leaves the page */
+const keyOf = (c) => `pgc${characters.indexOf(c) + 1}`;
+/** All characters as the engine knows them: { key, base } (kind of figure), never names or photos */
+const individuals = () => characters.map((c) => ({ key: keyOf(c), base: c.base }));
+
 /**
- * "Tom walks in, then Mia waves at him" -> { text: "the boy walks in, then the girl waves at him",
- * named: [Tom, Mia] }. One character per kind of figure in a scene: a second boy's name still reads
- * as "the boy", but only the first named boy wears a photo.
+ * "Tom walks in, then Max waves at him" -> { text: "pgc1 walks in, then pgc2 waves at him",
+ * named: [Tom, Max] }: each named character is a figure of its own, two boys as well.
  */
 function rewrite(text) {
   let out = String(text || '');
@@ -55,37 +59,38 @@ function rewrite(text) {
       const word = m.slice(det ? det.length : 0);
       if (det && word[0] === word[0].toLowerCase()) return m;
       if (first < 0) first = offset;
-      return `${det || 'the '}${c.base}`;
+      return keyOf(c);
     });
     if (first >= 0) hits.push({ c, first });
   }
-  const named = [];
-  for (const { c } of hits.sort((a, b) => a.first - b.first)) if (!named.some((n) => n.base === c.base)) named.push(c);
-  return { text: out, named };
+  return { text: out, named: hits.sort((a, b) => a.first - b.first).map((h) => h.c) };
 }
 
+/** A character's name from the key the engine knows it by ("pgc1" -> "Tom") */
+const nameOfKey = (key) => characters.find((c) => keyOf(c) === key)?.name ?? null;
+
 const SVG = 'http://www.w3.org/2000/svg';
-/** Puts each named character's photo on the first figure of its kind, in every pose it has. */
+/** Puts each named character's photo on its figure (data-who: its key), in every pose it has. */
 function apply(svg, named) {
   if (!svg || !named?.length) return svg;
   for (const c of named) {
-    const item = svg.querySelector(`.movable-item[data-id="${c.base}"][data-k="0"]`);
-    if (!item) continue;
-    item.dataset.character = c.name;
-    for (const head of item.querySelectorAll('[data-face]')) {
-      if (head.querySelector(':scope > .pg-photo-face')) continue;
-      const [cx, cy, r] = head.dataset.face.split(' ').map(Number);
-      const rx = r * 1.02, ry = rx * RATIO, oy = cy - r * 0.06;
-      const id = `pgface${Date.now().toString(36)}${uid++}`;
-      const g = document.createElementNS(SVG, 'g');
-      g.setAttribute('class', 'pg-photo-face');
-      // The photo fades out toward the oval's edge, so the drawn hair and head frame it softly
-      g.innerHTML = `<defs><radialGradient id="${id}g"><stop offset="0.7" stop-color="#fff"/><stop offset="0.97" stop-color="#000"/></radialGradient>`
-        + `<mask id="${id}" maskUnits="userSpaceOnUse"><ellipse cx="${cx}" cy="${oy}" rx="${rx}" ry="${ry}" fill="url(#${id}g)"/></mask></defs>`
-        + `<image href="${c.photo}" x="${cx - rx}" y="${oy - ry}" width="${2 * rx}" height="${2 * ry}" preserveAspectRatio="none" mask="url(#${id})"/>`;
-      // The drawn eyes and mouth hide under the photo (and would blink through it)
-      head.querySelectorAll('.pg-face-eyes, .pg-face-mouth').forEach((f) => f.setAttribute('display', 'none'));
-      head.appendChild(g);
+    for (const item of svg.querySelectorAll(`.movable-item[data-who="${keyOf(c)}"]`)) {
+      item.dataset.character = c.name;
+      for (const head of item.querySelectorAll('[data-face]')) {
+        if (head.querySelector(':scope > .pg-photo-face')) continue;
+        const [cx, cy, r] = head.dataset.face.split(' ').map(Number);
+        const rx = r * 1.02, ry = rx * RATIO, oy = cy - r * 0.06;
+        const id = `pgface${Date.now().toString(36)}${uid++}`;
+        const g = document.createElementNS(SVG, 'g');
+        g.setAttribute('class', 'pg-photo-face');
+        // The photo fades out toward the oval's edge, so the drawn hair and head frame it softly
+        g.innerHTML = `<defs><radialGradient id="${id}g"><stop offset="0.7" stop-color="#fff"/><stop offset="0.97" stop-color="#000"/></radialGradient>`
+          + `<mask id="${id}" maskUnits="userSpaceOnUse"><ellipse cx="${cx}" cy="${oy}" rx="${rx}" ry="${ry}" fill="url(#${id}g)"/></mask></defs>`
+          + `<image href="${c.photo}" x="${cx - rx}" y="${oy - ry}" width="${2 * rx}" height="${2 * ry}" preserveAspectRatio="none" mask="url(#${id})"/>`;
+        // The drawn eyes and mouth hide under the photo (and would blink through it)
+        head.querySelectorAll('.pg-face-eyes, .pg-face-mouth').forEach((f) => f.setAttribute('display', 'none'));
+        head.appendChild(g);
+      }
     }
   }
   return svg;
@@ -117,7 +122,7 @@ function render() {
     ${characters.length ? `<ul class="char-list">${characters.map((c, i) => `
       <li class="char-row"><img src="${c.photo}" alt=""><span class="char-name">${esc(c.name)}</span><span class="char-base">${esc(BASES.find(([b]) => b === c.base)[1])}</span>
         <button class="tl-btn danger" data-remove="${i}" aria-label="Remove ${esc(c.name)}" title="Remove">✕</button></li>`).join('')}</ul>
-      <div class="tl-empty">Use the name in a prompt: ${example}. One character per kind of figure in a scene.</div>`
+      <div class="tl-empty">Use the names in prompts: ${example}.</div>`
     : '<div class="tl-empty">Put a face on a boy, girl, man or woman, give them a name, and use it in your prompts. The photo stays in this browser.</div>'}`;
 }
 
@@ -294,5 +299,5 @@ function openCrop(img, done) {
   modal.querySelector('.face-name').focus();
 }
 
-window.pictogenCharacters = { rewrite, apply, withFaces, refresh: render, list: () => characters };
+window.pictogenCharacters = { rewrite, apply, withFaces, individuals, nameOfKey, refresh: render, list: () => characters };
 render();
