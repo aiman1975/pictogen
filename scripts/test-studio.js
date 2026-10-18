@@ -159,6 +159,40 @@ try {
   view = await tl();
   check(view.beats === 'boy:pose/wave+dog:pose/jump', `another figure can act in the same step (${view.beats})`);
 
+  // Step lengths: typed in the step editor, dragged at a step's edge; undo and redo
+  await draw('a boy walks in, then waves, then a dog runs to him');
+  const times = () => page.evaluate(() => window.pictogenStudio.getState().result.beats.map((b) => +(b.t1 - b.t0).toFixed(2)));
+  const before3 = await times();
+  await page.click('.tl-block[data-step="1"]');
+  await rerender(async () => { await page.fill('#tl-editor input[data-field="duration"]', '4'); await page.press('#tl-editor input[data-field="duration"]', 'Enter'); });
+  const typed = await times();
+  check(typed[1] === 4 && typed[0] === before3[0], `typing a length makes "waves" last 4s (${before3[1]}s before)`);
+  await page.click('.tl-block[data-step="1"]');
+  await page.locator('#tl-editor input[data-field="duration"]').dispatchEvent('change'); // the same length again
+  check((await page.evaluate(() => window.pictogenTimeline.getHistory().undo)) === 1, 'an edit that changes nothing adds no undo step');
+  const grip = await page.$('.tl-grip[data-grip="0"]');
+  const gb = await grip.boundingBox();
+  const laneW = await page.evaluate(() => document.querySelector('.tl-grip').parentElement.getBoundingClientRect().width);
+  const T0 = await page.evaluate(() => window.pictogenStudio.getState().result.duration);
+  await rerender(async () => {
+    await page.mouse.move(gb.x + gb.width / 2, gb.y + gb.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(gb.x + gb.width / 2 + laneW / T0, gb.y + gb.height / 2, { steps: 4 });
+    await page.mouse.up();
+  });
+  const dragged = await times();
+  check(Math.abs(dragged[0] - (before3[0] + 1)) < 0.15 && dragged[1] === 4, `dragging step 1's edge one second right lengthens it (${before3[0]}s -> ${dragged[0]}s)`);
+  await rerender(() => page.click('#timeline-panel [data-do="undo"]'));
+  check((await times())[0] === before3[0] && (await times())[1] === 4, 'undo takes back the drag');
+  await rerender(() => page.keyboard.press('Control+z'));
+  view = await tl();
+  check(!view.edited && (await times()).join() === before3.join(), 'Ctrl+Z takes back the typed length too: the prompt\'s own steps again');
+  await rerender(() => page.keyboard.press('Control+Shift+z'));
+  check((await times())[1] === 4, 'redo brings the length back');
+  await draw('a boy walks in, then waves for 3 seconds, then a dog runs to him');
+  const fixedChip = await page.evaluate(() => document.querySelector('.tl-block[data-step="1"]').textContent);
+  check(fixedChip.includes('⏱') && (await times())[1] === 3, `"waves for 3 seconds" shows a 3s step with a set length (${fixedChip})`);
+
   const ruler = await page.$('#tl-ruler');
   const rb = await ruler.boundingBox();
   await page.mouse.click(rb.x + rb.width / 2, rb.y + rb.height / 2);

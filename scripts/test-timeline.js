@@ -207,6 +207,20 @@ const reordered = generate('a boy walks in, then waves, then a dog runs to him',
 ] });
 check(reordered.edited && reordered.beats.length === 2 && reordered.beats[1].t0 === reordered.beats[0].t1 && !wellFormedError(reordered.svg), 'generate() plays edited steps back to back');
 
+// 2g. Step lengths: "for 3 seconds" in the prompt, or set in the timeline view
+const lengths = (t, opts) => generate(t, opts).beats.map((b) => +(b.t1 - b.t0).toFixed(2));
+check(lengths('a boy walks in, then waves for 3 seconds, then a dog runs to him')[1] === 3, '"waves for 3 seconds" makes a 3s step');
+check(lengths('a boy walks in, then waves for a while, then a dog runs to him')[1] === 4 && lengths('a boy walks in for a moment, then waves')[0] === 1.2, '"for a while" and "for a moment" set lengths too');
+check(lengths('the camera zooms in on the dog for four seconds, then the dog jumps')[0] === 4, 'a camera move can be given a length ("for four seconds")');
+const timedProps = parseTimeline('a boy walks in, then waves for 3 seconds, then a dog runs to him').props;
+check(!timedProps.length, 'the length words are not drawn ("3 seconds" is no object)');
+const squeezed = generate('a boy walks in, then waves, then a dog runs to him', { beats: [
+  { actions: [{ actor: 'boy', type: 'enter' }], duration: 0.5 }, { actions: [{ actor: 'boy', type: 'pose', anim: 'wave' }], duration: 99 },
+  { actions: [{ actor: 'dog', type: 'moveTo', target: 'boy' }], duration: 'abc' },
+] });
+const sq = squeezed.beats.map((b) => +(b.t1 - b.t0).toFixed(2));
+check(sq[0] === 0.5 && sq[1] === 20 && sq[2] > 0.5 && !wellFormedError(squeezed.svg), `edited lengths: a walk squeezed into 0.5s, a step capped at 20s, nonsense ignored (${sq.join(', ')}s)`);
+
 // 3. Clips: a sequenced scene lasts as long as its timeline
 const story = composeStory([{ prompt, caption: 'x', duration: 3 }]);
 check(story.scenes[0].duration >= r.duration, `a clip scene lasts as long as its timeline (${story.scenes[0].duration}s >= ${r.duration}s)`);

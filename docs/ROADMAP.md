@@ -122,7 +122,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] Studio **timeline view**: one lane per figure plus the camera, a playhead that scrubs; click a
       step to change who does what (walk in, run to someone, toward us, away, gestures, feelings, camera
       moves), move steps earlier or later, add or delete them, or add a first step to a still scene
-- [ ] Timeline view: drag to retime a step, undo/redo, save edited clips into Clip Studio
+- [x] Step lengths: drag a step's edge in the timeline view or type its length (walks speed up to fit,
+      gestures fill the time), or say it in the prompt ("waves for 3 seconds", "for a while");
+      undo/redo (Ctrl+Z / Ctrl+Shift+Z) for every timeline edit
+- [ ] Save edited scenes into Clip Studio
 
 ## Known issues to fix along the way
 - The bicycle drawing loses its wheels at small sizes

@@ -304,7 +304,7 @@ function playTimeline(timeline, slots, props, W) {
   for (const beat of timeline.beats) {
     if (beat.camera && !beat.actions.length) {
       // A camera beat: everyone holds still while the camera moves
-      const d = CAMERA_SECONDS[beat.camera.type] ?? 1.6;
+      const d = beat.duration ?? CAMERA_SECONDS[beat.camera.type] ?? 1.6;
       camera.push({ ...beat.camera, t0: t, t1: t + d });
       for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + d, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
       beatTimes.push({ t0: r2(t), t1: r2(t + d) });
@@ -380,11 +380,21 @@ function playTimeline(timeline, slots, props, W) {
       });
     }
     let beatLen = Math.max(0.5, ...[...acting.values()].map((a) => a.d));
+    let shot = null;
     if (beat.camera) {
       // A camera move alongside the actions ("the camera zooms in while she waves")
       const d = CAMERA_SECONDS[beat.camera.type] ?? 1.6;
-      camera.push({ ...beat.camera, t0: t, t1: t + d });
+      shot = { ...beat.camera, t0: t, t1: t + d };
+      camera.push(shot);
       beatLen = Math.max(beatLen, d);
+    }
+    if (beat.duration) {
+      // A length set in the prompt ("waves for 3 seconds") or the timeline view: walks and camera
+      // moves speed up to fit a shorter step; gestures and standing still fill a longer one
+      const f = Math.min(1, beat.duration / beatLen);
+      for (const a of acting.values()) { a.d *= f; a.delay *= f; }
+      if (shot) shot.t1 = t + (shot.t1 - t) * f;
+      beatLen = beat.duration;
     }
     for (const [id, st] of state) {
       const act = acting.get(id);

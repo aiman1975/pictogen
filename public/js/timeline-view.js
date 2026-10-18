@@ -78,7 +78,13 @@ function update(data) {
     return;
   }
   panel.hidden = false;
-  beats = (data.beats || []).map((b) => ({ actions: b.actions.map((a) => ({ ...a })), ...(b.camera ? { camera: { ...b.camera } } : {}) }));
+  beats = (data.beats || []).map((b) => ({
+    actions: b.actions.map((a) => ({ ...a })),
+    ...(b.camera ? { camera: { ...b.camera } } : {}),
+    ...(b.duration ? { duration: b.duration } : {}),
+  }));
+  const st = studio.getState();
+  if (history.prompt !== st.prompt) Object.assign(history, { undo: [], redo: [], prompt: st.prompt });
   if (selected && !beats[selected.beat]) selected = null;
   if (selected?.actor && !beats[selected.beat].actions.some((a) => a.actor === selected.actor)) selected = { beat: selected.beat };
   if (selected?.camera && !beats[selected.beat].camera) selected = { beat: selected.beat };
@@ -89,20 +95,50 @@ function update(data) {
   raf = requestAnimationFrame(tick);
 }
 
+// Undo / redo: the steps as sent before each edit (null = the prompt's own steps)
+const history = { undo: [], redo: [], prompt: null };
+function current() {
+  const st = studio.getState();
+  return st.beats && st.beatsFor === st.prompt ? JSON.parse(JSON.stringify(st.beats)) : null;
+}
+function remember() {
+  history.undo.push(current());
+  if (history.undo.length > 50) history.undo.shift();
+  history.redo = [];
+}
+function setSteps(steps) {
+  const st = studio.getState();
+  st.beats = steps;
+  st.beatsFor = steps ? st.prompt : null;
+  studio.regenerate();
+}
+function undo() {
+  if (!history.undo.length) return;
+  history.redo.push(current());
+  setSteps(history.undo.pop());
+}
+function redo() {
+  if (!history.redo.length) return;
+  history.undo.push(current());
+  setSteps(history.redo.pop());
+}
+
 /** Sends the edited steps back to the server and redraws the scene. */
 function apply() {
-  const st = studio.getState();
-  st.beats = beats.map((b) => ({ actions: b.actions, ...(b.camera ? { camera: b.camera } : {}) }));
-  st.beatsFor = st.prompt;
-  studio.regenerate();
+  const next = JSON.parse(JSON.stringify(beats.map((b) => ({
+    actions: b.actions,
+    ...(b.camera ? { camera: b.camera } : {}),
+    ...(b.duration ? { duration: b.duration } : {}),
+  }))));
+  if (JSON.stringify(next) === JSON.stringify(current())) return render(); // nothing changed: no undo step
+  remember();
+  setSteps(next);
 }
 
 function revert() {
-  const st = studio.getState();
-  st.beats = null;
-  st.beatsFor = null;
+  remember();
   selected = null;
-  studio.regenerate();
+  setSteps(null);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -140,7 +176,9 @@ function render() {
 
   const steps = at.map(({ t0, t1 }, i) => {
     const on = selected && selected.beat === i && !selected.actor && !selected.camera;
-    return `<button class="tl-block leave${on ? ' selected' : ''}" style="${pos(t0, t1)}" data-step="${i}" title="Step ${i + 1}: ${t0.toFixed(1)}s to ${t1.toFixed(1)}s">Step ${i + 1}</button>`;
+    const fixed = beats[i].duration ? ' ⏱' : '';
+    return `<button class="tl-block leave${on ? ' selected' : ''}" style="${pos(t0, t1)}" data-step="${i}" title="Step ${i + 1}: ${t0.toFixed(1)}s to ${t1.toFixed(1)}s${fixed ? ' (length set)' : ''}">Step ${i + 1}${fixed}</button>`
+      + `<div class="tl-grip" data-grip="${i}" style="left:${pct((t1 / T) * 100)}" title="Drag to make step ${i + 1} longer or shorter"></div>`;
   }).join('');
 
   const lane = (id) => at.map(({ t0, t1 }, i) => {
@@ -160,6 +198,8 @@ function render() {
     <div class="tl-head">
       <span class="tl-title">🎬 Timeline</span>
       ${edited ? '<span class="tl-edited">edited</span><button class="tl-btn" data-do="revert" title="Drop your edits and use the steps the prompt describes">↺ Use the prompt</button>' : ''}
+      <button class="tl-btn" data-do="undo" title="Undo (Ctrl+Z)" aria-label="Undo" ${history.undo.length ? '' : 'disabled'}>↶</button>
+      <button class="tl-btn" data-do="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" ${history.redo.length ? '' : 'disabled'}>↷</button>
       ${beats.length ? `<button class="tl-btn" data-do="play" aria-label="${playing ? 'Pause' : 'Play'}" title="Play / pause (drag on the time ruler to scrub)">${playing ? ICON.pause : ICON.play}</button><span class="tl-time" id="tl-time">0.0s / ${T.toFixed(1)}s</span>` : ''}
       <button class="tl-btn primary" data-do="add-step" title="Add a step after the selected one (or at the end)">＋ Step</button>
     </div>
@@ -206,7 +246,11 @@ function editor() {
     </div>`;
   }
   const free = result.cast.some((c) => !beat.actions.some((x) => x.actor === c.id));
+  const { at } = spans();
+  const length = at[i] ? at[i].t1 - at[i].t0 : 1;
   return `<div class="tl-editor" id="tl-editor">${title}
+    <label title="How long this step lasts: walks speed up to fit a shorter step, gestures fill a longer one">Length <input type="number" data-field="duration" min="0.3" max="20" step="0.1" value="${length.toFixed(1)}" style="width:4.5em"> s</label>
+    ${beat.duration ? '<button class="tl-btn" data-do="auto-length" title="As long as its actions take">Auto</button>' : ''}
     <button class="tl-btn" data-do="earlier" ${i === 0 ? 'disabled' : ''}>◀ Earlier</button>
     <button class="tl-btn" data-do="later" ${i === beats.length - 1 ? 'disabled' : ''}>Later ▶</button>
     <button class="tl-btn" data-do="add-action" ${free ? '' : 'disabled'} title="Someone else does something at the same time">＋ Someone</button>
@@ -228,6 +272,8 @@ function act(what) {
   const i = selected?.beat;
   const beat = beats[i];
   if (what === 'revert') return revert();
+  if (what === 'undo') return undo();
+  if (what === 'redo') return redo();
   if (what === 'play') return playing ? seek(currentTime()) : play();
   if (what === 'close') { selected = null; return render(); }
   if (what === 'add-step') {
@@ -243,6 +289,10 @@ function act(what) {
     if (!beats[j]) return;
     [beats[i], beats[j]] = [beats[j], beats[i]];
     selected = { beat: j };
+    return apply();
+  }
+  if (what === 'auto-length') {
+    delete beat.duration;
     return apply();
   }
   if (what === 'delete-step') {
@@ -274,6 +324,12 @@ function act(what) {
 function change(field, value) {
   const beat = beats[selected?.beat];
   if (!beat) return;
+  if (field === 'duration') {
+    const v = parseFloat(value);
+    if (!Number.isFinite(v)) return;
+    beat.duration = Math.round(Math.min(20, Math.max(0.3, v)) * 20) / 20;
+    return apply();
+  }
   if (field === 'camera' || field === 'camera-target') {
     const c = beat.camera;
     if (field === 'camera-target') c.target = value || null;
@@ -318,7 +374,7 @@ panel.addEventListener('click', (e) => {
   findClock();
 });
 panel.addEventListener('change', (e) => {
-  if (e.target.matches('select[data-field]')) change(e.target.dataset.field, e.target.value);
+  if (e.target.matches('select[data-field], input[data-field]')) change(e.target.dataset.field, e.target.value);
 });
 panel.addEventListener('keydown', (e) => {
   if ((e.key === 'Delete' || e.key === 'Backspace') && selected && e.target.matches('.tl-block')) {
@@ -386,6 +442,46 @@ panel.addEventListener('pointerdown', (e) => {
   ruler.addEventListener('pointerup', up);
 });
 
-window.pictogenTimeline = { update, getBeats: () => beats };
+// Dragging a step's right edge sets its length (previewed on the step, applied on release)
+panel.addEventListener('pointerdown', (e) => {
+  const grip = e.target.closest('.tl-grip');
+  if (!grip || !result?.duration) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const i = +grip.dataset.grip;
+  const { T, at } = spans();
+  const chip = panel.querySelector(`[data-step="${i}"]`);
+  const lane = grip.parentElement.getBoundingClientRect();
+  const x0 = e.clientX, len0 = at[i].t1 - at[i].t0;
+  let len = len0;
+  grip.setPointerCapture?.(e.pointerId);
+  const label = document.getElementById('tl-time');
+  const move = (ev) => {
+    len = Math.round(Math.min(20, Math.max(0.3, len0 + ((ev.clientX - x0) / lane.width) * T)) * 20) / 20;
+    chip.style.width = pct((len / T) * 100);
+    grip.style.left = pct(((at[i].t0 + len) / T) * 100);
+    if (label) label.textContent = `Step ${i + 1}: ${len.toFixed(2)}s`;
+  };
+  const up = () => {
+    grip.removeEventListener('pointermove', move);
+    grip.removeEventListener('pointerup', up);
+    if (Math.abs(len - len0) < 0.05) return;
+    beats[i].duration = len;
+    selected = { beat: i };
+    apply();
+  };
+  grip.addEventListener('pointermove', move);
+  grip.addEventListener('pointerup', up);
+}, true);
+
+// Ctrl/Cmd+Z undoes a timeline edit, Ctrl/Cmd+Shift+Z or Ctrl+Y redoes it (not while typing)
+document.addEventListener('keydown', (e) => {
+  if (panel.hidden || !(e.ctrlKey || e.metaKey) || e.target.closest('input, textarea, select, [contenteditable]')) return;
+  const key = e.key.toLowerCase();
+  if (key === 'z' && !e.shiftKey && history.undo.length) { e.preventDefault(); undo(); }
+  else if (((key === 'z' && e.shiftKey) || key === 'y') && history.redo.length) { e.preventDefault(); redo(); }
+});
+
+window.pictogenTimeline = { update, getBeats: () => beats, getHistory: () => ({ undo: history.undo.length, redo: history.redo.length }) };
 // The first scene may have been drawn before this module loaded
 if (studio.getState().result && studio.getState().mode === 'scene') update(studio.getState().result);

@@ -182,6 +182,22 @@ function depthOf(toks) {
   return null;
 }
 
+// How long: "for 3 seconds", "for two seconds", "for a moment", "for a while", "for a minute"
+const NUMBER_WORDS = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, few: 3, couple: 2 };
+const DURATION_RE = /\bfor\s+(?:(?:a\s+)?(\d+(?:\.\d+)?|a|an|one|two|three|four|five|six|seven|eight|nine|ten|few|couple)\s+(?:of\s+)?(seconds?|secs?|minutes?)|(a\s+moment|a\s+bit|a\s+while|a\s+long\s+time|ages))\b/i;
+const VAGUE = { 'a moment': 1.2, 'a bit': 2, 'a while': 4, 'a long time': 6, ages: 6 };
+export const MIN_STEP = 0.3, MAX_STEP = 20;
+
+/** A clause's length in seconds and the clause without those words: { seconds, rest } or null. */
+export function durationOf(clause) {
+  const m = String(clause).match(DURATION_RE);
+  if (!m) return null;
+  const seconds = m[3]
+    ? VAGUE[m[3].toLowerCase().replace(/\s+/g, ' ')]
+    : (Number(m[1]) || NUMBER_WORDS[m[1].toLowerCase()]) * (/^min/i.test(m[2]) ? 60 : 1);
+  return { seconds: Math.min(MAX_STEP, Math.max(MIN_STEP, seconds)), rest: clause.replace(m[0], ' ') };
+}
+
 const stems = (t) => [t, t.replace(/ies$/, 'y'), t.replace(/es$/, ''), t.replace(/s$/, ''), t.replace(/ing$/, ''), t.replace(/ing$/, 'e')];
 const motionOf = (t) => stems(t).map((w) => MOTION_WORDS[w]).find(Boolean);
 const expressionOf = (t) => EXPRESSION_VERBS[t] || stems(t).map((w) => EXPRESSION_WORDS[w]).find(Boolean);
@@ -226,7 +242,11 @@ export function parseTimeline(text) {
 
   // One clause -> { text, actions, camera? } (or null for "the camera follows ..."), keeping track of
   // who has been mentioned and who acted last
-  const readClause = (clause) => {
+  const readClause = (text) => {
+    // "waves for 3 seconds": the step's length, then the clause without it
+    const timed = durationOf(text);
+    const clause = timed ? timed.rest : text;
+    const length = timed ? { duration: timed.seconds } : {};
     const cam = cameraAction(clause);
     if (cam) {
       // Who the camera looks at: a pronoun ("follows him") or something named ("zooms in on the dog")
@@ -237,7 +257,7 @@ export function parseTimeline(text) {
         if (hit) { id = hit.id; remember(hit); }
       }
       if (cam.type === 'follow') { follow = id || lastSubjects[0] || actorIds[0] || null; return null; }
-      return { text: clause, actions: [], camera: { ...cam, target: id } };
+      return { text, actions: [], camera: { ...cam, target: id }, ...length };
     }
     const toks = tokenize(clause);
     // The first verb that makes something happen
@@ -316,7 +336,7 @@ export function parseTimeline(text) {
       }
       lastSubjects = subjectIds;
     }
-    return { text: clause, actions };
+    return { text, actions, ...length };
   };
 
   // A clause with "and" between actions -> its beats in order. "and smiles" after an action is how
@@ -354,7 +374,8 @@ export function parseTimeline(text) {
       if (split.order === 'together') {
         const all = [...main, ...other];
         const camera = all.find((b) => b.camera)?.camera;
-        beats.push({ text: clause, actions: all.flatMap((b) => b.actions), ...(camera ? { camera } : {}) });
+        const duration = Math.max(0, ...all.map((b) => b.duration ?? 0));
+        beats.push({ text: clause, actions: all.flatMap((b) => b.actions), ...(camera ? { camera } : {}), ...(duration ? { duration } : {}) });
       } else {
         // One after the other: "when / after / as soon as" the linked half first, "before" it last
         beats.push(...(split.order === 'first' ? [...other, ...main] : [...main, ...other]));
@@ -396,7 +417,9 @@ const EXPRESSIONS = new Set(Object.values(EXPRESSION_WORDS));
 
 /**
  * editTimeline(beats, cast, base?) -> a timeline like parseTimeline's, or null when nothing happens.
- *   beats: [{ actions: [{ actor, type, gait?, anim?, target?, expression? }], camera? }] as edited
+ *   beats: [{ actions: [{ actor, type, gait?, anim?, target?, expression? }], camera?, duration? }] as edited
+ *          (duration: the step's length in seconds, MIN_STEP..MAX_STEP; without it the step takes as
+ *          long as its actions)
  *   cast:  matches the scene can use as actors or targets (the prompt's figures and things)
  *   base:  the prompt's own timeline, if any (keeps "the camera follows ...")
  * Anything that does not fit is dropped: unknown figures, actions, gestures or feelings, a walk
@@ -428,7 +451,9 @@ export function editTimeline(beats, cast, base = null) {
     const camera = c && CAMERA_TYPES.includes(c.type) && !(c.type === 'panTo' && !known(c.target))
       ? { type: c.type, target: known(c.target) ? c.target : null, ...(c.type === 'pan' ? { dir: c.dir < 0 ? -1 : 1 } : {}) }
       : null;
-    if (actions.length || camera) clean.push({ text: typeof beat.text === 'string' ? beat.text.slice(0, 200) : '', actions, ...(camera ? { camera } : {}) });
+    const duration = Number.isFinite(+beat.duration) && beat.duration !== null && +beat.duration > 0
+      ? Math.round(Math.min(MAX_STEP, Math.max(MIN_STEP, +beat.duration)) * 20) / 20 : null;
+    if (actions.length || camera) clean.push({ text: typeof beat.text === 'string' ? beat.text.slice(0, 200) : '', actions, ...(camera ? { camera } : {}), ...(duration ? { duration } : {}) });
   }
   const actorIds = [...new Set(clean.flatMap((b) => b.actions.map((a) => a.actor)))];
   if (!actorIds.length) return null;

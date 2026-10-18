@@ -359,6 +359,13 @@
     .tl-block.camera { background: var(--tl-camera); color: var(--tl-camera-ink); }
     .tl-block:hover { filter: brightness(0.96); }
     .tl-block.selected { border-color: currentColor; box-shadow: 0 0 0 2px rgb(37 99 235 / 0.25); }
+    .tl-grip {
+      position: absolute; top: 0; bottom: 0; width: 12px; margin-left: -6px; cursor: ew-resize; touch-action: none; z-index: 1;
+    }
+    .tl-grip::after { content: ''; position: absolute; top: 5px; bottom: 5px; left: 5px; width: 2px; border-radius: 1px; background: var(--text-muted); opacity: 0.35; }
+    .tl-grip:hover::after { opacity: 0.9; background: var(--primary); }
+    .tl-btn:disabled { opacity: 0.4; cursor: default; background: var(--surface); }
+    .tl-editor input[type=number] { font: inherit; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
     .tl-playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #ef4444; pointer-events: none; }
     .tl-playhead::before { content: ''; position: absolute; top: 0; left: -4px; border: 5px solid transparent; border-top-color: #ef4444; }
     .tl-body { position: relative; }
