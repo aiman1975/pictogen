@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "manostudio",
     "public": "dist",
     "ignore": ["firebase.json", "**/.*"],
     "cleanUrls": true,

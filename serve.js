@@ -90,7 +90,7 @@ const server = http.createServer((req, res) => {
   }
 
   // Static file serving from public/
-  let filePath = resolve(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname === '/studio' ? 'studio.html' : pathname === '/showcase' ? 'showcase.html' : '.' + pathname);
+  let filePath = resolve(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname === '/studio' ? 'studio.html' : pathname === '/help' ? 'help.html' : pathname === '/showcase' ? 'showcase.html' : '.' + pathname);
   if (filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + sep)) {
     res.writeHead(403);
     res.end('Forbidden');

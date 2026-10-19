@@ -91,6 +91,8 @@ else {
     await land.waitForFunction(() => location.pathname === '/studio' || location.pathname === '/studio.html', null, { timeout: 15000 });
     await land.waitForFunction(() => window.pictogenStudio?.getState().prompt === 'a cat', null, { timeout: 60000 });
     check(true, 'an old link to the studio (/?text=a cat) opens the studio with its picture');
+    const help = await land.goto(`http://localhost:${port}/help`, { waitUntil: 'load' });
+    check(help.ok() && (await land.evaluate(() => document.querySelectorAll('main h2').length)) >= 15, 'the "How to use" page is there (/help), linked from the welcome page');
     await land.close();
 
     const show = await browser.newPage();

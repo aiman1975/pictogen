@@ -197,8 +197,16 @@ function getIndex() {
   const single = new Map();
   const multi = new Map();
   let maxN = 1;
-  for (const c of listConcepts()) {
-    for (const raw of [c.id.replace(/_/g, ' '), c.label, ...(c.aliases || [])]) {
+  // Hand-drawn concepts first (every word for them), then the library: each icon's own name before
+  // the other icons' extra words ("mouse" is the animal, not the computer mouse that also answers to it)
+  const all = listConcepts(), hand = all.filter((c) => !c.isLibrary), lib = all.filter((c) => c.isLibrary);
+  const words = [
+    ...hand.map((c) => [c, [c.id.replace(/_/g, ' '), c.label, ...(c.aliases || [])]]),
+    ...lib.map((c) => [c, [c.id.replace(/_/g, ' '), c.label]]),
+    ...lib.map((c) => [c, c.aliases || []]),
+  ];
+  for (const [c, raws] of words) {
+    for (const raw of raws) {
       if (!raw) continue;
       const key = tokenize(raw).join(' ');
       if (!key) continue;

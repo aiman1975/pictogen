@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { generate, getConcept, renderIcon, STYLE_NAMES, DIAGRAMS, renderWorksheet } from '../src/index.js';
 import { fitText } from '../src/bubble.js';
 
@@ -239,6 +240,21 @@ test('worksheets: write, count (with the answers), label (with the answers), col
   if (!/>3<\/text>/.test(count.pages[1]) || !/>2<\/text>/.test(count.pages[1]) || !/>5<\/text>/.test(count.pages[1]) || /fill="#dc2626"/.test(count.pages[0])) throw new Error('the answer key: 3 apples, 2 bananas, 5 altogether (only on the key)');
   const titled = renderWorksheet('3 apples', { title: 'Fruit maths', instructions: 'Count carefully!' });
   if (!titled.pages[0].includes('Fruit maths') || !titled.pages[0].includes('Count carefully!')) throw new Error('own title and instructions');
+});
+
+// The manual (public/help.html): every example it offers draws what it promises
+test('every example in the "How to use" page draws something', () => {
+  const html = readFileSync(new URL('../public/help.html', import.meta.url), 'utf8');
+  const links = [...html.matchAll(/href="\/studio\?([^"]+)"/g)].map((m) => new URLSearchParams(m[1].replace(/&amp;/g, '&')));
+  if (links.length < 30) throw new Error(`only ${links.length} examples`);
+  const empty = [];
+  for (const q of links) {
+    const text = q.get('text'), mode = q.get('mode') || 'scene', style = q.get('style') || 'flat';
+    const r = generate(text, { mode, style });
+    if (!r.diagram && !r.matches.length && mode !== 'alphabet') empty.push(`${text} (${mode})`);
+    if (/NaN/.test(r.svg)) empty.push(`${text}: NaN in the drawing`);
+  }
+  if (empty.length) throw new Error(`examples that draw nothing: ${empty.join('; ')}`);
 });
 
 if (fails > 0) {

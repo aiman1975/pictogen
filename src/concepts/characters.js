@@ -338,7 +338,7 @@ const CHARACTERS = [
     { body: stethoscope, head: nurseCap }),
   character('man', { id: 'cook', label: 'chef', aliases: ['chef', 'baker'], colors: { main: '#ffffff', pants: '#424242' }, palettes: { hair: HAIR_COLORS } },
     { body: all(apron('#f5f5f5'), (d, p, g) => !g.back && !g.side && [0, 6].forEach((dy) => d.circle(torsoMid(g) + 4, g.torso[1] + 5 + dy, 1, { fill: '#9e9e9e', kind: 'detail' }))), head: chefHat }),
-  character('man', { id: 'farmer', aliases: ['farmers', 'gardener', 'rancher'], colors: { main: '#e53935', pants: '#1565c0', shoe: '#5d4037' }, palettes: { hair: HAIR_COLORS } },
+  character('man', { id: 'farmer', aliases: ['farmers', 'rancher'], colors: { main: '#e53935', pants: '#1565c0', shoe: '#5d4037' }, palettes: { hair: HAIR_COLORS } },
     { body: overalls('#1e88e5'), head: strawHat }),
   character('man', { id: 'astronaut', aliases: ['astronauts', 'spaceman', 'cosmonaut', 'space explorer'], colors: { main: '#eceff1', pants: '#eceff1', shoe: '#90a4ae' }, palettes: { hair: HAIR_COLORS } },
     { body: all(belt('#90a4ae'), (d, p, g) => !g.back && !g.side && d.rect(g.torso[0] + 4, g.torso[1] + 5, 7, 5, { fill: '#1e88e5', kind: 'accent' })), head: spaceHelmet }),

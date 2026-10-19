@@ -30,6 +30,12 @@
     .btn-main { color: #fff; background: linear-gradient(135deg, var(--brand), var(--brand2)); box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35); font-size: 1.1rem; padding: 15px 30px; }
     .btn-soft { background: #fff; color: var(--ink); border: 2px solid var(--line); }
     .btn-small { padding: 9px 18px; font-size: 0.95rem; }
+    .top .btn-small span.short { display: none; }
+    .how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: s; }
+    .how div { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+    .how b { display: block; font-size: 1.1rem; margin-bottom: 4px; }
+    .how div::before { counter-increment: s; content: counter(s); display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; font-weight: 900; margin-bottom: 8px; }
+    @media (max-width: 860px) { .how { grid-template-columns: 1fr; } }
 
     /* Hero: what it is, and it doing it */
     .hero { display: grid; grid-template-columns: 1fr 1.15fr; gap: 40px; align-items: center; padding: 28px 0 56px; }
@@ -97,6 +103,7 @@
       .private { grid-template-columns: 1fr; padding: 28px 22px; }
       .private .big { font-size: 3rem; }
       .top .btn-small span.long { display: none; }
+      .top .btn-small span.short { display: inline; }
     }
     @media (prefers-reduced-motion: reduce) {
       * { animation-duration: 0.001s !important; animation-iteration-count: 1 !important; transition: none !important; }
@@ -107,7 +114,7 @@
   <div class="wrap">
     <nav class="top" aria-label="PictoGen">
       <a class="brand" href="/"><span class="logo">P</span>PictoGen</a>
-      <a class="btn btn-soft btn-small" href="/studio">✏️ <span class="long">Open the </span>studio</a>
+      <span style="display:flex;gap:8px;align-items:center"><a class="btn btn-soft btn-small" href="/help">❓ <span class="long">How to use</span><span class="short">Help</span></a><a class="btn btn-soft btn-small" href="/studio">✏️ <span class="long">Open the </span>studio</a></span>
     </nav>
 
     <header class="hero">
@@ -133,6 +140,19 @@
       <h2>You type it. PictoGen draws it.</h2>
       <p class="sub">Three things people made in a few seconds. Tap one to try it yourself.</p>
       <div class="pairs" id="pairs"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="sub">No sign-up, nothing to install. It works on a computer, a tablet or a phone.</p>
+      <div class="how">
+        <div><b>Type what you want to see</b>"a teacher reads a book to children in a classroom". Simple words work best.</div>
+        <div><b>Press Draw</b>The picture appears in a second. Move things around, pick a style, change a face.</div>
+        <div><b>Save, print or share</b>As a picture, a video, a comic, or a worksheet to print, with an answer key.</div>
+      </div>
+      <p class="sub" style="margin-top:22px;margin-bottom:0"><a href="/help" style="color:var(--brand);font-weight:900">📖 Read the full guide: how to use PictoGen →</a></p>
     </div>
   </section>
 
@@ -177,7 +197,7 @@
 
   <footer class="wrap">
     PictoGen · a preview for friends and family ·
-    <a href="/studio">Studio</a> · <a href="/showcase">Show</a><br>
+    <a href="/studio">Studio</a> · <a href="/help">How to use</a> · <a href="/showcase">Show</a><br>
     Icons from Fluent Emoji (MIT licence) · sounds from Kenney (CC0)
   </footer>
 

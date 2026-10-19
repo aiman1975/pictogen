@@ -18,6 +18,7 @@ http.createServer((req, res) => {
   let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   if (path === '/') path = '/index.html';
   if (path === '/studio') path = '/studio.html';
+  if (path === '/help') path = '/help.html';
   if (path === '/showcase') path = '/showcase.html';
   const file = resolve(dir, '.' + path);
   let ok = false;

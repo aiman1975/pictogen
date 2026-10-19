@@ -1,12 +1,23 @@
 # Publishing the studio on the web (Firebase Hosting)
 
-**Live at https://pictogen-daab2.web.app** (Firebase project `pictogen-daab2`), published by
-`.github/workflows/deploy-web.yml` on every push to `main`.
+**Live at https://manostudio.web.app** (the Hosting site `manostudio` in the Firebase project
+`pictogen-daab2`), published by `.github/workflows/deploy-web.yml` on every push to `main`.
+The project's first address, https://pictogen-daab2.web.app, is taken offline by the same
+workflow once the new one is live.
 
 - `/`: the welcome page (`public/index.html`): what PictoGen does, shown with pictures it draws
   live in the visitor's browser, and a "Try it" button. Share this link.
 - `/studio`: the studio (`public/studio.html`). Old links to the studio (`/?text=...`) still open it.
+- `/help`: how to use PictoGen, with examples that open in the studio.
 - `/showcase`: the narrated show.
+
+### The address
+
+The address is the Hosting site's name: `"site": "manostudio"` in `firebase.json`, and `SITE` in
+the workflow. The workflow creates the site the first time. If Firebase refuses (the key may not be
+allowed to create sites), create it once by hand: Firebase console, **Hosting**, **Add another
+site**, name `manostudio`; then **Actions → Deploy web studio → Run workflow**. To change the
+address later, use a new free name in both places.
 
 The web version is a **static site**: the PictoGen engine runs in each visitor's browser, so
 there is no server to run or pay for (Firebase's free Spark plan is enough), and what people make

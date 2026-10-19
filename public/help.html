@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>How to use PictoGen</title>
+  <meta name="description" content="How to use PictoGen: write a sentence, change the picture, make cartoons, comics, labelled diagrams and worksheets, and save them." />
+  <link rel="stylesheet" href="/fonts/fonts.css" />
+  <style>
+    :root { --ink: #1f2937; --muted: #5b6474; --brand: #2563eb; --brand2: #7c3aed; --line: #e5e7eb; --soft: #f8fafc; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+    body { margin: 0; font-family: 'Nunito', 'Segoe UI', Roboto, Arial, sans-serif; color: var(--ink); background: #fff; line-height: 1.6; font-size: 17px; }
+    a { color: var(--brand); }
+    .bar { position: sticky; top: 0; z-index: 5; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+    .bar .in { max-width: 1120px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 900; font-size: 1.15rem; }
+    .logo { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #fff; font-weight: 900; background: linear-gradient(135deg, var(--brand), var(--brand2)); }
+    .open { text-decoration: none; color: #fff; font-weight: 900; background: linear-gradient(135deg, var(--brand), var(--brand2)); padding: 9px 18px; border-radius: 999px; white-space: nowrap; }
+    .page { max-width: 1120px; margin: 0 auto; padding: 0 20px 60px; display: grid; grid-template-columns: 240px 1fr; gap: 40px; }
+    nav.toc { position: sticky; top: 76px; align-self: start; max-height: calc(100vh - 90px); overflow: auto; padding: 24px 0; font-size: 0.95rem; }
+    nav.toc strong { display: block; margin-bottom: 8px; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    nav.toc a { display: block; padding: 4px 0; color: var(--ink); text-decoration: none; font-weight: 700; }
+    nav.toc a:hover { color: var(--brand); }
+    main { min-width: 0; padding-top: 18px; }
+    h1 { font-size: clamp(2rem, 4.5vw, 2.8rem); line-height: 1.15; margin: 16px 0 8px; }
+    .intro { font-size: 1.15rem; color: var(--muted); margin: 0 0 20px; }
+    h2 { font-size: 1.55rem; margin: 46px 0 10px; padding-top: 6px; border-top: 1px solid var(--line); }
+    h2 .n { color: var(--brand2); margin-right: 6px; }
+    h3 { font-size: 1.12rem; margin: 22px 0 6px; }
+    p, li { max-width: 46em; }
+    ul { padding-left: 1.3rem; }
+    li { margin: 4px 0; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 22px 0 8px; }
+    .step { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 16px; }
+    .step > b { display: block; font-size: 1.05rem; margin-bottom: 4px; }
+    .step .num { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 900; margin-right: 6px; }
+    .ex { display: inline-block; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 999px; padding: 2px 12px; margin: 3px 4px 3px 0; text-decoration: none; color: #3730a3; font-weight: 800; font-size: 0.93rem; }
+    .ex:hover { background: #e0e7ff; }
+    .ex::after { content: ' ↗'; opacity: 0.6; }
+    .tip { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 14px; padding: 12px 16px; margin: 14px 0; }
+    .note { background: #fffbeb; border: 1px solid #fde68a; border-radius: 14px; padding: 12px 16px; margin: 14px 0; }
+    table { border-collapse: collapse; width: 100%; max-width: 46em; margin: 10px 0; font-size: 0.95rem; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { background: var(--soft); }
+    kbd { font: inherit; font-weight: 800; background: var(--soft); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 0 6px; }
+    footer { color: var(--muted); font-size: 0.9rem; margin-top: 50px; }
+    @media (max-width: 860px) {
+      .page { grid-template-columns: 1fr; gap: 0; }
+      nav.toc { position: static; max-height: none; padding: 16px; margin-top: 16px; background: var(--soft); border-radius: 14px; columns: 2; }
+      nav.toc strong { column-span: all; }
+      .steps { grid-template-columns: 1fr; }
+      .bar .hide-phone { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bar"><div class="in">
+    <a class="brand" href="/"><span class="logo">P</span>PictoGen<span class="hide-phone" style="font-weight:700;color:var(--muted)">&nbsp;· How to use</span></a>
+    <a class="open" href="/studio">✏️ Open the studio</a>
+  </div></div>
+
+  <div class="page">
+    <nav class="toc" aria-label="Contents">
+      <strong>Contents</strong>
+      <a href="#start">Getting started</a>
+      <a href="#words">Writing a good sentence</a>
+      <a href="#people">People and characters</a>
+      <a href="#moving">Pictures that move</a>
+      <a href="#edit">Changing the picture</a>
+      <a href="#make">What to make</a>
+      <a href="#styles">Drawing styles</a>
+      <a href="#school">Diagrams and quizzes</a>
+      <a href="#worksheets">Worksheets</a>
+      <a href="#stories">Story clips</a>
+      <a href="#mine">Your own characters</a>
+      <a href="#save">Saving and sharing</a>
+      <a href="#phone">On a phone</a>
+      <a href="#private">Your privacy</a>
+      <a href="#limits">Good to know</a>
+    </nav>
+
+    <main>
+      <h1>How to use PictoGen</h1>
+      <p class="intro">PictoGen turns a sentence into a picture. This page shows what you can write, and everything you can do with the picture afterwards. Every grey-blue example opens in the studio, so you can try it straight away.</p>
+
+      <h2 id="start"><span class="n">1</span>Getting started</h2>
+      <div class="steps">
+        <div class="step"><b><span class="num">1</span>Type</b>Write what you want to see in the box at the top, like you would tell a friend.</div>
+        <div class="step"><b><span class="num">2</span>Draw</b>Press <b>✨ Draw</b> (or <kbd>Enter</kbd>). The picture appears in a second.</div>
+        <div class="step"><b><span class="num">3</span>Make it yours</b>Move things around, try another style, then save it, print it, or make a video.</div>
+      </div>
+      <p>Not sure what to write? Open <b>✨ Ideas to try</b> under the box and click one.</p>
+      <p>
+        <a class="ex" href="/studio?text=a+girl+with+a+balloon+and+her+dog+in+the+park">a girl with a balloon and her dog in the park</a>
+        <a class="ex" href="/studio?text=three+cats+under+a+tree+at+night">three cats under a tree at night</a>
+      </p>
+
+      <h2 id="words"><span class="n">2</span>Writing a good sentence</h2>
+      <p>Simple sentences work best. Name the things you want to see, then add details.</p>
+      <table>
+        <tr><th>You want…</th><th>Write, for example</th></tr>
+        <tr><td>Several things</td><td>"a girl, a dog and a tree"</td></tr>
+        <tr><td>How many</td><td>"three apples", "5 ducks", "a dozen eggs" (up to 12 of one thing)</td></tr>
+        <tr><td>Colours and sizes</td><td>"a red car", "a huge tree", "a tiny mouse"</td></tr>
+        <tr><td>Feelings</td><td>"a happy boy", "a sad girl", "a surprised man", "a laughing baby", "an angry cat"</td></tr>
+        <tr><td>Movement</td><td>"waves", "jumps", "dances", "walks", "runs", "flies", "points", "cheers", "sleeps"</td></tr>
+        <tr><td>A place</td><td>"in a classroom", "in the kitchen", "in the office", "in her bedroom", "in the park", "in the forest", "in the city", "at the beach"</td></tr>
+        <tr><td>Weather and time</td><td>"at night", "at sunset", "in the rain", "in the snow"</td></tr>
+        <tr><td>Something in the hands</td><td>"a woman holds a phone", "a girl with a balloon", "she reads a book", "a boy hugs a cat"</td></tr>
+        <tr><td>Someone talking</td><td>Put the words in quotes: <i>a boy says "Hello!"</i>. A speech bubble appears and the mouth moves. Words in CAPITALS with "!" get a shouting bubble.</td></tr>
+        <tr><td>Looking at someone</td><td>"a boy and a girl look at each other", "a girl waves at us"</td></tr>
+        <tr><td>Seen from another side</td><td>"a boy seen from behind", "a man in profile"</td></tr>
+        <tr><td>Leave something out</td><td>"a dog and no cats", "a boy without a ball"</td></tr>
+      </table>
+      <p>
+        <a class="ex" href="/studio?text=a+woman+holds+a+phone+in+the+office&amp;style=cartoon">a woman holds a phone in the office</a>
+        <a class="ex" href="/studio?text=a+girl+says+%22Hi!%22+and+a+boy+says+%22Look+at+that+rainbow!%22">a girl says "Hi!" and a boy says "Look at that rainbow!"</a>
+        <a class="ex" href="/studio?text=a+superhero+flies+over+the+city+at+night&amp;style=comic">a superhero over the city at night</a>
+      </p>
+      <div class="tip">💡 If PictoGen doesn't know a word, it says so under the box and suggests close words. Click a suggestion to use it. Small spelling mistakes ("elefant") are forgiven.</div>
+
+      <h2 id="people"><span class="n">3</span>People and characters</h2>
+      <p>Everyone is drawn in the same style, so they belong together in one picture:</p>
+      <ul>
+        <li><b>People:</b> boy, girl, man, woman, baby, grandpa, grandma</li>
+        <li><b>Jobs:</b> teacher, doctor, nurse, chef, police officer, firefighter, farmer, astronaut</li>
+        <li><b>Story characters:</b> superhero, princess, prince, king, queen, pirate, wizard, witch, fairy, robot</li>
+        <li><b>Groups:</b> "children", "kids", "friends", "a team", "the family", "my grandparents" become a mix of people. "five kids" gives five.</li>
+        <li><b>Animals, things and more:</b> over 3,000 pictures. Look them up in <b>📚 All pictures</b> at the bottom of the studio, and click one to add it.</li>
+      </ul>
+      <p>
+        <a class="ex" href="/studio?text=a+teacher+reads+a+book+to+children+in+a+classroom">a teacher reads a book to children in a classroom</a>
+        <a class="ex" href="/studio?text=a+princess+and+a+prince+dance&amp;style=anime">a princess and a prince dance</a>
+      </p>
+
+      <h2 id="moving"><span class="n">4</span>Pictures that move</h2>
+      <p>Every picture moves a little: people blink and breathe, trees sway. To make things happen one after another, use <b>then</b>:</p>
+      <p>
+        <a class="ex" href="/studio?text=a+boy+walks+in%2C+then+waves%2C+then+a+dog+runs+to+him">a boy walks in, then waves, then a dog runs to him</a>
+        <a class="ex" href="/studio?text=a+girl+walks+toward+us%2C+then+says+%22Hello!%22%2C+then+walks+away+into+the+distance">a girl walks toward us, then says "Hello!", then walks away</a>
+      </p>
+      <ul>
+        <li><b>At the same time:</b> "while", "meanwhile": "a boy walks in, then while he waves, a dog runs to him".</li>
+        <li><b>How long:</b> "waves for 3 seconds", "dances for a while".</li>
+        <li><b>The camera:</b> "zoom in on the dog", "zoom out", "the camera follows the girl".</li>
+      </ul>
+      <p>Under the picture, the <b>🎬 Timeline</b> shows every step. Click a step to change who does what, move steps earlier or later, add steps with <b>＋ Step</b>, or drag a step's edge to make it longer. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes a change.</p>
+      <p>The <b>🔊 Sound</b> button turns sound on or off: footsteps, little voices ("ooh", "a-ha!"), and a babble in time with the lips when someone talks.</p>
+
+      <h2 id="edit"><span class="n">5</span>Changing the picture</h2>
+      <ul>
+        <li><b>Move things:</b> drag anything in the picture where you want it.</li>
+        <li><b>Click a thing</b> to get its toolbar: <b>➕ Bigger</b>, <b>➖ Smaller</b>, <b>↔ Flip</b>, <b>⬆ Front</b> / <b>⬇ Back</b>, <b>🗑 Delete</b>, its mood (😊 😃 😮 😢 😉 😠 🤔) and a motion (talk, jump, dance, cheer, fly…).</li>
+        <li><b>Keyboard:</b> arrow keys nudge the selected thing; <kbd>Delete</kbd> removes it.</li>
+        <li><b>↩ Put back</b> puts everything back where PictoGen placed it.</li>
+        <li><b>🎲 Try another</b> draws the same sentence again, a little differently. <b>Different colours</b> mixes up clothes, skin and fruit colours.</li>
+      </ul>
+
+      <h2 id="make"><span class="n">6</span>What to make</h2>
+      <p>Choose under <b>What to make</b> on the left (on a phone: the row of buttons above the picture).</p>
+      <table>
+        <tr><th>Choice</th><th>What you get</th><th>Try</th></tr>
+        <tr><td>🌄 Picture</td><td>A scene, the everyday choice</td><td><a class="ex" href="/studio?text=a+dog+and+a+cat+at+the+beach">a dog and a cat at the beach</a></td></tr>
+        <tr><td>📰 Comic Strip</td><td>Three panels. Words in quotes become the panels' lines.</td><td><a class="ex" href="/studio?text=a+cat+finds+a+fish+%22Look!%22+%22Yum!%22+%22Best+day+ever!%22&amp;mode=comic&amp;style=comic">a cat finds a fish</a></td></tr>
+        <tr><td>🕴 Stick Figures</td><td>Clean stick-figure drawings</td><td><a class="ex" href="/studio?text=a+confused+boy+pointing&amp;mode=stickman">a confused boy pointing</a></td></tr>
+        <tr><td>🧊 Tiny World</td><td>A little 3D-looking world</td><td><a class="ex" href="/studio?text=tree%2C+house+and+car+on+a+sunny+day&amp;mode=isometric">tree, house and car</a></td></tr>
+        <tr><td>🎒 Things Laid Out</td><td>Things neatly laid out, seen from above</td><td><a class="ex" href="/studio?text=apple%2C+book%2C+pencil%2C+ball&amp;mode=knolling">apple, book, pencil, ball</a></td></tr>
+        <tr><td>⚖️ Before vs After</td><td>Two pictures side by side</td><td><a class="ex" href="/studio?text=sad+boy+and+laughing+boy&amp;mode=split">sad boy and laughing boy</a></td></tr>
+        <tr><td>📊 Picture Chart</td><td>A number shown as little pictures</td><td><a class="ex" href="/studio?text=7+out+of+10+children+walk+to+school&amp;mode=waffle">7 out of 10 children walk to school</a></td></tr>
+        <tr><td>🗂 Sticker Sheet</td><td>Every thing named, as stickers</td><td><a class="ex" href="/studio?text=cat%2C+dog%2C+rabbit%2C+bird&amp;mode=icons">cat, dog, rabbit, bird</a></td></tr>
+        <tr><td>🔤 Alphabet Pals</td><td>Letters and numbers as cute characters</td><td><a class="ex" href="/studio?text=CAT&amp;mode=alphabet">CAT</a> <a class="ex" href="/studio?text=count+to+5&amp;mode=alphabet&amp;style=letterling">count to 5</a></td></tr>
+        <tr><td>🏷 Labelled Diagram</td><td>A diagram with labels, or pictures with their words (see below)</td><td><a class="ex" href="/studio?text=the+parts+of+a+plant&amp;mode=diagram">the parts of a plant</a></td></tr>
+        <tr><td>🃏 Flashcard</td><td>One big picture with its word</td><td><a class="ex" href="/studio?text=elephant&amp;mode=card">elephant</a></td></tr>
+        <tr><td>🖍 Colouring Book</td><td>Outlines to colour. Pick a colour, then click a shape to fill it, or print it.</td><td><a class="ex" href="/studio?text=a+cute+puppy&amp;mode=coloring">a cute puppy</a></td></tr>
+        <tr><td>🎬 Story Clip</td><td>A short film of several scenes (see below)</td><td></td></tr>
+      </table>
+
+      <h2 id="styles"><span class="n">7</span>Drawing styles</h2>
+      <p>Under <b>Drawing style</b>, one click draws the same picture another way: Flat, Cartoon, Outline, Pastel, Silhouette, Sketch, Neon, Watercolour, Crayon, Anime, Cute 2D, Comic, Doodle, Editorial, Papercut, Geometric, Whiteboard, Blueprint, Chalkboard, Vintage, Pixel art, Stickman and Letterling.</p>
+      <p><a class="ex" href="/studio?text=a+happy+girl+and+her+dog&amp;style=watercolor">watercolour</a> <a class="ex" href="/studio?text=a+happy+girl+and+her+dog&amp;style=anime">anime</a> <a class="ex" href="/studio?text=a+happy+girl+and+her+dog&amp;style=crayon">crayon</a> <a class="ex" href="/studio?text=a+happy+girl+and+her+dog&amp;style=pixel">pixel art</a></p>
+
+      <h2 id="school"><span class="n">8</span>Labelled diagrams and quizzes</h2>
+      <p>Choose <b>🏷 Labelled Diagram</b>, or just write the topic in an ordinary picture. Ready-made topics:</p>
+      <p>
+        <a class="ex" href="/studio?text=the+parts+of+a+plant&amp;mode=diagram">the parts of a plant</a>
+        <a class="ex" href="/studio?text=parts+of+a+tree&amp;mode=diagram">parts of a tree</a>
+        <a class="ex" href="/studio?text=the+human+body&amp;mode=diagram&amp;style=cartoon">the human body</a>
+        <a class="ex" href="/studio?text=the+water+cycle&amp;mode=diagram">the water cycle</a>
+        <a class="ex" href="/studio?text=a+volcano&amp;mode=diagram&amp;style=cartoon">inside a volcano</a>
+        <a class="ex" href="/studio?text=layers+of+the+earth&amp;mode=diagram">layers of the Earth</a>
+        <a class="ex" href="/studio?text=the+solar+system&amp;mode=diagram">the solar system</a>
+        <a class="ex" href="/studio?text=the+life+cycle+of+a+butterfly&amp;mode=diagram">life cycle of a butterfly</a>
+      </p>
+      <ul>
+        <li><b>Rename a label:</b> click it, type, press <kbd>Enter</kbd>. <b>↺ Original labels</b> brings them back.</li>
+        <li><b>🙈 Blank labels (quiz):</b> the labels become numbered lines, with a word bank underneath.</li>
+        <li><b>Vocabulary:</b> any other words become pictures with their names, e.g. <a class="ex" href="/studio?text=a+cat%2C+a+dog%2C+a+cow+and+a+pig&amp;mode=diagram">a cat, a dog, a cow and a pig</a>. Blank them for a "write the word" exercise.</li>
+      </ul>
+
+      <h2 id="worksheets"><span class="n">9</span>Worksheets to print</h2>
+      <p>With any picture on screen, click <b>🖨 Worksheet</b>. You get an A4 page with a title, name and date lines, what to do, the picture and an activity:</p>
+      <ul>
+        <li><b>✏️ Write about the picture:</b> handwriting lines.</li>
+        <li><b>🔢 Count and write:</b> "How many apples?" boxes, and "How many altogether?". Try <a class="ex" href="/studio?text=3+apples+and+2+bananas">3 apples and 2 bananas</a>.</li>
+        <li><b>🏷 Label the diagram:</b> blank labels and a word bank.</li>
+        <li><b>🖍 Colour it in.</b></li>
+      </ul>
+      <p>PictoGen picks the best fit, and you can choose another. Change the title and the instructions if you like. Counting and labelling sheets come with an <b>answer key</b> on a second page (untick it if you don't want it). Then click <b>⬇ Download PDF</b> or <b>🖨 Print</b>.</p>
+
+      <h2 id="stories"><span class="n">10</span>Story clips</h2>
+      <ul>
+        <li><b>Ready-made:</b> choose <b>🎬 Story Clip</b>, pick a kind (kids' stories, science, news, how-to), then a story, and press play. Choose wide, phone (9:16) or square. 🎵 turns the music on or off.</li>
+        <li><b>Your own story:</b> in <b>🌄 Picture</b>, make a scene and click <b>＋ Add this scene</b> under <b>Your clip</b>. Make the next scene and add it too. Give each one a caption, put them in order, then click <b>▶ Play clip</b>.</li>
+        <li><b>Save it:</b> as a video (<b>🎬 Export Video</b>) or as a web page that plays anywhere, even offline (<b>💾 Export Clip</b>).</li>
+      </ul>
+
+      <h2 id="mine"><span class="n">11</span>Your own characters</h2>
+      <p>Under <b>Your characters</b>, click <b>＋ Add from a photo</b>. Choose a photo, a boy, girl, man or woman, and a name, e.g. <i>Tom</i>. Now write the name in your sentences: <i>Tom says "Hello!" to a dog</i>. Tom gets the face from the photo, and his mouth moves when he talks.</p>
+      <div class="note">🔒 The photo never leaves your device. It is kept in this browser only. Use <b>✕</b> next to a character to remove it.</div>
+
+      <h2 id="save"><span class="n">12</span>Saving and sharing</h2>
+      <table>
+        <tr><th>Button</th><th>You get</th></tr>
+        <tr><td>🖼 Save picture</td><td>An image (PNG), for messages, slides and documents</td></tr>
+        <tr><td>💾 SVG / 📋 Copy</td><td>A sharp drawing at any size, for designers and big prints</td></tr>
+        <tr><td>🎞 GIF</td><td>A small moving picture</td></tr>
+        <tr><td>🎬 Video</td><td>A video of the picture moving, with sound (MP4, or WebM in some browsers)</td></tr>
+        <tr><td>🖨 Worksheet</td><td>A printable A4 page, as a PDF</td></tr>
+      </table>
+      <p>The web address in your browser always holds your sentence, style and choices. Copy it to send someone the same picture.</p>
+
+      <h2 id="phone"><span class="n">13</span>On a phone</h2>
+      <ul>
+        <li>Swipe the rows of choices sideways to see them all.</li>
+        <li>Tap a thing in the picture: its toolbar opens at the bottom of the screen. Tap <b>✓ Done</b> to close it.</li>
+        <li>Drag with one finger to move things.</li>
+      </ul>
+
+      <h2 id="private"><span class="n">14</span>Your privacy</h2>
+      <ul>
+        <li>Everything is drawn on your own device. What you type and make is not sent anywhere.</li>
+        <li>No account, no tracking, no advertising.</li>
+        <li>No AI service in the cloud: PictoGen draws every picture itself.</li>
+        <li>Your saved scenes and characters stay in this browser. Clearing the browser's data removes them.</li>
+      </ul>
+
+      <h2 id="limits"><span class="n">15</span>Good to know</h2>
+      <ul>
+        <li>Keep sentences short and clear: one scene per sentence works best.</li>
+        <li>Some actions aren't drawn yet: riding a bike, sitting on a chair, holding hands. The bike or chair is drawn next to the person.</li>
+        <li>A name like "Tom" needs a character from <b>Your characters</b>; otherwise write "a boy".</li>
+        <li>A colouring page shows the first thing in your sentence.</li>
+        <li>PictoGen is a preview. If something looks wrong, try other words, or click <b>🎲 Try another</b>.</li>
+      </ul>
+
+      <footer>PictoGen · <a href="/">Home</a> · <a href="/studio">Studio</a> · <a href="/showcase">Show</a></footer>
+    </main>
+  </div>
+</body>
+</html>
