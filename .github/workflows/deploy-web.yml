@@ -1,5 +1,7 @@
-# Publishes the studio to Firebase Hosting, at https://manostudio.web.app (the site "manostudio" in
-# the Firebase project), on every push to main.
+# Publishes the studio to Firebase Hosting, at https://manostudio.web.app (the Hosting site named
+# by the repository variable FIREBASE_SITE, default "manostudio", in the project FIREBASE_PROJECT_ID),
+# on every push to main. Until that site can be used, it keeps publishing to the project's first
+# address, so the site stays up to date; once it is live there, the first address is taken offline.
 # One-time setup: docs/DEPLOY.md (a Firebase project, and its service account key saved as the
 # repository secret FIREBASE_SERVICE_ACCOUNT). Without the secret, the site is built but not published.
 name: Deploy web studio
@@ -15,8 +17,8 @@ jobs:
     env:
       HAS_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
       PROJECT: ${{ vars.FIREBASE_PROJECT_ID || 'pictogen-daab2' }}
-      SITE: manostudio # the address: https://manostudio.web.app (also in firebase.json)
-      OLD_SITE: pictogen-daab2 # the project's first address, taken offline once the new one is live
+      SITE: ${{ vars.FIREBASE_SITE || 'manostudio' }} # the address: https://<SITE>.web.app
+      OLD_SITE: pictogen-daab2 # the first address, taken offline once the new one is live
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,17 +35,19 @@ jobs:
         run: |
           printf '%s' "$KEY" > "$RUNNER_TEMP/firebase-key.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-key.json" >> "$GITHUB_ENV"
-      - name: Make sure the site exists (created the first time)
+      - name: Choose the site (the new address, created the first time; else the first one)
+        id: site
         if: env.HAS_KEY == 'true'
         run: |
+          use="$SITE"
           if npx --yes firebase-tools@13 hosting:sites:get "$SITE" --project "$PROJECT" > /dev/null 2>&1; then
             echo "The site $SITE is there."
-          else
-            npx --yes firebase-tools@13 hosting:sites:create "$SITE" --project "$PROJECT" --non-interactive || {
-              echo "::error::Could not create the site '$SITE'. Create it once in the Firebase console (Hosting, 'Add another site', name: $SITE), then run this workflow again. See docs/DEPLOY.md."
-              exit 1
-            }
+          elif ! npx --yes firebase-tools@13 hosting:sites:create "$SITE" --project "$PROJECT" --non-interactive; then
+            use="$OLD_SITE"
+            echo "::warning::The address https://$SITE.web.app can't be used by the project $PROJECT (see the error above; docs/DEPLOY.md, 'The address'). Publishing to https://$OLD_SITE.web.app for now."
           fi
+          node -e "const f='firebase.json',c=JSON.parse(require('fs').readFileSync(f));c.hosting.site=process.argv[1];require('fs').writeFileSync(f,JSON.stringify(c,null,2))" "$use"
+          echo "site=$use" >> "$GITHUB_OUTPUT"
       - name: Publish to Firebase Hosting
         if: env.HAS_KEY == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
@@ -53,7 +57,8 @@ jobs:
           projectId: ${{ env.PROJECT }}
           channelId: live
       - name: Take the old address offline
-        if: env.HAS_KEY == 'true'
+        if: env.HAS_KEY == 'true' && steps.site.outputs.site != env.OLD_SITE
+        continue-on-error: true # (a key from another project may not be allowed to; then do it in the console)
         run: |
           code=$(curl -s -o /dev/null -w '%{http_code}' "https://$OLD_SITE.web.app/" || true)
           if [ "$code" = "200" ]; then

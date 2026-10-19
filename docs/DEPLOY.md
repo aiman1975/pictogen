@@ -13,18 +13,23 @@ workflow once the new one is live.
 
 ### The address
 
-The address is the Hosting site's name: `"site": "manostudio"` in `firebase.json`, and `SITE` in
-the workflow. The workflow creates the site the first time. If Firebase refuses (the key may not be
-allowed to create sites), create it once by hand: Firebase console, **Hosting**, **Add another
-site**, name `manostudio`; then **Actions → Deploy web studio → Run workflow**. To change the
-address later, use a new free name in both places.
+The address is a Hosting site's name: https://<site>.web.app. The workflow uses the repository
+variable `FIREBASE_SITE` (default `manostudio`) in the project `FIREBASE_PROJECT_ID` (default
+`pictogen-daab2`), and creates the site the first time. Site names are unique across all of
+Firebase: if the name belongs to another project, the workflow keeps publishing to
+https://pictogen-daab2.web.app and says why in the run's log.
 
-The web version is a **static site**: the PictoGen engine runs in each visitor's browser, so
-there is no server to run or pay for (Firebase's free Spark plan is enough), and what people make
-(their prompts, scenes and face photos) never leaves their browser.
+- **The name is your own other Firebase project** (e.g. you created a project called
+  `manostudio`): in that project, **Project settings → Service accounts → Generate new private
+  key**; put the key in the repository secret `FIREBASE_SERVICE_ACCOUNT` (replacing the old one),
+  and set the repository variable `FIREBASE_PROJECT_ID` to that project's ID. Then turn off the old
+  address in the old project's console: **Hosting → (the pictogen-daab2 site) → ⋮ → Disable site**.
+- **Another free name**: set the repository variable `FIREBASE_SITE` to it
+  (**Settings → Secrets and variables → Actions → Variables**), then **Actions → Deploy web
+  studio → Run workflow**.
 
-`npm run web:build` builds it into `dist/`; `npm run web:preview` builds it and serves it at
-http://localhost:5050 exactly as a static host would. `scripts/test-web.js` checks it in a browser.
+Once the new address is live, the workflow takes https://pictogen-daab2.web.app offline (when its
+key is allowed to).
 
 ## One-time setup (about 10 minutes, all in the browser)
 
