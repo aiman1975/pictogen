@@ -16,7 +16,7 @@ export async function captureStudio(chromium, dir, root) {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: { width: 1600, height: 1250 }, deviceScaleFactor: 1.5 });
-    await page.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
+    await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* */ } });
     const prompt = 'a boy walks in, then waves, then a dog runs to him';
     await page.fill('#prompt-input', prompt);

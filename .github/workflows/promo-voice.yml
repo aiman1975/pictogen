@@ -1,0 +1,38 @@
+# Speaks the explainer video's narration (scripts/promo/narration.js) with Microsoft Edge's neural
+# voices and commits the audio to media/promo-voice/, so the video can be built anywhere, offline:
+# npm run promo:explainer. Runs when the narration changes, or by hand (Actions → Promo voice).
+name: Promo voice
+
+on:
+  push:
+    branches: [main]
+    paths: [scripts/promo/narration.js, scripts/promo/voice.js]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  speak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install edge-tts
+        run: pip install edge-tts==7.3.1
+      - name: Speak the lines
+        run: node scripts/promo/voice.js
+      - name: Commit the voices
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add media/promo-voice
+          if git diff --cached --quiet; then echo "No new voices."; exit 0; fi
+          git commit -m "Promo voice: speak the explainer's narration"
+          git pull --rebase origin main
+          git push origin HEAD:main
