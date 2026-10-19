@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "manostudio",
+    "site": "manostudio-app",
     "public": "dist",
     "ignore": ["firebase.json", "**/.*"],
     "cleanUrls": true,

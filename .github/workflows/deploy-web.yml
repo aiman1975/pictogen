@@ -1,5 +1,5 @@
-# Publishes the studio to Firebase Hosting, at https://manostudio.web.app (the Hosting site named
-# by the repository variable FIREBASE_SITE, default "manostudio", in the project FIREBASE_PROJECT_ID),
+# Publishes the studio to Firebase Hosting, at https://manostudio-app.web.app (the Hosting site named
+# by the repository variable FIREBASE_SITE, default "manostudio-app", in the project FIREBASE_PROJECT_ID),
 # on every push to main. Until that site can be used, it keeps publishing to the project's first
 # address, so the site stays up to date; once it is live there, the first address is taken offline.
 # One-time setup: docs/DEPLOY.md (a Firebase project, and its service account key saved as the
@@ -17,7 +17,7 @@ jobs:
     env:
       HAS_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
       PROJECT: ${{ vars.FIREBASE_PROJECT_ID || 'pictogen-daab2' }}
-      SITE: ${{ vars.FIREBASE_SITE || 'manostudio' }} # the address: https://<SITE>.web.app
+      SITE: ${{ vars.FIREBASE_SITE || 'manostudio-app' }} # the address: https://<SITE>.web.app
       OLD_SITE: pictogen-daab2 # the first address, taken offline once the new one is live
     steps:
       - uses: actions/checkout@v4

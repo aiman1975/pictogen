@@ -1,6 +1,6 @@
 # Publishing the studio on the web (Firebase Hosting)
 
-**Live at https://manostudio.web.app** (the Hosting site `manostudio` in the Firebase project
+**Live at https://manostudio-app.web.app** (the Hosting site `manostudio-app` in the Firebase project
 `pictogen-daab2`), published by `.github/workflows/deploy-web.yml` on every push to `main`.
 The project's first address, https://pictogen-daab2.web.app, is taken offline by the same
 workflow once the new one is live.
@@ -14,7 +14,7 @@ workflow once the new one is live.
 ### The address
 
 The address is a Hosting site's name: https://<site>.web.app. The workflow uses the repository
-variable `FIREBASE_SITE` (default `manostudio`) in the project `FIREBASE_PROJECT_ID` (default
+variable `FIREBASE_SITE` (default `manostudio-app`) in the project `FIREBASE_PROJECT_ID` (default
 `pictogen-daab2`), and creates the site the first time. Site names are unique across all of
 Firebase: if the name belongs to another project, the workflow keeps publishing to
 https://pictogen-daab2.web.app and says why in the run's log.

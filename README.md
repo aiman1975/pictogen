@@ -114,7 +114,7 @@ console.log(result.matches); // [{ id: 'boy', count: 1 }, { id: 'dog', count: 1 
 
 The studio also builds as a static web site where the engine runs in the visitor's browser: no
 server, nothing uploaded. `npm run web:preview` tries it locally; [`docs/DEPLOY.md`](docs/DEPLOY.md)
-publishes it on Firebase Hosting (https://manostudio.web.app), automatically on every push.
+publishes it on Firebase Hosting (https://manostudio-app.web.app), automatically on every push.
 
 ## Adding New Concepts
 
