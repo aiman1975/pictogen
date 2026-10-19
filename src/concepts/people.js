@@ -391,6 +391,27 @@ export function drawProfileFace(d, p, cx, cy, r) {
   });
 }
 
+// Where things are on each drawn person (front view, 100x100 box), for costumes
+// (src/concepts/characters.js): the head [cx, cy, r], the eyes' height, the torso [x0, y0, x1, y1],
+// the shoulders, the right hand hanging down, the ground
+const BODY = {
+  boy: { head: [50, 27, 15], eye: 28, torso: [36, 43, 64, 72], shoulders: [[31, 47], [69, 47]], hand: [73, 67], foot: 92, child: true },
+  girl: { head: [50, 27, 14], eye: 28, torso: [36, 45, 64, 76], shoulders: [[33, 46], [67, 46]], hand: [70, 64], foot: 92, child: true },
+  man: { head: [50, 24, 13], eye: 24, torso: [34, 42, 66, 66], shoulders: [[30, 44], [70, 44]], hand: [70, 66], foot: 93 },
+  woman: { head: [50, 24, 13], eye: 24, torso: [36, 42, 64, 67], shoulders: [[31.5, 44], [68.5, 44]], hand: [68.5, 64], foot: 93 },
+};
+/** Where a costume goes on this person as drawn now (front, three-quarter or back) */
+export function dressFor(p, role) {
+  const t = turned(p);
+  return { role, ...BODY[role], view: viewOf(p), back: fromBehind(p), side: false, turned: t, fx: t ? 55 : 50, es: t ? 4.3 : 5.5 };
+}
+/**
+ * A costume's part for one layer of the figure (p.costume, see src/concepts/characters.js):
+ * 'behind' the body (a cape, wings), on the 'body' (a coat, a gown), on the 'head' (a hat, glasses),
+ * in 'front' (a walking stick)
+ */
+export const dress = (p, slot, d, g) => p.costume?.[slot]?.(d, p, g);
+
 // A limb as a rounded bar from a to b
 function capsule(d, a, b, w, fill, extra = {}) {
   const ang = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
@@ -485,7 +506,15 @@ function drawSidePerson(d, p, s) {
   const shoulder = [s.arm.x + s.arm.w / 2, s.arm.y + 1], hip = [s.legs.x + s.legs.w / 2, s.legs.y];
   const same = (c) => c;
 
+  // (where a costume goes in profile: the torso's extent from its outline)
+  const tn = (s.torso.poly ? s.torso.poly.flat() : s.torso.path.match(/-?[\d.]+/g).map(Number));
+  const tx = tn.filter((_, i) => i % 2 === 0), ty = tn.filter((_, i) => i % 2 === 1);
+  const g = {
+    role: s.role, ...BODY[s.role], head: [cx, cy, r], eye: cy + (s.faceDy ?? 0), torso: [Math.min(...tx), Math.min(...ty), Math.max(...tx), Math.max(...ty)],
+    view: 'side', side: true, back: false, fx: cx + r * 0.45, es: 0,
+  };
   d.group({ class: personRoot(p), style: idleStyle(p) }, () => d.group({ class: 'pg-profile' }, () => {
+    dress(p, 'behind', d, g);
     // (arms holding something don't swing)
     d.joint(holding ? 'pg-arm-held' : 'pg-arm-right', shoulder, () => arm(far));
     d.joint('pg-leg-right', hip, () => leg(far));
@@ -494,6 +523,7 @@ function drawSidePerson(d, p, s) {
       d.rect(...s.neck, { fill: skin });
       if (s.torso.poly) d.poly(s.torso.poly, { fill: main, kind: 'body' });
       else d.path(s.torso.path, { fill: main });
+      dress(p, 'body', d, g);
       d.joint('pg-head', [cx, cy + r], () => {
         if (s.hairBehind) d.path(s.hairBehind, { fill: hair, kind: 'body' });
         d.circle(cx + r - 0.6, cy + 2.5, 2.4, { fill: skin }); // nose: behind the head so only its tip shows
@@ -505,9 +535,11 @@ function drawSidePerson(d, p, s) {
           d.path(`M${s.ear[0] - 1} ${s.ear[1] - 1} Q${s.ear[0] + 1} ${s.ear[1]} ${s.ear[0] - 0.5} ${s.ear[1] + 1.2}`, { kind: 'line', stroke: far(skin), sw: 0.9 });
         }
         drawProfileFace(d, p, cx, cy + (s.faceDy ?? 0), r);
+        dress(p, 'head', d, g);
       }, faceArea(p, cx, cy, r));
     });
     d.joint(holding ? 'pg-arm-held' : 'pg-arm-left', shoulder, () => arm(same));
+    if (!holding) dress(p, 'front', d, g);
   }));
 }
 
@@ -605,6 +637,13 @@ function drawMinimalFace(d, cx, cy, expr, strokeColor = '#000000', p = null) {
       d.line(cx - 7, cy + 6, cx + 7, cy + 6, { stroke: strokeColor, sw: 2.8, strokeLinecap: 'round', kind: 'line' });
     }
   });
+}
+
+// A costume's head things (a hat, glasses, a crown) on a stylized figure's head
+function dressHead(d, p, cx, cy, r, eye = cy) {
+  if (!p.costume?.head) return;
+  const view = viewOf(p);
+  p.costume.head(d, p, { head: [cx, cy, r], eye, fx: faceX(p) - 50 + cx, es: r * 0.36, view, back: fromBehind(p), side: view === 'side', turned: turned(p), torso: [cx - r, cy + r, cx + r, cy + r * 3], foot: 94 });
 }
 
 /**
@@ -707,6 +746,7 @@ export function drawStickPerson(d, p, role = 'boy') {
         }
 
         if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 18, expr, '#000000', p);
+        dressHead(d, p, 50, 20, 15.5, 18);
       }, faceArea(p, 50, 20, 15.5));
     });
   });
@@ -772,6 +812,7 @@ export function drawCutePerson(d, p, role = 'boy') {
         d.circle(faceX(p) + 12, 42, 3.8, { fill: '#f472b6', opacity: 0.65, kind: 'accent' });
         drawMinimalFace(d, faceX(p), 38, expr === 'happy' && (role === 'girl' || role === 'woman') ? 'laugh' : expr, '#000000', p);
       }
+      dressHead(d, p, 50, 41, 25, 38);
     });
   });
 }
@@ -815,6 +856,7 @@ export function drawGeometricPerson(d, p, role = 'boy') {
         d.circle(50, 24, 16, { fill: '#f97316', kind: 'body' });
         d.rect(42, 10, 16, 6, { fill: '#1e3a8a', kind: 'body' });
         if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 23, expr, '#0f172a', p);
+        dressHead(d, p, 50, 24, 16);
       }, faceArea(p, 50, 24, 16));
     });
   });
@@ -992,6 +1034,7 @@ export function drawPapercutPerson(d, p, role = 'boy') {
         d.circle(50, 20, 13, { fill: paperColor, kind: 'body' });
         // Subtle paper cutout face details
         if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 19, expr, '#27272a', p);
+        dressHead(d, p, 50, 20, 13);
       }, faceArea(p, 50, 20, 13));
     });
   });
@@ -1030,6 +1073,8 @@ export default [
       const animClass = personRoot(p);
 
       d.group({ class: animClass, style: idleStyle(p) }, () => {
+        const g = dressFor(p, 'boy');
+        dress(p, 'behind', d, g);
         // Legs rigged with joint pivots
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(40, 66, 9, 25, { fill: p.c('pants'), rx: 3 });
@@ -1072,6 +1117,7 @@ export default [
         d.group({ class: 'pg-body-torso' }, () => {
           d.rect(46, 37, 8, 8, { fill: skin });
           d.path('M36 50 Q36 43 43 43 L57 43 Q64 43 64 50 L64 70 Q64 72 62 72 L38 72 Q36 72 36 70 Z', { fill: shirt });
+          dress(p, 'body', d, g);
 
           // The head turns at the neck: glances, nods, tilts
           d.joint('pg-head', [50, 41], () => {
@@ -1088,8 +1134,10 @@ export default [
               if (isAnime(p)) drawAnimeHair(d, p, 'boy', 50, 27, 15);
               drawFace(d, p, 50, 28);
             }
+            dress(p, 'head', d, g);
           }, faceArea(p, 50, 27, 15));
         });
+        dress(p, 'front', d, g);
         if (holding) holdArms(d, p, { left: [31, 47], right: [69, 47], y: 58, w: 8, skin, sleeve: shirt });
       });
     },
@@ -1108,11 +1156,13 @@ export default [
     draw(d, p) {
       if (dispatchStylizedPerson(d, p, 'girl')) return;
       if (viewOf(p) === 'side') return drawSidePerson(d, p, SIDE.girl);
-      const skin = p.c('skin'), dress = p.c('main');
+      const skin = p.c('skin'), frock = p.c('main');
       const anim = p.opts.animation, holding = isHolding(p);
       const animClass = personRoot(p);
 
       d.group({ class: animClass, style: idleStyle(p) }, () => {
+        const g = dressFor(p, 'girl');
+        dress(p, 'behind', d, g);
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(42, 74, 6, 17, { fill: skin, rx: 2 });
           d.ellipse(44, 92, 6, 3.5, { fill: p.c('shoe') });
@@ -1144,8 +1194,9 @@ export default [
         });
 
         d.group({ class: 'pg-body-torso' }, () => {
-          d.poly([[42, 45], [58, 45], [68, 76], [32, 76]], { fill: dress, kind: 'body' });
+          d.poly([[42, 45], [58, 45], [68, 76], [32, 76]], { fill: frock, kind: 'body' });
           d.rect(47, 37, 6, 8, { fill: skin });
+          dress(p, 'body', d, g);
           d.joint('pg-head', [50, 40], () => {
             d.circle(50, 27, 14, { fill: skin });
 
@@ -1161,8 +1212,10 @@ export default [
               if (isAnime(p)) drawAnimeHair(d, p, 'girl', 50, 27, 14);
               drawFace(d, p, 50, 28);
             }
+            dress(p, 'head', d, g);
           }, faceArea(p, 50, 27, 14));
         });
+        dress(p, 'front', d, g);
         if (holding) holdArms(d, p, { left: [33, 46], right: [67, 46], y: 57, w: 7, skin });
       });
     },
@@ -1186,6 +1239,8 @@ export default [
       const animClass = personRoot(p);
 
       d.group({ class: animClass, style: idleStyle(p) }, () => {
+        const g = dressFor(p, 'man');
+        dress(p, 'behind', d, g);
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(39, 64, 10, 28, { fill: p.c('pants'), rx: 2 });
           d.ellipse(43, 93, 8, 4, { fill: p.c('shoe') });
@@ -1215,6 +1270,7 @@ export default [
         d.group({ class: 'pg-body-torso' }, () => {
           d.rect(46, 34, 8, 8, { fill: skin });
           d.path('M34 42 L66 42 L64 66 L36 66 Z', { fill: shirt });
+          dress(p, 'body', d, g);
           d.joint('pg-head', [50, 37], () => {
             if (fromBehind(p)) {
               d.circle(37, 25, 3, { fill: skin });
@@ -1230,8 +1286,10 @@ export default [
               if (isAnime(p)) drawAnimeHair(d, p, 'man', 50, 24, 13);
               drawFace(d, p, 50, 24);
             }
+            dress(p, 'head', d, g);
           }, faceArea(p, 50, 24, 13));
         });
+        dress(p, 'front', d, g);
         if (holding) holdArms(d, p, { left: [30, 44], right: [70, 44], y: 56, w: 8, skin });
       });
     },
@@ -1255,6 +1313,8 @@ export default [
       const animClass = personRoot(p);
 
       d.group({ class: animClass, style: idleStyle(p) }, () => {
+        const g = dressFor(p, 'woman');
+        dress(p, 'behind', d, g);
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(40, 66, 9, 26, { fill: p.c('pants'), rx: 2 });
           d.ellipse(43, 93, 7, 3.5, { fill: p.c('shoe') });
@@ -1284,6 +1344,7 @@ export default [
         d.group({ class: 'pg-body-torso' }, () => {
           d.rect(47, 34, 6, 8, { fill: skin });
           d.path('M36 42 L64 42 L62 67 L38 67 Z', { fill: top });
+          dress(p, 'body', d, g);
           d.joint('pg-head', [50, 37], () => {
             d.circle(50, 24, 13, { fill: skin });
             if (fromBehind(p)) {
@@ -1298,8 +1359,10 @@ export default [
               if (isAnime(p)) drawAnimeHair(d, p, 'woman', 50, 24, 13);
               drawFace(d, p, 50, 24);
             }
+            dress(p, 'head', d, g);
           }, faceArea(p, 50, 24, 13));
         });
+        dress(p, 'front', d, g);
         if (holding) holdArms(d, p, { left: [31.5, 44], right: [68.5, 44], y: 56, w: 7, skin });
       });
     },

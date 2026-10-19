@@ -6,9 +6,14 @@
 // license, nothing to download.
 
 import { babbleNotes } from './speech.js';
+import { getConcept } from './concepts/index.js';
 
 // Kind and pitch of the people's voices; animals call
-const PEOPLE = { boy: ['kid', 1], girl: ['kid', 1.1], man: ['man', 1], woman: ['woman', 1] };
+const PEOPLE = {
+  boy: ['kid', 1], girl: ['kid', 1.1], man: ['man', 1], woman: ['woman', 1],
+  // Characters (src/concepts/characters.js) speak in their person's voice, some older or younger
+  old_man: ['man', 0.86], old_woman: ['woman', 0.9], baby: ['kid', 1.3], robot: ['man', 0.78],
+};
 const CALLS = { dog: 'woof', cat: 'meow', bird: 'tweet', duck: 'quack', rabbit: 'squeak', lion: 'roar', elephant: 'trumpet', penguin: 'squawk', fish: 'blub' };
 // Two of a kind don't sound alike: the second a little lower, the third higher...
 const SPREAD = [1, 0.9, 1.12, 0.84, 1.2, 0.95];
@@ -30,7 +35,8 @@ const r3 = (v) => Math.round(v * 1000) / 1000;
 /** The voice of a figure: { v: 'kid' | 'woman' | 'man' | an animal's call, p: pitch } or null */
 export function voiceOf(conceptId, alt = 0) {
   const p = SPREAD[alt % SPREAD.length];
-  if (PEOPLE[conceptId]) return { v: PEOPLE[conceptId][0], p: r3(PEOPLE[conceptId][1] * p) };
+  const who = PEOPLE[conceptId] ?? PEOPLE[getConcept(conceptId)?.role];
+  if (who) return { v: who[0], p: r3(who[1] * p) };
   if (CALLS[conceptId]) return { v: CALLS[conceptId], p };
   return null;
 }

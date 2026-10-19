@@ -1,4 +1,4 @@
-import { generate } from '../src/index.js';
+import { generate, getConcept, renderIcon, STYLE_NAMES } from '../src/index.js';
 import { fitText } from '../src/bubble.js';
 
 let fails = 0;
@@ -139,7 +139,7 @@ test('persona prompts draw what was meant', () => {
     ['a team celebrates in an office', /woman.*man|man.*woman/],
     ['five kids play', /boy.*girl/],
     ['an elefant', /^elephant/],
-    ['a wizard and a dinosaur', /mage.*t_rex/],
+    ['a wizard and a dinosaur', /wizard.*t_rex/],
   ]) if (!want.test(ids(prompt))) throw new Error(`"${prompt}" -> ${ids(prompt) || 'nothing'}`);
   const kids = generate('five kids play').matches.reduce((n, m) => n + m.count, 0);
   if (kids !== 5) throw new Error(`five kids: ${kids}`);
@@ -167,6 +167,28 @@ test('things held are in the hands: "a woman holds a phone", "a girl with a ball
   // Walking in profile, and in a timeline, still holding it
   if (!/pg-held/.test(generate('a girl walks with a book').svg)) throw new Error('walking: the book is gone');
   if ((generate('a girl with a balloon walks in, then waves').svg.match(/class="pg-held"/g) || []).length < 2) throw new Error('timeline: not in every pose');
+});
+
+// Characters people ask for are drawn like everyone else (not emoji), in costume, in every style
+// and from every side
+test('characters: teacher, grandparents, baby, superhero, princess, robot... drawn, in every style and view', () => {
+  const words = ['teacher', 'grandpa', 'grandma', 'baby', 'superhero', 'superheroine', 'princess', 'prince', 'king', 'queen', 'robot',
+    'police officer', 'firefighter', 'doctor', 'nurse', 'chef', 'farmer', 'astronaut', 'pirate', 'wizard', 'witch', 'fairy'];
+  for (const w of words) {
+    const m = generate(`a ${w}`).matches[0];
+    const c = m && getConcept(m.id);
+    if (!c || c.isLibrary) throw new Error(`"${w}": ${m?.id ?? 'nothing'} is ${c?.isLibrary ? 'an emoji' : 'missing'}`);
+    for (const style of STYLE_NAMES) for (const view of ['front', 'three-quarter', 'side', 'back']) {
+      const svg = renderIcon(c.id, { style, view: view === 'front' ? undefined : view, size: 64 });
+      if (!svg.startsWith('<svg') || /NaN|undefined/.test(svg)) throw new Error(`${c.id} ${style} ${view}: broken drawing`);
+    }
+  }
+  // Costumes show: a crown on the king, a cape on the superhero (behind; over the back from behind)
+  const plain = renderIcon('man', { size: 64 }), king = renderIcon('king', { size: 64 });
+  if (!king.includes('#ffca28') || plain.includes('#ffca28')) throw new Error('the king has no crown');
+  if (!renderIcon('man_superhero', { size: 64 }).includes('#e53935')) throw new Error('the superhero has no cape');
+  const groups = generate('my grandparents').matches.map((m) => m.id).join(' ');
+  if (groups !== 'old_man old_woman') throw new Error(`grandparents: ${groups}`);
 });
 
 if (fails > 0) {

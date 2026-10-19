@@ -377,7 +377,7 @@ try {
   const offered = await page.$$eval('#word-help .wh-try', (b) => b.map((x) => x.textContent));
   check(offered.includes('wizard'), `a word not drawn gets close words to try (${offered.join(', ')})`);
   await page.click('#word-help .wh-try[data-to="wizard"]');
-  await page.waitForFunction(() => window.pictogenStudio.getState().prompt === 'a cat and a wizard' && window.pictogenStudio.getState().result?.matches.some((m) => /mage/.test(m.id)));
+  await page.waitForFunction(() => window.pictogenStudio.getState().prompt === 'a cat and a wizard' && window.pictogenStudio.getState().result?.matches.some((m) => /wizard|mage/.test(m.id)));
   check(!(await page.$('#word-help .wh-try')), 'clicking one puts it in the prompt and draws it');
   const input = await page.$('#prompt-input');
   await input.fill('qwrtzp');

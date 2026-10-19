@@ -3,7 +3,7 @@
 A **concept** is one drawable thing (apple, boy, bike…). It is drawn **once**, style-agnostically, and the
 style engine renders it as flat / cartoon / outline / pastel / silhouette / sketch / neon.
 
-Reference examples: `src/concepts/sky.js` (sun, moon), `src/concepts/food.js` (apple), `src/concepts/people.js` (boy).
+Reference examples: `src/concepts/sky.js` (sun, moon), `src/concepts/food.js` (apple), `src/concepts/people.js` (boy), `src/concepts/characters.js` (a person in costume: the teacher, the king).
 
 ## Definition format
 

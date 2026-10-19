@@ -85,7 +85,16 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       A "looks at…" step and an "At" choice for gestures in the timeline view
 - [ ] Eyes that follow a figure while it moves; eyebrows; a head tilt toward the one looked at
 - [ ] Idle life: breathing, weight shift, occasional glances; secondary motion (hair, ears, tails)
-- [ ] Interactions: holding a ball, sitting on a chair, riding a bike, hugging
+- [x] Holding things: "a woman holds a phone", "a girl with a balloon", "a boy reads a book", "she
+      drinks a cup of coffee", "a boy hugs a cat": the hands meet in front, as far apart as the thing
+      is wide, and it is drawn at hand size between them (`src/held.js`); balloons, umbrellas, flags
+      and kites are held up in one raised hand; also while walking in profile and in timelines
+- [x] Characters drawn like everyone else, not emoji (`src/concepts/characters.js`): teacher,
+      grandpa and grandma, baby, superhero and superheroine, princess, prince, king, queen, robot,
+      police officer, firefighter, doctor, nurse, chef, farmer, astronaut, pirate, wizard, witch,
+      fairy - the drawn people in costume (glasses, hats, crowns, capes, coats, gowns), in all 23
+      styles and from every side, with their own voices (older, younger, a robot)
+- [ ] Interactions: sitting on a chair, riding a bike, holding hands
 
 ### 3. Environment
 - [ ] Parallax layers (far hills, mid trees, near grass) that move with the camera
