@@ -227,8 +227,11 @@ export const STYLES = {
     // One sample per block, grown back to a square: real pixels, whatever is drawn
     defs: (uid, o = {}) => {
       const b = Math.max(1, Math.round((o.pixel ?? (o.scale ?? 1.6) * 1.6) * 10) / 10);
-      const h = Math.round(b * 5) / 10;
-      return `<filter id="${uid}-pixelate" filterUnits="userSpaceOnUse" x="0" y="0" width="${o.w ?? (o.scale ? 100 : 1400)}" height="${o.h ?? (o.scale ? 130 : 1400)}"><feFlood x="${h}" y="${h}" width="1" height="1"/><feComposite width="${b}" height="${b}"/><feTile result="a"/><feComposite in="SourceGraphic" in2="a" operator="in"/><feMorphology operator="dilate" radius="${h}"/></filter>`;
+      // (the sample is 0.4 of a block, not one unit: shown at half size or less, a one-unit
+      // sample falls between screen pixels and the whole picture comes out blank)
+      const s = Math.max(1, Math.round(b * 4) / 10);
+      const at = Math.round((b - s) * 5) / 10;
+      return `<filter id="${uid}-pixelate" filterUnits="userSpaceOnUse" x="0" y="0" width="${o.w ?? (o.scale ? 100 : 1400)}" height="${o.h ?? (o.scale ? 130 : 1400)}"><feFlood x="${at}" y="${at}" width="${s}" height="${s}"/><feComposite width="${b}" height="${b}"/><feTile result="a"/><feComposite in="SourceGraphic" in2="a" operator="in"/><feMorphology operator="dilate" radius="${at}"/></filter>`;
     },
     shape(s, ctx = {}) {
       const n = norm(s);

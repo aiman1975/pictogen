@@ -7,6 +7,8 @@
 // Needs Playwright (Chromium) and ffmpeg; nothing else. Every picture is drawn by PictoGen.
 //   --preview "t1,t2,..."   only render these moments (seconds) as preview-<t>.jpg, no video
 //   --reuse-studio          use the studio frames filmed by an earlier build
+//   --explainer             the narrated explainer instead (explainer.js; voices in media/promo-voice,
+//                           made by the "Promo voice" workflow): out/explainer/pictogen-explainer.mp4
 import { execFileSync, execSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { mkdirSync, rmSync, writeFileSync, copyFileSync, existsSync, readFileSync } from 'node:fs';
@@ -14,6 +16,8 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { captureStudio } from './capture-studio.js';
 import { buildStoryboard } from './storyboard.js';
+import { buildExplainer } from './explainer.js';
+import { NARRATION } from './narration.js';
 import { promoPage } from './page.js';
 import { renderAudio } from './audio.js';
 
@@ -22,7 +26,9 @@ const args = process.argv.slice(2);
 const flag = (name) => { const i = args.indexOf(name); return i < 0 ? null : args.splice(i, name === '--preview' ? 2 : 1).slice(1)[0] ?? true; };
 const preview = flag('--preview');
 const reuse = flag('--reuse-studio');
-const OUT = resolve(args[0] || join(ROOT, 'out', 'promo'));
+const explainer = flag('--explainer');
+const OUT = resolve(args[0] || join(ROOT, 'out', explainer ? 'explainer' : 'promo'));
+const VOICES = join(ROOT, 'media', 'promo-voice');
 const FPS = 30, WORKERS = 3;
 
 let chromium;
@@ -48,7 +54,16 @@ else {
 }
 
 log('Laying out the slides');
-const board = buildStoryboard({ studio });
+// The explainer: each spoken line's length, so every slide lasts as long as what is said over it
+const voiceLen = {};
+if (explainer) {
+  for (const l of NARRATION) {
+    const f = join(VOICES, `${l.id}.mp3`);
+    if (!existsSync(f)) { if (!preview) { console.error(`No voice for "${l.id}": run the "Promo voice" workflow (Actions), then pull.`); process.exit(1); } continue; }
+    voiceLen[l.id] = +execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim();
+  }
+}
+const board = explainer ? buildExplainer({ studio, voices: voiceLen }) : buildStoryboard({ studio });
 copyFileSync(join(ROOT, 'public/fonts/nunito-latin.woff2'), join(OUT, 'nunito.woff2'));
 writeFileSync(join(OUT, 'promo.html'), promoPage(board, { fontUrl: 'nunito.woff2' }));
 log(`${board.slides.length} slides, ${board.duration.toFixed(1)}s`);
@@ -102,9 +117,27 @@ writeFileSync(join(OUT, 'audio.wav'), renderAudio({
   outro: slide('outro').start,
 }));
 
+let soundtrack = join(OUT, 'audio.wav');
+if (explainer) {
+  // The voices on top, each at its moment; the music and effects duck under them
+  log('Mixing in the voices');
+  const said = board.voices.filter((v) => existsSync(join(VOICES, `${v.id}.mp3`)));
+  const inputs = said.flatMap((v) => ['-i', join(VOICES, `${v.id}.mp3`)]);
+  const delays = said.map((v, i) => `[${i + 1}:a]aresample=44100,aformat=channel_layouts=stereo,adelay=${Math.round(v.t * 1000)}|${Math.round(v.t * 1000)},volume=1.6[v${i}]`);
+  const filter = [
+    ...delays,
+    `${said.map((_, i) => `[v${i}]`).join('')}amix=inputs=${said.length}:normalize=0:duration=longest,asplit=2[voice][key]`,
+    '[0:a]volume=0.85[bed]',
+    '[bed][key]sidechaincompress=threshold=0.02:ratio=6:attack=15:release=450:makeup=1[ducked]',
+    '[ducked][voice]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.95[out]',
+  ].join(';');
+  soundtrack = join(OUT, 'mix.wav');
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', join(OUT, 'audio.wav'), ...inputs, '-filter_complex', filter, '-map', '[out]', '-ar', '44100', soundtrack]);
+}
+
 log('Encoding the video');
-const mp4 = join(OUT, 'pictogen-promo.mp4');
-execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(frames, 'f%05d.jpg'), '-i', join(OUT, 'audio.wav'),
+const mp4 = join(OUT, explainer ? 'pictogen-explainer.mp4' : 'pictogen-promo.mp4');
+execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(frames, 'f%05d.jpg'), '-i', soundtrack,
   '-c:v', 'libx264', '-preset', 'slow', '-crf', '19', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', mp4]);
-execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(slide('styles').start + 3), '-i', mp4, '-frames:v', '1', join(OUT, 'poster.jpg')]);
+execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(slide(explainer ? 'looks' : 'styles').start + 5), '-i', mp4, '-frames:v', '1', join(OUT, 'poster.jpg')]);
 log(`Done: ${mp4}`);

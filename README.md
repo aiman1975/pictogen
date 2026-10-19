@@ -72,6 +72,8 @@ Enjoy an interactive prompt bar, style toggles, live SVG viewport, concept dicti
 
 **Promo video:** `npm run promo` builds a 90-second product video (`out/promo/pictogen-promo.mp4`, 1080p, with music) that shows what PictoGen can do. Every picture in it is drawn by PictoGen, the studio part is a real recording of the studio, and the music and sound effects are synthesized by `scripts/promo/audio.js`, so there is nothing to license. Needs Playwright and ffmpeg; `--preview slides` renders one still per slide.
 
+**Explainer video:** `npm run promo:explainer` builds a narrated explainer (`out/explainer/pictogen-explainer.mp4`, about 1:40). The narration is written in `scripts/promo/narration.js` and spoken by Microsoft Edge's neural voices: the *Promo voice* workflow speaks the changed lines when that file is pushed and commits the audio to `media/promo-voice/`, so the video itself is built offline. Those free voices are fine for private sharing; for a commercial release, re-voice the lines with a licensed text-to-speech service or a voice actor.
+
 **Video & GIF export:** the 🎞 GIF and 🎬 Video buttons under the canvas render the animated scene, timelines and camera moves included, frame by frame in your browser. Video is MP4 (H.264) where the browser can record it (Chrome, Edge, Safari), otherwise WebM. In 🎬 Clip Studio, **Export Video** renders the whole clip with a title card and each scene's caption. Everything runs locally; nothing is uploaded and nothing needs installing.
 
 ### 2. Command Line Interface (CLI)

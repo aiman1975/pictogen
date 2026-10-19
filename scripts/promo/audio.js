@@ -170,6 +170,10 @@ const SFX = {
   chime: (b, e) => chime(b, e.t, e.pitch, e.gain),
   ding: (b, e) => ding(b, e.t, e.gain),
   tick: (b, e) => pop(b, e.t, e.gain ?? 0.08, 1.6, e.pan),
+  // A little sparkle: four bells rising
+  twinkle: (b, e) => [1318.5, 1568, 2093, 2637].forEach((f, i) => chime(b, e.t + i * 0.07, f, (e.gain ?? 0.1) * (1 - i * 0.15))),
+  // A robot's beep-boop
+  blip: (b, e) => { pluck(b, e.t, 988, e.gain ?? 0.1, -0.2, 0.08); pluck(b, e.t + 0.13, 659, e.gain ?? 0.1, 0.2, 0.1); },
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -206,7 +210,7 @@ function reverb(L, R, wet) {
 
 /**
  * renderAudio({ duration, events, groove: [start, end], outro }) -> WAV Buffer
- *   events: [{ t, type: 'whoosh'|'pop'|'click'|'chime'|'ding'|'tick', gain?, pitch?, pan? }]
+ *   events: [{ t, type: 'whoosh'|'pop'|'click'|'chime'|'ding'|'tick'|'twinkle'|'blip', gain?, pitch?, pan? }]
  *   groove: when the drums and bass play (seconds); outro: when the music resolves to its last chord
  */
 export function renderAudio({ duration, events = [], groove = [0, duration], outro = duration - 5 }) {

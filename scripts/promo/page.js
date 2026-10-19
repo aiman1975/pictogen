@@ -88,6 +88,25 @@ h1 { margin: 8px 0 0; font-weight: 900; font-size: 50px; line-height: 1.08; lett
 .format b { font-size: 44px; font-weight: 900; background: linear-gradient(135deg, #93c5fd, #c4b5fd); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .format span { color: #cbd5e1; font-weight: 700; font-size: 17px; margin-top: 4px; }
 .facts { position: absolute; left: 64px; top: 430px; width: 1152px; display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+/* explainer (explainer.js) */
+.quote b { color: #fff; }
+.subtitle { position: absolute; left: 0; right: 0; bottom: 22px; display: flex; justify-content: center; pointer-events: none; }
+.subtitle span { max-width: 1040px; padding: 9px 22px; border-radius: 14px; background: rgb(8 12 30 / .78); color: #fff; font-size: 21px; font-weight: 700; text-align: center; line-height: 1.3; }
+.castgrid { position: absolute; left: 64px; top: 196px; width: 1152px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+.castcell { background: linear-gradient(#e0f2fe 0%, #f0fdf4 76%, #bbf7d0 76%); border-radius: 18px; padding: 6px 0 8px; text-align: center; box-shadow: 0 14px 34px rgb(0 0 0 / .35); }
+.castcell svg { height: 148px; width: 100%; }
+.trio { position: absolute; left: 154px; top: 214px; width: 972px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.trio.wide { left: 64px; width: 1152px; top: 230px; }
+.trio .card, .grid32 .card { position: relative; }
+.card.sq svg { aspect-ratio: 1; }
+.grid32 { position: absolute; left: 154px; top: 196px; width: 972px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 24px; }
+.grid32 .label { margin-top: 5px; }
+.sheet { position: absolute; transform: rotate(3deg); }
+.sheet img { width: 100%; display: block; border-radius: 6px; box-shadow: 0 24px 60px rgb(0 0 0 / .5); }
+.tag { position: absolute; padding: 6px 14px; border-radius: 999px; background: #fde68a; color: #1f2937; font-weight: 800; font-size: 17px; transform: translateY(-50%); }
+.lock { font-size: 110px; line-height: 1; filter: drop-shadow(0 18px 40px rgb(16 185 129 / .45)); }
+.url { margin: 18px 0 0; font-size: 30px; font-weight: 900; padding: 10px 28px; border-radius: 999px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+.facts.static { position: static; margin-top: 28px; width: auto; }
 .facts span { padding: 12px 20px; border-radius: 999px; background: rgb(253 230 138 / .12); border: 1px solid rgb(253 230 138 / .35); color: #fde68a; font-weight: 800; font-size: 20px; }
 `;
 
