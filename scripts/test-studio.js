@@ -351,6 +351,50 @@ try {
   check((await page.evaluate(() => window.pictogenCharacters.list().length)) === 0, 'a character can be removed');
 
   check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
+
+  // On a phone (an iPhone-sized touch screen): nothing wider than the screen, the picture near
+  // the top, modes and styles in sideways rows, a tapped figure's controls a sheet at the bottom
+  const phoneCtx = await browser.newContext({ viewport: { width: 390, height: 664 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const phone = await phoneCtx.newPage();
+  const phoneErrors = [];
+  phone.on('pageerror', (e) => phoneErrors.push(e.message));
+  await phone.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
+  await phone.waitForFunction(() => document.querySelector('#svg-viewport svg .movable-item'));
+  const layout = await phone.evaluate(() => {
+    const top = (sel) => document.querySelector(sel).getBoundingClientRect().top + scrollY;
+    const styles = document.getElementById('styles-group');
+    return {
+      width: document.documentElement.scrollWidth,
+      picture: top('#svg-viewport'),
+      buttons: top('.canvas-actions') > top('#svg-viewport'),
+      styleRow: getComputedStyle(styles).flexWrap === 'nowrap' && styles.scrollWidth > styles.clientWidth,
+      header: getComputedStyle(document.querySelector('header')).position,
+      hint: document.querySelector('.on-touch').offsetParent !== null,
+    };
+  });
+  check(layout.width <= 390, `on a phone nothing is wider than the screen (${layout.width}px)`);
+  check(layout.picture < 664 && layout.buttons && layout.header === 'static', `the picture starts on the first screen (${Math.round(layout.picture)}px down), its buttons under it, the header scrolls away`);
+  check(layout.styleRow && layout.hint, 'styles are one row to swipe; the hint speaks of tapping and dragging');
+  const phoneFig = await phone.$('#svg-viewport .movable-item[data-id="boy"]') || await phone.$('#svg-viewport .movable-item');
+  await phoneFig.evaluate((el) => {
+    el.scrollIntoView({ block: 'center' });
+    const r = el.getBoundingClientRect();
+    const o = { bubbles: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, pointerId: 1, pointerType: 'touch' };
+    el.dispatchEvent(new PointerEvent('pointerdown', o));
+    window.dispatchEvent(new PointerEvent('pointerup', o));
+  });
+  await phone.waitForTimeout(700);
+  const sheet = await phone.evaluate(() => {
+    const t = document.getElementById('object-toolbar').getBoundingClientRect();
+    const f = document.querySelector('.movable-item.selected').getBoundingClientRect();
+    const small = [...document.querySelectorAll('#object-toolbar button')].filter((b) => b.offsetParent && b.getBoundingClientRect().height < 32).length;
+    return { left: t.left, right: t.right, bottom: Math.round(t.bottom), figureAbove: f.top < t.top, small };
+  });
+  check(sheet.left === 0 && sheet.right === 390 && sheet.bottom === 664 && sheet.small === 0, `a tapped figure's controls are a sheet across the bottom of the screen, fingertip-sized (${JSON.stringify(sheet)})`);
+  check(sheet.figureAbove, 'the page scrolls so the figure shows above the sheet');
+  await phone.tap('#tb-done');
+  check((await phone.evaluate(() => getComputedStyle(document.getElementById('object-toolbar')).display)) === 'none' && !phoneErrors.length, `"Done" closes the sheet${phoneErrors.length ? '; errors: ' + phoneErrors.join('; ') : ''}`);
+  await phoneCtx.close();
 } finally {
   if (browser) await browser.close();
   server.kill();

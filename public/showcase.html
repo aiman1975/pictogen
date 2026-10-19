@@ -608,6 +608,17 @@
       transform: translateY(0);
       opacity: 1;
     }
+    /* Phones: a header that wraps and scrolls away */
+    @media (max-width: 640px) {
+      header { position: static; flex-wrap: wrap; gap: 0.6rem; padding: 0.7rem 0.9rem; }
+      .brand-wrap { gap: 0.6rem; }
+      .brand-logo { width: 32px; height: 32px; font-size: 1.05rem; }
+      .brand-title { font-size: 1rem; flex-wrap: wrap; }
+      .brand-sub { display: none; }
+      .header-actions { width: 100%; gap: 0.5rem; }
+      .header-actions .btn { flex: 1; justify-content: center; font-size: 0.8rem; padding: 0.55rem 0.6rem; }
+      main { padding-left: 0.6rem !important; padding-right: 0.6rem !important; }
+    }
   </style>
 </head>
 <body>
@@ -894,6 +905,16 @@
 
     // Load Data
     async function initShowcase() {
+      // The recorded narration isn't on every copy of the site (the web version leaves it out):
+      // without it, the browser's own voice narrates
+      fetch('/audio/showcase-1.wav', { method: 'HEAD' }).then((r) => {
+        if (r.ok) return;
+        audioMode = 'speech';
+        voiceSource.value = 'speech';
+        voiceSource.querySelector('option[value="wav"]').disabled = true;
+        const sub = document.querySelector('.start-subtext');
+        if (sub) sub.textContent = "Narrated by your browser's voice";
+      }).catch(() => {});
       try {
         const res = await fetch('/api/showcase');
         if (res.ok) {

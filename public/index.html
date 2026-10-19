@@ -765,6 +765,80 @@
     }
     .movable-item { touch-action: none; }
 
+    /* ---- Phones (and touch screens) ------------------------------------------------------------ */
+    .phone-only { display: none !important; }
+    .on-touch { display: none; }
+    @media (hover: none) and (pointer: coarse) {
+      .on-touch { display: inline; }
+      .on-mouse { display: none; }
+      /* Fingertip-sized targets */
+      .pill-btn, .btn-action, .segmented button { min-height: 38px; }
+      .chip, .tl-btn { min-height: 34px; }
+      .tl-btn { min-width: 34px; }
+      .examples summary { padding: 0.35rem 0; }
+    }
+    @media (max-width: 640px) {
+      .hide-phone { display: none !important; }
+      .phone-only { display: inline-flex !important; }
+      span.phone-only { display: inline !important; }
+      /* A slim header that scrolls away */
+      header { position: static; padding: 0.5rem 0.75rem; flex-wrap: nowrap; }
+      .brand { gap: 0.5rem; }
+      .brand-logo { width: 30px; height: 30px; font-size: 1rem; border-radius: 8px; }
+      .brand-title { font-size: 1.05rem; }
+      .header-links { gap: 0.4rem; }
+      .header-links .btn-link { font-size: 0.82rem; white-space: nowrap; }
+      header .header-links a.btn-link { padding: 6px 10px !important; }
+      main { padding: 0 0.5rem; margin-top: 0.5rem; gap: 0.6rem; }
+      .card { padding: 0.75rem; }
+      /* The prompt on its own line, Draw under it */
+      .prompt-box { gap: 0.5rem; }
+      .prompt-input { flex: 1 1 100%; font-size: 16px; padding: 0.7rem 0.85rem; }
+      .btn-generate { flex: 1 1 100%; justify-content: center; min-height: 46px; }
+      .examples summary { margin-top: 0.5rem; }
+      /* Mode and style: one row each, swiped sideways, right above the picture */
+      .studio-grid { gap: 0.6rem; }
+      .controls-panel { order: 0; padding: 0.6rem 0.7rem; gap: 0.45rem; }
+      .controls-panel .control-group > label { margin-bottom: 0.25rem; font-size: 0.72rem; }
+      /* Options in one short line (the group's title is clear enough without its label) */
+      .controls-panel .control-group:last-child > label { display: none; }
+      .controls-panel .toggle-label { text-transform: none; letter-spacing: 0; font-size: 0.8rem; margin: 0; color: var(--text); }
+      .controls-panel .options-row { margin-top: 0; flex-wrap: nowrap; justify-content: space-between; }
+      #btn-seed { flex: none; }
+      .controls-panel .pill-group { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 1px 0 3px; margin: 0 -0.7rem; padding-left: 0.7rem; padding-right: 0.7rem; scroll-padding: 0 0.7rem; }
+      .controls-panel .pill-group::-webkit-scrollbar { display: none; }
+      .controls-panel .pill-subhead { display: none; }
+      .controls-panel .pill-btn { flex: none; }
+      /* The picture first, its buttons in a sideways row under it */
+      .canvas-card > * { order: 5; }
+      .svg-viewport { order: 1; min-height: 0; padding: 0.35rem; }
+      #story-player-bar { order: 2; }
+      .canvas-header { order: 3; padding: 0.45rem 0.5rem; }
+      .canvas-header > div:first-child { display: none; }
+      .canvas-actions { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; width: 100%; }
+      .canvas-actions::-webkit-scrollbar { display: none; }
+      .canvas-actions .btn-action { flex: none; }
+      .movable-hint-bar { order: 4; font-size: 0.8rem; padding: 0.45rem 0.7rem; }
+      /* The selected figure's controls: a sheet at the bottom of the screen */
+      .object-toolbar {
+        position: fixed !important; top: auto !important; left: 0 !important; right: 0; bottom: 0;
+        transform: none; margin: 0; width: 100%; max-height: 42vh; overflow-y: auto;
+        border-radius: 16px 16px 0 0; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); gap: 8px; z-index: 90;
+        font-size: 13px;
+      }
+      .object-toolbar button { font-size: 13px; padding: 8px 10px; min-height: 36px; }
+      .object-toolbar-row { gap: 6px; }
+      .object-toolbar-row-title { flex-basis: 100%; }
+      #tb-done { margin-left: auto; background: #2563eb; }
+      /* The dictionary: three small cards a row */
+      .dict-search { font-size: 16px; }
+      .dict-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+      .dict-item { padding: 0.45rem 0.2rem; gap: 0.2rem; }
+      .dict-item-svg { width: 46px; height: 46px; }
+      .inspector-card { padding: 0.9rem; gap: 0.9rem; }
+      body .toast { left: 12px; right: 12px; bottom: 16px; }
+    }
+
     .toast {
       position: fixed;
       bottom: 24px;
@@ -799,10 +873,10 @@
     </a>
     <div class="header-links">
       <a href="/showcase" target="_blank" class="btn-link" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-weight: 800; box-shadow: 0 2px 6px rgba(37,99,235,0.3); transition: transform 0.15s, opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-        🎥 Video Showcase (Voice Narration)
+        🎥 <span class="hide-phone">Video </span>Showcase<span class="hide-phone"> (Voice Narration)</span>
       </a>
       <button class="btn-link" onclick="document.getElementById('dictionary').scrollIntoView({ behavior: 'smooth' })">
-        📚 Concept Dictionary (<span id="concept-count">37</span>)
+        📚 <span class="hide-phone">Concept Dictionary (</span><span id="concept-count">37</span><span class="hide-phone">)</span>
       </button>
     </div>
   </header>
@@ -824,7 +898,7 @@
       </div>
 
       <details class="examples" id="examples">
-        <summary>✨ EXAMPLES <span>— 23 ready-made prompts (click one to load its mode &amp; style)</span></summary>
+        <summary>✨ EXAMPLES <span class="hide-phone">— 23 ready-made prompts (click one to load its mode &amp; style)</span><span class="phone-only">— tap one to try it</span></summary>
         <div class="sample-chips">
           <span class="chip-label">🔤 Alphabet Pals:</span>
           <button class="chip" data-prompt="LOVE" data-mode="alphabet">💖 Word Pals (LOVE)</button>
@@ -1012,7 +1086,8 @@
         </div>
 
         <div class="movable-hint-bar">
-          <span>💡 <strong>Click & drag</strong> any object to move it anywhere. Click an object for scale, flip & layer controls!</span>
+          <span class="on-mouse">💡 <strong>Click & drag</strong> any object to move it anywhere. Click an object for scale, flip & layer controls!</span>
+          <span class="on-touch">💡 <strong>Drag</strong> a figure to move it. <strong>Tap</strong> it to change its size, mood or motion.</span>
         </div>
 
         <div class="svg-viewport" id="svg-viewport">
@@ -1029,6 +1104,7 @@
             <button id="tb-front" title="Bring to Front">⬆ Front</button>
             <button id="tb-back" title="Send to Back">⬇ Back</button>
             <button id="tb-delete" style="color: #fca5a5;" title="Remove from Scene">🗑 Delete</button>
+            <button id="tb-done" class="phone-only" title="Close">✓ Done</button>
           </div>
           <!-- Facial Expression (Mimics) Row -->
           <div class="object-toolbar-row" id="tb-row-expression">
@@ -1633,6 +1709,8 @@
       };
       // The toolbar is positioned inside .canvas-card (its offsetParent), not inside the viewport.
       objectToolbar.style.display = 'flex';
+      // On phones it is a sheet at the bottom of the screen (CSS), not placed by the figure
+      if (!objectToolbar.offsetParent || getComputedStyle(objectToolbar).position === 'fixed') return;
       const parentRect = objectToolbar.offsetParent.getBoundingClientRect();
       const tbW = objectToolbar.offsetWidth;
       const tbH = objectToolbar.offsetHeight;
@@ -1735,8 +1813,18 @@
         isDragging = false;
         state.svg = svgViewport.innerHTML;
         updateToolbarPosition();
+        revealAboveSheet();
       }
     });
+
+    // On phones the selected figure's controls are a sheet at the bottom of the screen: scroll the
+    // figure up so it stays in view above it (after the finger lifts, never during a drag)
+    function revealAboveSheet() {
+      if (!selectedItem || getComputedStyle(objectToolbar).position !== 'fixed') return;
+      const sheetTop = objectToolbar.getBoundingClientRect().top;
+      const r = selectedItem.getBoundingClientRect();
+      if (r.bottom > sheetTop - 8) window.scrollBy({ top: Math.min(r.bottom - sheetTop + 16, r.top - 8), behavior: 'smooth' });
+    }
 
     // Deselect if clicking on empty background
     svgViewport.addEventListener('pointerdown', (e) => {
@@ -1784,6 +1872,7 @@
       showToast('Sent to back');
     });
 
+    document.getElementById('tb-done').addEventListener('click', () => deselectItem());
     document.getElementById('tb-delete').addEventListener('click', () => {
       if (!selectedItem) return;
       const name = selectedItem.dataset.id || 'Item';

@@ -82,6 +82,8 @@ else {
     await show.waitForTimeout(3000);
     const shown = await show.evaluate(() => document.body.innerHTML.includes('<svg'));
     check(shown && !showErrors.length, `the showcase page plays from the engine in the browser${showErrors.length ? ': ' + showErrors.join('; ') : ''}`);
+    const voice = await show.evaluate(() => ({ value: document.getElementById('voice-source').value, sub: document.querySelector('.start-subtext').textContent }));
+    check(voice.value === 'speech' && !/Zira/.test(voice.sub), `without the recordings, the showcase is narrated by the browser's voice (${voice.value})`);
     check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
   } finally {
     await browser.close();
