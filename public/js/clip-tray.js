@@ -39,7 +39,7 @@ function render() {
   tray.innerHTML = `
     <div class="tl-head">
       <span class="tl-title">🎞 Your clip${scenes.length ? ` · ${scenes.length} scene${scenes.length > 1 ? 's' : ''}` : ''}</span>
-      ${scenes.length ? '<button class="tl-btn danger" data-do="clear" title="Remove every scene">Clear</button><button class="tl-btn" data-do="play" title="Play these scenes in Clip Studio">▶ Play clip</button>' : ''}
+      ${scenes.length ? '<button class="tl-btn danger" data-do="clear" title="Remove every scene">Clear</button><button class="tl-btn" data-do="play" title="Play these scenes as one story clip">▶ Play clip</button>' : ''}
       <button class="tl-btn primary" data-do="add" title="Save this scene, with your timeline edits, as the next scene of the clip">＋ Add this scene</button>
     </div>
     ${scenes.length ? `<ol class="clip-list">${rows}</ol>` : '<div class="tl-empty">Make a scene, then add it here. Add more, give them captions, and play them as one clip.</div>'}`;

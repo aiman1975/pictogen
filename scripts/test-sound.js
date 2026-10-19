@@ -148,7 +148,7 @@ if (!chromium) {
     const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
+    await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
 
     // Every sound, in every voice, renders: audible, finite, not clipping, over within seconds
     const voiced = ['babble', 'ooh', 'aha', 'hmm', 'giggle', 'yay', 'hi', 'aww', 'hmph'];

@@ -161,7 +161,7 @@ const head = `<script type="importmap">{"imports":{"node:fs":"/web/fs.js","node:
 </script>
 <script type="module" src="/web/engine.js"></script>
 `;
-for (const page of ['index.html', 'showcase.html']) {
+for (const page of ['index.html', 'studio.html', 'showcase.html']) {
   const f = join(out, page);
   if (!existsSync(f)) continue;
   const html = readFileSync(f, 'utf8').replace(/<img([^>]*?) src="\/api\//g, '<img$1 data-api-src="/api/');

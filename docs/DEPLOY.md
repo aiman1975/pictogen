@@ -3,6 +3,11 @@
 **Live at https://pictogen-daab2.web.app** (Firebase project `pictogen-daab2`), published by
 `.github/workflows/deploy-web.yml` on every push to `main`.
 
+- `/`: the welcome page (`public/index.html`): what PictoGen does, shown with pictures it draws
+  live in the visitor's browser, and a "Try it" button. Share this link.
+- `/studio`: the studio (`public/studio.html`). Old links to the studio (`/?text=...`) still open it.
+- `/showcase`: the narrated show.
+
 The web version is a **static site**: the PictoGen engine runs in each visitor's browser, so
 there is no server to run or pay for (Firebase's free Spark plan is enough), and what people make
 (their prompts, scenes and face photos) never leaves their browser.

@@ -128,7 +128,7 @@ if (!chromium) {
     const page = await browser.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
+    await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
     const input = await page.$('textarea, input[type=text]');
     await input.fill('a boy walks in, then waves, then a dog runs to him');
     await input.press('Enter');

@@ -173,6 +173,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       drawings ("superhero", "kid", "dinosaur", "wizard"), a motion word after someone is a verb ("a
       superhero flies", "a woman cooks"), typos are forgiven when nothing else matches ("elefant"),
       and the studio says what it guessed and offers close words for the rest
+- [x] A welcome page that shows instead of explains (`public/index.html`): a sentence typed and
+      drawn live, three "you type / you get" examples, one sentence in six styles, the privacy
+      promise and one "Try it" button; the studio moved to `/studio` and speaks plainly ("Your
+      picture", "Save picture", "All pictures", "Words I can't draw yet")
 - [x] Real labelled diagrams (`src/diagrams.js`) instead of the made-up "spec sheet" labels: plant,
       tree, human body, water cycle in numbered steps, volcano, layers of the Earth, solar system,
       butterfly life cycle; labels laid out beside the drawing without overlapping, renamed by

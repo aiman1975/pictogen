@@ -22,7 +22,8 @@ const check = (ok, msg) => { console.log(`${ok ? '✓ PASS' : '✗ FAIL'}: ${msg
 const post = (path, body) => fetch(base + path, { method: 'POST', body: typeof body === 'string' ? body : JSON.stringify(body) });
 
 try {
-  check((await fetch(base + '/')).status === 200, 'GET / serves the studio');
+  check((await fetch(base + '/')).status === 200, 'GET / serves the welcome page');
+  check((await fetch(base + '/studio')).status === 200 && /id="prompt-input"/.test(await (await fetch(base + '/studio')).text()), 'GET /studio serves the studio');
   check((await fetch(base + '/audio')).status === 404, 'GET of a directory is 404');
   check((await fetch(base + '/audio/')).status === 404, 'GET of a directory with trailing slash is 404');
   check((await fetch(base + '/nope.html')).status === 404, 'GET of a missing file is 404');

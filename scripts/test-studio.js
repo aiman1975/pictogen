@@ -34,7 +34,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
+  await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
 
   const draw = async (prompt) => {
     const input = await page.$('textarea, input[type=text]');
@@ -237,7 +237,7 @@ try {
 
   // 6. Your characters: a face photo, cropped to the head's oval, on the figure named in a prompt;
   // the name and the photo never reach the server
-  await page.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
+  await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
   const sent = [];
   page.on('request', (r) => { if (r.method() === 'POST') sent.push(r.postData() || ''); });
   const photoPage = await browser.newPage({ viewport: { width: 400, height: 500 } });
@@ -428,7 +428,7 @@ try {
   const phone = await phoneCtx.newPage();
   const phoneErrors = [];
   phone.on('pageerror', (e) => phoneErrors.push(e.message));
-  await phone.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
+  await phone.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
   await phone.waitForFunction(() => document.querySelector('#svg-viewport svg .movable-item'));
   const layout = await phone.evaluate(() => {
     const top = (sel) => document.querySelector(sel).getBoundingClientRect().top + scrollY;

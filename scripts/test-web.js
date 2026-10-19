@@ -15,10 +15,10 @@ const check = (ok, msg) => { console.log(`${ok ? '✓ PASS' : '✗ FAIL'}: ${msg
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dir = mkdtempSync(join(tmpdir(), 'pictogen-web-'));
 execSync(`node scripts/build-web.js "${dir}"`, { cwd: root, stdio: 'pipe' });
-check(existsSync(join(dir, 'index.html')) && existsSync(join(dir, 'src', 'api.js')) && existsSync(join(dir, 'web', 'fs.js')), 'the build has the studio, the engine and its browser stand-ins');
+check(existsSync(join(dir, 'index.html')) && existsSync(join(dir, 'studio.html')) && existsSync(join(dir, 'src', 'api.js')) && existsSync(join(dir, 'web', 'fs.js')), 'the build has the studio, the engine and its browser stand-ins');
 check(!existsSync(join(dir, 'audio', 'showcase-1.wav')), 'the showcase narration recordings (license unclear) are left out');
-check(/data-api-src="\/api\/icon/.test(readFileSync(join(dir, 'index.html'), 'utf8')) && !/<img[^>]* src="\/api\//.test(readFileSync(join(dir, 'index.html'), 'utf8')), 'the dictionary\'s pictures are drawn in the page, never fetched from the host');
-check(/importmap/.test(readFileSync(join(dir, 'index.html'), 'utf8')) && /noindex/.test(readFileSync(join(dir, 'index.html'), 'utf8')) && existsSync(join(dir, 'robots.txt')), 'pages map node: modules to the stand-ins and ask search engines not to index them');
+check(/data-api-src="\/api\/icon/.test(readFileSync(join(dir, 'studio.html'), 'utf8')) && !/<img[^>]* src="\/api\//.test(readFileSync(join(dir, 'studio.html'), 'utf8')), 'the dictionary\'s pictures are drawn in the page, never fetched from the host');
+check(/importmap/.test(readFileSync(join(dir, 'studio.html'), 'utf8')) && /noindex/.test(readFileSync(join(dir, 'studio.html'), 'utf8')) && existsSync(join(dir, 'robots.txt')), 'pages map node: modules to the stand-ins and ask search engines not to index them');
 check(existsSync(join(dir, 'THIRD_PARTY_NOTICES.txt')) && existsSync(join(dir, 'LICENSE.txt')), 'the licenses travel with the site');
 
 let chromium = null;
@@ -38,7 +38,7 @@ else {
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('request', (r) => { if (new URL(r.url()).pathname.startsWith('/api/')) network.push(r.url()); });
     const t0 = Date.now();
-    await page.goto(`http://localhost:${port}/`, { waitUntil: 'load' });
+    await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'load' });
     await page.waitForFunction(() => document.querySelector('#svg-viewport svg'), null, { timeout: 60000 });
     check(true, `the studio draws its first scene with the engine in the browser (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
 
@@ -77,6 +77,21 @@ else {
     });
     check(video > 1000, 'GIF export works');
     check(!network.length, `no request ever goes to a server's /api/${network.length ? ': ' + network.slice(0, 3).join(', ') : ''}`);
+
+    // The welcome page: its pictures drawn live in the browser, "Try it" opening the studio, and
+    // old links to the studio (/?text=...) still opening it
+    const land = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    const landErrors = [];
+    land.on('pageerror', (e) => landErrors.push(e.message));
+    await land.goto(`http://localhost:${port}/`, { waitUntil: 'load' });
+    await land.waitForFunction(() => document.querySelectorAll('#demo-pic svg').length && document.querySelectorAll('#pairs svg').length === 3 && document.querySelectorAll('#styles svg').length === 6, null, { timeout: 60000 });
+    const landing = await land.evaluate(() => ({ title: document.querySelector('h1').textContent, try: document.getElementById('try').getAttribute('href') }));
+    check(/Type a sentence/.test(landing.title) && landing.try.startsWith('/studio') && !landErrors.length, `the welcome page draws its examples in the browser and "Try it" opens the studio (${landing.try.slice(0, 40)}…)${landErrors.length ? ': ' + landErrors.join('; ') : ''}`);
+    await land.goto(`http://localhost:${port}/?text=a%20cat&mode=scene&style=flat`, { waitUntil: 'load' });
+    await land.waitForFunction(() => location.pathname === '/studio' || location.pathname === '/studio.html', null, { timeout: 15000 });
+    await land.waitForFunction(() => window.pictogenStudio?.getState().prompt === 'a cat', null, { timeout: 60000 });
+    check(true, 'an old link to the studio (/?text=a cat) opens the studio with its picture');
+    await land.close();
 
     const show = await browser.newPage();
     const showErrors = [];

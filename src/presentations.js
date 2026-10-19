@@ -1015,7 +1015,7 @@ export function renderComicStrip(matches, opts = {}) {
   const brand = '📰 THE PICTOGEN CHRONICLES';
   const titleRoom = W - 48 - textWidth(brand, 12) - 24;
   const title = fitText(`STRIP #${seed} • ${(unquoted.replace(/\bqq\d+\b/g, '').replace(/\s+/g, ' ').trim() || 'COMIC STRIP').toUpperCase()}`, { maxW: titleRoom, maxLines: 1, size: 11, minSize: 8 });
-  const footer = fitText('© PICTOGEN SYNDICATE • VECTOR COMIC ENGINE • OFFLINE & PROGRAMMATIC', { maxW: W - 24, maxLines: 1, size: 9.5, minSize: 7 });
+  const footer = fitText('MADE WITH PICTOGEN', { maxW: W - 24, maxLines: 1, size: 9.5, minSize: 7 });
 
   const content = `
     <rect width="${W}" height="${H}" fill="#fbf9f4"/>

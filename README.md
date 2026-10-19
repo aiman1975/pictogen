@@ -58,7 +58,7 @@ PictoGen is designed to automatically generate crisp vector illustrations from p
 ### 1. Launch the Web Studio
 ```bash
 node serve.js
-# Open http://localhost:3000 in your browser
+# Open http://localhost:3000 in your browser: the welcome page; the studio is at /studio
 ```
 Enjoy an interactive prompt bar, style toggles, live SVG viewport, concept dictionary, and one-click SVG/PNG export!
 

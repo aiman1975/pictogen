@@ -1,0 +1,2865 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PictoGen — Offline Vector Image & Slide Generator</title>
+  <link href="/fonts/fonts.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --accent: #f59e0b;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.25rem;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+    }
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-badge {
+      background: #e0f2fe;
+      color: #0284c7;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-links {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .btn-link {
+      background: none;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: color 0.15s;
+    }
+    .btn-link:hover { color: var(--primary); }
+
+    main {
+      max-width: 1480px;
+      margin: 1.25rem auto;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.25rem;
+    }
+
+    /* Prompt section */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+    }
+
+    .prompt-box {
+      display: flex;
+      gap: 0.75rem;
+      position: relative;
+    }
+    .prompt-input {
+      flex: 1;
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: 600;
+      padding: 0.85rem 1.15rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      outline: none;
+      background: var(--surface);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .prompt-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+    }
+    .btn-generate {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0 1.5rem;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.15s, transform 0.05s;
+    }
+    .btn-generate:hover { background: var(--primary-hover); }
+    .btn-generate:active { transform: scale(0.98); }
+
+    .sample-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      align-items: center;
+    }
+    .chip-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .chip {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Controls bar */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .control-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.5rem;
+    }
+
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .pill-btn {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 0.4rem 0.75rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+    }
+    .pill-btn:hover { background: #e2e8f0; }
+    .pill-btn.active {
+      background: var(--text);
+      color: #fff;
+      border-color: var(--text);
+    }
+
+    .options-row {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-label input { accent-color: var(--primary); cursor: pointer; }
+
+    /* Canvas / Studio Display */
+    .display-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 900px) {
+      .display-layout { grid-template-columns: 1fr; }
+    }
+
+    .canvas-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    .canvas-header {
+      padding: 0.75rem 1.25rem;
+      background: var(--surface-subtle);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .canvas-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .btn-action {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.8rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      font-family: inherit;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .btn-action:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Timeline view (public/js/timeline-view.js) */
+    .timeline-panel {
+      --tl-move: #dbeafe; --tl-move-ink: #1e40af;
+      --tl-gesture: #fef3c7; --tl-gesture-ink: #92400e;
+      --tl-feeling: #fce7f3; --tl-feeling-ink: #9d174d;
+      --tl-leave: #e2e8f0; --tl-leave-ink: #334155;
+      --tl-camera: #ede9fe; --tl-camera-ink: #5b21b6;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 0.75rem 1rem 1rem;
+      font-size: 0.8rem;
+    }
+    .timeline-panel[hidden] { display: none; }
+    .tl-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+    .tl-title { font-weight: 800; color: var(--text); margin-right: auto; }
+    .tl-time { font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-size: 0.75rem; min-width: 7.5em; }
+    .tl-btn {
+      border: 1px solid var(--border); background: var(--surface); color: var(--text);
+      border-radius: 6px; padding: 3px 9px; font: inherit; font-weight: 700; cursor: pointer;
+    }
+    .tl-btn:hover { background: var(--surface-subtle); }
+    .tl-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .tl-btn.primary:hover { background: var(--primary-hover); }
+    .tl-btn.danger { color: #b91c1c; }
+    .tl-edited { color: #92400e; background: #fef3c7; border-radius: 999px; padding: 1px 8px; font-weight: 700; font-size: 0.72rem; }
+    .tl-grid { display: grid; grid-template-columns: 84px 1fr; row-gap: 4px; }
+    .tl-label { font-weight: 700; color: var(--text-muted); align-self: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 6px; text-transform: capitalize; }
+    .tl-lane { position: relative; height: 30px; background: var(--surface-subtle); border-radius: 6px; }
+    .tl-lane.tl-ruler { height: 26px; background: none; cursor: ew-resize; touch-action: none; }
+    .tl-hold { position: absolute; top: 0; bottom: 0; right: 0; border-radius: 0 6px 6px 0;
+      background: repeating-linear-gradient(135deg, transparent 0 5px, rgb(148 163 184 / 0.18) 5px 10px); }
+    .tl-step {
+      position: absolute; top: 0; bottom: 0; display: flex; align-items: center; gap: 2px; padding: 0 3px;
+      border-left: 1px solid var(--border); font-weight: 800; color: var(--text-muted); font-size: 0.72rem; overflow: hidden;
+    }
+    .tl-step:first-child { border-left: none; }
+    .tl-step-name { margin-right: auto; white-space: nowrap; }
+    .tl-step button {
+      border: none; background: none; cursor: pointer; padding: 0 3px; font: inherit; color: var(--text-muted); border-radius: 4px; line-height: 1.4;
+    }
+    .tl-step button:hover { background: var(--border); color: var(--text); }
+    .tl-step button:disabled { opacity: 0.3; cursor: default; background: none; }
+    .tl-block {
+      position: absolute; top: 3px; bottom: 3px; border: 1px solid transparent; border-radius: 5px; padding: 0 6px;
+      font: inherit; font-weight: 700; text-align: left; cursor: pointer; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    }
+    .tl-block.move { background: var(--tl-move); color: var(--tl-move-ink); }
+    .tl-block.gesture { background: var(--tl-gesture); color: var(--tl-gesture-ink); }
+    .tl-block.feeling { background: var(--tl-feeling); color: var(--tl-feeling-ink); }
+    .tl-block.leave { background: var(--tl-leave); color: var(--tl-leave-ink); }
+    .tl-block.camera { background: var(--tl-camera); color: var(--tl-camera-ink); }
+    .tl-block:hover { filter: brightness(0.96); }
+    .tl-block.selected { border-color: currentColor; box-shadow: 0 0 0 2px rgb(37 99 235 / 0.25); }
+    .clip-tray { border-top: 1px dashed var(--border); }
+    .clip-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .clip-row { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr) minmax(0, 1.1fr) auto; gap: 0.5rem; align-items: center; }
+    .clip-num { font-weight: 800; color: var(--text-muted); text-align: center; }
+    .clip-prompt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+    .clip-badge { color: #92400e; background: #fef3c7; border-radius: 999px; padding: 0 6px; font-size: 0.7rem; }
+    .clip-caption { font: inherit; padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); min-width: 0; }
+    .clip-actions { display: flex; gap: 3px; }
+    @media (max-width: 640px) {
+      .clip-row { grid-template-columns: 1.4rem minmax(0, 1fr) auto; }
+      .clip-caption { grid-column: 2 / -1; grid-row: 2; }
+    }
+    .char-list { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+    .char-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 4px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-subtle); }
+    .char-row img { width: 34px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .char-name { font-weight: 800; }
+    .char-base { color: var(--text-muted); font-size: 0.75rem; }
+    .face-modal { position: fixed; inset: 0; z-index: 100; background: rgb(15 23 42 / 0.55); display: grid; place-items: center; padding: 16px; overflow: auto; }
+    .face-card { background: var(--surface); color: var(--text); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 1.1rem 1.25rem; width: min(360px, 100%); display: flex; flex-direction: column; gap: 0.6rem; }
+    .face-card h3 { font-size: 1.05rem; font-weight: 800; }
+    .face-help, .face-note { font-size: 0.82rem; color: var(--text-muted); }
+    .face-help b { color: var(--text); }
+    .face-stage { position: relative; align-self: center; border-radius: 12px; overflow: hidden; cursor: grab; touch-action: none; max-width: 100%; }
+    .face-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .face-zoom { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.85rem; }
+    .face-zoom input { flex: 1; }
+    .face-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .face-row label { display: flex; flex-direction: column; gap: 2px; font-weight: 700; font-size: 0.8rem; color: var(--text-muted); flex: 1; min-width: 120px; }
+    .face-row input, .face-row select { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--text); background: var(--surface); }
+    .face-check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; font-weight: 700; }
+    .face-error { color: #b91c1c; font-size: 0.82rem; font-weight: 700; min-height: 1em; }
+    .face-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .tl-grip {
+      position: absolute; top: 0; bottom: 0; width: 12px; margin-left: -6px; cursor: ew-resize; touch-action: none; z-index: 1;
+    }
+    .tl-grip::after { content: ''; position: absolute; top: 5px; bottom: 5px; left: 5px; width: 2px; border-radius: 1px; background: var(--text-muted); opacity: 0.35; }
+    .tl-grip:hover::after { opacity: 0.9; background: var(--primary); }
+    .tl-btn:disabled { opacity: 0.4; cursor: default; background: var(--surface); }
+    .tl-editor input[type=number] { font: inherit; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
+    .tl-playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #ef4444; pointer-events: none; }
+    .tl-playhead::before { content: ''; position: absolute; top: 0; left: -4px; border: 5px solid transparent; border-top-color: #ef4444; }
+    .tl-body { position: relative; }
+    .tl-overlay { position: absolute; top: 0; bottom: 0; left: 84px; right: 0; pointer-events: none; }
+    .tl-empty { color: var(--text-muted); padding: 0.4rem 0 0.2rem; }
+    .tl-editor {
+      margin-top: 0.7rem; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface-subtle); display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: center;
+    }
+    .tl-editor label { display: flex; align-items: center; gap: 0.35rem; font-weight: 700; color: var(--text-muted); }
+    .tl-editor select { font: inherit; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); max-width: 11rem; }
+    .tl-editor .tl-editor-title { font-weight: 800; color: var(--text); }
+    .tl-editor .tl-spacer { margin-left: auto; display: flex; gap: 0.4rem; }
+    @media (max-width: 640px) {
+      .tl-grid { grid-template-columns: 58px 1fr; }
+      .tl-overlay { left: 58px; }
+      .tl-step button { padding: 0 1px; }
+    }
+    .movable-hint-bar {
+      background: #eff6ff;
+      border-bottom: 1px solid #bfdbfe;
+      padding: 0.45rem 1.25rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #1e40af;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .svg-viewport {
+      padding: 1.5rem;
+      background: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+      background-size: 16px 16px;
+      min-height: 440px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      position: relative;
+      user-select: none;
+    }
+    .svg-viewport svg {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      background: #fff;
+    }
+
+    /* Movable object interactive styling */
+    .movable-item {
+      cursor: grab !important;
+      transition: filter 0.15s;
+      outline: none;
+    }
+    .movable-item:hover {
+      filter: drop-shadow(0 0 4px rgba(37,99,235,0.7));
+    }
+    .movable-item.dragging {
+      cursor: grabbing !important;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25)) !important;
+    }
+    .movable-item.selected {
+      filter: drop-shadow(0 0 6px rgba(37,99,235,0.9)) !important;
+    }
+
+    /* Floating selection controls overlay */
+    .object-toolbar {
+      position: absolute;
+      display: none;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 8px 10px;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      flex-direction: column;
+      gap: 6px;
+      z-index: 50;
+      font-size: 12px;
+      transform: translate(-50%, -100%);
+      margin-top: -12px;
+      width: min(360px, calc(100% - 16px)); /* fixed width: height must not change when it moves */
+    }
+    .object-toolbar-row {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .object-toolbar-row-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: 4px;
+    }
+    .object-toolbar button {
+      background: #334155;
+      color: #fff;
+      border: none;
+      padding: 4px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .object-toolbar button:hover {
+      background: var(--primary);
+    }
+    .object-toolbar button.active-pill {
+      background: #2563eb !important;
+      box-shadow: 0 0 0 1.5px #93c5fd;
+    }
+    .object-toolbar-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-right: 4px;
+      text-transform: capitalize;
+    }
+
+    /* Inspector sidebar */
+    .inspector-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .matches-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .match-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 0.8rem;
+      background: var(--surface-subtle);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .match-id {
+      font-weight: 700;
+      text-transform: capitalize;
+    }
+    .match-count {
+      font-size: 0.8rem;
+      font-weight: 800;
+      background: #e2e8f0;
+      color: var(--text);
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+    .match-color-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      border: 1px solid rgba(0,0,0,0.15);
+      vertical-align: middle;
+    }
+
+    /* Words the studio could not draw, under the prompt: what it guessed, what to try instead */
+    .word-help { display: none; margin-top: 0.6rem; font-size: 0.85rem; color: #475569; line-height: 1.9; }
+    .word-help.show { display: block; }
+    .word-help .wh-row { display: block; }
+    .word-help .wh-word { font-weight: 700; color: #b91c1c; }
+    .word-help .wh-try {
+      border: 1px solid #93c5fd; background: #eff6ff; color: #1d4ed8; font-weight: 700; border-radius: 999px;
+      padding: 1px 10px; margin-left: 4px; cursor: pointer; font-size: 0.82rem;
+    }
+    .word-help .wh-try:hover { background: #dbeafe; }
+    .word-help .wh-empty { color: #92400e; background: #fef3c7; border-radius: 8px; padding: 6px 10px; display: block; }
+
+    /* The printable worksheet dialog */
+    .worksheet-dialog { border: none; border-radius: 14px; padding: 0; width: min(980px, 96vw); max-height: 94vh; box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
+    .worksheet-dialog::backdrop { background: rgba(15, 23, 42, 0.55); }
+    .ws-form { display: flex; flex-direction: column; max-height: 94vh; }
+    .ws-head { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 1.05rem; }
+    .ws-close { border: none; background: none; font-size: 1.2rem; cursor: pointer; }
+    .ws-body { display: grid; grid-template-columns: 300px 1fr; gap: 1rem; padding: 1rem; overflow: auto; }
+    .ws-fields { display: flex; flex-direction: column; gap: 0.7rem; }
+    .ws-fields label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.82rem; font-weight: 800; color: #334155; }
+    .ws-fields select, .ws-fields input:not([type=checkbox]) { font: inherit; font-weight: 600; padding: 0.45rem 0.55rem; border: 1.5px solid #cbd5e1; border-radius: 8px; }
+    .ws-fields .ws-check { flex-direction: row; align-items: center; gap: 0.45rem; font-weight: 700; }
+    .ws-note { font-size: 0.78rem; color: #64748b; margin: 0; }
+    .ws-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .ws-preview { display: flex; gap: 0.8rem; overflow-x: auto; background: #e2e8f0; border-radius: 10px; padding: 0.8rem; min-height: 300px; align-items: flex-start; }
+    .ws-page { margin: 0; flex: 0 0 auto; text-align: center; font-size: 0.78rem; font-weight: 800; color: #475569; }
+    .ws-paper { display: block; width: 300px; height: auto; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.18); margin-bottom: 0.3rem; }
+    .ws-wait { margin: auto; font-weight: 700; color: #475569; }
+    @media (max-width: 720px) {
+      .ws-body { grid-template-columns: 1fr; }
+      .ws-paper { width: 240px; }
+    }
+
+    /* Labelled diagrams: the label tools above the canvas, and a label being renamed */
+    .diagram-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; padding: 0.5rem 0.75rem;
+      background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 700; color: #1e3a8a; }
+    .diagram-bar[hidden] { display: none; }
+    .diagram-bar .btn-action[aria-pressed="true"] { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+    .svg-viewport .pg-label:hover rect { stroke-width: 2.5px; }
+    .label-editor { position: absolute; z-index: 30; font: 800 15px Nunito, sans-serif; padding: 2px 8px; border: 2px solid #2563eb;
+      border-radius: 6px; background: #fff; color: #1f2937; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
+
+    .unknown-badge {
+      display: inline-block;
+      background: #fee2e2;
+      color: #b91c1c;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-right: 4px;
+      margin-top: 4px;
+    }
+
+    /* Concept Dictionary Section */
+    .dictionary-section {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      margin-top: 1rem;
+    }
+    .dict-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .dict-search {
+      padding: 0.5rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.9rem;
+      width: 240px;
+    }
+
+    .dict-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 0.75rem;
+    }
+    .dict-item {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 0.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .dict-item:hover {
+      background: #fff;
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+    .dict-item-svg {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .dict-item-svg svg {
+      width: 100%;
+      height: 100%;
+    }
+    .dict-item-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: capitalize;
+    }
+    .dict-item-cat {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    /* Studio layout: controls | canvas | inspector, so the drawing stays above the fold */
+    .studio-grid {
+      display: grid;
+      grid-template-columns: 290px minmax(0, 1fr) 280px;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    .controls-panel {
+      position: sticky;
+      top: 84px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+    .controls-panel .pill-btn { font-size: 0.8rem; padding: 0.35rem 0.6rem; }
+    .pill-subhead {
+      flex-basis: 100%;
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.35rem;
+    }
+    .pill-subhead:first-child { margin-top: 0; }
+    @media (max-width: 1280px) {
+      .studio-grid { grid-template-columns: 290px minmax(0, 1fr); }
+      .inspector-card { grid-column: 2; }
+    }
+    @media (max-width: 900px) {
+      .studio-grid { grid-template-columns: minmax(0, 1fr); }
+      .inspector-card { grid-column: auto; }
+      .controls-panel { order: 2; position: static; max-height: none; }
+      .inspector-card { order: 3; }
+      header { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
+      .brand-badge { display: none; }
+      main { padding: 0 0.75rem; }
+      .svg-viewport { min-height: 240px; padding: 0.75rem; }
+      .prompt-box { flex-wrap: wrap; }
+      .prompt-input { min-width: 0; }
+      .dict-search { width: 100%; }
+    }
+
+    .examples summary {
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      margin-top: 0.75rem;
+      user-select: none;
+    }
+    .examples summary span { font-weight: 600; text-transform: none; }
+    .examples .chip-label { flex-basis: 100%; margin-top: 0.35rem; }
+
+    /* Dictionary filters */
+    .dict-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .segmented { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+    .segmented button {
+      background: var(--surface);
+      border: none;
+      border-right: 1px solid var(--border);
+      padding: 0.35rem 0.75rem;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .segmented button:last-child { border-right: none; }
+    .segmented button.active { background: var(--text); color: #fff; }
+    .pill-count { font-size: 0.72rem; font-weight: 700; opacity: 0.65; }
+    .dict-status { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-left: auto; }
+    .setting-chip {
+      display: inline-block;
+      background: #ecfdf5;
+      color: #047857;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin: 4px 4px 0 0;
+    }
+    .movable-item { touch-action: none; }
+
+    /* ---- Phones (and touch screens) ------------------------------------------------------------ */
+    .phone-only { display: none !important; }
+    .on-touch { display: none; }
+    @media (hover: none) and (pointer: coarse) {
+      .on-touch { display: inline; }
+      .on-mouse { display: none; }
+      /* Fingertip-sized targets */
+      .pill-btn, .btn-action, .segmented button { min-height: 38px; }
+      .chip, .tl-btn { min-height: 34px; }
+      .tl-btn { min-width: 34px; }
+      .examples summary { padding: 0.35rem 0; }
+    }
+    @media (max-width: 640px) {
+      .hide-phone { display: none !important; }
+      .phone-only { display: inline-flex !important; }
+      span.phone-only { display: inline !important; }
+      /* A slim header that scrolls away */
+      header { position: static; padding: 0.5rem 0.75rem; flex-wrap: nowrap; }
+      .brand { gap: 0.5rem; }
+      .brand-logo { width: 30px; height: 30px; font-size: 1rem; border-radius: 8px; }
+      .brand-title { font-size: 1.05rem; }
+      .header-links { gap: 0.4rem; }
+      .header-links .btn-link { font-size: 0.82rem; white-space: nowrap; }
+      header .header-links a.btn-link { padding: 6px 10px !important; }
+      main { padding: 0 0.5rem; margin-top: 0.5rem; gap: 0.6rem; }
+      .card { padding: 0.75rem; }
+      /* The prompt on its own line, Draw under it */
+      .prompt-box { gap: 0.5rem; }
+      .prompt-input { flex: 1 1 100%; font-size: 16px; padding: 0.7rem 0.85rem; }
+      .btn-generate { flex: 1 1 100%; justify-content: center; min-height: 46px; }
+      .examples summary { margin-top: 0.5rem; }
+      /* Mode and style: one row each, swiped sideways, right above the picture */
+      .studio-grid { gap: 0.6rem; }
+      .controls-panel { order: 0; padding: 0.6rem 0.7rem; gap: 0.45rem; }
+      .controls-panel .control-group > label { margin-bottom: 0.25rem; font-size: 0.72rem; }
+      /* Options in one short line (the group's title is clear enough without its label) */
+      .controls-panel .control-group:last-child > label { display: none; }
+      .controls-panel .toggle-label { text-transform: none; letter-spacing: 0; font-size: 0.8rem; margin: 0; color: var(--text); }
+      .controls-panel .options-row { margin-top: 0; flex-wrap: nowrap; justify-content: space-between; }
+      #btn-seed { flex: none; }
+      .controls-panel .pill-group { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 1px 0 3px; margin: 0 -0.7rem; padding-left: 0.7rem; padding-right: 0.7rem; scroll-padding: 0 0.7rem; }
+      .controls-panel .pill-group::-webkit-scrollbar { display: none; }
+      .controls-panel .pill-subhead { display: none; }
+      .controls-panel .pill-btn { flex: none; }
+      /* The picture first, its buttons in a sideways row under it */
+      .canvas-card > * { order: 5; }
+      .svg-viewport { order: 1; min-height: 0; padding: 0.35rem; }
+      #story-player-bar { order: 2; }
+      .canvas-header { order: 3; padding: 0.45rem 0.5rem; }
+      .canvas-header > div:first-child { display: none; }
+      .canvas-actions { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; width: 100%; }
+      .canvas-actions::-webkit-scrollbar { display: none; }
+      .canvas-actions .btn-action { flex: none; }
+      .movable-hint-bar { order: 4; font-size: 0.8rem; padding: 0.45rem 0.7rem; }
+      /* The selected figure's controls: a sheet at the bottom of the screen */
+      .object-toolbar {
+        position: fixed !important; top: auto !important; left: 0 !important; right: 0; bottom: 0;
+        transform: none; margin: 0; width: 100%; max-height: 42vh; overflow-y: auto;
+        border-radius: 16px 16px 0 0; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); gap: 8px; z-index: 90;
+        font-size: 13px;
+      }
+      .object-toolbar button { font-size: 13px; padding: 8px 10px; min-height: 36px; }
+      .object-toolbar-row { gap: 6px; }
+      .object-toolbar-row-title { flex-basis: 100%; }
+      #tb-done { margin-left: auto; background: #2563eb; }
+      /* The dictionary: three small cards a row */
+      .dict-search { font-size: 16px; }
+      .dict-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+      .dict-item { padding: 0.45rem 0.2rem; gap: 0.2rem; }
+      .dict-item-svg { width: 46px; height: 46px; }
+      .inspector-card { padding: 0.9rem; gap: 0.9rem; }
+      body .toast { left: 12px; right: 12px; bottom: 16px; }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #fff;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s ease;
+      z-index: 100;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="/" class="brand" title="PictoGen home">
+      <div class="brand-logo">P</div>
+      <div>
+        <div class="brand-title">PictoGen</div>
+      </div>
+      <span class="brand-badge">Pictures from words</span>
+    </a>
+    <div class="header-links">
+      <a href="/showcase" target="_blank" class="btn-link" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-weight: 800; box-shadow: 0 2px 6px rgba(37,99,235,0.3); transition: transform 0.15s, opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+        🎬 <span class="hide-phone">Watch the </span>Show
+      </a>
+      <button class="btn-link" onclick="document.getElementById('dictionary').scrollIntoView({ behavior: 'smooth' })">
+        📚 <span class="hide-phone">All pictures (</span><span id="concept-count">37</span><span class="hide-phone">)</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Prompt Card -->
+    <section class="card">
+      <div class="prompt-box">
+        <input
+          type="text"
+          id="prompt-input"
+          class="prompt-input"
+          placeholder="Type what you want to see, e.g. 'a girl with a balloon in the park'"
+          value="a girl with a balloon and her dog in the park"
+        />
+        <button id="btn-generate" class="btn-generate">
+          <span>✨ Draw</span>
+        </button>
+      </div>
+      <div id="word-help" class="word-help" aria-live="polite"></div>
+
+      <details class="examples" id="examples">
+        <summary>✨ Ideas to try <span class="hide-phone">— click one to draw it</span><span class="phone-only">— tap one to draw it</span></summary>
+        <div class="sample-chips">
+          <span class="chip-label">🔤 Alphabet Pals:</span>
+          <button class="chip" data-prompt="LOVE" data-mode="alphabet">💖 Word Pals (LOVE)</button>
+          <button class="chip" data-prompt="C is for cat" data-mode="alphabet">🐱 Phonics (C is for Cat)</button>
+          <button class="chip" data-prompt="A B C" data-mode="alphabet">🔤 ABC Friends</button>
+          <button class="chip" data-prompt="a jumping letter a under the sun" data-style="letterling" data-mode="scene">🦘 Jumping Letter A</button>
+          <span class="chip-label">🎬 Cartoon Animations & Scenarios:</span>
+          <button class="chip" data-prompt="a jumping boy under the bright sun" data-style="stickman" data-mode="scene">🦘 Jumping Boy</button>
+          <button class="chip" data-prompt="a dancing girl and a laughing boy under the starry night" data-style="cute2d" data-mode="scene">💃 Dancing under Stars</button>
+          <button class="chip" data-prompt="a red car driving on a rainy street" data-style="flat" data-mode="scene">🌧 Rainy Street Driving</button>
+          <button class="chip" data-prompt="a happy boy running on cartoon parallax road" data-style="cartoon" data-mode="scene">🏃 Parallax Cartoon Run</button>
+          <button class="chip" data-prompt="a happy dog wagging tail at the beach" data-style="flat" data-mode="scene">🏖 Beach Wave Rolling</button>
+          <button class="chip" data-prompt="a sleeping boy under the starry night" data-style="cute2d" data-mode="scene">😴 Starry Night Sleep</button>
+          <span class="chip-label">🏫 For the Classroom:</span>
+          <button class="chip" data-prompt="the parts of a plant" data-mode="diagram" data-style="flat">🌱 Parts of a Plant</button>
+          <button class="chip" data-prompt="the water cycle" data-mode="diagram" data-style="flat">💧 The Water Cycle</button>
+          <button class="chip" data-prompt="the human body" data-mode="diagram" data-style="cartoon">🧍 Parts of the Body</button>
+          <button class="chip" data-prompt="a volcano" data-mode="diagram" data-style="cartoon">🌋 Inside a Volcano</button>
+          <button class="chip" data-prompt="the solar system" data-mode="diagram" data-style="flat">🪐 The Solar System</button>
+          <button class="chip" data-prompt="a cat, a dog, a cow and a pig" data-mode="diagram" data-style="flat">🔤 Label the Pictures</button>
+          <span class="chip-label">🎨 Style Showcases:</span>
+          <button class="chip" data-prompt="boy" data-style="stickman" data-mode="scene">👑 Stick Figure</button>
+          <button class="chip" data-prompt="confused boy pointing in a room with chair and window" data-style="stickman" data-mode="scene">🏠 4-Quadrant Room</button>
+          <button class="chip" data-prompt="boy, man and woman" data-style="editorial" data-mode="scene">🎭 Editorial Silhouettes</button>
+          <button class="chip" data-prompt="boy and girl" data-style="cute2d" data-mode="scene">🌸 Cute 2D Kawaii</button>
+          <button class="chip" data-prompt="a boy discovers an apple tree" data-mode="comic">📰 Comic Strip</button>
+          <button class="chip" data-prompt="skeptical boy pointing in a room with chair and window" data-style="whiteboard" data-mode="scene">📋 Whiteboard</button>
+          <button class="chip" data-prompt="a boy and a woman" data-style="geometric" data-mode="scene">📐 Geometric Bauhaus</button>
+          <button class="chip" data-prompt="confused boy thumbsup with box and chair" data-style="doodle" data-mode="scene">✏️ Sketchbook Doodle</button>
+          <button class="chip" data-prompt="boy, girl, man and woman" data-style="papercut" data-mode="scene">✂️ Craft Papercut</button>
+          <button class="chip" data-prompt="a girl and a cat in a garden with flowers" data-style="watercolor" data-mode="scene">🎨 Watercolor Garden</button>
+          <button class="chip" data-prompt="a surprised girl looks at a boy under the sun" data-style="anime" data-mode="scene">🌟 Anime Scene</button>
+          <button class="chip" data-prompt="a dancing boy and a dog by a house" data-style="crayon" data-mode="scene">🖍️ Crayon Drawing</button>
+          <button class="chip" data-prompt="count to 5" data-style="letterling" data-mode="alphabet">🔢 Count to 5</button>
+          <button class="chip" data-prompt="apple, bike, tree, sun, coffee, book" data-mode="knolling">🎒 Gear Knolling</button>
+          <button class="chip" data-prompt="sad boy and laughing boy" data-mode="split">⚖️ Sad vs Laughing</button>
+          <button class="chip" data-prompt="tree, house and car on a sunny day" data-mode="isometric">📐 2.5D Diorama</button>
+        </div>
+      </details>
+
+      <!-- Animated Clip Presets & Aspect Ratio Row (visible in Story mode) -->
+      <div id="story-presets-row" style="display: none; margin-top: 1.25rem; padding: 1rem 1.25rem; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: var(--radius-sm);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="font-size: 0.85rem; font-weight: 800; color: #92400e; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🎬 Story clips: pick one, or make your own from your saved scenes</span>
+          </div>
+          <!-- Aspect Ratio Switcher -->
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <span style="font-size: 0.75rem; font-weight: 800; color: #92400e; text-transform: uppercase;">Aspect:</span>
+            <div class="pill-group" id="story-aspect-group">
+              <button class="pill-btn active" data-aspect="16:9" style="font-size: 0.75rem; padding: 2px 8px;">📺 16:9 Wide</button>
+              <button class="pill-btn" data-aspect="9:16" style="font-size: 0.75rem; padding: 2px 8px;">📱 9:16 Reel</button>
+              <button class="pill-btn" data-aspect="1:1" style="font-size: 0.75rem; padding: 2px 8px;">⏹ 1:1 Square</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Genre Tabs -->
+        <div class="pill-group" id="story-genre-group" style="margin-bottom: 0.75rem;">
+          <button class="pill-btn active" data-genre="kids" style="background:#fff; border-color:#fcd34d;">🎬 Kids Stories</button>
+          <button class="pill-btn" data-genre="documentary" style="background:#fff; border-color:#fcd34d;">🔬 Science & Doc</button>
+          <button class="pill-btn" data-genre="news" style="background:#fff; border-color:#fcd34d;">📰 News & Editorial</button>
+          <button class="pill-btn" data-genre="howto" style="background:#fff; border-color:#fcd34d;">💡 How-To Guides</button>
+        </div>
+
+        <!-- Presets Container (Dynamic based on selected genre) -->
+        <div id="story-presets-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+
+        <div style="margin-top: 0.6rem; font-size: 0.74rem; color: #b45309;">
+          💡 <strong>Tip:</strong> Choose a preset above or type custom multi-beat scripts: <code>Prompt | Tag | Headline | Caption // ...</code>
+        </div>
+      </div>
+
+      <!-- Coloring Book Palette Bar (visible when mode === 'coloring') -->
+      <div id="coloring-palette-bar" style="display: none; margin-top: 1.25rem; padding: 0.85rem 1.15rem; background: #fdf4ff; border: 1.5px solid #f0abfc; border-radius: var(--radius-sm);">
+        <div style="font-size: 0.85rem; font-weight: 800; color: #86198f; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+          <span>🖍 Interactive Paint Bucket: Pick a color, then click any shape in the canvas to paint it!</span>
+          <span style="font-size: 0.72rem; font-weight: 800; background: #fae8ff; color: #a21caf; padding: 2px 8px; border-radius: 999px;">Click-to-Color</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;" id="coloring-swatches">
+          <button class="color-swatch-btn active" data-color="#ef4444" style="width:26px; height:26px; border-radius:50%; background:#ef4444; border:2px solid #fff; box-shadow:0 0 0 2px #ef4444; cursor:pointer;" title="Red"></button>
+          <button class="color-swatch-btn" data-color="#f97316" style="width:26px; height:26px; border-radius:50%; background:#f97316; border:2px solid #fff; cursor:pointer;" title="Orange"></button>
+          <button class="color-swatch-btn" data-color="#eab308" style="width:26px; height:26px; border-radius:50%; background:#eab308; border:2px solid #fff; cursor:pointer;" title="Yellow"></button>
+          <button class="color-swatch-btn" data-color="#22c55e" style="width:26px; height:26px; border-radius:50%; background:#22c55e; border:2px solid #fff; cursor:pointer;" title="Green"></button>
+          <button class="color-swatch-btn" data-color="#06b6d4" style="width:26px; height:26px; border-radius:50%; background:#06b6d4; border:2px solid #fff; cursor:pointer;" title="Cyan"></button>
+          <button class="color-swatch-btn" data-color="#3b82f6" style="width:26px; height:26px; border-radius:50%; background:#3b82f6; border:2px solid #fff; cursor:pointer;" title="Blue"></button>
+          <button class="color-swatch-btn" data-color="#a855f7" style="width:26px; height:26px; border-radius:50%; background:#a855f7; border:2px solid #fff; cursor:pointer;" title="Purple"></button>
+          <button class="color-swatch-btn" data-color="#ec4899" style="width:26px; height:26px; border-radius:50%; background:#ec4899; border:2px solid #fff; cursor:pointer;" title="Pink"></button>
+          <button class="color-swatch-btn" data-color="#78716c" style="width:26px; height:26px; border-radius:50%; background:#78716c; border:2px solid #fff; cursor:pointer;" title="Brown"></button>
+          <button class="color-swatch-btn" data-color="#ffffff" style="width:26px; height:26px; border-radius:50%; background:#ffffff; border:1.5px solid #cbd5e1; cursor:pointer;" title="Eraser / White"></button>
+          <span style="font-size:0.75rem; color:#86198f; font-weight:700; margin-left:0.5rem;" id="active-color-name">Active: Red</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls, Canvas & Inspector -->
+    <div class="studio-grid">
+      <!-- Controls -->
+      <aside class="card controls-panel" aria-label="Drawing controls">
+        <div class="control-group">
+          <label>What to make</label>
+          <div class="pill-group" id="modes-group">
+            <div class="pill-subhead">Illustrate</div>
+            <button class="pill-btn active" data-mode="scene">🌄 Picture</button>
+            <button class="pill-btn" data-mode="comic">📰 Comic Strip</button>
+            <button class="pill-btn" data-mode="stickman">🕴 Stick Figures</button>
+            <button class="pill-btn" data-mode="isometric">🧊 Tiny World (3D look)</button>
+            <div class="pill-subhead">Present</div>
+            <button class="pill-btn" data-mode="knolling">🎒 Things Laid Out</button>
+            <button class="pill-btn" data-mode="split">⚖️ Before vs After</button>
+            <button class="pill-btn" data-mode="waffle">📊 Picture Chart</button>
+            <button class="pill-btn" data-mode="icons">🗂 Sticker Sheet</button>
+            <div class="pill-subhead">Learn</div>
+            <button class="pill-btn" data-mode="alphabet">🔤 Alphabet Pals</button>
+            <button class="pill-btn" data-mode="diagram">🏷 Labelled Diagram</button>
+            <button class="pill-btn" data-mode="card">🃏 Flashcard</button>
+            <button class="pill-btn" data-mode="coloring">🖍 Coloring Book</button>
+            <div class="pill-subhead">Animate</div>
+            <button class="pill-btn" data-mode="story">🎬 Story Clip</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Drawing style</label>
+          <div class="pill-group" id="styles-group">
+            <div class="pill-subhead">Classic</div>
+            <button class="pill-btn active" data-style="flat">🎨 Flat</button>
+            <button class="pill-btn" data-style="cartoon">🖍 Cartoon</button>
+            <button class="pill-btn" data-style="outline">✒ Outline</button>
+            <button class="pill-btn" data-style="pastel">🌸 Pastel</button>
+            <button class="pill-btn" data-style="silhouette">👤 Silhouette</button>
+            <button class="pill-btn" data-style="sketch">✏ Sketch</button>
+            <button class="pill-btn" data-style="neon">⚡ Neon</button>
+            <div class="pill-subhead">Painted</div>
+            <button class="pill-btn" data-style="watercolor">🎨 Watercolor</button>
+            <button class="pill-btn" data-style="crayon">🖍️ Crayon</button>
+            <button class="pill-btn" data-style="anime">🌟 Anime</button>
+            <div class="pill-subhead">Illustration</div>
+            <button class="pill-btn" data-style="cute2d">🌸 Cute 2D</button>
+            <button class="pill-btn" data-style="comic">📰 Comic</button>
+            <button class="pill-btn" data-style="doodle">✏️ Doodle</button>
+            <button class="pill-btn" data-style="editorial">🎭 Editorial</button>
+            <button class="pill-btn" data-style="papercut">✂️ Papercut</button>
+            <button class="pill-btn" data-style="geometric">📐 Geometric</button>
+            <button class="pill-btn" data-style="whiteboard">📋 Whiteboard</button>
+            <div class="pill-subhead">Retro &amp; Technical</div>
+            <button class="pill-btn" data-style="blueprint">📐 Blueprint</button>
+            <button class="pill-btn" data-style="chalkboard">🏫 Chalkboard</button>
+            <button class="pill-btn" data-style="vintage">📜 Vintage</button>
+            <button class="pill-btn" data-style="pixel">👾 Pixel</button>
+            <div class="pill-subhead">Characters</div>
+            <button class="pill-btn" data-style="stickman">👑 Stickman</button>
+            <button class="pill-btn" data-style="letterling">🔤 Letterling</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Mix it up</label>
+          <div class="options-row">
+            <label class="toggle-label">
+              <input type="checkbox" id="opt-vary" />
+              <span>Different colours (clothes, skin, fruit)</span>
+            </label>
+            <button class="btn-action" id="btn-seed">
+              <span>🎲 Try another (<span id="seed-val">1</span>)</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Canvas -->
+      <div class="canvas-card">
+        <div class="canvas-header">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <span style="font-weight: 800; font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">
+              Your picture
+            </span>
+            <span style="font-size: 0.75rem; background: #dcfce7; color: #166534; font-weight: 700; padding: 2px 8px; border-radius: 999px;">
+              ✋ Drag things to move them
+            </span>
+          </div>
+          <div class="canvas-actions">
+            <button class="btn-action" id="btn-reset" title="Put everything back where it was">↩ Put back</button>
+            <button class="btn-action" id="btn-copy-svg" title="Copy the picture as SVG code (for designers)">📋 Copy</button>
+            <button class="btn-action" id="btn-download-svg" title="Save as an SVG file: sharp at any size (for designers and printing)">💾 SVG</button>
+            <button class="btn-action" id="btn-download-png" title="Save the picture as an image (PNG)">🖼 Save picture</button>
+            <button class="btn-action" id="btn-worksheet" title="A printable A4 worksheet of this picture, as a PDF">🖨 Worksheet</button>
+            <button class="btn-action" id="btn-download-gif" title="Animated GIF of this scene">🎞 GIF</button>
+            <button class="btn-action" id="btn-download-video" title="Video of this scene (MP4 where your browser can record it, otherwise WebM)">🎬 Video</button>
+            <button class="btn-action" id="btn-sound" title="Sound on or off: voices and effects, made by PictoGen itself">🔊 Sound</button>
+          </div>
+        </div>
+
+        <div class="movable-hint-bar">
+          <span class="on-mouse">💡 <strong>Drag</strong> anything to move it. <strong>Click</strong> it to make it bigger, flip it, or change its mood.</span>
+          <span class="on-touch">💡 <strong>Drag</strong> a figure to move it. <strong>Tap</strong> it to change its size, mood or motion.</span>
+        </div>
+
+        <!-- A labelled diagram's labels: rename them, or blank them for a quiz -->
+        <div class="diagram-bar" id="diagram-bar" hidden>
+          <span>🏷 <span class="on-mouse">Click</span><span class="on-touch">Tap</span> a label to rename it</span>
+          <button class="btn-action" id="btn-blank-labels" aria-pressed="false" title="Numbered blank lines and a word bank, for a quiz">🙈 Blank labels (quiz)</button>
+          <button class="btn-action" id="btn-reset-labels" title="Back to the original labels">↺ Original labels</button>
+        </div>
+
+        <div class="svg-viewport" id="svg-viewport">
+          <div style="color: var(--text-muted); font-weight: 600;">Drawing…</div>
+        </div>
+
+        <!-- Floating toolbar for selected movable object -->
+        <div class="object-toolbar" id="object-toolbar">
+          <div class="object-toolbar-row">
+            <span class="object-toolbar-label" id="toolbar-item-name">Object</span>
+            <button id="tb-scale-up" title="Scale Up (Bigger)">➕ Bigger</button>
+            <button id="tb-scale-down" title="Scale Down (Smaller)">➖ Smaller</button>
+            <button id="tb-flip" title="Flip Horizontally">↔ Flip</button>
+            <button id="tb-front" title="Bring to Front">⬆ Front</button>
+            <button id="tb-back" title="Send to Back">⬇ Back</button>
+            <button id="tb-delete" style="color: #fca5a5;" title="Remove from Scene">🗑 Delete</button>
+            <button id="tb-done" class="phone-only" title="Close">✓ Done</button>
+          </div>
+          <!-- Facial Expression (Mimics) Row -->
+          <div class="object-toolbar-row" id="tb-row-expression">
+            <span class="object-toolbar-row-title">Mimics:</span>
+            <button class="tb-expr-btn" data-expr="happy" title="Happy Smile">😊 Happy</button>
+            <button class="tb-expr-btn" data-expr="laugh" title="Big Laugh">😃 Laugh</button>
+            <button class="tb-expr-btn" data-expr="surprised" title="Surprised">😮 Wow</button>
+            <button class="tb-expr-btn" data-expr="sad" title="Sad / Crying">😢 Sad</button>
+            <button class="tb-expr-btn" data-expr="wink" title="Wink Smirk">😉 Wink</button>
+            <button class="tb-expr-btn" data-expr="angry" title="Angry">😠 Mad</button>
+            <button class="tb-expr-btn" data-expr="confused" title="Confused / Puzzled">🤔 Confused</button>
+            <button class="tb-expr-btn" data-expr="skeptical" title="Skeptical / Suspicious">🤨 Skeptical</button>
+            <button class="tb-expr-btn" data-expr="talking" title="Speaking / Talking">🗣 Talk</button>
+          </div>
+          <!-- Animation & Motion Row -->
+          <div class="object-toolbar-row" id="tb-row-animation">
+            <span class="object-toolbar-row-title">Motion:</span>
+            <button class="tb-anim-btn" data-anim="jump" title="Jumping Animation (Squash & Stretch)">🦘 Jump</button>
+            <button class="tb-anim-btn" data-anim="dance" title="Dancing / Grooving Animation">💃 Dance</button>
+            <button class="tb-anim-btn" data-anim="cheer" title="Cheering Arms Raised">🎉 Cheer</button>
+            <button class="tb-anim-btn" data-anim="fly" title="Flying Glider">🦸 Fly</button>
+            <button class="tb-anim-btn" data-anim="walk" title="Walk Cycle in Place">🚶 Walk</button>
+            <button class="tb-anim-btn" data-anim="walk-across" title="Walk Across Slide">🚶‍♂️ Across</button>
+            <button class="tb-anim-btn" data-anim="run" title="Run Cycle">🏃 Run</button>
+            <button class="tb-anim-btn" data-anim="wave" title="Wave Hand">👋 Wave</button>
+            <button class="tb-anim-btn" data-anim="point" title="Pointing Index Finger">👉 Point</button>
+            <button class="tb-anim-btn" data-anim="thumbsup" title="Thumbs Up Gesture">👍 Thumbs Up</button>
+            <button class="tb-anim-btn" data-anim="hold" title="Holding Gesture">🤲 Hold</button>
+            <button class="tb-anim-btn" data-anim="think" title="Thinking / Pondering">🤔 Think</button>
+            <button class="tb-anim-btn" data-anim="sleep" title="Sleeping / Relaxing">😴 Sleep</button>
+            <button class="tb-anim-btn" data-anim="sit" title="Sitting Pose">🪑 Sit</button>
+            <button class="tb-anim-btn" data-anim="blink" title="Idle Blinking">👀 Idle</button>
+            <button class="tb-anim-btn" data-anim="none" style="color: #cbd5e1;" title="Stop Animation">🛑 Stop</button>
+          </div>
+        </div>
+
+        <!-- Timeline view: the scene's steps per figure, editable (scene mode; public/js/timeline-view.js) -->
+        <div class="timeline-panel" id="timeline-panel" hidden></div>
+        <!-- Your clip: saved scenes played together in Clip Studio (public/js/clip-tray.js) -->
+        <div class="timeline-panel clip-tray" id="clip-tray" hidden></div>
+        <!-- Your characters: face photos on figures, called by name (public/js/characters.js) -->
+        <div class="timeline-panel characters-panel" id="characters-panel" hidden></div>
+
+        <!-- Animated Clip Player & Lower-Third Bar (active when mode === 'story') -->
+        <div id="story-player-bar" style="display: none; background: #0f172a; color: #fff; border-top: 1px solid var(--border);">
+          <!-- Top clip info bar -->
+          <div style="padding: 0.45rem 1.25rem; background: rgba(0,0,0,0.35); border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span id="story-genre-badge" style="font-weight: 900; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase; background: #f59e0b; color: #fff;">KIDS</span>
+              <span id="story-title-display" style="font-weight: 800; color: #f1f5f9;">Animated Clip</span>
+            </div>
+            <div id="story-aspect-badge" style="color: #94a3b8; font-weight: 700; font-size: 0.72rem;">16:9 Widescreen</div>
+          </div>
+
+          <!-- Dynamic Lower-Third Overlay Box -->
+          <div id="story-caption-box" style="padding: 0.9rem 1.4rem; background: rgba(15,23,42,0.96); border-bottom: 1px solid rgba(255,255,255,0.08); min-height: 75px; display: flex; flex-direction: column; justify-content: center;">
+            <div id="story-lower-third">
+              <span id="story-caption-text" style="font-size: 1.15rem; font-weight: 800; color: #f8fafc; text-align: center; display: block;">Preparing clip...</span>
+            </div>
+          </div>
+
+          <div style="padding: 0.65rem 1.25rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <div style="display: flex; gap: 4px;">
+              <button class="btn-action" id="story-btn-prev" style="background:#1e293b; color:#fff; border:none; padding: 6px 12px; border-radius: 6px;" title="Previous Scene">⏮ Prev</button>
+              <button class="btn-action" id="story-btn-play" style="background:#2563eb; color:#fff; border:none; padding: 6px 16px; border-radius: 6px; font-weight: 800;" title="Play / Pause">⏸ Pause</button>
+              <button class="btn-action" id="story-btn-next" style="background:#1e293b; color:#fff; border:none; padding: 6px 12px; border-radius: 6px;" title="Next Scene">Next ⏭</button>
+            </div>
+
+            <div id="story-progress-track" style="flex: 1; min-width: 140px; height: 8px; background: rgba(255,255,255,0.2); border-radius: 999px; overflow: hidden; cursor: pointer; position: relative;">
+              <div id="story-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #38bdf8, #818cf8); border-radius: 999px; transition: width 0.08s linear;"></div>
+            </div>
+
+            <div id="story-dots-container" style="display: flex; gap: 6px;"></div>
+
+            <button class="btn-action" id="story-btn-sound" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Sound on or off: chimes, voices and effects">🔔</button>
+            <button class="btn-action" id="story-btn-music" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Background music for the clip's genre, on or off">🎵</button>
+            <button class="btn-action" id="story-btn-export-html" style="background:#10b981; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Export standalone offline animated player">💾 Export Clip (.html)</button>
+            <button class="btn-action" id="story-btn-export-video" style="background:#6366f1; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Render the whole clip, captions included, as a video">🎬 Export Video</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inspector -->
+      <div class="inspector-card">
+        <div>
+          <div class="section-title">
+            <span>In your picture</span>
+            <span id="match-badge-count" style="font-size: 0.75rem; background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 999px;">0</span>
+          </div>
+          <div id="matches-list" class="matches-list">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">Nothing yet.</div>
+          </div>
+        </div>
+
+        <div id="setting-section" style="display: none;">
+          <div class="section-title">Place</div>
+          <div id="setting-list"></div>
+        </div>
+
+        <div id="unknown-section" style="display: none;">
+          <div class="section-title">Words I can't draw yet</div>
+          <div id="unknown-list"></div>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+            Tip: try a simpler word, or look in <a href="#dictionary">All pictures</a> below.
+          </p>
+        </div>
+
+        <div>
+          <div class="section-title">Tips</div>
+          <ul style="font-size: 0.82rem; color: var(--text-muted); padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem;">
+            <li><strong>Move things:</strong> drag anything in the picture where you want it.</li>
+            <li><strong>Keyboard:</strong> arrow keys nudge the selected thing; Delete removes it.</li>
+            <li><strong>Saving:</strong> pictures, videos and worksheets keep everything where you put it.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Concept Dictionary Section -->
+    <section class="dictionary-section" id="dictionary">
+      <div class="dict-header">
+        <div>
+          <h2 style="font-weight: 800; font-size: 1.25rem;">All the pictures PictoGen can draw</h2>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Click one to add it to your picture. They're shown in the style you picked.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <input type="text" id="dict-search" class="dict-search" placeholder="Search, e.g. cat, car, teacher…" />
+        </div>
+      </div>
+
+      <div class="dict-toolbar">
+        <div class="segmented" id="source-filter" role="group" aria-label="Concept source">
+          <button class="active" data-source="all">All</button>
+          <button data-source="handmade" title="Drawn by PictoGen: they move, change colour and show feelings">✋ Moving figures</button>
+          <button data-source="library" title="Fluent Emoji icons (they keep their colours)">📦 Icons</button>
+        </div>
+        <label class="toggle-label" title="Most people &amp; gesture icons come in 5 skin tones">
+          <input type="checkbox" id="opt-variants" />
+          <span>Show skin-tone variants</span>
+        </label>
+        <span class="dict-status" id="dict-status"></span>
+      </div>
+
+      <div class="pill-group" id="cat-filters" style="margin-bottom: 1rem;"></div>
+
+      <div class="dict-grid" id="dict-grid"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast">Copied to clipboard!</div>
+
+  <script>
+    let state = {
+      prompt: 'a girl with a balloon and her dog in the park',
+      style: 'flat',
+      mode: 'scene',
+      genre: 'kids',
+      aspect: '16:9',
+      vary: false,
+      seed: 1,
+      svg: '',
+      concepts: [],
+      filteredCategory: 'all',
+      filteredSource: 'all',
+      showVariants: false,
+      searchQuery: '',
+      labels: {}, // a diagram's renamed labels, for labelsFor (the prompt they belong to)
+      labelsFor: null,
+      blank: false, // a diagram's labels left blank (a quiz)
+      beats: null, // steps as edited in the timeline view, for beatsFor (the prompt they belong to)
+      beatsFor: null,
+    };
+
+    // Prompt text, story captions and concept names are user-controlled: escape before innerHTML.
+    function escHtml(v) {
+      return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    const promptInput = document.getElementById('prompt-input');
+    const btnGenerate = document.getElementById('btn-generate');
+    const svgViewport = document.getElementById('svg-viewport');
+    const matchesList = document.getElementById('matches-list');
+    const matchBadgeCount = document.getElementById('match-badge-count');
+    const unknownSection = document.getElementById('unknown-section');
+    const unknownList = document.getElementById('unknown-list');
+    const optVary = document.getElementById('opt-vary');
+    const btnSeed = document.getElementById('btn-seed');
+    const seedVal = document.getElementById('seed-val');
+    const dictGrid = document.getElementById('dict-grid');
+    const dictSearch = document.getElementById('dict-search');
+    const toast = document.getElementById('toast');
+    const objectToolbar = document.getElementById('object-toolbar');
+    const toolbarItemName = document.getElementById('toolbar-item-name');
+
+    // Story Clip State & Presets
+    const STORY_PRESETS = {
+      kids: [
+        { id: 'puppy-friend', label: '🐶 The Boy & Puppy' },
+        { id: 'forest-bike', label: '🚲 The Park Adventure' },
+        { id: 'magic-garden', label: '🌸 The Secret Garden' },
+      ],
+      documentary: [
+        { id: 'water-cycle', label: '💧 Earth\'s Water Cycle' },
+        { id: 'solar-journey', label: '☀️ Solar Power Journey' },
+        { id: 'moon-mission', label: '🚀 Lunar Landing Mission' },
+      ],
+      news: [
+        { id: 'renewable-boom', label: '📈 $1.8T Energy Boom' },
+        { id: 'weather-alert', label: '⚠️ Severe Heat Wave Alert' },
+      ],
+      howto: [
+        { id: 'workplace-ergonomics', label: '🪑 Desk Ergonomics' },
+        { id: 'plant-care', label: '🪴 Houseplant Care Guide' },
+      ],
+    };
+
+    let storyState = {
+      scenes: [],
+      curIndex: 0,
+      isPlaying: true,
+      sound: true,
+      music: true,
+      timer: null,
+      progressInterval: null,
+      startTime: 0,
+      duration: 4500,
+      genre: 'kids',
+      aspect: '16:9',
+      title: '',
+    };
+
+    const storyPresetsRow = document.getElementById('story-presets-row');
+    const storyPresetsContainer = document.getElementById('story-presets-container');
+    const storyPlayerBar = document.getElementById('story-player-bar');
+    const storyGenreBadge = document.getElementById('story-genre-badge');
+    const storyTitleDisplay = document.getElementById('story-title-display');
+    const storyAspectBadge = document.getElementById('story-aspect-badge');
+    const storyLowerThird = document.getElementById('story-lower-third');
+    const storyBtnPlay = document.getElementById('story-btn-play');
+    const storyBtnPrev = document.getElementById('story-btn-prev');
+    const storyBtnNext = document.getElementById('story-btn-next');
+    const storyBtnSound = document.getElementById('story-btn-sound');
+    const storyBtnMusic = document.getElementById('story-btn-music');
+    const storyBtnExportHtml = document.getElementById('story-btn-export-html');
+    const storyProgressTrack = document.getElementById('story-progress-track');
+    const storyProgressFill = document.getElementById('story-progress-fill');
+    const storyDotsContainer = document.getElementById('story-dots-container');
+
+    // Coloring Book Palette State
+    let activeColor = '#ef4444';
+    const activeColorName = document.getElementById('active-color-name');
+    const coloringPaletteBar = document.getElementById('coloring-palette-bar');
+
+    document.querySelectorAll('.color-swatch-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.color-swatch-btn').forEach(b => {
+          b.classList.remove('active');
+          b.style.boxShadow = 'none';
+        });
+        btn.classList.add('active');
+        btn.style.boxShadow = `0 0 0 2px ${btn.dataset.color === '#ffffff' ? '#0f172a' : btn.dataset.color}`;
+        activeColor = btn.dataset.color;
+        if (activeColorName) activeColorName.textContent = 'Active: ' + (btn.getAttribute('title') || activeColor);
+      });
+    });
+
+    function renderStoryPresets(genre) {
+      if (!storyPresetsContainer) return;
+      const list = STORY_PRESETS[genre] || STORY_PRESETS.kids;
+      storyPresetsContainer.innerHTML = list.map(item => `
+        <button class="btn-action story-preset-btn" data-story="${item.id}" style="background:#fff; font-weight:700; border-color:#fcd34d;">
+          ${item.label}
+        </button>
+      `).join('');
+
+      storyPresetsContainer.querySelectorAll('.story-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const storyId = btn.dataset.story;
+          usePrompt();
+          state.prompt = storyId;
+          promptInput.value = storyId;
+          runGenerate();
+        });
+      });
+    }
+
+    // Selected movable item
+    let selectedItem = null;
+    let isDragging = false;
+    let dragStartSvgPt = { x: 0, y: 0 };
+    let dragStartTransform = { tx: 0, ty: 0, sx: 1, sy: 1 };
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    async function loadConcepts() {
+      try {
+        const res = await fetch('/api/concepts');
+        const data = await res.json();
+        state.concepts = data.concepts;
+        document.getElementById('concept-count').textContent = state.concepts.length;
+        renderDictionary();
+      } catch (e) {
+        console.error('Failed to load concepts:', e);
+      }
+    }
+
+    // Shareable links: ?text=...&style=...&mode=...&seed=... reproduce the same picture.
+    function syncUrl() {
+      const q = new URLSearchParams({ text: state.prompt, style: state.style, mode: state.mode });
+      if (state.seed !== 1) q.set('seed', state.seed);
+      if (state.vary) q.set('vary', '1');
+      history.replaceState(null, '', '?' + q.toString());
+    }
+
+    function restoreFromUrl() {
+      const q = new URLSearchParams(location.search);
+      const pick = (group, attr, value) => {
+        const btn = document.querySelector(`#${group} .pill-btn[data-${attr}="${CSS.escape(value)}"]`);
+        if (!btn) return false;
+        document.querySelectorAll(`#${group} .pill-btn`).forEach(b => b.classList.toggle('active', b === btn));
+        return true;
+      };
+      if (q.get('style') && pick('styles-group', 'style', q.get('style'))) state.style = q.get('style');
+      if (q.get('text')) promptInput.value = state.prompt = q.get('text');
+      if (q.get('seed')) { state.seed = parseInt(q.get('seed'), 10) || 1; seedVal.textContent = state.seed; }
+      if (q.get('vary') === '1') optVary.checked = true;
+      const mode = q.get('mode');
+      if (mode && mode !== 'scene') {
+        const btn = document.querySelector(`#modes-group .pill-btn[data-mode="${CSS.escape(mode)}"]`);
+        if (btn) { btn.click(); return true; } // the mode handler sets up its panels and generates
+      }
+      return false;
+    }
+
+    // Playing "Your clip" (saved scenes) instead of the prompt's story: until a prompt or preset is chosen
+    function clipRequest() {
+      const scenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
+      return scenes?.length ? { scenes: scenes.map((sc) => ({ ...sc, prompt: named(sc.prompt).text })), title: 'My Clip' } : {};
+    }
+    // Your characters: their names become neutral keys ("pgc1", a boy) for the server, and their photos
+    // go on the drawings here (names and photos never leave the browser)
+    const named = (text) => window.pictogenCharacters?.rewrite(text) ?? { text, named: [] };
+    const usePrompt = () => { state.clipActive = false; };
+    // The clip player (HTML export) gets the photo faces here, in the browser: its scenes sit between
+    // /*pg-scenes*/ markers (src/story.js), each scene's figures marked with their character's key
+    function withPhotoFaces(html) {
+      const chars = window.pictogenCharacters;
+      const start = '/*pg-scenes*/', end = '/*pg-scenes-end*/';
+      const i = html.indexOf(start), j = html.indexOf(end);
+      if (!chars?.list().length || i < 0 || j < i) return html;
+      const clipScenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
+      const scenes = JSON.parse(html.slice(i + start.length, j)).map((sc, k) => ({
+        ...sc, svg: chars.withFaces(sc.svg, named(clipScenes?.[k]?.prompt ?? state.prompt).named),
+      }));
+      return html.slice(0, i + start.length) + JSON.stringify(scenes).replace(/</g, '\\u003c') + html.slice(j);
+    }
+
+    // Under the prompt: words drawn as a guess ("elefant" -> elephant), words not drawn with close
+    // words to try (a click puts the word in the prompt and draws again), and a hint when nothing
+    // could be drawn at all
+    const wordHelp = document.getElementById('word-help');
+    function showWordHelp(data) {
+      const rows = [];
+      const guessed = Object.entries(data.guessed || {}).filter(([, as]) => as);
+      if (guessed.length) rows.push(`<span class="wh-row">🤔 Drawn as a guess: ${guessed.map(([w, as]) => `<span class="wh-word">${escHtml(w)}</span> → <b>${escHtml(as)}</b>`).join(', ')}</span>`);
+      const tips = data.suggestions || {};
+      for (const w of data.unknown || []) {
+        if (!tips[w]?.length) continue;
+        rows.push(`<span class="wh-row">Not drawn: <span class="wh-word">${escHtml(w)}</span> — did you mean ${tips[w].map((t) => `<button type="button" class="wh-try" data-from="${escHtml(w)}" data-to="${escHtml(t)}">${escHtml(t)}</button>`).join('')}</span>`);
+      }
+      if (!data.matches?.length && state.mode !== 'alphabet') {
+        rows.push(`<span class="wh-empty">I don't know how to draw that yet. Try simple words, like <i>a girl reads a book under a tree</i>, or pick a picture from the Dictionary below.</span>`);
+      }
+      wordHelp.innerHTML = rows.join('');
+      wordHelp.classList.toggle('show', rows.length > 0);
+    }
+    wordHelp.addEventListener('click', (e) => {
+      const btn = e.target.closest('.wh-try');
+      if (!btn) return;
+      const from = btn.dataset.from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      promptInput.value = promptInput.value.replace(new RegExp(`\\b${from}\\b`, 'i'), btn.dataset.to);
+      runGenerate();
+    });
+
+    // Labelled diagrams: rename a label by clicking it, blank them all for a quiz
+    const diagramBar = document.getElementById('diagram-bar');
+    const btnBlank = document.getElementById('btn-blank-labels');
+    function showDiagramTools(data) {
+      diagramBar.hidden = !data.diagram;
+      btnBlank.setAttribute('aria-pressed', String(state.blank));
+    }
+    btnBlank.addEventListener('click', () => {
+      state.blank = !state.blank;
+      runGenerate();
+    });
+    document.getElementById('btn-reset-labels').addEventListener('click', () => {
+      state.labels = {};
+      runGenerate();
+    });
+    svgViewport.addEventListener('click', (e) => {
+      const label = e.target.closest?.('.pg-label');
+      if (!label || !state.result?.diagram) return;
+      editLabel(label);
+    });
+    function editLabel(label) {
+      document.querySelector('.label-editor')?.remove();
+      const box = label.getBoundingClientRect(), host = svgViewport.getBoundingClientRect();
+      const input = document.createElement('input');
+      input.className = 'label-editor';
+      input.value = label.dataset.text || '';
+      input.maxLength = 40;
+      input.setAttribute('aria-label', 'Label');
+      if (getComputedStyle(svgViewport).position === 'static') svgViewport.style.position = 'relative';
+      Object.assign(input.style, { left: `${box.left - host.left + svgViewport.scrollLeft}px`, top: `${box.top - host.top + svgViewport.scrollTop}px`, width: `${Math.max(120, box.width)}px`, height: `${Math.max(28, box.height)}px` });
+      svgViewport.appendChild(input);
+      input.focus();
+      input.select();
+      let done = false;
+      const finish = (keep) => {
+        if (done) return;
+        done = true;
+        input.remove();
+        const text = input.value.trim();
+        if (!keep || text === label.dataset.text) return;
+        if (state.labelsFor !== state.prompt) { state.labels = {}; state.labelsFor = state.prompt; }
+        if (text) state.labels[label.dataset.key] = text; else delete state.labels[label.dataset.key];
+        runGenerate();
+      };
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') finish(true);
+        else if (ev.key === 'Escape') finish(false);
+      });
+      input.addEventListener('blur', () => finish(true));
+    }
+
+    async function runGenerate() {
+      state.prompt = promptInput.value.trim() || 'apple';
+      state.vary = optVary.checked;
+      deselectItem();
+      if (state.mode !== 'scene') window.pictogenTimeline?.update(null);
+      window.pictogenClip?.refresh();
+      window.pictogenCharacters?.refresh();
+      syncUrl();
+
+      if (state.mode === 'story') {
+        storyPlayerBar.style.display = 'block';
+        storyPresetsRow.style.display = 'block';
+
+        // Adjust SVG viewport max width to match aspect ratio preview
+        if (state.aspect === '9:16') {
+          svgViewport.style.maxWidth = '360px';
+          svgViewport.style.margin = '0 auto';
+        } else if (state.aspect === '1:1') {
+          svgViewport.style.maxWidth = '480px';
+          svgViewport.style.margin = '0 auto';
+        } else {
+          svgViewport.style.maxWidth = '100%';
+          svgViewport.style.margin = '0';
+        }
+
+        svgViewport.innerHTML = `<div style="color: #64748b; font-weight: 700;">Rendering ${state.genre} animated clip (${state.aspect})...</div>`;
+
+        try {
+          const res = await fetch('/api/story/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: named(state.prompt).text,
+              individuals: window.pictogenCharacters?.individuals() ?? [],
+              ...clipRequest(),
+              style: state.style,
+              genre: state.genre,
+              aspect: state.aspect,
+              seed: state.seed,
+              vary: state.vary,
+            }),
+          });
+          const data = await res.json();
+          // Faces of named characters go into each scene's markup (so a clip's video export has them)
+          const clipScenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
+          storyState.scenes = data.scenes.map((sc, i) => ({
+            ...sc,
+            svg: window.pictogenCharacters?.withFaces(sc.svg, named(clipScenes?.[i]?.prompt ?? state.prompt).named) ?? sc.svg,
+          }));
+          storyState.genre = data.genre || state.genre;
+          storyState.aspect = data.aspect || state.aspect;
+          storyState.title = data.title;
+          storyState.isPlaying = true;
+          storyBtnPlay.textContent = '⏸ Pause';
+
+          if (storyGenreBadge) {
+            storyGenreBadge.textContent = storyState.genre.toUpperCase();
+            storyGenreBadge.style.background = storyState.genre === 'news' ? '#ef4444' : storyState.genre === 'documentary' ? '#0284c7' : storyState.genre === 'howto' ? '#10b981' : '#f59e0b';
+          }
+          if (storyTitleDisplay) storyTitleDisplay.textContent = data.title;
+          if (storyAspectBadge) storyAspectBadge.textContent = storyState.aspect === '9:16' ? '📱 9:16 Reel' : storyState.aspect === '1:1' ? '⏹ 1:1 Square' : '📺 16:9 Wide';
+
+          const allMatches = data.scenes.flatMap(s => s.matches || []);
+          matchBadgeCount.textContent = allMatches.length;
+          matchesList.innerHTML = `<div style="font-size:0.85rem; font-weight:800; color:#1e40af; margin-bottom:0.4rem;">🎬 ${escHtml(data.title)} (${data.scenes.length} Scenes)</div>` +
+            data.scenes.map((s, i) => `
+              <div class="match-item" style="cursor:pointer;" onclick="goToStoryScene(${i})">
+                <span class="match-id">Scene ${i+1}</span>
+                <span style="font-size:0.75rem; color:#64748b;">${escHtml(s.prompt.length > 32 ? s.prompt.slice(0, 32) + '…' : s.prompt)}</span>
+              </div>
+            `).join('');
+
+          renderStoryScene(0, false);
+          showToast(`Playing ${storyState.genre} clip: ${data.title}`);
+        } catch (err) {
+          svgViewport.innerHTML = `<div style="color: #ef4444; font-weight: 700;">Error: ${err.message}</div>`;
+        }
+        return;
+      } else {
+        svgViewport.style.maxWidth = '100%';
+        svgViewport.style.margin = '0';
+        storyPlayerBar.style.display = 'none';
+        storyPresetsRow.style.display = 'none';
+        clearInterval(storyState.progressInterval);
+        clearTimeout(storyState.timer);
+      }
+
+      if (state.mode === 'coloring') {
+        coloringPaletteBar.style.display = 'block';
+      } else {
+        coloringPaletteBar.style.display = 'none';
+      }
+
+      svgViewport.innerHTML = '<div style="color: #64748b; font-weight: 700;">Drawing…</div>';
+      const cast = state.mode === 'scene' ? named(state.prompt) : { text: state.prompt, named: [] };
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: cast.text,
+            individuals: window.pictogenCharacters?.individuals() ?? [],
+            style: state.style,
+            mode: state.mode,
+            vary: state.vary,
+            seed: state.seed,
+            ...(state.mode === 'scene' && state.beats && state.beatsFor === state.prompt ? { beats: state.beats } : {}),
+            ...(state.labelsFor === state.prompt ? { labels: state.labels } : {}),
+            blank: state.blank,
+          }),
+        });
+        const data = await res.json();
+        state.svg = data.svg;
+        state.result = data;
+        state.named = cast.named;
+        state.duration = data.duration || null; // timelines and camera moves report their length
+        svgViewport.innerHTML = data.svg;
+        window.pictogenCharacters?.apply(getSvgElement(), cast.named);
+        window.pictogenSound?.stopMusic(); // (a clip's music, if one was playing)
+        window.pictogenSound?.play(getSvgElement()); // its voices and effects, with the animation
+
+        // Render inspector matches
+        matchBadgeCount.textContent = data.matches.length;
+        if (data.matches.length === 0) {
+          matchesList.innerHTML = '<div style="font-size: 0.85rem; color: #64748b;">Nothing I know how to draw yet.</div>';
+        } else {
+          matchesList.innerHTML = data.matches.map(m => `
+            <div class="match-item">
+              <div>
+                ${m.color ? `<span class="match-color-swatch" style="background:${m.color}"></span>` : ''}
+                <span class="match-id">${escHtml(window.pictogenCharacters?.nameOfKey(m.id.split('~')[1]) ?? m.id.split('~')[0].replace(/_/g, ' '))}</span>
+                ${m.color ? `<span style="font-size:0.75rem; color:#64748b;">(${m.color})</span>` : ''}
+                ${m.expression ? `<span style="font-size:0.72rem; background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:999px; margin-left:4px; font-weight:700;">${m.expression}</span>` : ''}
+                ${m.animation ? `<span style="font-size:0.72rem; background:#dbeafe; color:#1e40af; padding:1px 6px; border-radius:999px; margin-left:4px; font-weight:700;">${m.animation}</span>` : ''}
+              </div>
+              <span class="match-count">×${m.count}</span>
+            </div>
+          `).join('');
+        }
+
+        showWordHelp(data);
+        showDiagramTools(data);
+
+        // Render unknown words
+        if (data.unknown && data.unknown.length > 0) {
+          unknownSection.style.display = 'block';
+          unknownList.innerHTML = data.unknown.map(u => `<span class="unknown-badge">${escHtml(u)}</span>`).join(' ');
+        } else {
+          unknownSection.style.display = 'none';
+        }
+
+        const settingSection = document.getElementById('setting-section');
+        if (data.setting && data.setting.length > 0) {
+          settingSection.style.display = 'block';
+          document.getElementById('setting-list').innerHTML = data.setting.map(w => `<span class="setting-chip">${escHtml(w)}</span>`).join('');
+        } else {
+          settingSection.style.display = 'none';
+        }
+
+        initMovableObjects();
+        window.pictogenTimeline?.update(state.mode === 'scene' ? data : null);
+      } catch (err) {
+        svgViewport.innerHTML = `<div style="color: #ef4444; font-weight: 700;">Error: ${err.message}</div>`;
+      }
+    }
+
+    // ==========================================
+    // Interactive Movable Objects & Drag-and-Drop
+    // ==========================================
+
+    function getSvgElement() {
+      return svgViewport.querySelector('svg');
+    }
+
+    // Line-art objects (bikes, stick figures) are mostly empty space: add an invisible hit area
+    // over the drawn bounds so they can be grabbed anywhere. Stripped again on export.
+    function addHitArea(item) {
+      if (item.querySelector(':scope > .pg-hit')) return;
+      const box = item.getBBox();
+      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      hit.setAttribute('class', 'pg-hit');
+      for (const [k, v] of Object.entries({ x: box.x, y: box.y, width: box.width, height: box.height })) hit.setAttribute(k, v);
+      hit.setAttribute('fill', 'transparent');
+      item.insertBefore(hit, item.firstChild);
+    }
+
+    // The canvas SVG as it should be exported: user edits kept, editor-only hit areas removed.
+    function exportSvgMarkup() {
+      const clone = getSvgElement().cloneNode(true);
+      clone.querySelectorAll('.pg-hit').forEach(el => el.remove());
+      clone.querySelectorAll('.movable-item.selected, .movable-item.dragging').forEach(el => el.classList.remove('selected', 'dragging'));
+      return new XMLSerializer().serializeToString(clone);
+    }
+
+    // Screen point -> the coordinates of `el` (the svg, or a group inside a zoomed camera)
+    function screenToSvgCoords(el, clientX, clientY) {
+      const ctm = el.getScreenCTM();
+      return ctm ? new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse()) : { x: clientX, y: clientY };
+    }
+
+    function parseTransform(el) {
+      const tr = el.getAttribute('transform') || '';
+      const matchTrans = tr.match(/translate\(([-\d.]+)[ ,]([-\d.]+)\)/);
+      const matchScale = tr.match(/scale\(([-\d.]+)(?:[ ,]([-\d.]+))?\)/);
+      const tx = matchTrans ? parseFloat(matchTrans[1]) : 0;
+      const ty = matchTrans ? parseFloat(matchTrans[2]) : 0;
+      const sx = matchScale ? parseFloat(matchScale[1]) : 1;
+      const sy = matchScale ? (matchScale[2] ? parseFloat(matchScale[2]) : sx) : 1;
+      return { tx, ty, sx, sy };
+    }
+
+    function applyTransform(el, { tx, ty, sx, sy }) {
+      const round = n => Math.round(n * 100) / 100;
+      // A figure's speech bubble goes where the figure goes
+      const bubble = el.dataset.id && getSvgElement()?.querySelector(`.pg-bubbles [data-for="${el.dataset.id}#${el.dataset.k}"]`);
+      if (bubble) {
+        if (!el.dataset.home) { const h = parseTransform(el); el.dataset.home = `${h.tx} ${h.ty}`; }
+        const [hx, hy] = el.dataset.home.split(' ').map(Number);
+        bubble.setAttribute('transform', `translate(${round(tx - hx)} ${round(ty - hy)})`);
+      }
+      el.setAttribute('transform', `translate(${round(tx)} ${round(ty)}) scale(${round(sx)} ${round(sy)})`);
+      state.svg = svgViewport.innerHTML;
+    }
+
+    function updateToolbarPosition() {
+      if (!selectedItem) {
+        objectToolbar.style.display = 'none';
+        return;
+      }
+      toolbarItemName.textContent = (selectedItem.dataset.id || 'Item').replace(/_/g, ' ');
+
+      // Rows first: they change the toolbar's height, which the placement below depends on.
+      const isPerson = ['boy', 'girl', 'man', 'woman'].includes(selectedItem.dataset.id) || selectedItem.querySelector('.pg-face-eyes') !== null;
+      const exprRow = document.getElementById('tb-row-expression');
+      if (exprRow) exprRow.style.display = isPerson ? 'flex' : 'none';
+
+      // Highlight active expression
+      const curExpr = selectedItem.dataset.expression || 'happy';
+      document.querySelectorAll('.tb-expr-btn').forEach(btn => {
+        btn.classList.toggle('active-pill', btn.dataset.expr === curExpr);
+      });
+
+      // Highlight active animation
+      const curAnim = selectedItem.dataset.animation || (isPerson ? 'blink' : 'none');
+      document.querySelectorAll('.tb-anim-btn').forEach(btn => {
+        btn.classList.toggle('active-pill', btn.dataset.anim === curAnim);
+      });
+
+      // Union of the static hit area and the live (possibly pulsing/bouncing) drawing.
+      const live = selectedItem.getBoundingClientRect();
+      const hitBox = (selectedItem.querySelector(':scope > .pg-hit') || selectedItem).getBoundingClientRect();
+      const rect = {
+        top: Math.min(live.top, hitBox.top), bottom: Math.max(live.bottom, hitBox.bottom),
+        left: Math.min(live.left, hitBox.left), width: Math.max(live.right, hitBox.right) - Math.min(live.left, hitBox.left),
+      };
+      // The toolbar is positioned inside .canvas-card (its offsetParent), not inside the viewport.
+      objectToolbar.style.display = 'flex';
+      // On phones it is a sheet at the bottom of the screen (CSS), not placed by the figure
+      if (!objectToolbar.offsetParent || getComputedStyle(objectToolbar).position === 'fixed') return;
+      const parentRect = objectToolbar.offsetParent.getBoundingClientRect();
+      const tbW = objectToolbar.offsetWidth;
+      const tbH = objectToolbar.offsetHeight;
+
+      // Above the object when there is room, otherwise below it; always fully inside the card.
+      const spaceAbove = rect.top - parentRect.top;
+      const top = spaceAbove >= tbH + 16 ? spaceAbove : rect.bottom - parentRect.top + tbH + 24;
+      const center = rect.left + rect.width / 2 - parentRect.left;
+      const left = Math.min(Math.max(center, tbW / 2 + 8), parentRect.width - tbW / 2 - 8);
+
+      objectToolbar.style.top = `${top}px`;
+      objectToolbar.style.left = `${left}px`;
+    }
+
+    function selectItem(el) {
+      if (selectedItem && selectedItem !== el) {
+        selectedItem.classList.remove('selected');
+      }
+      selectedItem = el;
+      if (selectedItem) {
+        selectedItem.classList.add('selected');
+        updateToolbarPosition();
+      } else {
+        objectToolbar.style.display = 'none';
+      }
+    }
+
+    function deselectItem() {
+      if (selectedItem) {
+        selectedItem.classList.remove('selected');
+        selectedItem = null;
+      }
+      objectToolbar.style.display = 'none';
+    }
+
+    function initMovableObjects() {
+      const svg = getSvgElement();
+      if (!svg) return;
+
+      const items = svg.querySelectorAll('.movable-item');
+      items.forEach(item => {
+        addHitArea(item);
+        // Pointer events cover mouse, touch and pen; in coloring mode a click paints instead of dragging.
+        item.addEventListener('pointerdown', (e) => {
+          if (state.mode === 'coloring') return;
+          e.stopPropagation();
+          isDragging = true;
+          selectItem(item);
+          item.classList.add('dragging');
+
+          // Drag in the item's parent space: inside a zoomed or panning camera that is not the
+          // svg's own space, and the figure must follow the pointer exactly
+          const svgCoords = screenToSvgCoords(item.parentNode, e.clientX, e.clientY);
+          dragStartSvgPt = svgCoords;
+          dragStartTransform = parseTransform(item);
+        });
+      });
+
+      if (state.mode === 'coloring') {
+        svg.style.cursor = 'crosshair';
+        svg.querySelectorAll('path, circle, rect, polygon, ellipse').forEach(el => {
+          if (el.tagName.toLowerCase() === 'rect' && el.getAttribute('width') == svg.viewBox.baseVal.width) return;
+          if (el.classList.contains('pg-hit')) return;
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            el.setAttribute('fill', activeColor);
+            el.style.fill = activeColor;
+            state.svg = svgViewport.innerHTML;
+            showToast('Painted shape with ' + activeColor);
+          });
+        });
+      } else {
+        svg.style.cursor = 'default';
+      }
+    }
+
+    // Global drag listener on window for smooth dragging even outside canvas
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging || !selectedItem) return;
+      const svg = getSvgElement();
+      if (!svg) return;
+
+      const curSvgPt = screenToSvgCoords(selectedItem.parentNode, e.clientX, e.clientY);
+      const dx = curSvgPt.x - dragStartSvgPt.x;
+      const dy = curSvgPt.y - dragStartSvgPt.y;
+
+      applyTransform(selectedItem, {
+        tx: dragStartTransform.tx + dx,
+        ty: dragStartTransform.ty + dy,
+        sx: dragStartTransform.sx,
+        sy: dragStartTransform.sy,
+      });
+
+      updateToolbarPosition();
+    });
+
+    window.addEventListener('pointerup', () => {
+      if (isDragging && selectedItem) {
+        selectedItem.classList.remove('dragging');
+        isDragging = false;
+        state.svg = svgViewport.innerHTML;
+        updateToolbarPosition();
+        revealAboveSheet();
+      }
+    });
+
+    // On phones the selected figure's controls are a sheet at the bottom of the screen: scroll the
+    // figure up so it stays in view above it (after the finger lifts, never during a drag)
+    function revealAboveSheet() {
+      if (!selectedItem || getComputedStyle(objectToolbar).position !== 'fixed') return;
+      const sheetTop = objectToolbar.getBoundingClientRect().top;
+      const r = selectedItem.getBoundingClientRect();
+      if (r.bottom > sheetTop - 8) window.scrollBy({ top: Math.min(r.bottom - sheetTop + 16, r.top - 8), behavior: 'smooth' });
+    }
+
+    // Deselect if clicking on empty background
+    svgViewport.addEventListener('pointerdown', (e) => {
+      if (!e.target.closest('.movable-item') && !e.target.closest('.object-toolbar')) {
+        deselectItem();
+      }
+    });
+
+    // Object Toolbar button actions
+    document.getElementById('tb-scale-up').addEventListener('click', () => {
+      if (!selectedItem) return;
+      const t = parseTransform(selectedItem);
+      applyTransform(selectedItem, { ...t, sx: t.sx * 1.15, sy: t.sy * 1.15 });
+      updateToolbarPosition();
+    });
+
+    document.getElementById('tb-scale-down').addEventListener('click', () => {
+      if (!selectedItem) return;
+      const t = parseTransform(selectedItem);
+      applyTransform(selectedItem, { ...t, sx: t.sx * 0.85, sy: t.sy * 0.85 });
+      updateToolbarPosition();
+    });
+
+    document.getElementById('tb-flip').addEventListener('click', () => {
+      if (!selectedItem) return;
+      const t = parseTransform(selectedItem);
+      // Flip horizontally relative to standard 100 width
+      applyTransform(selectedItem, { ...t, sx: -t.sx, tx: t.tx + (t.sx > 0 ? 100 * t.sx : -100 * Math.abs(t.sx)) });
+      updateToolbarPosition();
+    });
+
+    document.getElementById('tb-front').addEventListener('click', () => {
+      if (!selectedItem || !selectedItem.parentNode) return;
+      selectedItem.parentNode.appendChild(selectedItem);
+      state.svg = svgViewport.innerHTML;
+      updateToolbarPosition();
+      showToast('Brought to front');
+    });
+
+    document.getElementById('tb-back').addEventListener('click', () => {
+      if (!selectedItem || !selectedItem.parentNode) return;
+      selectedItem.parentNode.insertBefore(selectedItem, selectedItem.parentNode.firstChild);
+      state.svg = svgViewport.innerHTML;
+      updateToolbarPosition();
+      showToast('Sent to back');
+    });
+
+    document.getElementById('tb-done').addEventListener('click', () => deselectItem());
+    document.getElementById('tb-delete').addEventListener('click', () => {
+      if (!selectedItem) return;
+      const name = selectedItem.dataset.id || 'Item';
+      selectedItem.remove();
+      deselectItem();
+      state.svg = svgViewport.innerHTML;
+      showToast(`Removed ${name}`);
+    });
+
+    // Facial expression & motion switching
+
+    // Redraws one concept the way the scene drew it: same seed, look (vary) and colour
+    async function renderItemDrawing(item, { expression, animation, view }) {
+      const k = +(item.dataset.k || 0);
+      const res = await fetch('/api/render-concept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: item.dataset.id,
+          style: state.style,
+          expression,
+          animation,
+          view,
+          seed: `${state.seed}:${item.dataset.aid || item.dataset.id}:${k}`,
+          vary: state.vary || k > 0 || item.dataset.vary === '1',
+          color: item.dataset.color,
+          // (what it holds stays in its hands)
+          ...(item.dataset.held ? { held: { id: item.dataset.held, color: item.dataset.heldColor } } : {}),
+        }),
+      });
+      const data = await res.json();
+      if (!data.markup) throw new Error(data.error || 'no drawing');
+      return data.markup;
+    }
+
+    async function setItemExpression(targetExpr) {
+      if (!selectedItem) return;
+      const item = selectedItem;
+      try {
+        const poses = item.querySelectorAll('.pg-timeline-pose');
+        if (poses.length) {
+          // A timeline actor: every pose (walking in profile, waving, standing...) gets the new face
+          await Promise.all([...poses].map(async (pose) => {
+            const markup = await renderItemDrawing(item, { expression: targetExpr, animation: pose.dataset.anim, view: pose.dataset.view });
+            pose.querySelector('.pg-figure').innerHTML = markup;
+          }));
+        } else {
+          const curAnim = item.dataset.animation || 'blink';
+          const markup = await renderItemDrawing(item, {
+            expression: targetExpr,
+            // travelling figures walk in place inside their motion wrapper
+            animation: ['walk-across', 'approach', 'recede'].includes(curAnim) ? 'walk' : curAnim,
+            view: item.dataset.view,
+          });
+          // Replace only the drawing: keep the contact shadow and any travel motion around it.
+          const target = item.querySelector('.pg-figure') || item.querySelector('.pg-motion-across') || item;
+          target.innerHTML = markup;
+        }
+        item.dataset.expression = targetExpr;
+        addHitArea(item);
+        window.pictogenCharacters?.apply(getSvgElement(), state.named); // a redrawn figure keeps its photo
+        state.svg = svgViewport.innerHTML;
+        updateToolbarPosition();
+        showToast(`Expression: ${targetExpr}`);
+      } catch (err) {
+        console.error('Failed to update expression:', err);
+      }
+    }
+
+    async function setItemAnimation(targetAnim) {
+      if (!selectedItem) return;
+      if (selectedItem.dataset.actor) {
+        // Its motions come from the prompt's timeline; replacing them here would break the sequence
+        showToast('This figure follows the timeline: change its steps in the timeline below');
+        return;
+      }
+      const item = selectedItem;
+      try {
+        const markup = await renderItemDrawing(item, {
+          expression: item.dataset.expression || 'happy',
+          animation: targetAnim === 'none' ? undefined : targetAnim,
+          view: item.dataset.view,
+        });
+        item.dataset.animation = targetAnim;
+        const shadow = item.querySelector('.pg-shadow')?.outerHTML || '';
+        const figure = `${shadow}<g class="pg-figure">${markup}</g>`;
+        item.innerHTML = targetAnim === 'walk-across' ? `<g class="pg-motion-across">${figure}</g>` : figure;
+        addHitArea(item);
+      } catch (e) {
+        console.error('Failed to update motion:', e);
+      }
+
+      window.pictogenCharacters?.apply(getSvgElement(), state.named); // a redrawn figure keeps its photo
+      state.svg = svgViewport.innerHTML;
+      updateToolbarPosition();
+      showToast(`Motion: ${targetAnim}`);
+    }
+
+    document.querySelectorAll('.tb-expr-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setItemExpression(btn.dataset.expr);
+      });
+    });
+
+    document.querySelectorAll('.tb-anim-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setItemAnimation(btn.dataset.anim);
+      });
+    });
+
+    // Keyboard navigation for selected object
+    window.addEventListener('keydown', (e) => {
+      if (!selectedItem) return;
+      if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return;
+
+      const step = e.shiftKey ? 10 : 2;
+      const t = parseTransform(selectedItem);
+
+      if (e.key === 'ArrowLeft') {
+        applyTransform(selectedItem, { ...t, tx: t.tx - step });
+        updateToolbarPosition();
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        applyTransform(selectedItem, { ...t, tx: t.tx + step });
+        updateToolbarPosition();
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp') {
+        applyTransform(selectedItem, { ...t, ty: t.ty - step });
+        updateToolbarPosition();
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown') {
+        applyTransform(selectedItem, { ...t, ty: t.ty + step });
+        updateToolbarPosition();
+        e.preventDefault();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        selectedItem.remove();
+        deselectItem();
+        state.svg = svgViewport.innerHTML;
+        e.preventDefault();
+      }
+    });
+
+    // ==========================================
+    // Kids Story Clip Player & Sound Synthesizer
+    // ==========================================
+
+    let audioCtx = null;
+    function playStoryChime() {
+      if (!storyState.sound) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const genre = storyState.genre || state.genre || 'kids';
+        const now = audioCtx.currentTime;
+
+        if (genre === 'news') {
+          // Sharp double electronic broadcast blip
+          [880, 880].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + i * 0.1);
+            gain.gain.setValueAtTime(0.08, now + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.1 + 0.08);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.1);
+            osc.stop(now + i * 0.1 + 0.08);
+          });
+        } else if (genre === 'documentary') {
+          // Deep atmospheric resonant chime
+          [220, 329.63, 440].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.09);
+            gain.gain.setValueAtTime(0.08, now + i * 0.09);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.09 + 0.7);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.09);
+            osc.stop(now + i * 0.09 + 0.7);
+          });
+        } else if (genre === 'howto') {
+          // Affirmative upbeat ping
+          [587.33, 880].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.08);
+            gain.gain.setValueAtTime(0.07, now + i * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.08 + 0.4);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.08);
+            osc.stop(now + i * 0.08 + 0.4);
+          });
+        } else {
+          // Playful 4-note ascending arpeggio for kids
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.07);
+            gain.gain.setValueAtTime(0.06, audioCtx.currentTime + i * 0.07);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + i * 0.07 + 0.5);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime + i * 0.07);
+            osc.stop(audioCtx.currentTime + i * 0.07 + 0.5);
+          });
+        }
+      } catch (e) {}
+    }
+
+    function renderStoryDots() {
+      storyDotsContainer.innerHTML = storyState.scenes.map((_, i) =>
+        `<div class="scene-dot ${i === storyState.curIndex ? 'active' : ''}" style="width:10px; height:10px; border-radius:50%; background:${i === storyState.curIndex ? '#f59e0b' : 'rgba(255,255,255,0.3)'}; cursor:pointer; transition:all 0.2s; transform:${i === storyState.curIndex ? 'scale(1.2)' : 'none'};" data-idx="${i}"></div>`
+      ).join('');
+
+      storyDotsContainer.querySelectorAll('.scene-dot').forEach(dot => {
+        dot.addEventListener('click', () => {
+          goToStoryScene(parseInt(dot.dataset.idx, 10));
+        });
+      });
+    }
+
+    function renderStoryScene(idx, withChime = true) {
+      if (!storyState.scenes || storyState.scenes.length === 0) return;
+      storyState.curIndex = (idx + storyState.scenes.length) % storyState.scenes.length;
+      const sc = storyState.scenes[storyState.curIndex];
+      storyState.duration = (sc.duration || 4.5) * 1000;
+      storyState.startTime = Date.now();
+
+      deselectItem();
+      svgViewport.innerHTML = sc.svg;
+
+      const genre = storyState.genre || state.genre || 'kids';
+      if (storyLowerThird) {
+        if (genre === 'news') {
+          storyLowerThird.innerHTML = `
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                <span style="background:#dc2626; color:#fff; font-size:0.72rem; font-weight:900; padding:2px 7px; border-radius:4px; letter-spacing:0.05em;">🔴 BREAKING NEWS</span>
+                <span style="font-size:0.75rem; font-weight:800; color:#94a3b8; text-transform:uppercase;">${escHtml(sc.tag) || 'UPDATE'}</span>
+              </div>
+              <div style="font-size:1.15rem; font-weight:900; color:#ffffff; letter-spacing:-0.01em; margin-bottom:0.25rem;">${escHtml(sc.headline) || ''}</div>
+              <div style="font-size:0.92rem; color:#e2e8f0; border-left:2px solid #ef4444; padding-left:8px; line-height:1.4;">${escHtml(sc.caption)}</div>
+            </div>
+          `;
+        } else if (genre === 'documentary') {
+          storyLowerThird.innerHTML = `
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
+                <span style="font-size:0.72rem; font-weight:900; color:#38bdf8; background:rgba(56,189,248,0.15); padding:2px 7px; border-radius:4px; letter-spacing:0.05em;">${escHtml(sc.tag) || 'SCIENCE'}</span>
+                <span style="font-size:1.05rem; font-weight:800; color:#f1f5f9;">${escHtml(sc.headline) || ''}</span>
+              </div>
+              <div style="font-size:0.95rem; color:#cbd5e1; line-height:1.45;">${escHtml(sc.caption)}</div>
+            </div>
+          `;
+        } else if (genre === 'howto') {
+          storyLowerThird.innerHTML = `
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                <span style="background:#10b981; color:#064e3b; font-size:0.72rem; font-weight:900; padding:2px 8px; border-radius:999px;">${escHtml(sc.tag) || 'STEP'}</span>
+                <span style="font-size:1.08rem; font-weight:800; color:#ffffff;">${escHtml(sc.headline) || ''}</span>
+              </div>
+              <div style="font-size:0.95rem; color:#cbd5e1; line-height:1.4;">${escHtml(sc.caption)}</div>
+            </div>
+          `;
+        } else {
+          storyLowerThird.innerHTML = `
+            <div style="font-size:1.2rem; font-weight:800; color:#f8fafc; text-align:center; line-height:1.4; text-shadow:0 2px 4px rgba(0,0,0,0.5);">
+              ${escHtml(sc.caption)}
+            </div>
+          `;
+        }
+      }
+
+      initMovableObjects();
+      renderStoryDots();
+
+      if (withChime) playStoryChime();
+      if (storyState.sound && storyState.isPlaying) window.pictogenSound?.play(getSvgElement());
+      else window.pictogenSound?.stop();
+      // The genre's background music, across the scenes
+      if (storyState.isPlaying) window.pictogenSound?.startMusic(storyState.genre || 'kids');
+      startStoryProgress();
+    }
+
+    function startStoryProgress() {
+      clearInterval(storyState.progressInterval);
+      clearTimeout(storyState.timer);
+
+      if (!storyState.isPlaying) {
+        storyProgressFill.style.width = '0%';
+        return;
+      }
+
+      storyState.progressInterval = setInterval(() => {
+        const elapsed = Date.now() - storyState.startTime;
+        const pct = Math.min(100, (elapsed / storyState.duration) * 100);
+        storyProgressFill.style.width = pct + '%';
+      }, 50);
+
+      storyState.timer = setTimeout(() => {
+        renderStoryScene(storyState.curIndex + 1);
+      }, storyState.duration);
+    }
+
+    function goToStoryScene(i) {
+      renderStoryScene(i);
+    }
+
+    function toggleStoryPlay() {
+      storyState.isPlaying = !storyState.isPlaying;
+      storyBtnPlay.textContent = storyState.isPlaying ? '⏸ Pause' : '▶ Play';
+      if (storyState.isPlaying) {
+        storyState.startTime = Date.now();
+        startStoryProgress();
+        if (storyState.sound) window.pictogenSound?.resume(getSvgElement());
+        window.pictogenSound?.startMusic(storyState.genre || 'kids');
+      } else {
+        clearInterval(storyState.progressInterval);
+        clearTimeout(storyState.timer);
+        window.pictogenSound?.stop();
+        window.pictogenSound?.stopMusic();
+      }
+    }
+
+    storyBtnPlay.addEventListener('click', toggleStoryPlay);
+    storyBtnNext.addEventListener('click', () => renderStoryScene(storyState.curIndex + 1));
+    storyBtnPrev.addEventListener('click', () => renderStoryScene(storyState.curIndex - 1));
+    storyBtnSound.addEventListener('click', () => {
+      storyState.sound = !storyState.sound;
+      storyBtnSound.style.color = storyState.sound ? '#f59e0b' : '#64748b';
+      storyBtnSound.textContent = storyState.sound ? '🔔' : '🔕';
+      setSound(storyState.sound);
+      if (storyState.sound) playStoryChime();
+    });
+
+    // Sound: the scenes' voices and effects (public/js/scene-sound.js); one switch for the canvas and the clip
+    const btnSound = document.getElementById('btn-sound');
+    function setSound(on) {
+      storyState.sound = on;
+      storyBtnSound.style.color = on ? '#f59e0b' : '#64748b';
+      storyBtnSound.textContent = on ? '🔔' : '🔕';
+      btnSound.textContent = on ? '🔊 Sound' : '🔇 Sound';
+      btnSound.classList.toggle('active', on);
+      window.pictogenSound?.setEnabled(on);
+      if (on) window.pictogenSound?.resume(getSvgElement());
+    }
+    btnSound.addEventListener('click', () => setSound(!storyState.sound));
+    function showMusic(on) {
+      storyBtnMusic.style.color = on ? '#f59e0b' : '#64748b';
+      storyBtnMusic.style.opacity = on ? '1' : '0.6';
+    }
+    storyBtnMusic.addEventListener('click', () => {
+      storyState.music = !storyState.music;
+      showMusic(storyState.music);
+      window.pictogenSound?.setMusic(storyState.music);
+      if (storyState.music && storyState.isPlaying && storyState.scenes?.length) window.pictogenSound?.startMusic(storyState.genre || 'kids');
+    });
+    window.addEventListener('load', () => {
+      const on = window.pictogenSound ? window.pictogenSound.isEnabled() : true;
+      storyState.sound = on;
+      storyBtnSound.style.color = on ? '#f59e0b' : '#64748b';
+      storyBtnSound.textContent = on ? '🔔' : '🔕';
+      btnSound.textContent = on ? '🔊 Sound' : '🔇 Sound';
+      storyState.music = window.pictogenSound ? window.pictogenSound.isMusicOn() : true;
+      showMusic(storyState.music);
+    });
+
+    storyProgressTrack.addEventListener('click', (e) => {
+      if (!storyState.scenes || storyState.scenes.length === 0) return;
+      const rect = storyProgressTrack.getBoundingClientRect();
+      const clickPct = (e.clientX - rect.left) / rect.width;
+      const targetScene = Math.floor(clickPct * storyState.scenes.length);
+      goToStoryScene(targetScene);
+    });
+
+    storyBtnExportHtml.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/story/export-html', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: named(state.prompt).text,
+            individuals: window.pictogenCharacters?.individuals() ?? [],
+            ...clipRequest(),
+            style: state.style,
+            genre: state.genre,
+            aspect: state.aspect,
+            seed: state.seed,
+            vary: state.vary,
+          }),
+        });
+        const html = withPhotoFaces(await res.text());
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const aspectTag = (state.aspect || '16-9').replace(':', 'x');
+        a.download = `pictogen-${state.genre || 'clip'}-${aspectTag}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`Exported standalone ${state.genre} clip HTML (${state.aspect})!`);
+      } catch (err) {
+        showToast('Export failed: ' + err.message);
+      }
+    });
+
+    // Aspect ratio pills
+    document.querySelectorAll('#story-aspect-group .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#story-aspect-group .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.aspect = btn.dataset.aspect;
+        if (state.mode === 'story') {
+          runGenerate();
+        }
+      });
+    });
+
+    // Genre tabs
+    document.querySelectorAll('#story-genre-group .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#story-genre-group .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.genre = btn.dataset.genre;
+        renderStoryPresets(state.genre);
+        const presets = STORY_PRESETS[state.genre] || [];
+        if (presets.length > 0) {
+          usePrompt();
+          state.prompt = presets[0].id;
+          promptInput.value = presets[0].id;
+          if (state.mode === 'story') runGenerate();
+        }
+      });
+    });
+
+    // Reset layout button
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      runGenerate();
+      showToast('Everything is back where it was');
+    });
+
+    // ==========================================
+    // Dictionary & Filter Controls
+    // ==========================================
+
+    let visibleCount = 60;
+
+    const CATEGORY_LABELS = {
+      people_body: 'People & Body', smileys_emotion: 'Smileys & Emotion', animals_nature: 'Animals & Nature',
+      food_drink: 'Food & Drink', travel_places: 'Travel & Places',
+    };
+    const categoryLabel = (cat) => CATEGORY_LABELS[cat] || cat.replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+
+    // Everything except the category itself, so the category pills can show live counts.
+    function matchesNonCategoryFilters(c) {
+      const q = state.searchQuery.toLowerCase();
+      if (!state.showVariants && c.variantOf) return false;
+      if (state.filteredSource === 'handmade' && c.library) return false;
+      if (state.filteredSource === 'library' && !c.library) return false;
+      if (!q) return true;
+      return c.id.includes(q.replace(/\s+/g, '_')) || (c.label || '').toLowerCase().includes(q) ||
+        (c.tags || []).some(t => t.includes(q)) || (c.aliases || []).some(a => a.includes(q));
+    }
+
+    function renderCategoryFilters(pool) {
+      const counts = {};
+      for (const c of pool) counts[c.category] = (counts[c.category] || 0) + 1;
+      // Hand-drawn categories first (in registry order), then library categories by size.
+      const order = [...new Set(state.concepts.map(c => c.category))]
+        .sort((x, y) => {
+          const hx = state.concepts.some(c => c.category === x && !c.library), hy = state.concepts.some(c => c.category === y && !c.library);
+          return hx !== hy ? (hx ? -1 : 1) : (counts[y] || 0) - (counts[x] || 0);
+        });
+      const cats = ['all', ...order];
+      if (state.filteredCategory !== 'all' && !counts[state.filteredCategory]) state.filteredCategory = 'all';
+      const box = document.getElementById('cat-filters');
+      box.innerHTML = cats.map(cat => {
+        const n = cat === 'all' ? pool.length : (counts[cat] || 0);
+        return `<button class="pill-btn ${cat === state.filteredCategory ? 'active' : ''}" data-cat="${escHtml(cat)}" ${n ? '' : 'disabled style="opacity:.4"'}>
+          ${cat === 'all' ? 'All' : escHtml(categoryLabel(cat))} <span class="pill-count">${n}</span></button>`;
+      }).join('');
+      box.querySelectorAll('.pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.filteredCategory = btn.dataset.cat;
+          visibleCount = 60;
+          renderDictionary();
+        });
+      });
+    }
+
+    function renderDictionary() {
+      const pool = state.concepts.filter(matchesNonCategoryFilters);
+      renderCategoryFilters(pool);
+      const filtered = pool.filter(c => state.filteredCategory === 'all' || c.category === state.filteredCategory);
+      const visible = filtered.slice(0, visibleCount);
+
+      const statusEl = document.getElementById('dict-status');
+      statusEl.textContent = filtered.length
+        ? `Showing ${visible.length} of ${filtered.length} (${state.concepts.length} total)`
+        : 'No concepts match — try another word, source or category.';
+
+      let html = visible.map(c => `
+        <div class="dict-item" data-id="${escHtml(c.id)}" title="Click to add '${escHtml(c.label || c.id)}' to prompt">
+          <div class="dict-item-svg">
+            <img loading="lazy" src="/api/icon?id=${encodeURIComponent(c.id)}&style=${encodeURIComponent(state.style || 'flat')}" alt="${escHtml(c.label || c.id)}" style="width:100%;height:100%;object-fit:contain;" />
+          </div>
+          <div class="dict-item-label">${escHtml(c.label || c.id)}</div>
+          <div class="dict-item-cat">${c.library ? '📦 ' : '✋ '}${escHtml(categoryLabel(c.category))}</div>
+        </div>
+      `).join('');
+
+      if (filtered.length > visibleCount) {
+        html += `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 1.25rem 0;">
+            <button id="btn-show-more" class="btn-action" style="margin: 0 auto; padding: 0.6rem 1.4rem; font-size: 0.9rem;">
+              🔽 Show More (${filtered.length - visibleCount} more concepts)
+            </button>
+          </div>
+        `;
+      }
+
+      dictGrid.innerHTML = html;
+
+      const btnMore = document.getElementById('btn-show-more');
+      if (btnMore) {
+        btnMore.addEventListener('click', () => {
+          visibleCount += 60;
+          renderDictionary();
+        });
+      }
+
+      document.querySelectorAll('.dict-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = el.dataset.id;
+          const word = id.replace(/_/g, ' ');
+          if (promptInput.value.trim()) {
+            promptInput.value += ', ' + word;
+          } else {
+            promptInput.value = word;
+          }
+          runGenerate();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    }
+
+    // Styles switcher
+    document.querySelectorAll('#styles-group .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#styles-group .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.style = btn.dataset.style;
+        runGenerate();
+        renderDictionary();
+      });
+    });
+
+    // Modes switcher
+    document.querySelectorAll('#modes-group .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#modes-group .pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.mode = btn.dataset.mode;
+        if (state.mode === 'story') {
+          storyPresetsRow.style.display = 'block';
+          coloringPaletteBar.style.display = 'none';
+          renderStoryPresets(state.genre);
+          const presets = STORY_PRESETS[state.genre] || [];
+          if (!state.prompt || state.prompt.startsWith('a ') || !presets.some(p => p.id === state.prompt)) {
+            state.prompt = presets[0] ? presets[0].id : 'puppy-friend';
+            promptInput.value = state.prompt;
+          }
+          promptInput.placeholder = "Pick a story above, or write one scene per line, e.g. 'a boy waves | Hello!'";
+        } else if (state.mode === 'coloring') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'block';
+          promptInput.placeholder = "What should the colouring page show? e.g. 'a cute puppy'";
+        } else if (state.mode === 'diagram' || state.mode === 'callout') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          promptInput.placeholder = "A topic, e.g. 'the parts of a plant', 'the water cycle', or things to name: 'a cat, a dog and a cow'";
+        } else if (state.mode === 'knolling') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          promptInput.placeholder = "Things to lay out neatly, e.g. 'apple, book, pencil, ball'";
+        } else if (state.mode === 'split') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          promptInput.placeholder = "Two things to compare, e.g. 'sad boy and laughing boy'";
+        } else if (state.mode === 'isometric') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          promptInput.placeholder = "A tiny world, e.g. 'tree, house and car on a sunny day'";
+        } else if (state.mode === 'waffle') {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          promptInput.placeholder = "A number to show in pictures, e.g. '7 out of 10 children walk to school'";
+        } else {
+          storyPresetsRow.style.display = 'none';
+          storyPlayerBar.style.display = 'none';
+          coloringPaletteBar.style.display = 'none';
+          clearInterval(storyState.progressInterval);
+          clearTimeout(storyState.timer);
+          promptInput.placeholder = "Type what you want to see, e.g. 'a girl with a balloon in the park'";
+        }
+        runGenerate();
+      });
+    });
+
+    // Source filter (hand-drawn vs emoji library) and skin-tone variants toggle
+    document.querySelectorAll('#source-filter button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#source-filter button').forEach(b => b.classList.toggle('active', b === btn));
+        state.filteredSource = btn.dataset.source;
+        visibleCount = 60;
+        renderDictionary();
+      });
+    });
+    document.getElementById('opt-variants').addEventListener('change', (e) => {
+      state.showVariants = e.target.checked;
+      visibleCount = 60;
+      renderDictionary();
+    });
+
+    // Search dictionary (debounced: 3,000+ concepts re-render on each keystroke otherwise)
+    let searchTimer = null;
+    dictSearch.addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        state.searchQuery = e.target.value.trim();
+        visibleCount = 60;
+        renderDictionary();
+      }, 150);
+    });
+
+    // Seed dice
+    btnSeed.addEventListener('click', () => {
+      state.seed = Math.floor(Math.random() * 10000) + 1;
+      seedVal.textContent = state.seed;
+      runGenerate();
+    });
+
+    // Variation toggle
+    optVary.addEventListener('change', runGenerate);
+
+    // Prompt input Enter key
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { usePrompt(); runGenerate(); }
+    });
+    btnGenerate.addEventListener('click', () => { usePrompt(); runGenerate(); });
+
+    // Quick prompt chips
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        if (chip.dataset.mode) {
+          state.mode = chip.dataset.mode;
+          document.querySelectorAll('#modes-group .pill-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === state.mode);
+          });
+          if (chip.dataset.genre) {
+            state.genre = chip.dataset.genre;
+            document.querySelectorAll('#story-genre-group .pill-btn').forEach(b => {
+              b.classList.toggle('active', b.dataset.genre === state.genre);
+            });
+            renderStoryPresets(state.genre);
+          }
+        }
+        if (chip.dataset.style) {
+          state.style = chip.dataset.style;
+          document.querySelectorAll('#styles-group .pill-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.style === state.style);
+          });
+        }
+        promptInput.value = chip.dataset.prompt;
+        runGenerate();
+      });
+    });
+
+    // Copy SVG (exports the current live manipulated SVG)
+    document.getElementById('btn-copy-svg').addEventListener('click', async () => {
+      const svg = svgViewport.querySelector('svg');
+      if (!svg) return;
+      const svgCode = exportSvgMarkup();
+      try {
+        await navigator.clipboard.writeText(svgCode);
+        showToast('Copied');
+      } catch {
+        showToast('Copying is not allowed here');
+      }
+    });
+
+    // Download SVG (exports the current live manipulated SVG)
+    document.getElementById('btn-download-svg').addEventListener('click', () => {
+      const svg = svgViewport.querySelector('svg');
+      if (!svg) return;
+      const svgCode = exportSvgMarkup();
+      const blob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pictogen-custom-${Date.now()}.svg`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Saving the SVG file…');
+    });
+
+    // Download PNG (rasterize current live manipulated SVG on client)
+    document.getElementById('btn-download-png').addEventListener('click', () => {
+      const svgEl = svgViewport.querySelector('svg');
+      if (!svgEl) return;
+      const bbox = svgEl.viewBox.baseVal;
+      const w = bbox && bbox.width ? bbox.width * 2 : 1280;
+      const h = bbox && bbox.height ? bbox.height * 2 : 720;
+
+      const svgCode = exportSvgMarkup();
+      const img = new Image();
+      const svgBlob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+
+        canvas.toBlob((blob) => {
+          const pngUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = pngUrl;
+          a.download = `pictogen-custom-${Date.now()}.png`;
+          a.click();
+          URL.revokeObjectURL(pngUrl);
+          showToast('Saving the picture…');
+        }, 'image/png');
+      };
+      img.src = url;
+    });
+
+    // Initial load: render canvas immediately
+    renderStoryPresets(state.genre);
+    if (!restoreFromUrl()) runGenerate();
+    setTimeout(loadConcepts, 150);
+
+    // For the video export module below
+    window.pictogenStudio = {
+      getSvgElement, getState: () => state, getStory: () => storyState, showToast, regenerate: () => runGenerate(),
+      // the prompt as the engine gets it: named characters as their neutral keys
+      castOf: () => (state.mode === 'scene' ? named(state.prompt) : { text: state.prompt, named: [] }),
+    };
+  </script>
+  <script type="module" src="/js/scene-sound.js"></script>
+  <script type="module" src="/js/timeline-view.js"></script>
+  <script type="module" src="/js/clip-tray.js"></script>
+  <script type="module" src="/js/characters.js"></script>
+  <script type="module" src="/js/worksheet.js"></script>
+  <script type="module">
+    import { exportGif, exportVideo, videoFormat, mountOffscreen, download } from '/js/video-export.js';
+    window.pictogenVideo = { exportGif, exportVideo, videoFormat, mountOffscreen };
+    const studio = window.pictogenStudio;
+    const slug = (s) => String(s || 'pictogen').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'pictogen';
+
+    // Runs one export with progress on its button; one at a time
+    let busy = false;
+    async function run(button, job) {
+      if (busy) return studio.showToast('An export is already running');
+      busy = true;
+      const label = button.textContent;
+      button.disabled = true;
+      try {
+        await job((p) => { button.textContent = `Rendering ${Math.round(p * 100)}%`; });
+      } catch (err) {
+        console.error(err);
+        studio.showToast(`Export failed: ${err.message}`);
+      } finally {
+        button.textContent = label;
+        button.disabled = false;
+        busy = false;
+      }
+    }
+
+    // The scene on the canvas: its timeline / camera length, or a few seconds of its loops
+    const sceneShot = () => {
+      const svg = studio.getSvgElement();
+      if (!svg) throw new Error('Nothing on the canvas yet');
+      return [{ svg, duration: studio.getState().duration || 4 }];
+    };
+
+    document.getElementById('btn-download-gif').addEventListener('click', (e) => run(e.currentTarget, async (progress) => {
+      const blob = await exportGif(sceneShot(), { fps: 15, onProgress: progress });
+      download(blob, `${slug(studio.getState().prompt)}.gif`);
+      studio.showToast(`GIF saved (${Math.round(blob.size / 1024)} KB)`);
+    }));
+
+    document.getElementById('btn-download-video').addEventListener('click', (e) => run(e.currentTarget, async (progress) => {
+      if (!videoFormat()) throw new Error('this browser cannot record video; try the GIF');
+      const blob = await exportVideo(sceneShot(), { fps: 30, sound: studio.getStory().sound, onProgress: progress });
+      download(blob, `${slug(studio.getState().prompt)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
+      studio.showToast(`Video saved (${Math.round(blob.size / 1024)} KB)`);
+    }));
+
+    // The whole clip: a title card, then every scene for its full length with its caption
+    document.getElementById('story-btn-export-video').addEventListener('click', (e) => run(e.currentTarget, async (progress) => {
+      const story = studio.getStory();
+      if (!story.scenes || !story.scenes.length) throw new Error('Generate a clip first');
+      if (!videoFormat()) throw new Error('this browser cannot record video');
+      const mounted = story.scenes.map((sc) => mountOffscreen(sc.svg));
+      try {
+        const shots = story.scenes.map((sc, i) => ({ svg: mounted[i].svg, duration: sc.duration || 5, scene: sc }));
+        const blob = await exportVideo(shots, { fps: 30, title: story.title, genre: story.genre, sound: story.sound, music: story.music, onProgress: progress });
+        download(blob, `${slug(story.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
+        studio.showToast(`Clip video saved (${Math.round(blob.size / 1024)} KB)`);
+      } finally {
+        mounted.forEach((m) => m.remove());
+      }
+    }));
+  </script>
+</body>
+</html>
