@@ -1,6 +1,6 @@
 // PictoGen public API – offline text-to-vector image generator.
 
-import { parseText } from './text/matcher.js';
+import { parseText, suggestWords } from './text/matcher.js';
 import { composeScene, ENV_WORDS } from './scene.js';
 
 // Words that set the scene's backdrop (night, rain, beach...) rather than draw an object.
@@ -18,7 +18,7 @@ import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaff
 export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
 export { renderIcon, renderCard, renderSheet, drawConcept, shapesToSvg } from './core/render.js';
 export { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
-export { parseText, tokenize } from './text/matcher.js';
+export { parseText, tokenize, suggestWords } from './text/matcher.js';
 export { composeScene } from './scene.js';
 export { parseTimeline, hasSequence, cameraAction, extractCamera, editTimeline, lookRelations, speechRelations, POSE_ANIMS, ACTION_TYPES, CAMERA_TYPES } from './timeline.js';
 export { lipKeys, babbleNotes } from './speech.js';
@@ -60,7 +60,23 @@ export function generate(text, opts = {}) {
     const id = m.target && parseText(m.target, { names }).matches[0]?.id;
     if (id && !parseText(sceneText, { names }).matches.some((x) => x.id === id)) sceneText += ` and ${m.target}`;
   }
-  const parsed = parseText(sceneText, { fuzzy, names });
+  let parsed = parseText(sceneText, { fuzzy, names });
+  // Nothing at all to draw: try again forgiving typos ("elefant"), so there is always a picture
+  // when one is close
+  if (!parsed.matches.length && !fuzzy && parsed.unknown.length) {
+    let forgiving = parseText(sceneText, { fuzzy: true, names });
+    if (!forgiving.matches.length) {
+      // Still nothing: each unknown word as its closest drawable word ("elefant" -> "elephant")
+      const swaps = new Map(parsed.unknown.map((w) => [w, suggestWords(w, 1)[0]]).filter(([, s]) => s));
+      if (swaps.size) forgiving = parseText(sceneText.replace(/[a-z']+/gi, (w) => swaps.get(w.toLowerCase()) ?? w), { names });
+    }
+    if (forgiving.matches.length) {
+      // (what was guessed, for the studio: "elefant" drawn as "elephant")
+      const guessed = Object.fromEntries(parsed.unknown.filter((w) => !forgiving.unknown.includes(w))
+        .map((w) => [w, suggestWords(w, 1)[0] ?? forgiving.matches.find((m) => m.fuzzy)?.word ?? '']));
+      parsed = { ...forgiving, matches: forgiving.matches.map((m) => ({ ...m, fuzzy: true })), unknown: forgiving.unknown.filter((w) => !(w in guessed)), guessed };
+    }
+  }
   let { matches } = parsed;
   const backdrop = mode === 'scene'
     ? matches.filter((m) => ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)
@@ -134,7 +150,9 @@ export function generate(text, opts = {}) {
   const setting = mode === 'scene'
     ? [...backdrop.map((m) => m.word), ...parsed.unknown.filter((w) => SETTING_WORDS.has(w))]
     : [];
-  const unknown = parsed.unknown.filter((w) => !setting.includes(w));
+  const unknown = parsed.unknown.filter((w) => !setting.includes(w) && !/^qq\d+$/.test(w));
+  // For each word not drawn, words close to it that can be (the studio offers them)
+  const suggestions = Object.fromEntries(unknown.map((w) => [w, suggestWords(w)]).filter(([, list]) => list.length));
   const clip = timeline?.duration
     ? { duration: timeline.duration, beats: timeline.beats.map((b, i) => ({ ...b, ...timeline.beatTimes?.[i] })) }
     : common.duration ? { duration: common.duration } : {};
@@ -143,5 +161,5 @@ export function generate(text, opts = {}) {
     ? cast.filter((m) => getConcept(conceptOf(m.id)) && !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary))
       .map((m) => ({ id: m.id, label: getConcept(conceptOf(m.id)).label || m.id, person: getConcept(conceptOf(m.id)).category === 'people' }))
     : [];
-  return { svg, ...parsed, matches, unknown, setting, images, ...clip, cast: castOut, ...(edited ? { edited: true } : {}) };
+  return { svg, ...parsed, matches, unknown, suggestions, guessed: parsed.guessed || {}, setting, images, ...clip, cast: castOut, ...(edited ? { edited: true } : {}) };
 }

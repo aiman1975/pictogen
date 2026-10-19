@@ -352,6 +352,22 @@ try {
 
   check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
 
+  // Words it can't draw: a guess is drawn and said, close words are offered, a click uses one
+  await draw('an elefant');
+  const guess = await page.evaluate(() => ({ ids: window.pictogenStudio.getState().result.matches.map((m) => m.id), help: document.getElementById('word-help').textContent }));
+  check(guess.ids.includes('elephant') && /elefant/.test(guess.help) && /elephant/.test(guess.help), `a misspelt word is drawn as a guess, and the studio says so (${guess.ids.join(', ')})`);
+  await draw('a cat and a wizzard');
+  const offered = await page.$$eval('#word-help .wh-try', (b) => b.map((x) => x.textContent));
+  check(offered.includes('wizard'), `a word not drawn gets close words to try (${offered.join(', ')})`);
+  await page.click('#word-help .wh-try[data-to="wizard"]');
+  await page.waitForFunction(() => window.pictogenStudio.getState().prompt === 'a cat and a wizard' && window.pictogenStudio.getState().result?.matches.some((m) => /mage/.test(m.id)));
+  check(!(await page.$('#word-help .wh-try')), 'clicking one puts it in the prompt and draws it');
+  const input = await page.$('#prompt-input');
+  await input.fill('qwrtzp');
+  await input.press('Enter');
+  await page.waitForFunction(() => window.pictogenStudio.getState().prompt === 'qwrtzp' && document.querySelector('#word-help .wh-empty'));
+  check(true, 'when nothing can be drawn, the studio says what to try');
+
   // On a phone (an iPhone-sized touch screen): nothing wider than the screen, the picture near
   // the top, modes and styles in sideways rows, a tapped figure's controls a sheet at the bottom
   const phoneCtx = await browser.newContext({ viewport: { width: 390, height: 664 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });

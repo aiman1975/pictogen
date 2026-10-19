@@ -39,6 +39,12 @@ function detectPlacement(key, cat = '') {
 
 function detectScale(key, cat = '') {
   const t = key.toLowerCase().split('-');
+  // People (a teacher, a superhero, a cook) stand about as tall as the hand-drawn people beside
+  // them; hands and gestures stay small
+  if (/people/i.test(cat) && hasWord(t, ['man', 'woman', 'person', 'boy', 'girl', 'child', 'teacher', 'superhero', 'supervillain', 'mage', 'fairy', 'elf', 'genie', 'zombie', 'vampire', 'astronaut', 'cook', 'farmer', 'firefighter', 'pilot', 'judge', 'scientist', 'student', 'technologist', 'artist', 'singer', 'mechanic', 'detective', 'guard', 'ninja', 'prince', 'princess', 'santa', 'claus', 'police', 'officer', 'worker', 'doctor', 'nurse'])
+    && !hasWord(t, ['hand', 'hands', 'gesturing', 'raising', 'facepalming', 'shrugging', 'bowing', 'pouting', 'frowning', 'tipping'])) {
+    return hasWord(t, ['baby']) ? 0.5 : 0.85;
+  }
   if (cat.includes('Food') || hasWord(t, ['apple', 'cookie', 'pizza', 'cup', 'ring', 'gem', 'coin', 'key'])) return 0.25;
   if (hasWord(t, ['guitar', 'backpack', 'book', 'chair', 'ball', 'lamp', 'box', 'clock'])) return 0.38;
   if (hasWord(t, ['mountain', 'castle', 'building', 'tree'])) return 2.0;

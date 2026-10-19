@@ -118,6 +118,31 @@ export const NUMBER_WORDS = {
 const MULTIPLIERS = new Set(['dozen', 'hundred', 'thousand', 'million']);
 // Counts are capped: a picture can't show a hundred birds, and layouts stay readable.
 const MAX_COUNT = 12;
+
+// Words for a group of people: drawn as a mix of the people they stand for ("children" -> boys
+// and girls, "a team" -> men and women), as many as asked for ("five kids")
+export const GROUP_WORDS = {
+  children: ['boy', 'girl', 'boy'], kids: ['boy', 'girl', 'girl'], students: ['girl', 'boy', 'girl'], pupils: ['boy', 'girl', 'boy'],
+  classmates: ['girl', 'boy', 'girl'], schoolchildren: ['boy', 'girl', 'boy'],
+  people: ['man', 'woman', 'boy', 'girl'], persons: ['woman', 'man', 'woman'], crowd: ['man', 'woman', 'girl', 'boy', 'woman'],
+  friends: ['girl', 'boy', 'girl'], group: ['woman', 'man', 'girl'], everyone: ['man', 'woman', 'boy', 'girl'],
+  team: ['woman', 'man', 'woman'], colleagues: ['man', 'woman', 'man'], coworkers: ['woman', 'man', 'woman'], staff: ['man', 'woman', 'man'],
+  family: ['man', 'woman', 'girl', 'boy'], parents: ['man', 'woman'], couple: ['man', 'woman'], adults: ['woman', 'man', 'woman'],
+};
+// Words with no drawing of their own, drawn as the nearest thing that has one (the first that exists)
+export const SYNONYMS = {
+  superhero: ['man_superhero', 'woman_superhero'], superheroes: ['man_superhero', 'woman_superhero'], heroine: ['woman_superhero'],
+  kid: ['boy'], child: ['girl'], student: ['girl'], pupil: ['boy'], toddler: ['baby'],
+  lady: ['woman'], gentleman: ['man'], grandpa: ['old_man', 'man'], grandfather: ['old_man', 'man'], grandma: ['old_woman', 'woman'], grandmother: ['old_woman', 'woman'],
+  puppy: ['dog'], doggy: ['dog'], kitten: ['cat'], kitty: ['cat'], bunny: ['rabbit'], automobile: ['car'], bicycle: ['bike'], smartphone: ['mobile_phone'], cellphone: ['mobile_phone'],
+  dinosaur: ['t_rex', 'sauropod'], dinosaurs: ['t_rex', 'sauropod'], dino: ['t_rex'], trex: ['t_rex'],
+  wizard: ['man_mage'], wizards: ['man_mage'], witch: ['woman_mage'], sorcerer: ['man_mage'], magician: ['man_mage'],
+  monster: ['alien_monster'], monsters: ['alien_monster'], fairy: ['woman_fairy'], fairies: ['woman_fairy'],
+};
+// Before a noun, these words mean "flies" and "waves" are things ("three flies", "the waves");
+// after someone who can move, they are what it does ("a superhero flies", "he waves")
+const NOUN_LEADERS = new Set(['a', 'an', 'the', 'some', 'many', 'few', 'several', 'these', 'those', 'of', 'with', 'and', 'his', 'her', 'their', 'my', 'your', 'our', 'its', 'no', 'big', 'small', 'little', 'tiny', 'huge']);
+const SUBJECT_PRONOUNS = new Set(['he', 'she', 'it', 'they', 'who', 'we', 'i', 'you']);
 // "no cats", "a boy without a hat": the next concept is left out of the picture.
 const NEGATIONS = new Set(['no', 'without', 'zero', 'none']);
 
@@ -267,6 +292,33 @@ function fuzzyLookup(w, idx) {
   return best ? { id: idx.single.get(best), key: best } : null;
 }
 
+/**
+ * Words close to an unknown one that PictoGen can draw (near spellings, longer or shorter forms of
+ * the same word): suggestWords('elefant') -> ['elephant']. At most `limit`, closest first.
+ */
+export function suggestWords(word, limit = 3) {
+  const idx = getIndex();
+  const w = String(word || '').toLowerCase();
+  if (w.length < 3 || STOPWORDS.has(w)) return [];
+  if (GROUP_WORDS[w] || SYNONYMS[w]) return [];
+  const scored = [];
+  const max = w.length >= 7 ? 2 : 1;
+  for (const k of [...idx.singleKeys, ...Object.keys(SYNONYMS), ...Object.keys(GROUP_WORDS)]) {
+    if (k.length < 3 || k === w) continue;
+    let d = Infinity;
+    if (k[0] !== w[0]) continue; // (typos rarely change the first letter)
+    if (Math.abs(k.length - w.length) <= max) d = lev(w, k);
+    // The same word, longer or shorter ("dino" -> "dinosaur")
+    if (d > max && w.length >= 4 && (k.startsWith(w) || w.startsWith(k)) && Math.abs(k.length - w.length) <= 4) d = max + 0.5;
+    if (d <= max + 0.5) {
+      const c = idx.single.has(k) && getConcept(idx.single.get(k));
+      // Hand-drawn concepts and plain words first
+      scored.push([d + (c?.isLibrary ? 0.3 : 0) + k.length / 100, k]);
+    }
+  }
+  return [...new Set(scored.sort((a, b) => a[0] - b[0]).map(([, k]) => k))].slice(0, limit);
+}
+
 function mergeMatches(found) {
   const out = [];
   for (const m of found) {
@@ -375,7 +427,37 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     // A bare numeral is a count ("3 dogs"), never the keycap icon that also answers to "3".
     const isNumeral = /^\d+$/.test(t);
 
-    const hit = (isModifierAdjective || isStopword || isNumeral) ? null : at(toks, i);
+    // A group of people: the mix it stands for, as many as asked for
+    const group = !isModifierAdjective && GROUP_WORDS[t];
+    if (group) {
+      const n = Math.max(1, Math.min(pend.count ?? group.length, MAX_COUNT));
+      const tally = new Map();
+      for (let k = 0; k < n; k++) tally.set(group[k % group.length], (tally.get(group[k % group.length]) ?? 0) + 1);
+      const shared = { ...pend };
+      for (const [id, count] of tally) {
+        pend = { ...shared, count };
+        push({ id, word: t, plural: count > 1 });
+      }
+      lastConceptIndex = i;
+      i++;
+      continue;
+    }
+    // A word with no drawing of its own, drawn as the nearest that has one
+    const synonym = !isModifierAdjective && SYNONYMS[t]?.find((id) => getConcept(id));
+    if (synonym && !at(toks, i)) {
+      push({ id: synonym, word: t, plural: /s$/.test(t) && !/ss$/.test(t) });
+      lastConceptIndex = i;
+      i++;
+      continue;
+    }
+    // "a superhero flies", "she waves": after someone who can move, a motion word is what they
+    // do, not the insect or the sea ("three flies", "the waves" stay things)
+    const prev = toks[i - 1];
+    const afterMover = MOTION_WORDS[t] && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev] && !COLOR_WORDS[prev]
+      && (SUBJECT_PRONOUNS.has(prev) || names?.has(prev)
+        || (lastConceptIndex === i - 1 && found.length && MOVERS.has(getConcept(found[found.length - 1].id.split('~')[0])?.category)));
+
+    const hit = (isModifierAdjective || isStopword || isNumeral || afterMover) ? null : at(toks, i);
     if (hit) {
       push(hit);
       lastConceptIndex = i + hit.len - 1;

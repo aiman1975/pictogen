@@ -588,6 +588,18 @@
       vertical-align: middle;
     }
 
+    /* Words the studio could not draw, under the prompt: what it guessed, what to try instead */
+    .word-help { display: none; margin-top: 0.6rem; font-size: 0.85rem; color: #475569; line-height: 1.9; }
+    .word-help.show { display: block; }
+    .word-help .wh-row { display: block; }
+    .word-help .wh-word { font-weight: 700; color: #b91c1c; }
+    .word-help .wh-try {
+      border: 1px solid #93c5fd; background: #eff6ff; color: #1d4ed8; font-weight: 700; border-radius: 999px;
+      padding: 1px 10px; margin-left: 4px; cursor: pointer; font-size: 0.82rem;
+    }
+    .word-help .wh-try:hover { background: #dbeafe; }
+    .word-help .wh-empty { color: #92400e; background: #fef3c7; border-radius: 8px; padding: 6px 10px; display: block; }
+
     .unknown-badge {
       display: inline-block;
       background: #fee2e2;
@@ -896,6 +908,7 @@
           <span>✨ Draw</span>
         </button>
       </div>
+      <div id="word-help" class="word-help" aria-live="polite"></div>
 
       <details class="examples" id="examples">
         <summary>✨ EXAMPLES <span class="hide-phone">— 23 ready-made prompts (click one to load its mode &amp; style)</span><span class="phone-only">— tap one to try it</span></summary>
@@ -1463,6 +1476,33 @@
       return html.slice(0, i + start.length) + JSON.stringify(scenes).replace(/</g, '\\u003c') + html.slice(j);
     }
 
+    // Under the prompt: words drawn as a guess ("elefant" -> elephant), words not drawn with close
+    // words to try (a click puts the word in the prompt and draws again), and a hint when nothing
+    // could be drawn at all
+    const wordHelp = document.getElementById('word-help');
+    function showWordHelp(data) {
+      const rows = [];
+      const guessed = Object.entries(data.guessed || {}).filter(([, as]) => as);
+      if (guessed.length) rows.push(`<span class="wh-row">🤔 Drawn as a guess: ${guessed.map(([w, as]) => `<span class="wh-word">${escHtml(w)}</span> → <b>${escHtml(as)}</b>`).join(', ')}</span>`);
+      const tips = data.suggestions || {};
+      for (const w of data.unknown || []) {
+        if (!tips[w]?.length) continue;
+        rows.push(`<span class="wh-row">Not drawn: <span class="wh-word">${escHtml(w)}</span> — did you mean ${tips[w].map((t) => `<button type="button" class="wh-try" data-from="${escHtml(w)}" data-to="${escHtml(t)}">${escHtml(t)}</button>`).join('')}</span>`);
+      }
+      if (!data.matches?.length && state.mode !== 'alphabet') {
+        rows.push(`<span class="wh-empty">I don't know how to draw that yet. Try simple words, like <i>a girl reads a book under a tree</i>, or pick a picture from the Dictionary below.</span>`);
+      }
+      wordHelp.innerHTML = rows.join('');
+      wordHelp.classList.toggle('show', rows.length > 0);
+    }
+    wordHelp.addEventListener('click', (e) => {
+      const btn = e.target.closest('.wh-try');
+      if (!btn) return;
+      const from = btn.dataset.from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      promptInput.value = promptInput.value.replace(new RegExp(`\\b${from}\\b`, 'i'), btn.dataset.to);
+      runGenerate();
+    });
+
     async function runGenerate() {
       state.prompt = promptInput.value.trim() || 'apple';
       state.vary = optVary.checked;
@@ -1601,6 +1641,8 @@
             </div>
           `).join('');
         }
+
+        showWordHelp(data);
 
         // Render unknown words
         if (data.unknown && data.unknown.length > 0) {
