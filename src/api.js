@@ -71,10 +71,14 @@ export function handleApi(method, url, payload = {}) {
 
   // Render single concept with custom expression / animation
   if (pathname === '/api/render-concept' && method === 'POST') {
-    const { id, style = 'flat', expression = 'happy', animation, color, vary, seed = 1, view } = payload;
+    const { id, style = 'flat', expression = 'happy', animation, color, vary, seed = 1, view, held } = payload;
     const c = getConcept(id);
     if (!c) return json({ error: `Unknown concept: ${id}` }, 404);
-    const shapes = drawConcept(c, { seed, color, vary, expression, animation, style, view: ['front', 'three-quarter', 'side', 'back'].includes(view) ? view : undefined });
+    const shapes = drawConcept(c, {
+      seed, color, vary, expression, animation, style, view: ['front', 'three-quarter', 'side', 'back'].includes(view) ? view : undefined,
+      // what the figure holds ({ id, color }), drawn in its hands again
+      ...(held && typeof held.id === 'string' && getConcept(held.id) ? { held: { id: held.id, color: typeof held.color === 'string' ? held.color : undefined } } : {}),
+    });
     return json({ id, expression, animation, markup: shapesToSvg(shapes, style) });
   }
 

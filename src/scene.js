@@ -840,6 +840,14 @@ export function composeScene(matches, opts = {}) {
     for (let k = 0; k < n; k++) items.push({ c, m, k, aid: m.id, alt: before + k });
   }
   items.splice(maxItems);
+  // Things in someone's hands ("a woman holds a phone"): drawn in the hands of their holder, one
+  // each, not set down in the scene
+  for (const it of items) {
+    if (!it.m.heldBy) continue;
+    const holder = items.find((h) => h.aid === it.m.heldBy && !h.holding && !h.m.heldBy);
+    if (holder) { holder.holding = it; it.inHand = true; }
+  }
+  for (let i = items.length - 1; i >= 0; i--) if (items[i].inHand) items.splice(i, 1);
 
   const { timeline } = opts;
   const env = detectEnv(items, words);
@@ -892,7 +900,9 @@ export function composeScene(matches, opts = {}) {
   const out = [];
   // A named individual's key and id, and a dressed-differently figure, for the studio (its photo,
   // and redrawing it the same way)
-  const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''}${it.alt > 0 ? ' data-vary="1"' : ''}`;
+  const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''}${it.alt > 0 ? ' data-vary="1"' : ''}${it.holding ? ` data-held="${it.holding.c.id}"${it.holding.m.color ? ` data-held-color="${it.holding.m.color}"` : ''}` : ''}`;
+  // What a figure holds, for drawConcept
+  const heldOf = (it) => (it.holding ? { id: it.holding.c.id, color: it.holding.m.color } : undefined);
   // Who says what in a still scene ("Tom says “Hello!”"): figure id -> words
   const said = new Map((opts.speech || []).map((sp) => [sp.who, sp.text]));
   const talkers = []; // who speaks where, for their speech bubbles: { x, top, text, room, of }
@@ -981,6 +991,7 @@ export function composeScene(matches, opts = {}) {
       view,
       gaze: look?.gaze,
       style,
+      held: heldOf(it),
     });
     // The drawing sits innermost in .pg-figure, so the studio can redraw it (a new expression)
     // while the animation wrapper, shadow and travel motion around it stay
@@ -1075,7 +1086,7 @@ export function composeScene(matches, opts = {}) {
       motionCss.push(`@keyframes ${name}v${i} { ${frames}}`);
       const shapes = drawConcept(it.c, {
         seed: `${seed}:${it.aid}:${it.k}`, color: it.m.color, vary: vary || it.alt > 0, style,
-        expression: pose.expression || 'happy', animation: pose.anim, view: pose.view, gaze: pose.gaze,
+        expression: pose.expression || 'happy', animation: pose.anim, view: pose.view, gaze: pose.gaze, held: heldOf(it),
       });
       // The drawing sits innermost in .pg-figure, so the studio can redraw it (a new expression)
       // while the pose's animation wrapper and mirroring around it stay

@@ -391,6 +391,49 @@ export function drawProfileFace(d, p, cx, cy, r) {
   });
 }
 
+// A limb as a rounded bar from a to b
+function capsule(d, a, b, w, fill, extra = {}) {
+  const ang = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  d.group(`rotate(${Math.round(ang * 10) / 10} ${a[0]} ${a[1]})`, () => d.rect(a[0] - w / 2, a[1] - w / 2, len + w, w, { fill, rx: w / 2, ...extra }));
+}
+
+/**
+ * Holding something (p.opts.held, or the 'hold' pose): both arms bend at the elbow and the hands
+ * meet in front of the chest, as far apart as what they hold is wide (one fist for a balloon's
+ * string or an umbrella). Drawn in front of the body; p.grip says where the hands are, for the held
+ * thing and the hands drawn over it (drawConcept, src/core/render.js).
+ *   left / right: the shoulders; y: the hands' height; w: the arms' thickness; sleeve: its colour
+ */
+function holdArms(d, p, { left, right, y, w, skin, sleeve }) {
+  const held = p.opts.held;
+  if (held?.up) {
+    // Held up (a balloon, an umbrella, a flag): the right hand raised beside the head, the left
+    // arm down
+    const [lx, ly] = left, [rx, ry] = right;
+    const elbow = [rx + 7, ry - 3], hand = [rx + 3, ry - 19];
+    d.group({ class: 'pg-arms-holding' }, () => {
+      capsule(d, [lx, ly], [lx - 2, ly + 19], w, skin);
+      if (sleeve) capsule(d, [lx, ly], [lx - 0.8, ly + 7], w + 1, sleeve);
+      capsule(d, [rx, ry], elbow, w, skin);
+      if (sleeve) capsule(d, [rx, ry], [rx + 3, ry - 1.5], w + 1, sleeve);
+      capsule(d, elbow, hand, w, skin);
+    });
+    p.grip = { x: hand[0], y: hand[1], hands: [hand], r: w * 0.6, fill: skin };
+    return;
+  }
+  const gap = Math.max(3.5, Math.min(12, (held?.size ?? 14) * 0.42));
+  const hands = [[50 - gap, y], [50 + gap, y]];
+  d.group({ class: 'pg-arms-holding' }, () => [left, right].forEach(([sx, sy], i) => {
+    const elbow = [sx + (i ? 1.5 : -1.5), y + 7];
+    capsule(d, [sx, sy], elbow, w, skin);
+    if (sleeve) capsule(d, [sx, sy], [sx + (elbow[0] - sx) * 0.4, sy + (elbow[1] - sy) * 0.4], w + 1, sleeve);
+    capsule(d, elbow, hands[i], w, skin);
+  }));
+  p.grip = { x: 50, y, hands, r: w * 0.6, fill: skin };
+}
+const isHolding = (p) => Boolean(p.opts.held) || p.opts.animation === 'hold' || p.opts.animation === 'holding';
+
 /**
  * Side view (profile, facing right) of the hand-drawn people. The far arm and leg are drawn darker
  * behind the body and the near ones in front, with the same pg-arm-* / pg-leg-* rig groups as the
@@ -399,7 +442,7 @@ export function drawProfileFace(d, p, cx, cy, r) {
  */
 function drawSidePerson(d, p, s) {
   const skin = p.c('skin'), main = p.c('main'), hair = p.c('hair');
-  const anim = p.opts.animation;
+  const anim = p.opts.animation, holding = isHolding(p);
   const far = (c) => darken(c, 0.18);
   const legFill = s.legs.skin ? skin : p.c('pants');
   const { cx, cy, r } = s.head;
@@ -409,8 +452,18 @@ function drawSidePerson(d, p, s) {
     if (anim === 'point' || anim === 'pointing') {
       if (shade === far) d.rect(a.x, a.y, a.w, a.h, { fill: far(skin), rx: a.w / 2 });
       else d.rect(a.x, a.y, a.h + 4, a.w, { fill: skin, rx: a.w / 2 });
-    } else if (anim === 'hold' || anim === 'holding') {
-      d.rect(a.x, a.y + 4, a.h - 2, a.w, { fill: shade(skin), rx: a.w / 2 });
+    } else if (holding) {
+      // Upper arm down, forearm forward: the hands in front of the chest (the far one a little back)
+      // (held up - a balloon, an umbrella - the near hand is raised in front of the face)
+      const up = p.opts.held?.up && shade !== far;
+      const sh = [a.x + a.w / 2, a.y + 1], elbow = up ? [sh[0] + 8, a.y - 1] : [sh[0] - 1, a.y + a.h * 0.55];
+      const hand = up ? [sh[0] + 13, a.y - a.h * 0.95] : [sh[0] + a.h * 0.55 - (shade === far ? 2.5 : 0), a.y + a.h * 0.48];
+      capsule(d, sh, elbow, a.w, shade(skin));
+      capsule(d, elbow, hand, a.w, shade(skin));
+      if (shade !== far) {
+        const size = p.opts.held?.size ?? 14;
+        p.grip = { x: hand[0] + (up ? 1 : size * 0.3), y: hand[1], hands: [hand], r: a.w * 0.6, fill: skin };
+      }
     } else {
       // Upper arm and forearm, bending at the elbow (the forearms pump when running)
       const half = a.h / 2;
@@ -433,7 +486,8 @@ function drawSidePerson(d, p, s) {
   const same = (c) => c;
 
   d.group({ class: personRoot(p), style: idleStyle(p) }, () => d.group({ class: 'pg-profile' }, () => {
-    d.joint('pg-arm-right', shoulder, () => arm(far));
+    // (arms holding something don't swing)
+    d.joint(holding ? 'pg-arm-held' : 'pg-arm-right', shoulder, () => arm(far));
     d.joint('pg-leg-right', hip, () => leg(far));
     d.joint('pg-leg-left', hip, () => leg(same));
     d.group({ class: 'pg-body-torso' }, () => {
@@ -453,7 +507,7 @@ function drawSidePerson(d, p, s) {
         drawProfileFace(d, p, cx, cy + (s.faceDy ?? 0), r);
       }, faceArea(p, cx, cy, r));
     });
-    d.joint('pg-arm-left', shoulder, () => arm(same));
+    d.joint(holding ? 'pg-arm-held' : 'pg-arm-left', shoulder, () => arm(same));
   }));
 }
 
@@ -598,6 +652,7 @@ export function drawStickPerson(d, p, role = 'boy') {
       } else if (anim === 'hold' || anim === 'holding') {
         d.polyline([[50, 42], [34, 52], [42, 56]], { stroke: '#000000', sw: 3.4, strokeLinecap: 'round', fill: 'none', kind: 'line' });
         d.circle(42, 56, 2.8, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
+        p.grip = { x: 50, y: 56, hands: [[42, 56], [58, 56]], r: 2.8, fill: '#ffffff', stroke: '#000000', sw: 2.2 };
       } else if (anim === 'cheer' || anim === 'cheering' || anim === 'jump' || anim === 'jumping') {
         d.path('M 50 42 Q 35 28 26 14', { stroke: '#000000', sw: 3.4, strokeLinecap: 'round', fill: 'none', kind: 'line' });
         d.circle(26, 14, 2.8, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
@@ -691,6 +746,7 @@ export function drawCutePerson(d, p, role = 'boy') {
       } else if (anim === 'hold' || anim === 'holding') {
         d.path('M 26 44 Q 32 54 42 54', { stroke: '#000000', sw: 3.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
         d.circle(42, 54, 3.4, { fill: '#000000', kind: 'detail' });
+        p.grip = { x: 50, y: 56, hands: [[42, 54], [58, 54]], r: 3.4, fill: '#000000' };
       } else {
         d.path('M 26 40 Q 14 30 18 16', { stroke: '#000000', sw: 3.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
         d.circle(18, 16, 3.4, { fill: '#000000', kind: 'detail' });
@@ -743,15 +799,13 @@ export function drawGeometricPerson(d, p, role = 'boy') {
       } else if (anim === 'thumbsup' || anim === 'wave') {
         d.rect(22, 26, 11, 24, { fill: secondary, kind: 'body' });
       } else if (anim === 'hold' || anim === 'holding') {
-        d.rect(20, 50, 22, 9, { fill: secondary, kind: 'body' });
+        holdArms(d, p, { left: [28, 48], right: [72, 48], y: 58, w: 10, skin: secondary });
       } else {
         d.rect(22, 46, 12, 24, { fill: secondary, kind: 'body' });
       }
     });
     d.group({ class: 'pg-arm-right' }, () => {
-      if (anim === 'hold' || anim === 'holding') {
-        d.rect(58, 50, 22, 9, { fill: secondary, kind: 'body' });
-      } else {
+      if (anim !== 'hold' && anim !== 'holding') {
         d.rect(66, 46, 12, 24, { fill: secondary, kind: 'body' });
       }
     });
@@ -790,6 +844,7 @@ export function drawEditorialPerson(d, p, role = 'boy') {
       d.group({ class: 'pg-arm-left' }, () => {
         if (anim === 'point' || anim === 'pointing' || anim === 'hold' || anim === 'holding') {
           d.line(52, 38, 74, 38, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
+          p.grip = { x: 76, y: 40, hands: [[74, 38]], r: 1.8, fill: '#000000' };
         } else {
           d.path('M50 38 Q58 50 64 60', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
           d.path('M63 58 L66 61 L64 63', { stroke: '#000000', sw: 1.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
@@ -825,6 +880,7 @@ export function drawEditorialPerson(d, p, role = 'boy') {
       d.group({ class: 'pg-arm-left' }, () => {
         if (anim === 'point' || anim === 'pointing' || anim === 'hold' || anim === 'holding') {
           d.line(47, 34, 22, 36, { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', kind: 'line' });
+          p.grip = { x: 20, y: 38, hands: [[22, 36]], r: 1.8, fill: '#000000' };
         } else {
           d.path('M47 32 Q42 48 44 64', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
           d.path('M43 62 L44 66 L46 63', { stroke: '#000000', sw: 1.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
@@ -861,6 +917,7 @@ export function drawEditorialPerson(d, p, role = 'boy') {
           d.path('M47 32 Q34 26 32 14', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
         } else if (anim === 'hold' || anim === 'holding') {
           d.polyline([[47, 32], [35, 44], [43, 46]], { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+          p.grip = { x: 50, y: 47, hands: [[43, 46], [57, 46]], r: 1.6, fill: '#000000' };
         } else {
           d.path('M47 30 Q41 46 43 62', { stroke: '#000000', sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
           d.path('M41 60 L43 64 L45 61', { stroke: '#000000', sw: 1.8, strokeLinecap: 'round', fill: 'none', kind: 'line' });
@@ -916,15 +973,13 @@ export function drawPapercutPerson(d, p, role = 'boy') {
       } else if (anim === 'thumbsup' || anim === 'wave') {
         d.rect(24, 22, 9, 24, { fill: paperColor, rx: 4.5, kind: 'body' });
       } else if (anim === 'hold' || anim === 'holding') {
-        d.rect(22, 46, 20, 9, { fill: paperColor, rx: 4.5, kind: 'body' });
+        holdArms(d, p, { left: [30, 42], right: [70, 42], y: 56, w: 9, skin: paperColor });
       } else {
         d.rect(26, 38, 9, 26, { fill: paperColor, rx: 4.5, kind: 'body' });
       }
     });
     d.group({ class: 'pg-arm-right' }, () => {
-      if (anim === 'hold' || anim === 'holding') {
-        d.rect(58, 46, 20, 9, { fill: paperColor, rx: 4.5, kind: 'body' });
-      } else {
+      if (anim !== 'hold' && anim !== 'holding') {
         d.rect(65, 38, 9, 26, { fill: paperColor, rx: 4.5, kind: 'body' });
       }
     });
@@ -971,7 +1026,7 @@ export default [
       if (dispatchStylizedPerson(d, p, 'boy')) return;
       if (viewOf(p) === 'side') return drawSidePerson(d, p, SIDE.boy);
       const skin = p.c('skin'), shirt = p.c('main');
-      const anim = p.opts.animation;
+      const anim = p.opts.animation, holding = isHolding(p);
       const animClass = personRoot(p);
 
       d.group({ class: animClass, style: idleStyle(p) }, () => {
@@ -987,15 +1042,14 @@ export default [
 
         // Left arm (with action gesture support)
         d.group({ class: 'pg-arm-left' }, () => {
-          if (anim === 'point' || anim === 'pointing') {
+          if (holding) {
+            // (in front of the body, below)
+          } else if (anim === 'point' || anim === 'pointing') {
             d.rect(12, 44, 24, 8, { fill: skin, rx: 4 });
             d.rect(26, 43.5, 11, 9, { fill: shirt, rx: 3 });
           } else if (anim === 'thumbsup') {
             d.rect(20, 32, 8, 18, { fill: skin, rx: 4 });
             d.rect(26, 44, 10, 9, { fill: shirt, rx: 3 });
-          } else if (anim === 'hold' || anim === 'holding') {
-            d.rect(22, 50, 20, 8, { fill: skin, rx: 4 });
-            d.rect(26, 45, 9, 10, { fill: shirt, rx: 3 });
           } else {
             d.group('rotate(14 31 47)', () => {
               d.rect(27, 46, 8, 22, { fill: skin, rx: 4 });
@@ -1006,10 +1060,7 @@ export default [
 
         // Right arm
         d.group({ class: 'pg-arm-right' }, () => {
-          if (anim === 'hold' || anim === 'holding') {
-            d.rect(58, 50, 20, 8, { fill: skin, rx: 4 });
-            d.rect(65, 45, 9, 10, { fill: shirt, rx: 3 });
-          } else {
+          if (!holding) {
             d.group('rotate(-14 69 47)', () => {
               d.rect(65, 46, 8, 22, { fill: skin, rx: 4 });
               d.rect(64.5, 45, 9, 10, { fill: shirt, rx: 3 });
@@ -1039,6 +1090,7 @@ export default [
             }
           }, faceArea(p, 50, 27, 15));
         });
+        if (holding) holdArms(d, p, { left: [31, 47], right: [69, 47], y: 58, w: 8, skin, sleeve: shirt });
       });
     },
   },
@@ -1057,7 +1109,7 @@ export default [
       if (dispatchStylizedPerson(d, p, 'girl')) return;
       if (viewOf(p) === 'side') return drawSidePerson(d, p, SIDE.girl);
       const skin = p.c('skin'), dress = p.c('main');
-      const anim = p.opts.animation;
+      const anim = p.opts.animation, holding = isHolding(p);
       const animClass = personRoot(p);
 
       d.group({ class: animClass, style: idleStyle(p) }, () => {
@@ -1071,12 +1123,12 @@ export default [
         });
 
         d.group({ class: 'pg-arm-left' }, () => {
-          if (anim === 'point' || anim === 'pointing') {
+          if (holding) {
+            // (in front of the body, below)
+          } else if (anim === 'point' || anim === 'pointing') {
             d.rect(16, 44, 22, 7, { fill: skin, rx: 3.5 });
           } else if (anim === 'thumbsup') {
             d.rect(24, 30, 7, 18, { fill: skin, rx: 3.5 });
-          } else if (anim === 'hold' || anim === 'holding') {
-            d.rect(24, 48, 20, 7, { fill: skin, rx: 3.5 });
           } else {
             d.group('rotate(16 33 46)', () => {
               d.rect(29, 46, 7, 20, { fill: skin, rx: 3.5 });
@@ -1084,9 +1136,7 @@ export default [
           }
         });
         d.group({ class: 'pg-arm-right' }, () => {
-          if (anim === 'hold' || anim === 'holding') {
-            d.rect(56, 48, 20, 7, { fill: skin, rx: 3.5 });
-          } else {
+          if (!holding) {
             d.group('rotate(-16 67 46)', () => {
               d.rect(64, 46, 7, 20, { fill: skin, rx: 3.5 });
             });
@@ -1113,6 +1163,7 @@ export default [
             }
           }, faceArea(p, 50, 27, 14));
         });
+        if (holding) holdArms(d, p, { left: [33, 46], right: [67, 46], y: 57, w: 7, skin });
       });
     },
   },
@@ -1131,7 +1182,7 @@ export default [
       if (dispatchStylizedPerson(d, p, 'man')) return;
       if (viewOf(p) === 'side') return drawSidePerson(d, p, SIDE.man);
       const skin = p.c('skin'), shirt = p.c('main');
-      const anim = p.opts.animation;
+      const anim = p.opts.animation, holding = isHolding(p);
       const animClass = personRoot(p);
 
       d.group({ class: animClass, style: idleStyle(p) }, () => {
@@ -1145,20 +1196,18 @@ export default [
         });
 
         d.group({ class: 'pg-arm-left' }, () => {
-          if (anim === 'point' || anim === 'pointing') {
+          if (holding) {
+            // (in front of the body, below)
+          } else if (anim === 'point' || anim === 'pointing') {
             d.rect(12, 42, 24, 8, { fill: skin, rx: 4 });
           } else if (anim === 'thumbsup') {
             d.rect(22, 28, 8, 18, { fill: skin, rx: 4 });
-          } else if (anim === 'hold' || anim === 'holding') {
-            d.rect(20, 48, 22, 8, { fill: skin, rx: 4 });
           } else {
             d.rect(26, 42, 8, 24, { fill: skin, rx: 4 });
           }
         });
         d.group({ class: 'pg-arm-right' }, () => {
-          if (anim === 'hold' || anim === 'holding') {
-            d.rect(58, 48, 22, 8, { fill: skin, rx: 4 });
-          } else {
+          if (!holding) {
             d.rect(66, 42, 8, 24, { fill: skin, rx: 4 });
           }
         });
@@ -1183,6 +1232,7 @@ export default [
             }
           }, faceArea(p, 50, 24, 13));
         });
+        if (holding) holdArms(d, p, { left: [30, 44], right: [70, 44], y: 56, w: 8, skin });
       });
     },
   },
@@ -1201,7 +1251,7 @@ export default [
       if (dispatchStylizedPerson(d, p, 'woman')) return;
       if (viewOf(p) === 'side') return drawSidePerson(d, p, SIDE.woman);
       const skin = p.c('skin'), top = p.c('main');
-      const anim = p.opts.animation;
+      const anim = p.opts.animation, holding = isHolding(p);
       const animClass = personRoot(p);
 
       d.group({ class: animClass, style: idleStyle(p) }, () => {
@@ -1215,20 +1265,18 @@ export default [
         });
 
         d.group({ class: 'pg-arm-left' }, () => {
-          if (anim === 'point' || anim === 'pointing') {
+          if (holding) {
+            // (in front of the body, below)
+          } else if (anim === 'point' || anim === 'pointing') {
             d.rect(14, 42, 22, 7, { fill: skin, rx: 3.5 });
           } else if (anim === 'thumbsup') {
             d.rect(24, 28, 7, 18, { fill: skin, rx: 3.5 });
-          } else if (anim === 'hold' || anim === 'holding') {
-            d.rect(22, 48, 20, 7, { fill: skin, rx: 3.5 });
           } else {
             d.rect(28, 42, 7, 22, { fill: skin, rx: 3.5 });
           }
         });
         d.group({ class: 'pg-arm-right' }, () => {
-          if (anim === 'hold' || anim === 'holding') {
-            d.rect(58, 48, 20, 7, { fill: skin, rx: 3.5 });
-          } else {
+          if (!holding) {
             d.rect(65, 42, 7, 22, { fill: skin, rx: 3.5 });
           }
         });
@@ -1252,6 +1300,7 @@ export default [
             }
           }, faceArea(p, 50, 24, 13));
         });
+        if (holding) holdArms(d, p, { left: [31.5, 44], right: [68.5, 44], y: 56, w: 7, skin });
       });
     },
   },

@@ -3,6 +3,7 @@
 
 import { listConcepts, getConcept, registryVersion } from '../concepts/index.js';
 import { COLOR_WORDS } from '../core/color.js';
+import { canHold } from '../held.js';
 
 export const STOPWORDS = new Set(
   `a an the and or but nor of in on at to with without from by for is are was were be been being am
@@ -135,6 +136,9 @@ export const SYNONYMS = {
   kid: ['boy'], child: ['girl'], student: ['girl'], pupil: ['boy'], toddler: ['baby'],
   lady: ['woman'], gentleman: ['man'], grandpa: ['old_man', 'man'], grandfather: ['old_man', 'man'], grandma: ['old_woman', 'woman'], grandmother: ['old_woman', 'woman'],
   puppy: ['dog'], doggy: ['dog'], kitten: ['cat'], kitty: ['cat'], bunny: ['rabbit'], automobile: ['car'], bicycle: ['bike'], smartphone: ['mobile_phone'], cellphone: ['mobile_phone'],
+  cup: ['hot_beverage'], mug: ['hot_beverage'], coffee: ['hot_beverage'], tea: ['teacup_without_handle'], juice: ['beverage_box'],
+  milk: ['glass_of_milk'], bag: ['handbag'], present: ['wrapped_gift'], toy: ['teddy_bear'], flag: ['triangular_flag'],
+  sign: ['placard'], torch: ['flashlight'], sword: ['dagger'], letter: ['love_letter'],
   dinosaur: ['t_rex', 'sauropod'], dinosaurs: ['t_rex', 'sauropod'], dino: ['t_rex'], trex: ['t_rex'],
   wizard: ['man_mage'], wizards: ['man_mage'], witch: ['woman_mage'], sorcerer: ['man_mage'], magician: ['man_mage'],
   monster: ['alien_monster'], monsters: ['alien_monster'], fairy: ['woman_fairy'], fairies: ['woman_fairy'],
@@ -142,6 +146,15 @@ export const SYNONYMS = {
 // Before a noun, these words mean "flies" and "waves" are things ("three flies", "the waves");
 // after someone who can move, they are what it does ("a superhero flies", "he waves")
 const NOUN_LEADERS = new Set(['a', 'an', 'the', 'some', 'many', 'few', 'several', 'these', 'those', 'of', 'with', 'and', 'his', 'her', 'their', 'my', 'your', 'our', 'its', 'no', 'big', 'small', 'little', 'tiny', 'huge']);
+const CONTAINERS = new Set(['cup', 'mug', 'glass', 'bottle', 'can', 'box', 'bag', 'basket', 'bowl', 'plate', 'bunch', 'bouquet', 'piece', 'slice']);
+// Words for holding something: what follows is in the hands of whoever came before ("a girl holds
+// a balloon", "a boy with a ball", "she reads a book")
+const HOLD_VERBS = new Set(['hold', 'holds', 'holding', 'held', 'carry', 'carries', 'carrying', 'carried', 'hug', 'hugs', 'hugging',
+  'read', 'reads', 'reading', 'eat', 'eats', 'eating', 'drink', 'drinks', 'drinking', 'use', 'uses', 'using', 'grab', 'grabs',
+  'grabbing', 'show', 'shows', 'showing', 'has', 'have', 'with', 'brings', 'bringing', 'lick', 'licks', 'licking', 'play', 'plays', 'playing',
+  'fly', 'flies', 'flying', 'wave', 'waves', 'waving', 'throw', 'throws', 'throwing', 'catch', 'catches', 'catching']);
+const NOT_HELD_AFTER = ['at', 'to', 'toward', 'towards', 'over', 'under', 'in', 'on', 'into', 'onto', 'from', 'for', 'around', 'near',
+  'by', 'past', 'through', 'across', 'behind', 'beside', 'next', 'above', 'below', 'up', 'down', 'away', 'back', 'off', 'out', 'like'];
 const SUBJECT_PRONOUNS = new Set(['he', 'she', 'it', 'they', 'who', 'we', 'i', 'you']);
 // "no cats", "a boy without a hat": the next concept is left out of the picture.
 const NEGATIONS = new Set(['no', 'without', 'zero', 'none']);
@@ -325,7 +338,7 @@ function mergeMatches(found) {
   const out = [];
   for (const m of found) {
     const target = out.find((o) =>
-      o.id === m.id &&
+      o.id === m.id && (o.heldBy ?? null) === (m.heldBy ?? null) &&
       (!m.color || !o.color || o.color === m.color) &&
       (!m.expression || !o.expression || o.expression === m.expression) &&
       (!m.animation || !o.animation || o.animation === m.animation) &&
@@ -368,6 +381,8 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
   let pend = {};
   let lastConceptIndex = -99;
   let list = []; // indices into `found` of the current "x and y" list
+  let lastPerson = -1; // the last person named (who holds what follows a word for holding)
+  let holding = null; // { by: index in found, verb }
 
   const spreadMotion = (anim) => {
     for (const j of list) {
@@ -383,7 +398,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
       return;
     }
     found.push({
-      id: hit.id, word: hit.word, color: pend.color, size: pend.size,
+      id: hit.id, word: hit.word, color: pend.color, size: pend.size, ...(pend.count != null ? { countGiven: true } : {}),
       count: pend.count != null ? Math.max(1, Math.min(pend.count, MAX_COUNT)) : hit.plural ? 3 : 1,
       expression: pend.expression ?? hit.expression,
       animation: pend.animation ?? hit.animation,
@@ -393,6 +408,20 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     pend = {};
     list.push(found.length - 1);
     if (hit.animation) spreadMotion(hit.animation);
+    // In someone's hands: the first holdable thing after a word for holding
+    const m = found[found.length - 1];
+    if (/^people/.test(getConcept(m.id.split('~')[0])?.category ?? '')) lastPerson = found.length - 1;
+    else if (holding && !canHold(m.id, true)) holding = null; // (only what comes right after: "flies over the city")
+    else if (holding && canHold(m.id, holding.verb !== 'with' && holding.verb !== 'has' && !/^play/.test(holding.verb))) {
+      const who = found[holding.by];
+      m.heldBy = who.id;
+      // ("two girls holding balloons": one each)
+      if (hit.plural && !m.countGiven) {
+        m.count = who.count;
+        for (const j of holding.group) if (j !== holding.by) found.push({ ...m, heldBy: found[j].id, count: found[j].count });
+      }
+      holding = null;
+    }
   };
 
   for (let i = 0; i < toks.length;) {
@@ -402,6 +431,20 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     if (['and', 'or', 'but', 'with', 'without', 'then'].includes(t)) {
       lastConceptIndex = -99;
     }
+    if (HOLD_VERBS.has(t) && lastPerson >= 0) {
+      // ("a boy and a girl holding balloons": each of them)
+      const group = list.filter((j) => /^people/.test(getConcept(found[j].id.split('~')[0])?.category ?? ''));
+      holding = { by: lastPerson, verb: t, group: group.includes(lastPerson) ? group : [lastPerson] };
+    }
+    // "She reads a book" with nobody named yet: a woman (he: a man) does it
+    if ((t === 'she' || t === 'he') && lastPerson < 0 && !found.length && next && (!at(toks, i + 1) || HOLD_VERBS.has(next) || MOTION_WORDS[next])) {
+      push({ id: t === 'she' ? 'woman' : 'man', word: t, plural: false });
+      lastConceptIndex = i;
+      i++;
+      continue;
+    }
+    // ("waves at a dog", "flies over the city": nothing in the hands)
+    else if (['then', 'while', 'when', 'but', ...NOT_HELD_AFTER].includes(t)) holding = null;
     const seen = viewPhrase(toks, i);
     if (seen) {
       // "back view of a boy" -> the next figure; "a boy and a girl seen from behind" -> the list so far
@@ -444,6 +487,19 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
       i++;
       continue;
     }
+    // "a cup of coffee", "a glass of milk", "a box of apples": what's in it, or else the container
+    if (CONTAINERS.has(t) && next === 'of' && toks[i + 2]) {
+      const inner = at(toks, i + 2);
+      const innerSyn = !inner && SYNONYMS[toks[i + 2]]?.find((id) => getConcept(id));
+      const outer = at(toks, i) ?? (SYNONYMS[t]?.find((id) => getConcept(id)) && { id: SYNONYMS[t].find((id) => getConcept(id)), len: 1 });
+      const pick = /^(cup|mug|glass|bottle|can)s?$/.test(t) ? (inner ?? (innerSyn && { id: innerSyn, len: 1 }) ?? outer) : (outer ?? inner);
+      if (pick) {
+        push({ id: pick.id, word: t, plural: false });
+        lastConceptIndex = i + 2;
+        i += 2 + (inner?.len ?? 1);
+        continue;
+      }
+    }
     // A word with no drawing of its own, drawn as the nearest that has one
     const synonym = !isModifierAdjective && SYNONYMS[t]?.find((id) => getConcept(id));
     if (synonym && !at(toks, i)) {
@@ -455,7 +511,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     // "a superhero flies", "she waves": after someone who can move, a motion word is what they
     // do, not the insect or the sea ("three flies", "the waves" stay things)
     const prev = toks[i - 1];
-    const afterMover = MOTION_WORDS[t] && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev] && !COLOR_WORDS[prev]
+    const afterMover = (MOTION_WORDS[t] || HOLD_VERBS.has(t)) && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev] && !COLOR_WORDS[prev]
       && (SUBJECT_PRONOUNS.has(prev) || names?.has(prev)
         || (lastConceptIndex === i - 1 && found.length && MOVERS.has(getConcept(found[found.length - 1].id.split('~')[0])?.category)));
 
@@ -470,7 +526,14 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
       continue;
     }
     if (hit) {
+      const listed = [...list, found.length]; // (push spreads a motion over the list and empties it)
       push(hit);
+      // ("woman holds" is read as one: the woman, holding what follows)
+      const verb = toks.slice(i + 1, i + hit.len).find((w) => HOLD_VERBS.has(w));
+      if (verb && lastPerson === found.length - 1) {
+        const group = listed.filter((j) => found[j] && /^people/.test(getConcept(found[j].id.split('~')[0])?.category ?? ''));
+        holding = { by: lastPerson, verb, group: group.includes(lastPerson) ? group : [lastPerson] };
+      }
       lastConceptIndex = i + hit.len - 1;
       i += hit.len;
       continue;
@@ -495,7 +558,10 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
       const anim = tail ? tail.anim : MOTION_WORDS[t];
       const at = i;
       if (tail) i += tail.len;
-      if (hasNextConcept) {
+      if (anim === 'hold' && holding) {
+        // ("three kids holding flags": the kids hold, the flags don't)
+        for (const j of holding.group) found[j].animation ??= 'hold';
+      } else if (hasNextConcept) {
         pend.animation = anim;
       } else if (found.length > 0 && (at <= lastConceptIndex + 2)) {
         found[found.length - 1].animation = anim;
@@ -514,5 +580,6 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     }
     i++;
   }
+  for (const m of found) delete m.countGiven;
   return { matches: mergeMatches(found), unknown: [...new Set(unknown)], excluded: [...new Set(excluded)], tokens: toks };
 }

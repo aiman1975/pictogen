@@ -147,6 +147,28 @@ test('persona prompts draw what was meant', () => {
   if (!r.suggestions.wizzard?.includes('wizard')) throw new Error(`suggestions: ${JSON.stringify(r.suggestions)}`);
 });
 
+// Holding things: in the holder's hands, at hand size, not set down beside them
+test('things held are in the hands: "a woman holds a phone", "a girl with a balloon"...', () => {
+  const held = (t) => generate(t).matches.filter((m) => m.heldBy).map((m) => `${m.id}<${m.heldBy}x${m.count}`).join(' ');
+  for (const [prompt, want] of [
+    ['a woman holds a phone', 'mobile_phone<womanx1'], ['a boy holding a red ball', 'ball<boyx1'], ['a girl reads a book', 'book<girlx1'],
+    ['a girl with a balloon', 'balloon<girlx1'], ['a boy hugs a cat', 'cat<boyx1'], ['she drinks a cup of coffee', 'hot_beverage<womanx1'],
+    ['two girls holding balloons', 'balloon<girlx2'], ['a boy and a girl holding balloons', 'balloon<girlx1 balloon<boyx1'],
+    ['a boy flies a kite in the park', 'kite<boyx1'],
+    // not held
+    ['a man with a dog', ''], ['a happy girl waves at a dog under a tree', ''], ['a boy kicks a ball', ''], ['a superhero flies over the city', ''],
+  ]) if (held(prompt) !== want) throw new Error(`"${prompt}": ${held(prompt) || 'nothing held'}, not ${want || 'nothing held'}`);
+  for (const style of ['flat', 'cartoon', 'anime', 'stickman', 'cute2d', 'geometric', 'papercut', 'editorial']) {
+    const svg = generate('a woman holds a phone', { style }).svg;
+    const items = svg.match(/<g class="movable-item"[^>]*>/g) || [];
+    if (items.length !== 1 || !/data-held="mobile_phone"/.test(items[0])) throw new Error(`${style}: ${items.length} figures: ${items.join(' ')}`);
+    if (!/class="pg-held"/.test(svg)) throw new Error(`${style}: the phone is not in her hands`);
+  }
+  // Walking in profile, and in a timeline, still holding it
+  if (!/pg-held/.test(generate('a girl walks with a book').svg)) throw new Error('walking: the book is gone');
+  if ((generate('a girl with a balloon walks in, then waves').svg.match(/class="pg-held"/g) || []).length < 2) throw new Error('timeline: not in every pose');
+});
+
 if (fails > 0) {
   console.error(`\nTest suite FAILED with ${fails} failures.`);
   process.exit(1);

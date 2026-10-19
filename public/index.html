@@ -1948,6 +1948,8 @@
           seed: `${state.seed}:${item.dataset.aid || item.dataset.id}:${k}`,
           vary: state.vary || k > 0 || item.dataset.vary === '1',
           color: item.dataset.color,
+          // (what it holds stays in its hands)
+          ...(item.dataset.held ? { held: { id: item.dataset.held, color: item.dataset.heldColor } } : {}),
         }),
       });
       const data = await res.json();

@@ -5,6 +5,7 @@ import { getStyle, INK } from './styles.js';
 import { createRng } from './rng.js';
 import { resolveColor, lighten } from './color.js';
 import { getConcept } from '../concepts/index.js';
+import { heldShape } from '../held.js';
 
 export const FONT = "'Nunito','Segoe UI',Roboto,Arial,sans-serif";
 
@@ -63,10 +64,40 @@ export function buildParams(concept, opts = {}) {
   };
 }
 
+// Motions whose legs keep going while the hands hold something
+const CARRY_MOTIONS = ['walk', 'run', 'walk-across', 'approach', 'recede', 'jump', 'dance', 'sit'];
+
+/**
+ * A concept's shapes. opts.held: { id, color? } - a person holding something (src/held.js): the
+ * hold pose (arms bent, hands in front) unless walking or running, the thing at its size in the
+ * hands, and the hands over it.
+ */
 export function drawConcept(conceptOrId, opts = {}) {
   const c = lookup(conceptOrId);
   const kit = createKit();
-  c.draw(kit, buildParams(c, opts));
+  const shape = opts.held && /^people/.test(c.category ?? '') && getConcept(opts.held.id) ? heldShape(opts.held.id) : null;
+  if (shape) {
+    const held = { ...opts.held, ...shape };
+    opts = { ...opts, held, animation: CARRY_MOTIONS.includes(opts.animation) ? opts.animation : 'hold' };
+  } else if (opts.held) opts = { ...opts, held: undefined };
+  const p = buildParams(c, opts);
+  c.draw(kit, p);
+  if (shape) {
+    // Where the drawing put the hands (emoji people show no hands: low in front)
+    const g = p.grip ?? { x: 66, y: 74, hands: [] };
+    const o = getConcept(opts.held.id), k = shape.size / 100;
+    // Floating above (a balloon, an umbrella): a string or shaft from the hands up to it
+    const to = shape.float ? [g.x + shape.float[0], shape.float[1]] : [g.x, g.y];
+    kit.group({ class: 'pg-held', data: { held: o.id } }, () => {
+      // (a string swings out sideways before it rises, clear of the face)
+      if (shape.float) kit.path(`M ${g.x} ${g.y} Q ${to[0] + 4} ${g.y} ${to[0]} ${to[1]}`, { kind: 'line', stroke: shape.line, sw: 1.2, fill: 'none' });
+      const sx = shape.mirror ? -k : k;
+      kit.group(`translate(${Math.round((to[0] - shape.at[0] * sx) * 100) / 100} ${Math.round((to[1] - shape.at[1] * k) * 100) / 100}) scale(${sx} ${k})`, () => {
+        o.draw(kit, buildParams(o, { seed: `${opts.seed}:held`, style: opts.style, color: opts.held.color, vary: opts.vary }));
+      });
+      for (const [x, y] of g.hands) kit.circle(x, y, g.r, { fill: g.fill, stroke: g.stroke, sw: g.sw });
+    });
+  }
   return kit.shapes;
 }
 

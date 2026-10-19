@@ -359,6 +359,16 @@ try {
 
   check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
 
+  // Something held stays in the hands when the figure's expression changes
+  await draw('a girl holds a balloon');
+  await select('.movable-item[data-id="girl"]');
+  await clickExpression('sad');
+  const kept2 = await page.evaluate(() => {
+    const g = document.querySelector('.movable-item[data-id="girl"]');
+    return { held: !!g.querySelector('.pg-figure .pg-held'), sad: g.querySelector('.pg-figure').innerHTML.includes('#4fc3f7') };
+  });
+  check(kept2.held && kept2.sad, `a balloon stays in her hand when she turns sad (${JSON.stringify(kept2)})`);
+
   // Words it can't draw: a guess is drawn and said, close words are offered, a click uses one
   await draw('an elefant');
   const guess = await page.evaluate(() => ({ ids: window.pictogenStudio.getState().result.matches.map((m) => m.id), help: document.getElementById('word-help').textContent }));
