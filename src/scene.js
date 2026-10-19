@@ -3,6 +3,7 @@
 
 import { conceptOf, whoOf } from './individuals.js';
 import { lipKeys, lipCss } from './speech.js';
+import { layoutBubbles } from './bubble.js';
 import { actionCues, stillCues, soundTrack, voiceOf } from './sound.js';
 import { getConcept } from './concepts/index.js';
 import { createKit } from './core/kit.js';
@@ -429,7 +430,7 @@ function playTimeline(timeline, slots, props, W) {
         words = a.anim === 'talk' ? a.speech ?? timeline.caption : null;
         if (words) {
           d = Math.max(d, lipKeys(words).duration + 0.4);
-          speeches.push({ key, start: t, text: words });
+          speeches.push({ key, start: t, text: words, quoted: a.speech != null });
         }
       } else {
         // 'expr' / 'appear'
@@ -490,6 +491,26 @@ function playTimeline(timeline, slots, props, W) {
 // scene, so the camera never shows past its edges. Stills (no animation) show the wide shot.
 
 const CAMERA_SECONDS = { zoomIn: 1.6, zoomOut: 1.6, pan: 3, panTo: 2 };
+
+/**
+ * Speech bubbles over the picture for whoever speaks (src/bubble.js): always there in a still scene;
+ * in a timeline, each while its words last (and laid out clear of the bubbles shown with it).
+ */
+function speechBubbles(talkers, W, H, uid, motionCss) {
+  if (!talkers.length) return '';
+  const shown = [];
+  const svg = talkers.map((tk, i) => {
+    const timed = tk.T != null;
+    const avoid = shown.filter((o) => !timed || (o.from < tk.to && tk.from < o.to)).map((o) => o.box);
+    const [b] = layoutBubbles([tk], { W, H, avoid });
+    shown.push({ ...tk, box: b.box });
+    if (!timed) return `<g data-for="${tk.of}">${b.svg}</g>`;
+    const pc = (t) => `${r2(Math.min(100, Math.max(0, (t / tk.T) * 100)))}%`;
+    motionCss.push(`@keyframes ${uid}b${i} { 0% { opacity: 0; } ${pc(tk.from)} { opacity: 1; } ${pc(tk.to)} { opacity: 0; } }`);
+    return `<g data-for="${tk.of}" opacity="0" style="animation: ${uid}b${i} ${r2(tk.T)}s step-end infinite;">${b.svg}</g>`;
+  });
+  return `<g class="pg-bubbles" pointer-events="none">${svg.join('')}</g>`;
+}
 
 /**
  * Where an actor is at time t (seconds), from its timeline track: { x, k } (front-row x, depth scale).
@@ -672,6 +693,7 @@ export function composeScene(matches, opts = {}) {
   const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''}${it.alt > 0 ? ' data-vary="1"' : ''}`;
   // Who says what in a still scene ("Tom says “Hello!”"): figure id -> words
   const said = new Map((opts.speech || []).map((sp) => [sp.who, sp.text]));
+  const talkers = []; // who speaks where, for their speech bubbles: { x, top, text, room, of }
   // Who looks at whom ("a boy and a girl looking at each other"): concept id -> concept id | 'camera'
   const looks = new Map((opts.looks || []).map((l) => [l.who, l.at]));
   const placed = [], later = [];
@@ -725,6 +747,8 @@ export function composeScene(matches, opts = {}) {
       const name = `${uid}l${out.length}`, loop = r2(lipKeys(words).duration + 2);
       motionCss.push(lipCss(name, [{ start: 0.5, text: words }], loop));
       lips = ` data-lips="${name}"`;
+      // (a bubble for its own words; a clip's caption is already shown under the picture)
+      if (said.has(it.aid)) talkers.push({ x: cx, top: y0 + 2 * s, text: words, room: w, of: `${it.c.id}#${it.k}` });
       opts.speechDuration = Math.max(opts.speechDuration ?? 0, loop);
       soundLoop = Math.max(soundLoop ?? 0, loop);
     }
@@ -964,6 +988,12 @@ export function composeScene(matches, opts = {}) {
       const said = speeches.filter((sp) => sp.key === key);
       // (a start in the next beat is one in the same loop: keyframes after the loop's end are cut)
       if (said.length) motionCss.push(lipCss(`${name}l`, said, r2(T)));
+      for (const sp of said.filter((x) => x.quoted)) {
+        // Where the speaker is while talking, for the bubble (shown while the words last)
+        const dur = lipKeys(sp.text).duration, p = posAt(tracks.get(key), sp.start + dur / 2) ?? { x: slot.cx, k: 1 };
+        const foot = hY + (slot.y - hY) * p.k;
+        talkers.push({ x: W / 2 + (p.x - W / 2) * p.k, top: foot - (slot.base - 2) * slot.s * p.k, text: sp.text, room: slot.w * p.k, of: `${slot.it.c.id}#${slot.it.k}`, from: sp.start - 0.15, to: Math.min(T, sp.start + dur + 0.8), T });
+      }
       out.push(renderActor(slot, tracks.get(key), T, name, said.length ? `${name}l` : null));
     }
     if (events.length || timeline.follow) {
@@ -997,7 +1027,7 @@ export function composeScene(matches, opts = {}) {
   let bgSvg = shapesToSvg(background(W, H, hY, env, pal, rng, hasGround, style), style);
   if (st.bgFilter && filterRef) bgSvg = `<rect width="${W}" height="${H}" fill="${st.background || '#ffffff'}"/><g filter="${filterRef}">${bgSvg}</g>`;
   const decor = st.decor ? st.decor(uid, W, H, hY) : '';
-  let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${decor}${fx.g}`;
+  let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${decor}${fx.g}${speechBubbles(talkers, W, H, uid, motionCss)}`;
   if (cam) {
     motionCss.push(`@keyframes ${uid}cam { ${cameraCss(cam.keys, cam.T, W, H)}}`);
     content = `<g class="pg-camera" style="animation: ${uid}cam ${r2(cam.T)}s linear infinite;">${content}</g>`;

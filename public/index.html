@@ -1714,6 +1714,13 @@
 
     function applyTransform(el, { tx, ty, sx, sy }) {
       const round = n => Math.round(n * 100) / 100;
+      // A figure's speech bubble goes where the figure goes
+      const bubble = el.dataset.id && getSvgElement()?.querySelector(`.pg-bubbles [data-for="${el.dataset.id}#${el.dataset.k}"]`);
+      if (bubble) {
+        if (!el.dataset.home) { const h = parseTransform(el); el.dataset.home = `${h.tx} ${h.ty}`; }
+        const [hx, hy] = el.dataset.home.split(' ').map(Number);
+        bubble.setAttribute('transform', `translate(${round(tx - hx)} ${round(ty - hy)})`);
+      }
       el.setAttribute('transform', `translate(${round(tx)} ${round(ty)}) scale(${round(sx)} ${round(sy)})`);
       state.svg = svgViewport.innerHTML;
     }

@@ -8,6 +8,8 @@ import { createRng } from './core/rng.js';
 import { lighten, darken, mix } from './core/color.js';
 import { createKit } from './core/kit.js';
 import { drawLetterCreature, LETTER_PALETTES } from './concepts/alphabet.js';
+import { layoutBubbles, fitText, textWidth } from './bubble.js';
+import { takeQuotes } from './speech.js';
 
 const fmt = (v) => Math.round(v * 100) / 100;
 
@@ -956,104 +958,75 @@ export function renderStickman(matches, opts = {}) {
 /**
  * 8. Newspaper Comic Strip Mode (Style 3 from roadmap)
  * 3-panel horizontal sequential comic strip with ink panel borders,
- * speech bubbles, and narrative progression (Setup, Conflict, Punchline).
+ * speech bubbles, and narrative progression (Setup, Discovery, Punchline).
+ * The prompt's quoted words ("a boy finds a cat “Hello!” “Meow?” “Best day ever!”") are the
+ * three panels' lines; the bubbles fit their words and stay inside their panels (src/bubble.js).
  */
 export function renderComicStrip(matches, opts = {}) {
   const { width = 840, height = 320, seed = 1, text = 'a boy on an adventure', style = 'comic' } = opts;
   const W = width, H = height;
   const panelStyle = ['stickman', 'cute2d', 'editorial', 'geometric', 'whiteboard', 'doodle', 'papercut'].includes(style) ? style : 'comic';
+  const { text: unquoted, quotes } = takeQuotes(text);
+  const lines = [quotes[0] || 'What a lovely day!', quotes[1] || 'Look what I found!!', quotes[2] || 'HAHA! AWESOME!'];
 
-  const titleText = (text || 'COMIC STRIP').toUpperCase();
-  const primary = matches[0] || { id: 'boy' };
-  const secondary = matches[1] || { id: 'apple' };
+  // The hero: the first person (or animal) in the prompt; what they find: the next thing (saying
+  // the second line when the prompt gives one)
+  const rank = (m) => ({ people: 0, people_body: 0, animals: 1, animals_nature: 1, wildlife: 1 }[getConcept(m.id)?.category] ?? 2);
+  const ordered = [...matches].filter((m) => getConcept(m.id)).sort((a, b) => rank(a) - rank(b));
+  const c1 = getConcept(ordered[0]?.id) || getConcept('boy');
+  const c2 = ordered.slice(1).map((m) => getConcept(m.id)).find((c) => c && c.id !== c1.id) || null;
 
-  const c1 = getConcept(primary.id) || getConcept('boy');
-  const c2 = getConcept(secondary.id) || getConcept('apple');
+  const gap = Math.max(6, W * 0.014), top = 46, foot = 26;
+  const pW = (W - 4 * gap) / 3, pH = H - top - foot;
+  const figH = Math.min(pH * 0.6, pW * 0.8);
+  const figure = (c, opt, cx, h) => {
+    const s = h / 100, base = c.baseline ?? 96;
+    const shapes = shapesToSvg(drawConcept(c, { seed, style: panelStyle, ...opt }), panelStyle, { olk: 1.2 });
+    return { svg: `<g transform="translate(${fmt(cx - 50 * s)} ${fmt(pH - 8 - base * s)}) scale(${fmt(s)})">${shapes}</g>`, x: cx, top: pH - 8 - base * s + 4 * s, w: h * (c.width ?? 0.8) };
+  };
+  const bubbleSize = Math.max(9, Math.min(15, pW / 17));
+  const panel = (i, label, badge, body, speaker, line) => {
+    const [b] = layoutBubbles([{ x: speaker.x, top: speaker.top, text: line, room: speaker.w }], {
+      W: pW, H: pH, size: bubbleSize, maxLines: 3, margin: 6, maxWidth: 0.86, avoid: [{ x: 4, y: 4, w: textWidth(label, 9) + 14, h: 18 }],
+    });
+    const x = gap + i * (pW + gap);
+    return `<g id="panel-${i + 1}" transform="translate(${fmt(x)}, ${top})">
+      <clipPath id="${uid}p${i}"><rect width="${fmt(pW)}" height="${fmt(pH)}"/></clipPath>
+      <rect width="${fmt(pW)}" height="${fmt(pH)}" fill="#ffffff"/>
+      <g clip-path="url(#${uid}p${i})">${body}${b.svg}</g>
+      <rect width="${fmt(pW)}" height="${fmt(pH)}" fill="none" stroke="#111827" stroke-width="3.5"/>
+      <rect x="8" y="8" width="${fmt(textWidth(label, 9) + 10)}" height="16" rx="2" fill="${badge}"/>
+      <text x="13" y="20" font-family="${FONT}" font-size="9" font-weight="900" fill="#0f172a">${label}</text>
+    </g>`;
+  };
+  const uid = newUid();
 
-  const pW = (W - 48) / 3;
-  const pH = H - 85;
-  const pY = 46;
+  // (emoji people are drawn larger than our own: kept to their size)
+  const heroH = figH * Math.min(1, c1.scale ?? 1);
+  const p1 = figure(c1, { expression: 'happy', animation: 'walk' }, pW / 2, heroH);
+  const p2 = figure(c1, { expression: 'surprised', animation: 'point' }, c2 ? pW * 0.32 : pW / 2, heroH);
+  const thing = c2 ? figure(c2, { seed: seed + 1 }, pW * 0.74, figH * Math.min(1, Math.max(0.45, c2.scale ?? 0.7))) : null;
+  const p3 = figure(c1, { expression: 'laugh', animation: 'thumbsup' }, pW / 2, heroH);
+  // Surprise lines by the hero's head
+  const sx = Math.max(24, p2.x - p2.w / 2 - 6), sy = p2.top + 10;
+  const zap = `<path d="M ${fmt(sx)} ${fmt(sy + 14)} l -12 -8 M ${fmt(sx + 2)} ${fmt(sy + 2)} l -9 -13 M ${fmt(sx + 12)} ${fmt(sy - 6)} l -4 -14" stroke="#111827" stroke-width="2.5" stroke-linecap="round"/>`;
 
-  // Render shapes for each panel using the same character seed so the character stays 100% consistent across frames
-  const s1 = shapesToSvg(drawConcept(c1, { seed, expression: 'happy', animation: 'walk', style: panelStyle }), panelStyle, { olk: 1.2 });
-  const s2Char = shapesToSvg(drawConcept(c1, { seed, expression: 'surprised', animation: 'point', style: panelStyle }), panelStyle, { olk: 1.2 });
-  const s2Obj = shapesToSvg(drawConcept(c2, { seed: seed + 1, style: panelStyle }), panelStyle, { olk: 1.2 });
-  const s3 = shapesToSvg(drawConcept(c1, { seed, expression: 'laugh', animation: 'thumbsup', style: panelStyle }), panelStyle, { olk: 1.2 });
+  // The title fits the banner's right side, cut short with "…" when long
+  const brand = '📰 THE PICTOGEN CHRONICLES';
+  const titleRoom = W - 48 - textWidth(brand, 12) - 24;
+  const title = fitText(`STRIP #${seed} • ${(unquoted.replace(/\bqq\d+\b/g, '').replace(/\s+/g, ' ').trim() || 'COMIC STRIP').toUpperCase()}`, { maxW: titleRoom, maxLines: 1, size: 11, minSize: 8 });
+  const footer = fitText('© PICTOGEN SYNDICATE • VECTOR COMIC ENGINE • OFFLINE & PROGRAMMATIC', { maxW: W - 24, maxLines: 1, size: 9.5, minSize: 7 });
 
   const content = `
-    <!-- Vintage Newsprint Paper Background -->
     <rect width="${W}" height="${H}" fill="#fbf9f4"/>
-    
-    <!-- Halftone Texture Hint / Paper Grain -->
     <rect width="${W}" height="${H}" fill="none" stroke="#111827" stroke-width="4"/>
-
-    <!-- Header Strip Banner -->
     <rect x="8" y="8" width="${W - 16}" height="28" fill="#111827"/>
-    <text x="24" y="27" font-family="${FONT}" font-size="12" font-weight="900" fill="#ffffff" letter-spacing="0.08em">📰 THE PICTOGEN CHRONICLES</text>
-    <text x="${W - 24}" y="27" text-anchor="end" font-family="${FONT}" font-size="11" font-weight="700" fill="#fbbf24" letter-spacing="0.05em">STRIP #${seed} • ${esc(titleText.substring(0, 32))}</text>
-
-    <!-- ================= PANEL 1: SETUP ================= -->
-    <g id="panel-1" transform="translate(12, ${pY})">
-      <rect width="${pW}" height="${pH}" fill="#ffffff" stroke="#111827" stroke-width="3.5"/>
-      <!-- Panel Header Badge -->
-      <rect x="8" y="8" width="56" height="16" rx="2" fill="#e2e8f0"/>
-      <text x="36" y="20" text-anchor="middle" font-family="${FONT}" font-size="9" font-weight="800" fill="#0f172a">1. SETUP</text>
-
-      <!-- Speech Bubble -->
-      <path d="M 60 48 Q 60 30 110 30 L 190 30 Q 240 30 240 48 Q 240 66 190 66 L 140 66 L 125 78 L 132 66 L 110 66 Q 60 66 60 48 Z"
-            fill="#ffffff" stroke="#111827" stroke-width="2.5"/>
-      <text x="150" y="52" text-anchor="middle" font-family="${FONT}" font-size="10.5" font-weight="800" fill="#111827">What a lovely day!</text>
-
-      <!-- Character in Panel 1 -->
-      <g transform="translate(${pW * 0.5 - 45}, ${pH * 0.45}) scale(1.1)">
-        ${s1}
-      </g>
-    </g>
-
-    <!-- ================= PANEL 2: CONFLICT / ACTION ================= -->
-    <g id="panel-2" transform="translate(${12 + pW + 12}, ${pY})">
-      <rect width="${pW}" height="${pH}" fill="#ffffff" stroke="#111827" stroke-width="3.5"/>
-      <rect x="8" y="8" width="70" height="16" rx="2" fill="#e2e8f0"/>
-      <text x="43" y="20" text-anchor="middle" font-family="${FONT}" font-size="9" font-weight="800" fill="#0f172a">2. DISCOVERY</text>
-
-      <!-- Thought / Surprise Bubble -->
-      <path d="M 50 48 Q 50 30 110 30 L 190 30 Q 250 30 250 48 Q 250 66 190 66 L 140 66 L 125 78 L 132 66 L 110 66 Q 50 66 50 48 Z"
-            fill="#ffffff" stroke="#111827" stroke-width="2.5"/>
-      <text x="150" y="52" text-anchor="middle" font-family="${FONT}" font-size="10.5" font-weight="800" fill="#111827">Look what I found!!</text>
-
-      <!-- Action lines / Exclamation -->
-      <path d="M 40 100 L 25 90 M 45 90 L 35 75 M 55 85 L 50 70" stroke="#111827" stroke-width="2.5" stroke-linecap="round"/>
-
-      <!-- Consistent Character + Object Interaction -->
-      <g transform="translate(${pW * 0.22 - 35}, ${pH * 0.45}) scale(1.05)">
-        ${s2Char}
-      </g>
-      <g transform="translate(${pW * 0.68 - 35}, ${pH * 0.48}) scale(1.0)">
-        ${s2Obj}
-      </g>
-    </g>
-
-    <!-- ================= PANEL 3: PUNCHLINE ================= -->
-    <g id="panel-3" transform="translate(${12 + (pW + 12) * 2}, ${pY})">
-      <rect width="${pW}" height="${pH}" fill="#ffffff" stroke="#111827" stroke-width="3.5"/>
-      <rect x="8" y="8" width="72" height="16" rx="2" fill="#fef08a"/>
-      <text x="44" y="20" text-anchor="middle" font-family="${FONT}" font-size="9" font-weight="900" fill="#854d0e">3. PUNCHLINE</text>
-
-      <!-- Punchline Speech Bubble (Spiky Starburst) -->
-      <polygon points="130,26 150,33 175,24 185,38 215,35 210,50 235,58 215,70 230,82 205,86 210,100 185,92 165,102 155,88 135,94 140,78 115,74 135,62 120,48 140,45"
-               fill="#fef08a" stroke="#111827" stroke-width="2.5"/>
-      <text x="175" y="66" text-anchor="middle" font-family="${FONT}" font-size="11" font-weight="900" fill="#111827">HAHA! AWESOME!</text>
-
-      <!-- Laughing character -->
-      <g transform="translate(${pW * 0.5 - 45}, ${pH * 0.45}) scale(1.1)">
-        ${s3}
-      </g>
-    </g>
-
-    <!-- Footer Copyright & Issue -->
-    <text x="${W * 0.5}" y="${H - 12}" text-anchor="middle" font-family="${FONT}" font-size="9.5" font-weight="700" fill="#64748b" letter-spacing="0.05em">
-      © PICTOGEN SYNDICATE • VECTOR COMIC ENGINE • OFFLINE &amp; PROGRAMMATIC
-    </text>
+    <text x="24" y="27" font-family="${FONT}" font-size="12" font-weight="900" fill="#ffffff" letter-spacing="0.04em">${brand}</text>
+    ${titleRoom > 40 ? `<text x="${W - 24}" y="27" text-anchor="end" font-family="${FONT}" font-size="${fmt(title.size)}" font-weight="700" fill="#fbbf24">${esc(title.lines[0] || '')}</text>` : ''}
+    ${panel(0, '1. SETUP', '#e2e8f0', p1.svg, p1, lines[0])}
+    ${panel(1, '2. DISCOVERY', '#e2e8f0', zap + p2.svg + (thing?.svg ?? ''), thing && quotes[1] ? thing : p2, lines[1])}
+    ${panel(2, '3. PUNCHLINE', '#fef08a', p3.svg, p3, lines[2])}
+    <text x="${W * 0.5}" y="${H - 9}" text-anchor="middle" font-family="${FONT}" font-size="${fmt(footer.size)}" font-weight="700" fill="#64748b">${esc(footer.lines[0])}</text>
   `;
 
   return svgDoc({ width: W, height: H, viewBox: `0 0 ${W} ${H}`, content, title: 'Newspaper Comic Strip' });

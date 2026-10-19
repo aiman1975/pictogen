@@ -1,4 +1,5 @@
 import { generate } from '../src/index.js';
+import { fitText } from '../src/bubble.js';
 
 let fails = 0;
 function test(desc, fn) {
@@ -68,6 +69,46 @@ for (const style of STYLES) {
     if (/NaN|undefined/.test(res.svg)) throw new Error(`Style ${style} produced NaN/undefined`);
   });
 }
+
+// Speech bubbles fit: inside the picture (or panel), clear of one another, their words all there or
+// cut with "…"
+const bubbleBoxes = (svg) => [...svg.matchAll(/<g class="pg-bubble"><path d="([^"]+)"/g)].map((m) => {
+  const n = m[1].match(/-?[\d.]+/g).map(Number);
+  const xs = n.filter((_, i) => i % 2 === 0), ys = n.filter((_, i) => i % 2 === 1);
+  return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+});
+test('still scene: each speaker gets a bubble inside the picture, none overlapping', () => {
+  const long = 'Hello Mia! Do you want to play football with me after school today, or maybe tomorrow if it rains?';
+  for (const [w, h] of [[640, 360], [360, 640], [320, 240]]) {
+    const r = generate(`a girl says "${long}" and a boy says "Look at that huge rainbow over the hills!" and a dog says "Woof!"`, { width: w, height: h });
+    const boxes = bubbleBoxes(r.svg);
+    if (boxes.length !== 3) throw new Error(`${w}x${h}: ${boxes.length} bubbles`);
+    for (const b of boxes) if (b.x0 < 0 || b.y0 < 0 || b.x1 > w || b.y1 > h) throw new Error(`${w}x${h}: a bubble leaves the picture ${JSON.stringify(b)}`);
+    boxes.forEach((a, i) => boxes.slice(i + 1).forEach((b) => {
+      if (a.x0 < b.x1 - 2 && b.x0 < a.x1 - 2 && a.y0 < b.y1 - 2 && b.y0 < a.y1 - 2) throw new Error(`${w}x${h}: bubbles overlap`);
+    }));
+  }
+});
+test('words too many for a bubble are cut short with "…"', () => {
+  const f = fitText('one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen', { maxW: 80, maxLines: 2, size: 12, minSize: 9 });
+  if (f.lines.length !== 2 || !f.lines[1].endsWith('…') || f.w > 80) throw new Error(JSON.stringify(f));
+  const g = fitText('Hi!', { maxW: 80, size: 12 });
+  if (g.lines.join() !== 'Hi!' || g.size !== 12) throw new Error(JSON.stringify(g));
+});
+test('timeline: a bubble shows while its words are said', () => {
+  const r = generate('a boy walks in, then says "Hello there!", then a dog runs to him');
+  if (bubbleBoxes(r.svg).length !== 1 || !/@keyframes pg\w*b0 \{ 0% \{ opacity: 0; \} [\d.]+% \{ opacity: 1; \} [\d.]+% \{ opacity: 0; \} \}/.test(r.svg)) throw new Error('no timed bubble');
+});
+test('comic strip: bubbles stay inside their panels and the title fits, at any size', () => {
+  for (const [w, h] of [[420, 300], [640, 360], [840, 320], [1200, 500]]) {
+    const r = generate('a boy finds a puppy on a very long and winding road "Oh! Who is this little fellow sitting all alone by the road?" "Woof woof!" "BEST DAY EVER!"', { mode: 'comic', width: w, height: h });
+    for (const m of r.svg.matchAll(/<g id="panel-\d"[^>]*>\s*<clipPath[^>]*><rect width="([\d.]+)" height="([\d.]+)"\/><\/clipPath>([\s\S]*?)<\/g>\s*<rect width/g)) {
+      for (const b of bubbleBoxes(m[3])) if (b.x0 < 0 || b.y0 < 0 || b.x1 > +m[1] || b.y1 > +m[2]) throw new Error(`${w}x${h}: a bubble leaves its panel`);
+    }
+    if (bubbleBoxes(r.svg).length !== 3 || !r.svg.includes('Woof woof!') || !r.svg.includes('BEST DAY EVER!')) throw new Error(`${w}x${h}: the prompt's lines are not in the bubbles`);
+    if (r.svg.includes('qq')) throw new Error('quote markers leak into the title');
+  }
+});
 
 if (fails > 0) {
   console.error(`\nTest suite FAILED with ${fails} failures.`);

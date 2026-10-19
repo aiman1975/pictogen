@@ -104,6 +104,13 @@ try {
   const plain = await dragBy('.movable-item[data-id="boy"]', 100);
   check(Math.abs(plain - 100) < 3, `plain drag: the boy moves with the pointer (${plain.toFixed(1)}px for 100px)`);
 
+  await draw('a boy says "Hello!" under a tree');
+  const bubbleAt = () => page.evaluate(() => document.querySelector('.pg-bubbles [data-for="boy#0"]').getBoundingClientRect().x);
+  const b0 = await bubbleAt();
+  const moved = await dragBy('.movable-item[data-id="boy"]', 80);
+  const b1 = await bubbleAt();
+  check(Math.abs(b1 - b0 - moved) < 3, `a speech bubble goes with its figure when dragged (${(b1 - b0).toFixed(1)}px for ${moved.toFixed(1)}px)`);
+
   await draw('a boy waving under a tree, zoom in on the boy');
   // Hold the camera at its close-up, then drag
   await page.evaluate(() => {
