@@ -110,6 +110,43 @@ test('comic strip: bubbles stay inside their panels and the title fits, at any s
   }
 });
 
+// Places: a classroom has its chalkboard, a city its buildings (lit at night), a park its trees
+test('places are drawn: classroom, office, kitchen, bedroom, room, city, park, forest', () => {
+  for (const [prompt, place] of [
+    ['a teacher reads a book to children in a classroom', 'classroom'], ['a team celebrates in an office', 'office'],
+    ['a woman cooks in the kitchen', 'kitchen'], ['a girl sleeps in her bedroom at night', 'bedroom'], ['a man reads in his room', 'room'],
+    ['a superhero flies over the city at night', 'city'], ['a boy and a dog walk in the park', 'park'], ['two friends in the forest', 'woods'],
+  ]) {
+    const svg = generate(prompt).svg;
+    const found = svg.match(/pg-place-(\w+)/)?.[1];
+    if (found !== place) throw new Error(`"${prompt}": ${found ?? 'no place'}, not ${place}`);
+  }
+  if (/pg-place/.test(generate('a teacher reads a book to children').svg)) throw new Error('a place nobody named');
+  if (!generate('a superhero flies over the city at night').svg.includes('#ffe082')) throw new Error('the city has no lit windows at night');
+  const kids = generate('a teacher reads a book to children in a classroom').matches.map((m) => m.id);
+  if (!kids.includes('boy') || !kids.includes('girl')) throw new Error(`children: ${kids}`);
+  const cook = generate('a woman cooks in the kitchen').matches;
+  if (cook.length !== 1 || cook[0].count !== 1) throw new Error(`"a woman cooks": ${JSON.stringify(cook.map((m) => [m.id, m.count]))}`);
+});
+
+// What a teacher, a comic designer and a marketer typed (docs/ROADMAP.md): never an empty or
+// wrong picture
+test('persona prompts draw what was meant', () => {
+  const ids = (t) => generate(t).matches.map((m) => `${m.id}${m.animation ? '/' + m.animation : ''}x${m.count}`).join(' ');
+  for (const [prompt, want] of [
+    ['a superhero flies over the city at night', /man_superhero\/fly/],
+    ['three flies', /^flyx3$/],
+    ['a team celebrates in an office', /woman.*man|man.*woman/],
+    ['five kids play', /boy.*girl/],
+    ['an elefant', /^elephant/],
+    ['a wizard and a dinosaur', /mage.*t_rex/],
+  ]) if (!want.test(ids(prompt))) throw new Error(`"${prompt}" -> ${ids(prompt) || 'nothing'}`);
+  const kids = generate('five kids play').matches.reduce((n, m) => n + m.count, 0);
+  if (kids !== 5) throw new Error(`five kids: ${kids}`);
+  const r = generate('a cat and a wizzard');
+  if (!r.suggestions.wizzard?.includes('wizard')) throw new Error(`suggestions: ${JSON.stringify(r.suggestions)}`);
+});
+
 if (fails > 0) {
   console.error(`\nTest suite FAILED with ${fails} failures.`);
   process.exit(1);

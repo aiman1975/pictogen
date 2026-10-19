@@ -19,8 +19,9 @@ export const ENV_WORDS = {
   rain: ['rain', 'raining', 'rainy', 'storm', 'stormy', 'thunder', 'cloudy'],
   water: ['sea', 'ocean', 'lake', 'river', 'beach', 'pond', 'swim', 'swimming', 'sail', 'sailing', 'water', 'island', 'boat'],
   beach: ['beach', 'sand', 'island', 'shore'],
-  room: ['room', 'office', 'indoor', 'inside', 'studio', 'classroom', 'kitchen', 'bedroom', 'desk'],
+  room: ['room', 'office', 'indoor', 'inside', 'indoors', 'studio', 'classroom', 'school', 'lesson', 'kitchen', 'bedroom', 'desk', 'home'],
   forest: ['forest', 'woods', 'park', 'nature', 'jungle', 'garden'],
+  city: ['city', 'town', 'downtown', 'skyline', 'skyscraper', 'skyscrapers', 'building', 'buildings', 'urban', 'street'],
   parallax: ['walk', 'walking', 'run', 'running', 'jog', 'jogging', 'stroll', 'across', 'drive', 'driving', 'road', 'street', 'cartoon', 'parallax', 'zeichentrick'],
 };
 
@@ -35,6 +36,12 @@ function detectEnv(items, words) {
   const room = any('room') || tags.has('furniture') || ['chair', 'table', 'window', 'door', 'bed', 'box'].some((id) => ids.has(id));
   const parallax = any('parallax') || items.some((it) => ['walk', 'run', 'walk-across', 'drive'].includes(it.m?.animation));
   const forest = any('forest') || tags.has('plant') || ids.has('tree');
+  // Which room: a classroom, an office, a kitchen, a bedroom, or just a room
+  const roomKind = !room ? null
+    : w.has('classroom') || w.has('school') || w.has('lesson') ? 'classroom'
+      : w.has('office') || w.has('desk') ? 'office'
+        : w.has('kitchen') ? 'kitchen'
+          : w.has('bedroom') || ids.has('bed') ? 'bedroom' : 'room';
   return {
     night: !sunset && (any('night') || ((ids.has('moon') || ids.has('star')) && !ids.has('sun'))),
     sunset,
@@ -43,7 +50,12 @@ function detectEnv(items, words) {
     water: any('water') || items.some((i) => i.c.placement === 'water' || i.c.placement === 'underwater'),
     beach: any('beach'),
     room,
+    roomKind,
     forest,
+    // A place named: trees along the horizon (a park, a forest), buildings (a city)
+    woods: any('forest'),
+    park: w.has('park') || w.has('garden'),
+    city: !room && any('city'),
     parallax,
   };
 }
@@ -73,6 +85,188 @@ const ROOM_COLORS = {
   vintage: ['#efe2c9', '#c9a882'], neon: ['#14183a', '#0b1026'], blueprint: ['#0e2646', '#0a1d37'],
   chalkboard: ['#223830', '#192823'], silhouette: ['#eceff1', '#cfd8dc'],
 };
+
+// The things on a room's walls and floor, by kind of room, in colors that sit with the style's
+// wall (dark walls - neon, blueprint, chalkboard - get light outlines)
+function roomDecor(d, env, W, H, wall, floor) {
+  const bg = { kind: 'bg' };
+  const dark = darkness(wall) > 0.6;
+  const tone = (c, k = 0.3) => mix(c, wall, k);
+  const ink = dark ? lighten(wall, 0.45) : '#334155';
+  const edge = { kind: 'line', stroke: ink, sw: 2.2 };
+  const floorY = H * 0.88;
+  const glass = env.night ? '#1a2a5c' : '#bfe6ff';
+  const windowAt = (x, y, w, h, view) => {
+    d.rect(x - 4, y - 4, w + 8, h + 8, { ...bg, fill: tone('#ffffff', 0.15), rx: 3 });
+    d.rect(x, y, w, h, { ...bg, fill: tone(glass, 0.15) });
+    if (view) view(x, y, w, h);
+    d.line(x + w / 2, y, x + w / 2, y + h, { ...edge, stroke: tone('#ffffff', 0.15), sw: 3 });
+    d.line(x, y + h / 2, x + w, y + h / 2, { ...edge, stroke: tone('#ffffff', 0.15), sw: 3 });
+    d.rect(x - 4, y - 4, w + 8, h + 8, { ...edge, fill: 'none', rx: 3 });
+  };
+  const clock = (x, y, r) => {
+    d.circle(x, y, r, { ...bg, fill: tone('#ffffff', 0.1) });
+    d.circle(x, y, r, { ...edge, fill: 'none' });
+    d.line(x, y, x, y - r * 0.65, { ...edge, sw: 2 });
+    d.line(x, y, x + r * 0.45, y + r * 0.1, { ...edge, sw: 2 });
+  };
+  const frame = (x, y, w, h, paint) => {
+    d.rect(x, y, w, h, { ...bg, fill: tone('#a1683a', 0.2) });
+    d.rect(x + 4, y + 4, w - 8, h - 8, { ...bg, fill: tone('#fff7e6', 0.15) });
+    if (paint) paint(x + 4, y + 4, w - 8, h - 8);
+    d.rect(x, y, w, h, { ...edge, fill: 'none' });
+  };
+  const hills = (x, y, w, h) => {
+    d.path(`M ${x} ${y + h} Q ${x + w * 0.3} ${y + h * 0.3} ${x + w * 0.6} ${y + h * 0.75} Q ${x + w * 0.8} ${y + h * 0.45} ${x + w} ${y + h * 0.6} L ${x + w} ${y + h} Z`, { ...bg, fill: tone('#66bb6a', 0.2) });
+    d.circle(x + w * 0.75, y + h * 0.28, Math.min(w, h) * 0.13, { ...bg, fill: tone('#ffca28', 0.2) });
+  };
+  const towers = (x, y, w, h) => {
+    const n = 5;
+    for (let i = 0; i < n; i++) {
+      const bh = h * (0.35 + ((i * 37) % 50) / 100), bx = x + (w / n) * i + 1;
+      d.rect(bx, y + h - bh, w / n - 2, bh, { ...bg, fill: tone(env.night ? '#2c3e66' : '#90a4ae', 0.15) });
+      for (let wy = y + h - bh + 4; wy < y + h - 4; wy += 7) d.rect(bx + 3, wy, w / n - 8, 2.5, { ...bg, fill: env.night ? '#ffe082' : tone('#e3f2fd', 0.1) });
+    }
+  };
+  switch (env.roomKind) {
+    case 'classroom': {
+      // A chalkboard with a sum and letters on it, a tray of chalk, a clock, an alphabet strip
+      const bx = W * 0.24, by = H * 0.1, bw = W * 0.52, bh = H * 0.3;
+      d.rect(bx - 6, by - 6, bw + 12, bh + 12, { ...bg, fill: tone('#a1683a', 0.15), rx: 3 });
+      d.rect(bx, by, bw, bh, { ...bg, fill: '#2f5d46' });
+      const chalk = { kind: 'line', stroke: '#f1f5f9', sw: 2.4 };
+      // "1 + 2 = 3" in chalk strokes, and a wavy line of "writing"
+      const u = bh / 6, cx0 = bx + bw * 0.12, cy0 = by + bh * 0.3;
+      d.line(cx0, cy0 - u, cx0, cy0 + u, chalk);
+      d.line(cx0 + u * 1.2, cy0, cx0 + u * 2.6, cy0, chalk); d.line(cx0 + u * 1.9, cy0 - u * 0.7, cx0 + u * 1.9, cy0 + u * 0.7, chalk);
+      d.path(`M ${cx0 + u * 3.2} ${cy0 - u * 0.6} Q ${cx0 + u * 4.2} ${cy0 - u * 1.5} ${cx0 + u * 4.2} ${cy0 - u * 0.3} L ${cx0 + u * 3.2} ${cy0 + u} L ${cx0 + u * 4.4} ${cy0 + u}`, { ...chalk, fill: 'none' });
+      d.line(cx0 + u * 5, cy0 - u * 0.3, cx0 + u * 6.2, cy0 - u * 0.3, chalk); d.line(cx0 + u * 5, cy0 + u * 0.3, cx0 + u * 6.2, cy0 + u * 0.3, chalk);
+      d.path(`M ${cx0 + u * 6.9} ${cy0 - u * 0.8} Q ${cx0 + u * 8} ${cy0 - u * 1.3} ${cx0 + u * 7.6} ${cy0 - u * 0.1} Q ${cx0 + u * 8.4} ${cy0 + u * 0.6} ${cx0 + u * 6.9} ${cy0 + u}`, { ...chalk, fill: 'none' });
+      let wave = `M ${bx + bw * 0.12} ${by + bh * 0.72}`;
+      for (let x = bx + bw * 0.12; x < bx + bw * 0.8; x += u) wave += ` q ${u / 4} ${-u / 2} ${u / 2} 0 t ${u / 2} 0`;
+      d.path(wave, { ...chalk, sw: 1.8, fill: 'none', opacity: 0.8 });
+      d.rect(bx, by + bh + 6, bw, 5, { ...bg, fill: tone('#8d5a2b', 0.15) });
+      d.rect(bx + bw * 0.7, by + bh + 3, bw * 0.06, 3, { ...bg, fill: '#ffffff' });
+      clock(W * 0.88, H * 0.17, Math.min(W, H) * 0.06);
+      // Alphabet bunting along the top of the left wall
+      const flags = ['#ef5350', '#ffca28', '#66bb6a', '#42a5f5', '#ab47bc'];
+      for (let i = 0; i < 5; i++) {
+        const fx = W * 0.03 + i * W * 0.035;
+        d.poly([[fx, H * 0.08], [fx + W * 0.03, H * 0.08], [fx + W * 0.015, H * 0.15]], { ...bg, fill: tone(flags[i], 0.15) });
+      }
+      d.line(W * 0.02, H * 0.08, W * 0.22, H * 0.08, { ...edge, sw: 1.5 });
+      break;
+    }
+    case 'office': {
+      // A big window onto the city, a framed chart, a shelf with files, a plant in the corner
+      windowAt(W * 0.06, H * 0.1, W * 0.26, H * 0.36, towers);
+      const px = W * 0.42, py = H * 0.12, pw = W * 0.16, ph = H * 0.2;
+      frame(px, py, pw, ph, (x, y, w, h) => {
+        [0.4, 0.65, 0.5, 0.85].forEach((v, i) => d.rect(x + w * (0.12 + i * 0.2), y + h * (0.9 - v * 0.8), w * 0.13, h * v * 0.8, { ...bg, fill: tone(['#42a5f5', '#66bb6a', '#ffca28', '#ef5350'][i], 0.15) }));
+      });
+      const sx = W * 0.7, sy = H * 0.3, sw = W * 0.24;
+      d.rect(sx, sy, sw, 5, { ...bg, fill: tone('#8d6e63', 0.15) });
+      ['#5c6bc0', '#26a69a', '#ffa726', '#ec407a', '#78909c'].forEach((c, i) => d.rect(sx + 6 + i * sw * 0.13, sy - H * 0.1 + (i % 2) * 4, sw * 0.1, H * 0.1 - (i % 2) * 4, { ...bg, fill: tone(c, 0.2) }));
+      clock(W * 0.82, H * 0.14, Math.min(W, H) * 0.05);
+      const pot = W * 0.95;
+      d.rect(pot - W * 0.03, floorY - H * 0.08, W * 0.06, H * 0.08, { ...bg, fill: tone('#8d6e63', 0.15) });
+      for (const [dx, dy] of [[-0.03, -0.17], [0, -0.21], [0.03, -0.16], [-0.015, -0.12], [0.02, -0.11]]) d.ellipse(pot + W * dx, floorY + H * dy, W * 0.022, H * 0.05, { ...bg, fill: tone('#43a047', 0.15) });
+      break;
+    }
+    case 'kitchen': {
+      // Cupboards along the top, tiles, a counter with an oven along the back wall, a window
+      const top = H * 0.06, ch = H * 0.2;
+      for (let x = W * 0.02; x < W * 0.98 - W * 0.12; x += W * 0.13) {
+        if (x > W * 0.38 && x < W * 0.62) continue; // (the window)
+        d.rect(x, top, W * 0.12, ch, { ...bg, fill: tone('#ffffff', 0.25), rx: 2 });
+        d.rect(x, top, W * 0.12, ch, { ...edge, fill: 'none', sw: 1.6, rx: 2 });
+        d.circle(x + W * 0.1, top + ch * 0.85, 2, { ...bg, fill: ink });
+      }
+      windowAt(W * 0.41, H * 0.08, W * 0.18, H * 0.2, hills);
+      const ct = H * 0.56;
+      for (let x = 0; x < W; x += H * 0.05) for (let y = H * 0.32; y < ct - 2; y += H * 0.05) d.rect(x + 1, y + 1, H * 0.05 - 2, H * 0.05 - 2, { ...bg, fill: tone('#e0f2f1', 0.35) });
+      d.rect(0, ct, W, floorY - ct, { ...bg, fill: tone('#ffffff', 0.35) });
+      d.rect(0, ct - 6, W, 8, { ...bg, fill: tone('#90a4ae', 0.2) });
+      for (let x = W * 0.03; x < W; x += W * 0.16) d.rect(x, ct + 10, W * 0.13, floorY - ct - 16, { ...edge, fill: 'none', sw: 1.4, rx: 2 });
+      // The oven, its window glowing
+      const ox = W * 0.67;
+      d.rect(ox, ct + 10, W * 0.13, floorY - ct - 16, { ...bg, fill: tone('#cfd8dc', 0.2), rx: 2 });
+      d.rect(ox + W * 0.015, ct + 22, W * 0.1, (floorY - ct) * 0.45, { ...bg, fill: tone('#ffb74d', 0.2), rx: 2 });
+      // A pot on the hob
+      d.rect(ox + W * 0.02, ct - 6 - H * 0.06, W * 0.07, H * 0.06, { ...bg, fill: tone('#e53935', 0.2), rx: 3 });
+      break;
+    }
+    case 'bedroom': {
+      // A window with curtains (the moon at night), a framed picture, a rug
+      windowAt(W * 0.1, H * 0.1, W * 0.2, H * 0.3, env.night ? (x, y, w, h) => d.circle(x + w * 0.7, y + h * 0.3, Math.min(w, h) * 0.12, { ...bg, fill: '#fff59d' }) : hills);
+      const cur = tone('#f48fb1', 0.2);
+      d.path(`M ${W * 0.08} ${H * 0.07} L ${W * 0.14} ${H * 0.07} Q ${W * 0.12} ${H * 0.28} ${W * 0.15} ${H * 0.46} L ${W * 0.08} ${H * 0.46} Z`, { ...bg, fill: cur });
+      d.path(`M ${W * 0.32} ${H * 0.07} L ${W * 0.26} ${H * 0.07} Q ${W * 0.28} ${H * 0.28} ${W * 0.25} ${H * 0.46} L ${W * 0.32} ${H * 0.46} Z`, { ...bg, fill: cur });
+      d.line(W * 0.06, H * 0.07, W * 0.34, H * 0.07, { ...edge, sw: 3 });
+      frame(W * 0.7, H * 0.12, W * 0.14, H * 0.18, (x, y, w, h) => {
+        d.circle(x + w * 0.5, y + h * 0.55, Math.min(w, h) * 0.3, { ...bg, fill: tone('#ffca28', 0.2) });
+      });
+      // (a string of little stars over the bed's side)
+      for (let i = 0; i < 6; i++) d.circle(W * (0.45 + i * 0.035), H * (0.12 + (i % 2) * 0.03), 2.4, { ...bg, fill: tone('#ffe082', 0.1) });
+      d.ellipse(W * 0.5, H * 0.94, W * 0.32, H * 0.035, { ...bg, fill: tone('#9575cd', 0.35) });
+      break;
+    }
+    default: {
+      // Just a room: a window and a picture
+      windowAt(W * 0.12, H * 0.12, W * 0.18, H * 0.26, env.night ? null : hills);
+      frame(W * 0.72, H * 0.14, W * 0.13, H * 0.17, hills);
+    }
+  }
+  void floor;
+}
+
+// How dark a color is, 0 (white) .. 1 (black)
+function darkness(hex) {
+  const n = parseInt(String(hex).replace('#', '').slice(0, 6), 16);
+  return 1 - (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+}
+
+// A city behind the horizon: buildings of all heights (windows lit at night), a pavement and a road
+function skyline(d, env, pal, rng, W, H, hY) {
+  const bg = { kind: 'bg' };
+  const far = mix(pal.sky[2], env.night ? '#0b1430' : '#78909c', 0.55), near = mix(pal.sky[2], env.night ? '#16203f' : '#546e7a', 0.6);
+  for (const [color, lo, hi, lit] of [[far, 0.18, 0.4, 0.25], [near, 0.1, 0.3, 0.4]]) {
+    let x = -rng() * 20;
+    while (x < W) {
+      const bw = W * (0.06 + rng() * 0.07), bh = H * (lo + rng() * (hi - lo));
+      d.rect(x, hY - bh, bw, bh + 2, { ...bg, fill: color });
+      if (rng() < 0.25) d.rect(x + bw * 0.4, hY - bh - H * 0.04, bw * 0.08, H * 0.04, { ...bg, fill: color }); // an antenna
+      const win = env.night ? '#ffe082' : mix(color, '#e3f2fd', 0.45);
+      for (let wy = hY - bh + 6; wy < hY - 6; wy += 9) {
+        for (let wx = x + 4; wx < x + bw - 6; wx += 8) {
+          if (rng() < (env.night ? lit : 0.55)) d.rect(wx, wy, 4, 4.5, { ...bg, fill: win, opacity: env.night ? 0.95 : 0.6 });
+        }
+      }
+      x += bw + 2 + rng() * 6;
+    }
+  }
+  // Pavement, kerb and road
+  const pave = env.night ? '#455a64' : '#cfd8dc', road = env.night ? '#263238' : '#78909c';
+  d.rect(0, hY, W, H - hY, { ...bg, fill: pave });
+  for (let x = 0; x < W; x += W * 0.08) d.line(x, hY, x - W * 0.03, H * 0.86, { kind: 'line', stroke: '#000000', sw: 1, opacity: 0.08 });
+  d.rect(0, H * 0.86, W, 4, { ...bg, fill: mix(pave, '#ffffff', 0.4) });
+  d.rect(0, H * 0.86 + 4, W, H * 0.14, { ...bg, fill: road });
+  for (let x = W * 0.03; x < W; x += W * 0.12) d.rect(x, H * 0.94, W * 0.06, 3, { ...bg, fill: '#fff8e1', opacity: 0.8 });
+}
+
+// Trees along the horizon (a park, a forest): round crowns in a darker green, overlapping
+function treeLine(d, env, pal, rng, W, hY, H) {
+  const bg = { kind: 'bg' };
+  const back = mix(pal.ground[2], '#1b5e20', 0.45), front = mix(pal.ground[1], '#2e7d32', 0.35);
+  const dense = env.woods ? 1 : 0.6;
+  for (const [color, size, lift] of [[back, 0.09, 0.07], [front, 0.07, 0.03]]) {
+    for (let x = -10; x < W + 10; x += W * size * (1.2 + rng() * 0.8) / dense) {
+      const r = H * size * (0.7 + rng() * 0.5);
+      d.rect(x - 2, hY - H * lift - r * 0.2, 4, r + H * lift, { ...bg, fill: darken(color, 0.25) });
+      d.circle(x, hY - H * lift - r * 0.6, r, { ...bg, fill: color });
+    }
+  }
+}
 
 function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
   const d = createKit();
@@ -149,6 +343,7 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
     const [wallColor, floorColor] = ROOM_COLORS[style] ?? ['#f8fafc', '#f1f5f9'];
     d.rect(0, 0, W, H, { ...bg, fill: wallColor });
     d.rect(0, H * 0.88, W, H * 0.12, { ...bg, fill: floorColor });
+    d.group({ class: `pg-place pg-place-${env.roomKind}` }, () => roomDecor(d, env, W, H, wallColor, floorColor));
     d.line(0, H * 0.88, W, H * 0.88, { kind: 'line', stroke: '#000000', sw: 3.5 });
     return d.shapes;
   }
@@ -181,11 +376,18 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
       const shore = env.beach || !env.snow ? pal.sand : pal.ground[2];
       d.path(`M0 ${shoreTop} Q${W * 0.5} ${shoreTop - H * 0.03} ${W} ${shoreTop} L${W} ${H} L0 ${H} Z`, { ...bg, fill: shore });
     }
+  } else if (env.city) {
+    d.group({ class: 'pg-place pg-place-city' }, () => skyline(d, env, pal, rng, W, H, hY));
   } else {
+    if (env.woods || env.park) d.group({ class: `pg-place pg-place-${env.park ? 'park' : 'woods'}` }, () => treeLine(d, env, pal, rng, W, hY, H));
     d.ellipse(W * 0.18, hY + H * 0.04, W * 0.38, H * 0.13, { ...bg, fill: pal.ground[0] });
     d.ellipse(W * 0.82, hY + H * 0.05, W * 0.42, H * 0.11, { ...bg, fill: pal.ground[0] });
     d.rect(0, hY, W, H - hY, { ...bg, fill: pal.ground[1] });
     d.rect(0, H * 0.88, W, H * 0.12, { ...bg, fill: pal.ground[2] });
+    if (env.park) {
+      // A sandy path winding off toward the horizon
+      d.path(`M ${W * 0.36} ${H} C ${W * 0.42} ${H * 0.86} ${W * 0.62} ${H * 0.8} ${W * 0.56} ${hY + H * 0.02} L ${W * 0.6} ${hY + H * 0.02} C ${W * 0.7} ${H * 0.8} ${W * 0.56} ${H * 0.88} ${W * 0.64} ${H} Z`, { ...bg, fill: mix(pal.sand, pal.ground[1], 0.25) });
+    }
   }
 
   if (env.parallax) {
@@ -1026,7 +1228,7 @@ export function composeScene(matches, opts = {}) {
   const fx = styleWrap(style, uid, out.join(''), { scale: W / 260, freq: 0.02, blur: W / 450, pixel: Math.round(W / 12) / 10, w: W, h: H, noFilter: st.wholeFilter });
   let bgSvg = shapesToSvg(background(W, H, hY, env, pal, rng, hasGround, style), style);
   if (st.bgFilter && filterRef) bgSvg = `<rect width="${W}" height="${H}" fill="${st.background || '#ffffff'}"/><g filter="${filterRef}">${bgSvg}</g>`;
-  const decor = st.decor ? st.decor(uid, W, H, hY) : '';
+  const decor = st.decor && !(st.outdoorDecor && env.room) ? st.decor(uid, W, H, hY) : '';
   let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${decor}${fx.g}${speechBubbles(talkers, W, H, uid, motionCss)}`;
   if (cam) {
     motionCss.push(`@keyframes ${uid}cam { ${cameraCss(cam.keys, cam.T, W, H)}}`);

@@ -89,7 +89,12 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 
 ### 3. Environment
 - [ ] Parallax layers (far hills, mid trees, near grass) that move with the camera
-- [ ] More settings: city street, beach, forest, classroom, kitchen, space; indoor rooms with furniture
+- [x] Places: a classroom (chalkboard, clock, bunting), an office (a window onto the city, a chart,
+      a shelf, a plant), a kitchen (cupboards, tiles, counter, oven), a bedroom (curtains, the moon at
+      night, a rug), any other room (a window, a picture); a city skyline (windows lit at night,
+      pavement, road); trees along the horizon in a park (with a path) or a forest; all in the style's
+      colours
+- [ ] More settings: space, underwater, mountains, a farm; furniture to sit on and use
 - [ ] Time-of-day and weather changes inside a clip (sunset falls, rain starts)
 - [ ] Props that react: trees sway in wind, water ripples around a swimmer
 
@@ -150,6 +155,14 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 ### 6. Product quality
 - [x] Studio editing: expression changes reach every pose of a timeline actor; redrawn figures keep
       their colour and look; dragging follows the pointer exactly, also while the camera is zoomed
+- [x] Never an empty or wrong picture (from a teacher's, a comic designer's and a marketer's test
+      prompts): groups ("children", "team", "family") become mixed people, everyday words map to
+      drawings ("superhero", "kid", "dinosaur", "wizard"), a motion word after someone is a verb ("a
+      superhero flies", "a woman cooks"), typos are forgiven when nothing else matches ("elefant"),
+      and the studio says what it guessed and offers close words for the rest
+- [x] Speech bubbles that fit: wrapped to the room there is, inside the picture and clear of each
+      other, in still scenes, timelines (while the words last) and the comic strip (the prompt's
+      quotes are its lines); they move with their figure in the studio
 - [ ] Visual regression tests: render reference prompts to PNG and compare against approved images
 - [ ] A license check in CI so no unlicensed asset gets in (see `docs/LICENSE_AUDIT.md`)
 - [ ] Performance budget for clips with many figures

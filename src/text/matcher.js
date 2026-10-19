@@ -222,7 +222,9 @@ function conceptAt(toks, i, idx) {
 
     const exact = idx.multi.get(words.join(' '));
     if (exact) return { id: exact, plural: false, len: n, word: words.join(' ') };
-    for (const cand of singularCandidates(last)) {
+    // ("woman cooks" is a woman cooking, not several woman cooks)
+    const subject = n === 2 && /^people/.test(getConcept(lookupWord(head, idx.single)?.id)?.category ?? '');
+    for (const cand of subject ? [] : singularCandidates(last)) {
       const hit = idx.multi.get(`${head} ${cand}`);
       if (hit) return { id: hit, plural: true, len: n, word: words.join(' ') };
     }
@@ -457,7 +459,16 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
       && (SUBJECT_PRONOUNS.has(prev) || names?.has(prev)
         || (lastConceptIndex === i - 1 && found.length && MOVERS.has(getConcept(found[found.length - 1].id.split('~')[0])?.category)));
 
-    const hit = (isModifierAdjective || isStopword || isNumeral || afterMover) ? null : at(toks, i);
+    let hit = (isModifierAdjective || isStopword || isNumeral || afterMover) ? null : at(toks, i);
+    // "a woman cooks", "he guards": after someone, a person-word ending in s is what they do (not
+    // more cooks)
+    if (hit && hit.len === 1 && /[^s]s$/.test(t) && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev]
+      && /^people/.test(getConcept(hit.id)?.category ?? '')
+      && (SUBJECT_PRONOUNS.has(prev) || names?.has(prev) || (lastConceptIndex === i - 1 && found.length && MOVERS.has(getConcept(found[found.length - 1].id.split('~')[0])?.category)))) {
+      hit = null;
+      i++;
+      continue;
+    }
     if (hit) {
       push(hit);
       lastConceptIndex = i + hit.len - 1;

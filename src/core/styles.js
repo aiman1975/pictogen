@@ -468,7 +468,8 @@ export const STYLES = {
     background: '#dff1ff',
     text: '#1e293b',
     card: (m) => ({ fill: lighten(m, 0.85), stroke: darken(m, 0.35) }),
-    // Big summer clouds behind everyone
+    // Big summer clouds behind everyone (outdoors)
+    outdoorDecor: true,
     decor: (uid, W, H, hY) => {
       const cloud = (x, y, r) => [[0, 0, 1], [-1.1, 0.25, 0.75], [1.1, 0.3, 0.7], [-0.5, -0.45, 0.7], [0.55, -0.4, 0.62]]
         .map(([dx, dy, k]) => `<circle cx="${Math.round(x + dx * r)}" cy="${Math.round(y + dy * r)}" r="${Math.round(r * k)}"/>`).join('');
