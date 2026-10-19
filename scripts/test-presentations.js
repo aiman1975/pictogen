@@ -1,4 +1,4 @@
-import { generate, getConcept, renderIcon, STYLE_NAMES } from '../src/index.js';
+import { generate, getConcept, renderIcon, STYLE_NAMES, DIAGRAMS, renderWorksheet } from '../src/index.js';
 import { fitText } from '../src/bubble.js';
 
 let fails = 0;
@@ -26,10 +26,9 @@ for (const mode of MODES) {
   });
 }
 
-test('Technical Callout contains specification text and leader line elements', () => {
+test('Callout (now the labelled diagram) labels a thing with its real name', () => {
   const res = generate('a bicycle', { mode: 'callout', style: 'blueprint' });
-  if (!res.svg.includes('SPECIFICATION SCHEMATIC')) throw new Error('Missing spec header');
-  if (!res.svg.includes('pattern')) throw new Error('Missing grid pattern');
+  if (!/class="pg-label" data-key="bike" data-text="bike"/.test(res.svg)) throw new Error('no "bike" label');
 });
 
 test('Studio Knolling contains orthogonal knolled specimen set', () => {
@@ -189,6 +188,57 @@ test('characters: teacher, grandparents, baby, superhero, princess, robot... dra
   if (!renderIcon('man_superhero', { size: 64 }).includes('#e53935')) throw new Error('the superhero has no cape');
   const groups = generate('my grandparents').matches.map((m) => m.id).join(' ');
   if (groups !== 'old_man old_woman') throw new Error(`grandparents: ${groups}`);
+});
+
+// Labelled diagrams: real labels on leader lines, inside the picture; renamed; blank for a quiz
+const labelBoxes = (svg) => [...svg.matchAll(/<g class="pg-label" data-key="([^"]+)" data-text="([^"]*)"[^>]*><rect x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)]
+  .map(([, key, text, x, y, w, h]) => ({ key, text, x: +x, y: +y, w: +w, h: +h }));
+test('labelled diagrams: every topic, real labels, inside the picture and not overlapping, in every size', () => {
+  const asked = { plant: 'the parts of a plant', tree: 'parts of a tree', body: 'the human body', water_cycle: 'the water cycle', volcano: 'inside a volcano',
+    earth: 'layers of the earth', solar_system: 'the solar system', butterfly_cycle: 'the life cycle of a butterfly' };
+  for (const [topic, prompt] of Object.entries(asked)) {
+    if (!DIAGRAMS[topic]) throw new Error(`no ${topic}`);
+    for (const [w, h, style] of [[640, 360, 'flat'], [800, 600, 'cartoon'], [480, 480, 'chalkboard']]) {
+      for (const blank of [false, true]) {
+        const r = generate(prompt, { mode: 'scene', width: w, height: h, style, blank });
+        if (r.diagram?.topic !== topic) throw new Error(`"${prompt}": ${r.diagram?.topic ?? 'no diagram'}`);
+        const boxes = labelBoxes(r.svg);
+        if (boxes.length !== DIAGRAMS[topic].parts.length) throw new Error(`${topic}: ${boxes.length} labels`);
+        for (const b of boxes) if (b.x < -0.5 || b.y < -0.5 || b.x + b.w > w + 0.5 || b.y + b.h > h + 0.5) throw new Error(`${topic} ${w}x${h}: "${b.text}" leaves the picture`);
+        boxes.forEach((a, i) => boxes.slice(i + 1).forEach((b) => {
+          if (a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1 && a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1) throw new Error(`${topic} ${w}x${h}: "${a.text}" and "${b.text}" overlap`);
+        }));
+        if (blank && (!r.svg.includes('Word bank') || r.svg.includes(`>${DIAGRAMS[topic].parts[0].label}</text>`))) throw new Error(`${topic}: blank labels show the answers`);
+      }
+    }
+  }
+  // No made-up labels any more ("INTERNAL VOLUME CORE"): a diagram's words are what a teacher would use
+  if (/VOLUME|APERTURE|KINEMATICS|SCHEMATIC/.test(generate('the parts of a plant', { mode: 'callout' }).svg)) throw new Error('the old made-up labels are back');
+  const renamed = generate('the parts of a plant', { mode: 'diagram', labels: { stem: 'Stalk' } });
+  if (!labelBoxes(renamed.svg).some((b) => b.key === 'stem' && b.text === 'Stalk')) throw new Error('a renamed label');
+  if (generate('a plant in a pot', { mode: 'scene' }).diagram) throw new Error('a plant in a scene is not a diagram');
+  const vocab = generate('a cat, a dog, a cow and a pig', { mode: 'diagram', blank: true });
+  if (vocab.diagram?.labels.map((l) => l.text).join() !== 'cat,dog,cow,pig' || !vocab.svg.includes('Word bank')) throw new Error(`labelled pictures: ${JSON.stringify(vocab.diagram)}`);
+});
+
+// Printable worksheets: an A4 page (and an answer key), fonts inside, nothing that moves
+test('worksheets: write, count (with the answers), label (with the answers), colour', () => {
+  for (const [prompt, opts, kind, pages] of [
+    ['a girl reads a book under a tree', {}, 'write', 1], ['3 apples and 2 bananas', {}, 'count', 2],
+    ['the parts of a plant', { mode: 'diagram' }, 'label', 2], ['a dog', { kind: 'colour' }, 'colour', 1],
+    ['a cat, a dog and a cow', { kind: 'label', answers: false }, 'label', 1],
+  ]) {
+    const ws = renderWorksheet(prompt, opts);
+    if (ws.kind !== kind || ws.pages.length !== pages) throw new Error(`"${prompt}": ${ws.kind}, ${ws.pages.length} pages`);
+    for (const p of ws.pages) {
+      if (!/^<svg[^>]* width="794" height="1123"/.test(p) || !p.includes('data:font/woff2;base64,') || !p.includes('animation: none !important')) throw new Error(`"${prompt}": not a still A4 page with its fonts`);
+      if (/NaN|undefined/.test(p.replace(/data:font[^)]+/g, ''))) throw new Error(`"${prompt}": broken numbers`);
+    }
+  }
+  const count = renderWorksheet('3 apples and 2 bananas', {});
+  if (!/>3<\/text>/.test(count.pages[1]) || !/>2<\/text>/.test(count.pages[1]) || !/>5<\/text>/.test(count.pages[1]) || /fill="#dc2626"/.test(count.pages[0])) throw new Error('the answer key: 3 apples, 2 bananas, 5 altogether (only on the key)');
+  const titled = renderWorksheet('3 apples', { title: 'Fruit maths', instructions: 'Count carefully!' });
+  if (!titled.pages[0].includes('Fruit maths') || !titled.pages[0].includes('Count carefully!')) throw new Error('own title and instructions');
 });
 
 if (fails > 0) {

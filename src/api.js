@@ -3,6 +3,7 @@
 
 import { generate, listConcepts, getConcept, drawConcept, shapesToSvg, renderIcon, STYLE_NAMES, isStyle, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './index.js';
 import { getShowcaseData } from './showcase.js';
+import { renderWorksheet } from './worksheet.js';
 
 const svgCache = new Map();
 const json = (body, status = 200, headers = {}) => ({ status, headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
@@ -64,6 +65,12 @@ export function handleApi(method, url, payload = {}) {
       fuzzy: Boolean(payload.fuzzy),
       // Steps as edited in the studio's timeline view (checked by generate)
       ...(Array.isArray(payload.beats) ? { beats: payload.beats } : {}),
+      // A labelled diagram's renamed labels ({ key: text }), its labels left blank (a quiz), its title
+      ...(payload.labels && typeof payload.labels === 'object' && !Array.isArray(payload.labels)
+        ? { labels: Object.fromEntries(Object.entries(payload.labels).filter(([k, v]) => typeof v === 'string').slice(0, 40).map(([k, v]) => [String(k).slice(0, 40), v.slice(0, 40)])) }
+        : {}),
+      blank: Boolean(payload.blank),
+      ...(typeof payload.title === 'string' ? { title: payload.title.slice(0, 80) } : {}),
       // Named individuals: neutral keys and their kind only (src/individuals.js)
       ...(Array.isArray(payload.individuals) ? { individuals: payload.individuals } : {}),
     }));
@@ -139,6 +146,27 @@ export function handleApi(method, url, payload = {}) {
       if (svgCache.size < 5000) svgCache.set(cacheKey, svg);
     }
     return { status: 200, headers: { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'public, max-age=86400' }, body: svg };
+  }
+
+  // A printable worksheet (A4 pages as SVG, fonts inside): the studio turns them into a PDF
+  if (pathname === '/api/worksheet' && method === 'POST') {
+    const text = String(payload.text || 'apple').slice(0, 500);
+    const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : undefined);
+    return json(renderWorksheet(text, {
+      style: payload.style || 'flat',
+      mode: payload.mode || 'scene',
+      seed: payload.seed || 1,
+      vary: Boolean(payload.vary),
+      kind: str(payload.kind, 10),
+      title: str(payload.title, 80),
+      instructions: str(payload.instructions, 160),
+      lines: Number.isFinite(+payload.lines) ? Math.max(1, Math.min(12, +payload.lines)) : undefined,
+      answers: payload.answers !== false,
+      ...(payload.labels && typeof payload.labels === 'object' && !Array.isArray(payload.labels)
+        ? { labels: Object.fromEntries(Object.entries(payload.labels).filter(([, v]) => typeof v === 'string').slice(0, 40).map(([k, v]) => [String(k).slice(0, 40), v.slice(0, 40)])) }
+        : {}),
+      ...(Array.isArray(payload.individuals) ? { individuals: payload.individuals } : {}),
+    }));
   }
 
   // Showcase video data

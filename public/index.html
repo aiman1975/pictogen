@@ -600,6 +600,37 @@
     .word-help .wh-try:hover { background: #dbeafe; }
     .word-help .wh-empty { color: #92400e; background: #fef3c7; border-radius: 8px; padding: 6px 10px; display: block; }
 
+    /* The printable worksheet dialog */
+    .worksheet-dialog { border: none; border-radius: 14px; padding: 0; width: min(980px, 96vw); max-height: 94vh; box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
+    .worksheet-dialog::backdrop { background: rgba(15, 23, 42, 0.55); }
+    .ws-form { display: flex; flex-direction: column; max-height: 94vh; }
+    .ws-head { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 1.05rem; }
+    .ws-close { border: none; background: none; font-size: 1.2rem; cursor: pointer; }
+    .ws-body { display: grid; grid-template-columns: 300px 1fr; gap: 1rem; padding: 1rem; overflow: auto; }
+    .ws-fields { display: flex; flex-direction: column; gap: 0.7rem; }
+    .ws-fields label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.82rem; font-weight: 800; color: #334155; }
+    .ws-fields select, .ws-fields input:not([type=checkbox]) { font: inherit; font-weight: 600; padding: 0.45rem 0.55rem; border: 1.5px solid #cbd5e1; border-radius: 8px; }
+    .ws-fields .ws-check { flex-direction: row; align-items: center; gap: 0.45rem; font-weight: 700; }
+    .ws-note { font-size: 0.78rem; color: #64748b; margin: 0; }
+    .ws-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .ws-preview { display: flex; gap: 0.8rem; overflow-x: auto; background: #e2e8f0; border-radius: 10px; padding: 0.8rem; min-height: 300px; align-items: flex-start; }
+    .ws-page { margin: 0; flex: 0 0 auto; text-align: center; font-size: 0.78rem; font-weight: 800; color: #475569; }
+    .ws-paper { display: block; width: 300px; height: auto; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.18); margin-bottom: 0.3rem; }
+    .ws-wait { margin: auto; font-weight: 700; color: #475569; }
+    @media (max-width: 720px) {
+      .ws-body { grid-template-columns: 1fr; }
+      .ws-paper { width: 240px; }
+    }
+
+    /* Labelled diagrams: the label tools above the canvas, and a label being renamed */
+    .diagram-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; padding: 0.5rem 0.75rem;
+      background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 700; color: #1e3a8a; }
+    .diagram-bar[hidden] { display: none; }
+    .diagram-bar .btn-action[aria-pressed="true"] { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+    .svg-viewport .pg-label:hover rect { stroke-width: 2.5px; }
+    .label-editor { position: absolute; z-index: 30; font: 800 15px Nunito, sans-serif; padding: 2px 8px; border: 2px solid #2563eb;
+      border-radius: 6px; background: #fff; color: #1f2937; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
+
     .unknown-badge {
       display: inline-block;
       background: #fee2e2;
@@ -911,7 +942,7 @@
       <div id="word-help" class="word-help" aria-live="polite"></div>
 
       <details class="examples" id="examples">
-        <summary>✨ EXAMPLES <span class="hide-phone">— 23 ready-made prompts (click one to load its mode &amp; style)</span><span class="phone-only">— tap one to try it</span></summary>
+        <summary>✨ EXAMPLES <span class="hide-phone">— 32 ready-made prompts (click one to load its mode &amp; style)</span><span class="phone-only">— tap one to try it</span></summary>
         <div class="sample-chips">
           <span class="chip-label">🔤 Alphabet Pals:</span>
           <button class="chip" data-prompt="LOVE" data-mode="alphabet">💖 Word Pals (LOVE)</button>
@@ -925,6 +956,13 @@
           <button class="chip" data-prompt="a happy boy running on cartoon parallax road" data-style="cartoon" data-mode="scene">🏃 Parallax Cartoon Run</button>
           <button class="chip" data-prompt="a happy dog wagging tail at the beach" data-style="flat" data-mode="scene">🏖 Beach Wave Rolling</button>
           <button class="chip" data-prompt="a sleeping boy under the starry night" data-style="cute2d" data-mode="scene">😴 Starry Night Sleep</button>
+          <span class="chip-label">🏫 For the Classroom:</span>
+          <button class="chip" data-prompt="the parts of a plant" data-mode="diagram" data-style="flat">🌱 Parts of a Plant</button>
+          <button class="chip" data-prompt="the water cycle" data-mode="diagram" data-style="flat">💧 The Water Cycle</button>
+          <button class="chip" data-prompt="the human body" data-mode="diagram" data-style="cartoon">🧍 Parts of the Body</button>
+          <button class="chip" data-prompt="a volcano" data-mode="diagram" data-style="cartoon">🌋 Inside a Volcano</button>
+          <button class="chip" data-prompt="the solar system" data-mode="diagram" data-style="flat">🪐 The Solar System</button>
+          <button class="chip" data-prompt="a cat, a dog, a cow and a pig" data-mode="diagram" data-style="flat">🔤 Label the Pictures</button>
           <span class="chip-label">🎨 Style Showcases:</span>
           <button class="chip" data-prompt="boy" data-style="stickman" data-mode="scene">👑 Stick Figure</button>
           <button class="chip" data-prompt="confused boy pointing in a room with chair and window" data-style="stickman" data-mode="scene">🏠 4-Quadrant Room</button>
@@ -935,7 +973,6 @@
           <button class="chip" data-prompt="a boy and a woman" data-style="geometric" data-mode="scene">📐 Geometric Bauhaus</button>
           <button class="chip" data-prompt="confused boy thumbsup with box and chair" data-style="doodle" data-mode="scene">✏️ Sketchbook Doodle</button>
           <button class="chip" data-prompt="boy, girl, man and woman" data-style="papercut" data-mode="scene">✂️ Craft Papercut</button>
-          <button class="chip" data-prompt="a blue bicycle with gears and handlebars" data-mode="callout" data-style="blueprint">🔍 Bike Callout</button>
           <button class="chip" data-prompt="a girl and a cat in a garden with flowers" data-style="watercolor" data-mode="scene">🎨 Watercolor Garden</button>
           <button class="chip" data-prompt="a surprised girl looks at a boy under the sun" data-style="anime" data-mode="scene">🌟 Anime Scene</button>
           <button class="chip" data-prompt="a dancing boy and a dog by a house" data-style="crayon" data-mode="scene">🖍️ Crayon Drawing</button>
@@ -1014,14 +1051,14 @@
             <button class="pill-btn" data-mode="stickman">👑 Stickman Studio</button>
             <button class="pill-btn" data-mode="isometric">📐 2.5D Diorama</button>
             <div class="pill-subhead">Present</div>
-            <button class="pill-btn" data-mode="callout">🔍 Callout / Specs</button>
             <button class="pill-btn" data-mode="knolling">🎒 Knolling Flat-Lay</button>
             <button class="pill-btn" data-mode="split">⚖️ Before vs After</button>
             <button class="pill-btn" data-mode="waffle">📊 Waffle Chart</button>
             <button class="pill-btn" data-mode="icons">🗂 Sticker Sheet</button>
             <div class="pill-subhead">Learn</div>
             <button class="pill-btn" data-mode="alphabet">🔤 Alphabet Pals</button>
-            <button class="pill-btn" data-mode="card">🏷 Flashcard</button>
+            <button class="pill-btn" data-mode="diagram">🏷 Labelled Diagram</button>
+            <button class="pill-btn" data-mode="card">🃏 Flashcard</button>
             <button class="pill-btn" data-mode="coloring">🖍 Coloring Book</button>
             <div class="pill-subhead">Animate</div>
             <button class="pill-btn" data-mode="story">🎬 Clip Studio</button>
@@ -1092,6 +1129,7 @@
             <button class="btn-action" id="btn-copy-svg">📋 Copy SVG</button>
             <button class="btn-action" id="btn-download-svg">💾 Download SVG</button>
             <button class="btn-action" id="btn-download-png">🖼 Download PNG</button>
+            <button class="btn-action" id="btn-worksheet" title="A printable A4 worksheet of this picture, as a PDF">🖨 Worksheet</button>
             <button class="btn-action" id="btn-download-gif" title="Animated GIF of this scene">🎞 GIF</button>
             <button class="btn-action" id="btn-download-video" title="Video of this scene (MP4 where your browser can record it, otherwise WebM)">🎬 Video</button>
             <button class="btn-action" id="btn-sound" title="Sound on or off: voices and effects, made by PictoGen itself">🔊 Sound</button>
@@ -1101,6 +1139,13 @@
         <div class="movable-hint-bar">
           <span class="on-mouse">💡 <strong>Click & drag</strong> any object to move it anywhere. Click an object for scale, flip & layer controls!</span>
           <span class="on-touch">💡 <strong>Drag</strong> a figure to move it. <strong>Tap</strong> it to change its size, mood or motion.</span>
+        </div>
+
+        <!-- A labelled diagram's labels: rename them, or blank them for a quiz -->
+        <div class="diagram-bar" id="diagram-bar" hidden>
+          <span>🏷 <span class="on-mouse">Click</span><span class="on-touch">Tap</span> a label to rename it</span>
+          <button class="btn-action" id="btn-blank-labels" aria-pressed="false" title="Numbered blank lines and a word bank, for a quiz">🙈 Blank labels (quiz)</button>
+          <button class="btn-action" id="btn-reset-labels" title="Back to the original labels">↺ Original labels</button>
         </div>
 
         <div class="svg-viewport" id="svg-viewport">
@@ -1284,6 +1329,9 @@
       filteredSource: 'all',
       showVariants: false,
       searchQuery: '',
+      labels: {}, // a diagram's renamed labels, for labelsFor (the prompt they belong to)
+      labelsFor: null,
+      blank: false, // a diagram's labels left blank (a quiz)
       beats: null, // steps as edited in the timeline view, for beatsFor (the prompt they belong to)
       beatsFor: null,
     };
@@ -1503,6 +1551,57 @@
       runGenerate();
     });
 
+    // Labelled diagrams: rename a label by clicking it, blank them all for a quiz
+    const diagramBar = document.getElementById('diagram-bar');
+    const btnBlank = document.getElementById('btn-blank-labels');
+    function showDiagramTools(data) {
+      diagramBar.hidden = !data.diagram;
+      btnBlank.setAttribute('aria-pressed', String(state.blank));
+    }
+    btnBlank.addEventListener('click', () => {
+      state.blank = !state.blank;
+      runGenerate();
+    });
+    document.getElementById('btn-reset-labels').addEventListener('click', () => {
+      state.labels = {};
+      runGenerate();
+    });
+    svgViewport.addEventListener('click', (e) => {
+      const label = e.target.closest?.('.pg-label');
+      if (!label || !state.result?.diagram) return;
+      editLabel(label);
+    });
+    function editLabel(label) {
+      document.querySelector('.label-editor')?.remove();
+      const box = label.getBoundingClientRect(), host = svgViewport.getBoundingClientRect();
+      const input = document.createElement('input');
+      input.className = 'label-editor';
+      input.value = label.dataset.text || '';
+      input.maxLength = 40;
+      input.setAttribute('aria-label', 'Label');
+      if (getComputedStyle(svgViewport).position === 'static') svgViewport.style.position = 'relative';
+      Object.assign(input.style, { left: `${box.left - host.left + svgViewport.scrollLeft}px`, top: `${box.top - host.top + svgViewport.scrollTop}px`, width: `${Math.max(120, box.width)}px`, height: `${Math.max(28, box.height)}px` });
+      svgViewport.appendChild(input);
+      input.focus();
+      input.select();
+      let done = false;
+      const finish = (keep) => {
+        if (done) return;
+        done = true;
+        input.remove();
+        const text = input.value.trim();
+        if (!keep || text === label.dataset.text) return;
+        if (state.labelsFor !== state.prompt) { state.labels = {}; state.labelsFor = state.prompt; }
+        if (text) state.labels[label.dataset.key] = text; else delete state.labels[label.dataset.key];
+        runGenerate();
+      };
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') finish(true);
+        else if (ev.key === 'Escape') finish(false);
+      });
+      input.addEventListener('blur', () => finish(true));
+    }
+
     async function runGenerate() {
       state.prompt = promptInput.value.trim() || 'apple';
       state.vary = optVary.checked;
@@ -1611,6 +1710,8 @@
             vary: state.vary,
             seed: state.seed,
             ...(state.mode === 'scene' && state.beats && state.beatsFor === state.prompt ? { beats: state.beats } : {}),
+            ...(state.labelsFor === state.prompt ? { labels: state.labels } : {}),
+            blank: state.blank,
           }),
         });
         const data = await res.json();
@@ -1643,6 +1744,7 @@
         }
 
         showWordHelp(data);
+        showDiagramTools(data);
 
         // Render unknown words
         if (data.unknown && data.unknown.length > 0) {
@@ -2687,12 +2789,17 @@
     setTimeout(loadConcepts, 150);
 
     // For the video export module below
-    window.pictogenStudio = { getSvgElement, getState: () => state, getStory: () => storyState, showToast, regenerate: () => runGenerate() };
+    window.pictogenStudio = {
+      getSvgElement, getState: () => state, getStory: () => storyState, showToast, regenerate: () => runGenerate(),
+      // the prompt as the engine gets it: named characters as their neutral keys
+      castOf: () => (state.mode === 'scene' ? named(state.prompt) : { text: state.prompt, named: [] }),
+    };
   </script>
   <script type="module" src="/js/scene-sound.js"></script>
   <script type="module" src="/js/timeline-view.js"></script>
   <script type="module" src="/js/clip-tray.js"></script>
   <script type="module" src="/js/characters.js"></script>
+  <script type="module" src="/js/worksheet.js"></script>
   <script type="module">
     import { exportGif, exportVideo, videoFormat, mountOffscreen, download } from '/js/video-export.js';
     window.pictogenVideo = { exportGif, exportVideo, videoFormat, mountOffscreen };

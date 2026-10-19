@@ -12,16 +12,19 @@ import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/r
 import { getConcept } from './concepts/index.js';
 import { parseTimeline, extractCamera, editTimeline, lookRelations, speechRelations } from './timeline.js';
 import { takeQuotes } from './speech.js';
+import { findDiagram, renderDiagram, renderLabelledPictures, DIAGRAMS } from './diagrams.js';
 import { conceptOf, individualNames } from './individuals.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
 export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
 export { renderIcon, renderCard, renderSheet, drawConcept, shapesToSvg } from './core/render.js';
 export { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
+export { renderWorksheet, worksheetKind, WORKSHEET_KINDS } from './worksheet.js';
 export { parseText, tokenize, suggestWords } from './text/matcher.js';
 export { composeScene } from './scene.js';
 export { parseTimeline, hasSequence, cameraAction, extractCamera, editTimeline, lookRelations, speechRelations, POSE_ANIMS, ACTION_TYPES, CAMERA_TYPES } from './timeline.js';
 export { lipKeys, babbleNotes } from './speech.js';
+export { findDiagram, renderDiagram, renderLabelledPictures, DIAGRAMS } from './diagrams.js';
 export { voiceOf, soundOf, SOUND_NAMES } from './sound.js';
 export { listConcepts, getConcept, registerConcept } from './concepts/index.js';
 export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './story.js';
@@ -33,7 +36,7 @@ export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateS
  *     him"), the clip length in seconds and the actions of each beat (see src/timeline.js); scenes with
  *     camera moves ("zoom in on the dog", "the camera follows him") also report their loop length
  *
- * opts.mode   'scene' (default) | 'comic' | 'stickman' | 'callout' | 'knolling' | 'split' | 'isometric' | 'waffle' | 'coloring' | 'icons' | 'card'
+ * opts.mode   'scene' (default) | 'comic' | 'stickman' | 'diagram' (labelled; 'callout' too) | 'knolling' | 'split' | 'isometric' | 'waffle' | 'coloring' | 'icons' | 'card'
  * opts.style  'flat' | 'cartoon' | 'cute2d' | 'comic' | 'whiteboard' | 'geometric' | 'doodle' | 'editorial' | 'papercut' | 'stickman' | 'outline' | 'pastel' | 'silhouette' | 'sketch' | 'neon' | 'blueprint' | 'chalkboard' | 'vintage' | 'pixel' | 'watercolor' | 'anime' | 'crayon' | 'letterling' (STYLE_NAMES)
  * opts.width / opts.height  scene size (default 640x360)
  * opts.seed   any number/string – same seed => same picture
@@ -97,8 +100,25 @@ export function generate(text, opts = {}) {
     ];
   }
   const common = { style, seed, vary, width, height, text };
-  let svg;
-  if (mode === 'icons') {
+  let svg, diagram = null;
+  // A labelled diagram: asked for by its mode ("diagram", or "callout"), or in a scene by a school
+  // topic said plainly ("the parts of a plant", "the water cycle"); labels renamed or left blank
+  const isDiagramMode = mode === 'diagram' || mode === 'callout';
+  const topic = isDiagramMode ? findDiagram(unquoted) : mode === 'scene' && !opts.beats ? findDiagram(unquoted, { strict: true }) : null;
+  const labelOpts = {
+    ...common,
+    labels: opts.labels && typeof opts.labels === 'object' ? opts.labels : undefined,
+    blank: Boolean(opts.blank),
+    numbered: Boolean(opts.numbered),
+    title: typeof opts.title === 'string' && opts.title.trim() ? opts.title.trim() : undefined,
+  };
+  if (topic) {
+    ({ svg, diagram } = renderDiagram(topic, labelOpts));
+  } else if (isDiagramMode && matches.length) {
+    ({ svg, diagram } = renderLabelledPictures(matches, labelOpts));
+  } else if (isDiagramMode) {
+    svg = renderPlaceholder({ style });
+  } else if (mode === 'icons') {
     svg = matches.length
       ? renderSheet(matches.map((m) => ({ id: m.id, color: m.color, expression: m.expression, animation: m.animation, view: m.view, label: true })), common)
       : renderPlaceholder({ style });
@@ -110,8 +130,6 @@ export function generate(text, opts = {}) {
     svg = renderComicStrip(matches, common);
   } else if (mode === 'stickman' || /stickman|stick figure/.test(text.toLowerCase())) {
     svg = renderStickman(matches, common);
-  } else if (mode === 'callout') {
-    svg = renderCallout(matches, common);
   } else if (mode === 'knolling') {
     svg = renderKnolling(matches, common);
   } else if (mode === 'split') {
@@ -161,5 +179,5 @@ export function generate(text, opts = {}) {
     ? cast.filter((m) => getConcept(conceptOf(m.id)) && !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary))
       .map((m) => ({ id: m.id, label: getConcept(conceptOf(m.id)).label || m.id, person: getConcept(conceptOf(m.id)).category === 'people' }))
     : [];
-  return { svg, ...parsed, matches, unknown, suggestions, guessed: parsed.guessed || {}, setting, images, ...clip, cast: castOut, ...(edited ? { edited: true } : {}) };
+  return { svg, ...parsed, matches, unknown, suggestions, guessed: parsed.guessed || {}, ...(diagram ? { diagram } : {}), setting, images, ...clip, cast: castOut, ...(edited ? { edited: true } : {}) };
 }

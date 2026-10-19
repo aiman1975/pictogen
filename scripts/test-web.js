@@ -55,9 +55,12 @@ else {
       const story = await res.json();
       const html = await (await fetch('/api/story/export-html', { method: 'POST', body: JSON.stringify({ text: 'a boy waving | Hello!' }) })).text();
       const icon = await (await fetch('/api/icon?id=apple&style=flat')).text();
-      return { scenes: story.scenes.length, html: html.length, player: html.includes('function pgSound(') && html.includes('data:font/woff2;base64,'), icon: icon.startsWith('<svg') };
+      const ws = await (await fetch('/api/worksheet', { method: 'POST', body: JSON.stringify({ text: 'the parts of a plant', mode: 'diagram' }) })).json();
+      return { scenes: story.scenes.length, html: html.length, player: html.includes('function pgSound(') && html.includes('data:font/woff2;base64,'), icon: icon.startsWith('<svg'),
+        worksheet: ws.kind === 'label' && ws.pages?.length === 2 && ws.pages[0].includes('data:font/woff2;base64,') };
     });
     check(clip.scenes === 2 && clip.player && clip.icon, `clips, the offline HTML player (fonts and sound inside, ${Math.round(clip.html / 1024)} KB) and icons work`);
+    check(clip.worksheet, 'printable worksheets are made in the browser too (a label worksheet and its answer key, fonts inside)');
     const img = await page.evaluate(async () => {
       // As the dictionary grid writes them (the build turns src="/api/..." into data-api-src)
       const box = document.createElement('div');

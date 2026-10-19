@@ -6,6 +6,7 @@ import { spawn, execSync } from 'node:child_process';
 import { createServer } from 'node:net';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -358,6 +359,42 @@ try {
   check((await page.evaluate(() => window.pictogenCharacters.list().length)) === 0, 'a character can be removed');
 
   check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
+
+  // A labelled diagram: rename a label by clicking it, blank them for a quiz; then a worksheet PDF
+  await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="diagram"]').click());
+  {
+    const input = await page.$('#prompt-input');
+    await input.fill('the parts of a plant');
+    await input.press('Enter');
+    await page.waitForFunction(() => window.pictogenStudio.getState().prompt === 'the parts of a plant' && document.querySelector('#svg-viewport .pg-label'));
+  }
+  check(await page.evaluate(() => !document.getElementById('diagram-bar').hidden && document.querySelectorAll('#svg-viewport .pg-label').length === 6), 'the parts of a plant: a diagram with six labels and its label tools');
+  await page.click('#svg-viewport .pg-label[data-key="stem"]');
+  await page.fill('.label-editor', 'Stalk');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.querySelector('#svg-viewport .pg-label[data-key="stem"]')?.dataset.text === 'Stalk');
+  check(true, 'a label renamed by clicking it ("Stem" -> "Stalk")');
+  await page.click('#btn-blank-labels');
+  await page.waitForFunction(() => document.querySelector('#svg-viewport .pg-word-bank'));
+  const quiz = await page.evaluate(() => document.querySelector('#svg-viewport .pg-word-bank').textContent);
+  check(/Stalk/.test(quiz), `blank labels for a quiz, the renamed word in the word bank (${quiz.trim()})`);
+  await page.click('#btn-blank-labels');
+  await page.click('#btn-worksheet');
+  await page.waitForFunction(() => document.querySelectorAll('.ws-preview img').length >= 1, null, { timeout: 30000 });
+  const ws = await page.evaluate(() => ({ pages: document.querySelectorAll('.ws-preview img').length, open: document.querySelector('.worksheet-dialog').open }));
+  check(ws.open && ws.pages === 2, `the worksheet dialog shows the worksheet and its answer key (${ws.pages} pages)`);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.click('#ws-pdf')]);
+  const pdfPath = join(tmpdir(), `pictogen-ws-${process.pid}.pdf`);
+  await dl.saveAs(pdfPath);
+  let info = '';
+  try { info = execSync(`pdfinfo "${pdfPath}"`, { encoding: 'utf8' }); } catch (e) { info = String(e.stdout || e.message); }
+  const pagesIn = +(info.match(/Pages:\s+(\d+)/)?.[1] ?? 0), a4 = /595\.28 x 841\.89/.test(info);
+  check(/\.pdf$/.test(dl.suggestedFilename()) && pagesIn === 2 && a4, `"Download PDF" gives a 2-page A4 PDF (${dl.suggestedFilename()}, ${pagesIn} pages${a4 ? ', A4' : ''})`);
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="scene"]').click());
+  await draw('a boy waves');
+  const animated = await page.evaluate(() => document.querySelector('#svg-viewport svg').getAnimations({ subtree: true }).length);
+  check(!(await page.evaluate(() => document.querySelector('.worksheet-dialog').open)) && animated > 0, `the dialog closes, and the studio's pictures still move (${animated} animations)`);
 
   // Something held stays in the hands when the figure's expression changes
   await draw('a girl holds a balloon');

@@ -1,22 +1,12 @@
 // PictoGen Story & Clip Engine: Multi-scene animated clips for Kids Stories,
 // Science Documentaries, News & Editorial Briefs, and How-To Explainer Guides.
-import { readFileSync } from 'node:fs';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
 import { pgSound, pgSoundTrack, pgVoiced, pgBank, pgMusicBars, pgMusicTrack, pgMusicLoop } from './sound-synth.js';
 import { soundOf } from './sound.js';
+import { embeddedFontCss } from './fonts.js';
 import { packForClip } from './sound-pack.js';
 
-const FONT_DIR = new URL('../public/fonts/', import.meta.url);
-let fontCss = null;
-/** The studio's self-hosted @font-face rules with the font files inlined, so exported clips need no network. */
-function embeddedFontCss() {
-  fontCss ??= readFileSync(new URL('fonts.css', FONT_DIR), 'utf8').replace(
-    /url\(([\w.-]+\.woff2)\)/g,
-    (_, file) => `url(data:font/woff2;base64,${readFileSync(new URL(file, FONT_DIR)).toString('base64')})`,
-  );
-  return fontCss;
-}
 
 export const ASPECT_RATIOS = {
   '16:9': { width: 640, height: 360, label: '16:9 Widescreen', ratioCss: '16 / 9' },

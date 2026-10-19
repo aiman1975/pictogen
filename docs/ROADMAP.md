@@ -157,6 +157,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       Animations API) and drawing a still copy; GIF with a built-in encoder (median-cut palette, LZW),
       video with the browser's MediaRecorder (MP4/H.264 where it can, otherwise WebM). Clip Studio
       exports whole clips with a title card and captions. Nothing to install, no ffmpeg
+- [x] **Printable worksheets** (`src/worksheet.js`, `public/js/pdf.js`): A4 pages as SVG with their
+      fonts inside, turned into a PDF in the browser (JPEG pages, no library) or printed: write about
+      the picture, count and write, label the diagram (blank labels, word bank), colour it in; an
+      answer key for counting and labelling
 - [ ] Export from the command line / server (needs a headless browser; optional dependency)
 - [ ] Lottie JSON export for app developers
 - [ ] Transparent-background PNG sequences for video editors
@@ -169,6 +173,11 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       drawings ("superhero", "kid", "dinosaur", "wizard"), a motion word after someone is a verb ("a
       superhero flies", "a woman cooks"), typos are forgiven when nothing else matches ("elefant"),
       and the studio says what it guessed and offers close words for the rest
+- [x] Real labelled diagrams (`src/diagrams.js`) instead of the made-up "spec sheet" labels: plant,
+      tree, human body, water cycle in numbered steps, volcano, layers of the Earth, solar system,
+      butterfly life cycle; labels laid out beside the drawing without overlapping, renamed by
+      clicking them, blank for a quiz with a word bank; labelled pictures for vocabulary
+- [ ] More diagrams: frog life cycle, parts of a flower, the heart, the eye, a fish, a bird
 - [x] Speech bubbles that fit: wrapped to the room there is, inside the picture and clear of each
       other, in still scenes, timelines (while the words last) and the comic strip (the prompt's
       quotes are its lines); they move with their figure in the studio
