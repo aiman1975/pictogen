@@ -395,6 +395,41 @@ try {
     mia: document.querySelectorAll('#svg-viewport g[data-character="Mia"]').length,
   }));
   check(strip.title === 'MIA,REX' && strip.mia === 3, `in a comic strip Mia is in all three panels, and the title says her name (${JSON.stringify(strip)})`);
+  // A picture book of a clip with Mia: a cover, a page per scene with its caption, The End, as a
+  // landscape PDF; the captions say her name (the engine only got her key)
+  await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="scene"]').click());
+  await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'scene');
+  const clearClip = async () => {
+    page.once('dialog', (d) => d.accept());
+    if (await page.$('#clip-tray [data-do="clear"]')) await page.click('#clip-tray [data-do="clear"]');
+  };
+  await clearClip();
+  for (const prompt of ['Mia walks in, then waves', 'Rex runs to Mia']) {
+    await draw(prompt);
+    await page.click('#clip-tray [data-do="add"]');
+  }
+  {
+    const cap = page.locator('.clip-caption').last();
+    await cap.fill('Then Rex came to see Mia!');
+    await cap.dispatchEvent('input');
+  }
+  const sentBook = sent.length;
+  await page.click('#clip-tray [data-do="play"]');
+  await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'story' && window.pictogenStudio.getStory().scenes?.length === 2);
+  const captions = await page.evaluate(() => window.pictogenStudio.getStory().scenes.map((sc) => sc.caption));
+  check(captions.join(' | ') === 'Mia walks in, then waves. | Then Rex came to see Mia!' && sent.slice(sentBook).every((body) => !body.includes('Mia')),
+    `a clip's captions say the names, though the engine only got keys (${captions.join(' | ')})`);
+  await page.click('#story-btn-book');
+  await page.fill('#bk-author', 'Grandpa');
+  await page.waitForFunction(() => document.querySelectorAll('#bk-preview img').length === 4, null, { timeout: 60000 });
+  const [bookFile] = await Promise.all([page.waitForEvent('download'), page.click('#bk-pdf')]);
+  const pdf = readFileSync(await bookFile.path(), 'latin1');
+  check(pdf.startsWith('%PDF-') && (pdf.match(/\/Type \/Page /g) || []).length === 4 && /MediaBox \[0 0 841\.89 595\.28\]/.test(pdf) && /\/Title \(My Story\)/.test(pdf),
+    'a picture book: cover, a page for each scene and The End, on landscape A4 pages, as a PDF');
+  await page.evaluate(() => document.querySelector('.book-dialog').close());
+  await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="scene"]').click());
+  await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'scene');
+  await clearClip();
   await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="scene"]').click());
   await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'scene');
   await page.click('#characters-panel [data-remove="1"]');

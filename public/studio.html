@@ -625,6 +625,8 @@
     .ws-page { margin: 0; flex: 0 0 auto; text-align: center; font-size: 0.78rem; font-weight: 800; color: #475569; }
     .ws-paper { display: block; width: 300px; height: auto; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.18); margin-bottom: 0.3rem; }
     .ws-wait { margin: auto; font-weight: 700; color: #475569; }
+    .bk-preview { display: flex; flex-wrap: wrap; gap: 0.8rem; overflow-y: auto; max-height: 70vh; background: #e2e8f0; border-radius: 10px; padding: 0.8rem; min-height: 300px; align-items: flex-start; }
+    .bk-page .ws-paper { width: 250px; border-radius: 4px; }
     @media (max-width: 720px) {
       .ws-body { grid-template-columns: 1fr; }
       .ws-paper { width: 240px; }
@@ -1248,6 +1250,7 @@
 
             <button class="btn-action" id="story-btn-sound" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Sound on or off: chimes, voices and effects">🔔</button>
             <button class="btn-action" id="story-btn-music" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Background music for the clip's genre, on or off">🎵</button>
+            <button class="btn-action" id="story-btn-book" style="background:#f59e0b; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="The clip as a picture book to print: a cover, a page for each scene with its caption, The End">📖 Picture Book</button>
             <button class="btn-action" id="story-btn-export-html" style="background:#10b981; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Export standalone offline animated player">💾 Export Clip (.html)</button>
             <button class="btn-action" id="story-btn-export-video" style="background:#6366f1; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Render the whole clip, captions included, as a video">🎬 Export Video</button>
           </div>
@@ -1513,7 +1516,7 @@
     // Playing "Your clip" (saved scenes) instead of the prompt's story: until a prompt or preset is chosen
     function clipRequest() {
       const scenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
-      return scenes?.length ? { scenes: scenes.map((sc) => ({ ...sc, prompt: named(sc.prompt).text })), title: 'My Clip' } : {};
+      return scenes?.length ? { scenes: scenes.map((sc) => ({ ...sc, prompt: named(sc.prompt).text, ...(sc.caption ? { caption: named(sc.caption).text } : {}) })), title: 'My Clip' } : {};
     }
     // Your characters: their names become neutral keys ("pgc1", a boy) for the server, and their photos
     // go on the drawings here (names and photos never leave the browser)
@@ -1528,7 +1531,8 @@
       if (!chars?.list().length || i < 0 || j < i) return html;
       const clipScenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
       const scenes = JSON.parse(html.slice(i + start.length, j)).map((sc, k) => ({
-        ...sc, svg: chars.withFaces(sc.svg, named(clipScenes?.[k]?.prompt ?? state.prompt).named),
+        ...sc, prompt: chars.restore(sc.prompt), caption: chars.restore(sc.caption),
+        svg: chars.withFaces(sc.svg, named(clipScenes?.[k]?.prompt ?? state.prompt).named),
       }));
       return html.slice(0, i + start.length) + JSON.stringify(scenes).replace(/</g, '\\u003c') + html.slice(j);
     }
@@ -1656,8 +1660,12 @@
           const data = await res.json();
           // Faces of named characters go into each scene's markup (so a clip's video export has them)
           const clipScenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
+          // (and the captions say their names again where the engine got keys)
+          const said = (t) => window.pictogenCharacters?.restore(t) ?? t;
           storyState.scenes = data.scenes.map((sc, i) => ({
             ...sc,
+            prompt: said(sc.prompt),
+            caption: said(sc.caption),
             svg: window.pictogenCharacters?.withFaces(sc.svg, named(clipScenes?.[i]?.prompt ?? state.prompt).named) ?? sc.svg,
           }));
           storyState.genre = data.genre || state.genre;
@@ -2812,6 +2820,7 @@
   <script type="module" src="/js/clip-tray.js"></script>
   <script type="module" src="/js/characters.js"></script>
   <script type="module" src="/js/worksheet.js"></script>
+  <script type="module" src="/js/book.js"></script>
   <script type="module">
     import { exportGif, exportVideo, videoFormat, mountOffscreen, download } from '/js/video-export.js';
     window.pictogenVideo = { exportGif, exportVideo, videoFormat, mountOffscreen };

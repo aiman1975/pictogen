@@ -27,9 +27,10 @@ const svgSize = (svg) => {
 /**
  * Renders `duration` seconds of an animated SVG element (it must be in the document, not hidden)
  * at `fps` frames per second into `ctx` and calls onFrame(i) after each one is drawn.
- * Drawing goes into the box (x, y, w, h) of the canvas; afterwards the animations play on.
+ * Drawing goes into the box (x, y, w, h) of the canvas; afterwards the animations play on. With
+ * `start`, the first frame is that many seconds in.
  */
-export async function renderFrames(svg, { duration, fps, ctx, box, onFrame }) {
+export async function renderFrames(svg, { duration, fps, ctx, box, onFrame, start = 0 }) {
   const { width, height } = svgSize(svg);
   const animations = svg.getAnimations({ subtree: true });
   // Which properties each element's animations change (only those are copied onto the still)
@@ -49,7 +50,7 @@ export async function renderFrames(svg, { duration, fps, ctx, box, onFrame }) {
   const n = Math.max(1, Math.round(duration * fps));
   try {
     for (let i = 0; i < n; i++) {
-      const ms = (i / fps) * 1000;
+      const ms = (start + i / fps) * 1000;
       animations.forEach((a) => { a.currentTime = ms; });
       // A still copy carrying this moment's animated values
       const still = svg.cloneNode(true);

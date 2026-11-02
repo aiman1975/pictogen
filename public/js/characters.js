@@ -103,6 +103,8 @@ function rewrite(text) {
 
 /** A character's name from the key the engine knows it by ("pgc1" -> "Tom") */
 const nameOfKey = (key) => characters.find((c) => keyOf(c) === key)?.name ?? null;
+/** Text from the engine with the names put back ("Pgc1 walks in." -> "Tom walks in.") */
+const restore = (text) => (typeof text === 'string' ? text.replace(/\bpgc\d+\b/gi, (k) => nameOfKey(k.toLowerCase()) ?? k) : text);
 
 const SVG = 'http://www.w3.org/2000/svg';
 /** Puts each named character's photo on its figure (data-who: its key), in every pose it has. */
@@ -478,5 +480,5 @@ function openCrop(img, done) {
   modal.querySelector('.face-name').focus();
 }
 
-window.pictogenCharacters = { rewrite, apply, withFaces, individuals, nameOfKey, refresh: render, list: () => characters };
+window.pictogenCharacters = { rewrite, apply, withFaces, individuals, nameOfKey, restore, refresh: render, list: () => characters };
 render();

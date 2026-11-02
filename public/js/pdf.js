@@ -1,13 +1,15 @@
 // A PDF made in the browser, offline and with no library: one picture per A4 page (JPEG images, as
-// PDF readers and printers show them directly). Used for printable worksheets (worksheet.js).
+// PDF readers and printers show them directly). Used for printable worksheets (worksheet.js) and
+// picture books (book.js, on landscape pages).
 
 const A4 = { w: 595.28, h: 841.89 }; // points
 
 /**
- * jpegPdf([{ jpeg: Uint8Array, width, height }], { title }) -> Blob (application/pdf): each picture
- * fills one A4 page.
+ * jpegPdf([{ jpeg: Uint8Array, width, height }], { title, landscape }) -> Blob (application/pdf):
+ * each picture fills one A4 page (turned sideways with landscape: true).
  */
-export function jpegPdf(pages, { title = 'Worksheet' } = {}) {
+export function jpegPdf(pages, { title = 'Worksheet', landscape = false } = {}) {
+  const A = landscape ? { w: A4.h, h: A4.w } : A4;
   const enc = new TextEncoder();
   const parts = [];
   const offsets = [];
@@ -32,8 +34,8 @@ export function jpegPdf(pages, { title = 'Worksheet' } = {}) {
   obj(3, `<< /Title (${safe}) /Producer (PictoGen) >>`);
   pages.forEach((pg, i) => {
     const id = pageIds[i];
-    const draw = `q ${A4.w} 0 0 ${A4.h} 0 0 cm /Im${i} Do Q`;
-    obj(id, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4.w} ${A4.h}] /Resources << /XObject << /Im${i} ${id + 2} 0 R >> >> /Contents ${id + 1} 0 R >>`);
+    const draw = `q ${A.w} 0 0 ${A.h} 0 0 cm /Im${i} Do Q`;
+    obj(id, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A.w} ${A.h}] /Resources << /XObject << /Im${i} ${id + 2} 0 R >> >> /Contents ${id + 1} 0 R >>`);
     obj(id + 1, [`<< /Length ${draw.length} >>\nstream\n`, draw, '\nendstream']);
     obj(id + 2, [`<< /Type /XObject /Subtype /Image /Width ${pg.width} /Height ${pg.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pg.jpeg.length} >>\nstream\n`, pg.jpeg, '\nendstream']);
   });
