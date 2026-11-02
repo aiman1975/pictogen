@@ -427,6 +427,13 @@ try {
   check(pdf.startsWith('%PDF-') && (pdf.match(/\/Type \/Page /g) || []).length === 4 && /MediaBox \[0 0 841\.89 595\.28\]/.test(pdf) && /\/Title \(My Story\)/.test(pdf),
     'a picture book: cover, a page for each scene and The End, on landscape A4 pages, as a PDF');
   await page.evaluate(() => document.querySelector('.book-dialog').close());
+  // A story written in the story box: one scene per line, the names in the story kept
+  check(await page.isVisible('#story-text') && !(await page.isVisible('#prompt-input')), 'Clip Studio has a story box with room for lines');
+  await page.fill('#story-text', 'Once upon a time, a little girl called Lily lived near a forest.\nOne morning, she found a small puppy under a tree.\nAt night, Lily hugged the puppy and fell asleep.');
+  await page.press('#story-text', 'Control+Enter');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.length === 3 && window.pictogenStudio.getStory().title === 'My Story');
+  const told = await page.evaluate(() => window.pictogenStudio.getStory().scenes.map((sc) => ({ caption: sc.caption, who: (sc.svg.match(/data-who="(pgc\d+)"/) || [])[1] })));
+  check(told[0].caption.startsWith('Once upon a time') && told.every((sc) => sc.who && sc.who === told[0].who), `a story in three lines: three scenes, Lily the same girl in each (${JSON.stringify(told.map((sc) => sc.who))})`);
   await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="scene"]').click());
   await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'scene');
   await clearClip();

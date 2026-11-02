@@ -8,6 +8,7 @@ const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
 // Time-of-day / weather words: in a scene the backdrop already shows them, so a library icon
 // they happen to match ("sunset" -> city-at-sunset emoji) would be a stray object on the ground.
 const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...ENV_WORDS.snow, ...ENV_WORDS.rain]);
+const PLACE_WORDS = new Set(['forest', 'woods', 'jungle', 'park', 'garden', 'home']);
 import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/render.js';
 import { getConcept } from './concepts/index.js';
 import { parseTimeline, extractCamera, editTimeline, lookRelations, speechRelations } from './timeline.js';
@@ -28,6 +29,7 @@ export { findDiagram, renderDiagram, renderLabelledPictures, DIAGRAMS } from './
 export { voiceOf, soundOf, SOUND_NAMES } from './sound.js';
 export { listConcepts, getConcept, registerConcept } from './concepts/index.js';
 export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './story.js';
+export { readStory } from './story-reader.js';
 
 /**
  * generate(text, opts) -> { svg, matches, unknown, setting, tokens, images, duration?, beats? }
@@ -85,8 +87,11 @@ export function generate(text, opts = {}) {
     }
   }
   let { matches } = parsed;
+  // (a place said with someone in it - "a girl in the forest" - is the backdrop, its trees along the
+  // horizon, not one big tree in front of her)
+  const someone = matches.some((m) => /^(people|animals|wildlife)/.test(getConcept(conceptOf(m.id))?.category ?? ''));
   const backdrop = mode === 'scene'
-    ? matches.filter((m) => ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)
+    ? matches.filter((m) => (ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary) || (someone && PLACE_WORDS.has(m.word)))
     : [];
   if (backdrop.length) matches = matches.filter((m) => !backdrop.includes(m));
   // Several things happening one after another: actors follow a timeline of beats - the prompt's,
@@ -96,11 +101,12 @@ export function generate(text, opts = {}) {
     ? [...timeline.actors.map(({ id, match }) => ({ ...match, id, count: match.count ?? 1, animation: undefined })), ...timeline.props]
     : matches.map((m) => ({ ...m, animation: undefined }));
   const edited = mode === 'scene' && Array.isArray(opts.beats);
-  if (edited) timeline = editTimeline(opts.beats, cast.filter((m) => !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)), timeline);
+  const isBackdrop = (m) => (ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary) || (someone && PLACE_WORDS.has(m.word));
+  if (edited) timeline = editTimeline(opts.beats, cast.filter((m) => !isBackdrop(m)), timeline);
   if (timeline) {
     matches = [
       ...timeline.actors.map(({ id, match }) => ({ ...match, id, count: match.count ?? 1, animation: undefined, actor: true })),
-      ...timeline.props.filter((m) => !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)),
+      ...timeline.props.filter((m) => !isBackdrop(m)),
     ];
   }
   const common = { style, seed, vary, width, height, text, identities };

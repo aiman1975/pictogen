@@ -147,6 +147,10 @@ export const SYNONYMS = {
   dinosaur: ['t_rex', 'sauropod'], dinosaurs: ['t_rex', 'sauropod'], dino: ['t_rex'], trex: ['t_rex'],
   wizard: ['man_mage'], wizards: ['man_mage'], witch: ['woman_mage'], sorcerer: ['man_mage'], magician: ['man_mage'],
   monster: ['alien_monster'], monsters: ['alien_monster'], fairy: ['woman_fairy'], fairies: ['woman_fairy'],
+  mum: ['woman'], mom: ['woman'], mummy: ['woman'], mommy: ['woman'], mama: ['woman'], mother: ['woman'], aunt: ['woman'], auntie: ['woman'],
+  dad: ['man'], daddy: ['man'], papa: ['man'], father: ['man'], uncle: ['man'], granny: ['old_woman', 'woman'], nana: ['old_woman', 'woman'],
+  grandad: ['old_man', 'man'], granddad: ['old_man', 'man'], pony: ['horse'], puppies: ['dog'], kittens: ['cat'],
+  presents: ['wrapped_gift'], gifts: ['wrapped_gift'], sister: ['girl'], brother: ['boy'], son: ['boy'], daughter: ['girl'], grandson: ['boy'], granddaughter: ['girl'], wife: ['woman'], husband: ['man'],
 };
 // Before a noun, these words mean "flies" and "waves" are things ("three flies", "the waves");
 // after someone who can move, they are what it does ("a superhero flies", "he waves")
@@ -660,9 +664,12 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     // "a superhero flies", "she waves": after someone who can move, a motion word is what they
     // do, not the insect or the sea ("three flies", "the waves" stay things)
     const prev = toks[i - 1];
-    const afterMover = (MOTION_WORDS[t] || HOLD_VERBS.has(t) || RIDE_VERBS.has(t) || EXPRESSION_WORDS[t]) && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev] && !COLOR_WORDS[prev]
+    // ("smiles and waves at the bird": a motion aimed at someone is a verb, not "the waves at the beach")
+    const aimed = MOTION_WORDS[t] && i > 0 && found.length && ['at', 'to', 'goodbye', 'hello', 'back'].includes(next)
+      && !['a', 'an', 'the', 'some', 'these', 'those', 'his', 'her', 'their', 'my', 'your', 'our', 'its', 'no', 'of'].includes(prev);
+    const afterMover = aimed || ((MOTION_WORDS[t] || HOLD_VERBS.has(t) || RIDE_VERBS.has(t) || EXPRESSION_WORDS[t]) && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev] && !COLOR_WORDS[prev]
       && (SUBJECT_PRONOUNS.has(prev) || names?.has(prev)
-        || (lastConceptIndex === i - 1 && found.length && MOVERS.has(getConcept(found[found.length - 1].id.split('~')[0])?.category)));
+        || (lastConceptIndex === i - 1 && found.length && MOVERS.has(getConcept(found[found.length - 1].id.split('~')[0])?.category))));
 
     let hit = (isModifierAdjective || isStopword || isNumeral || afterMover) ? null : at(toks, i);
     // "a woman cooks", "he guards": after someone, a person-word ending in s is what they do (not
@@ -695,10 +702,14 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     else if (SIZE_WORDS[t]) pend.size = SIZE_WORDS[t];
     else if (EXPRESSION_WORDS[t]) {
       const expr = EXPRESSION_WORDS[t];
+      // ("a fox is lost and scared in the woods": the fox; "the boy is happy under a tree": the boy)
+      const lastMover = [...found].reverse().find((m) => /^(people|animals|wildlife)/.test(getConcept(m.id.split('~')[0])?.category ?? ''));
       if (hasNextConcept) {
         pend.expression = expr;
       } else if (found.length > 0 && i === lastConceptIndex + 1) {
         found[found.length - 1].expression = expr;
+      } else if (lastMover && !lastMover.expression) {
+        lastMover.expression = expr;
       } else {
         pend.expression = expr;
       }

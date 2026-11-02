@@ -122,6 +122,8 @@
       gap: 0.75rem;
       position: relative;
     }
+    .story-text { resize: vertical; min-height: 8.5rem; line-height: 1.45; font-weight: 600; }
+    .prompt-box:has(.story-text:not([hidden])) { align-items: flex-start; }
     .prompt-input {
       flex: 1;
       font-family: inherit;
@@ -946,6 +948,9 @@
           placeholder="Type what you want to see, e.g. 'a girl with a balloon in the park'"
           value="a girl with a balloon and her dog in the park"
         />
+        <!-- Clip Studio: a whole story, in lines or sentences (read by src/story-reader.js) -->
+        <textarea id="story-text" class="prompt-input story-text" rows="6" hidden aria-label="Your story"
+          placeholder="Write a story, one part per line (or just sentences), e.g.&#10;Once upon a time, a little girl called Mia lived near a big forest.&#10;One morning, she found a small puppy under a tree.&#10;At night, Mia hugged the puppy and fell asleep."></textarea>
         <button id="btn-generate" class="btn-generate">
           <span>✨ Draw</span>
         </button>
@@ -1023,7 +1028,7 @@
         <div id="story-presets-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
 
         <div style="margin-top: 0.6rem; font-size: 0.74rem; color: #b45309;">
-          💡 <strong>Tip:</strong> Choose a preset above or type custom multi-beat scripts: <code>Prompt | Tag | Headline | Caption // ...</code>
+          💡 <strong>Tip:</strong> Pick a story above, or write your own in the box: one part per line (or just sentences). Name your characters (“a little girl called Mia”) and they stay the same all the way through. <strong>Ctrl + Enter</strong> makes the clip.
         </div>
       </div>
 
@@ -1359,6 +1364,18 @@
     }
 
     const promptInput = document.getElementById('prompt-input');
+    // In Clip Studio a story box with room for lines takes the prompt's place
+    const storyText = document.getElementById('story-text');
+    const isStoryId = (t) => /^[a-z0-9]+(-[a-z0-9]+)+$/.test(String(t || '').trim());
+    function showStoryBox(on) {
+      storyText.hidden = !on;
+      promptInput.hidden = on;
+      if (on) storyText.value = isStoryId(state.prompt) ? '' : state.prompt;
+    }
+    storyText.addEventListener('keydown', (e) => {
+      // (Enter starts a new line; Ctrl or Cmd + Enter makes the clip)
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); usePrompt(); runGenerate(); }
+    });
     const btnGenerate = document.getElementById('btn-generate');
     const svgViewport = document.getElementById('svg-viewport');
     const matchesList = document.getElementById('matches-list');
@@ -1461,6 +1478,7 @@
           usePrompt();
           state.prompt = storyId;
           promptInput.value = storyId;
+          storyText.value = '';
           runGenerate();
         });
       });
@@ -1621,7 +1639,8 @@
     }
 
     async function runGenerate() {
-      state.prompt = promptInput.value.trim() || 'apple';
+      // (a story written in the story box, else the prompt - or the story picked above)
+      state.prompt = (state.mode === 'story' && !storyText.hidden && storyText.value.trim() ? storyText.value : promptInput.value).trim() || 'apple';
       state.vary = optVary.checked;
       deselectItem();
       if (state.mode !== 'scene') window.pictogenTimeline?.update(null);
@@ -2490,6 +2509,7 @@
           usePrompt();
           state.prompt = presets[0].id;
           promptInput.value = presets[0].id;
+          storyText.value = '';
           if (state.mode === 'story') runGenerate();
         }
       });
@@ -2623,6 +2643,7 @@
         document.querySelectorAll('#modes-group .pill-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         state.mode = btn.dataset.mode;
+        if (state.mode !== 'story') showStoryBox(false);
         if (state.mode === 'story') {
           storyPresetsRow.style.display = 'block';
           coloringPaletteBar.style.display = 'none';
@@ -2633,6 +2654,7 @@
             promptInput.value = state.prompt;
           }
           promptInput.placeholder = "Pick a story above, or write one scene per line, e.g. 'a boy waves | Hello!'";
+          showStoryBox(true);
         } else if (state.mode === 'coloring') {
           storyPresetsRow.style.display = 'none';
           storyPlayerBar.style.display = 'none';
@@ -2725,6 +2747,7 @@
           document.querySelectorAll('#modes-group .pill-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.mode === state.mode);
           });
+          showStoryBox(false); // (a chip's prompt goes in the prompt box)
           if (chip.dataset.genre) {
             state.genre = chip.dataset.genre;
             document.querySelectorAll('#story-genre-group .pill-btn').forEach(b => {

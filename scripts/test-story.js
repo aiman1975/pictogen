@@ -1,4 +1,4 @@
-import { composeStory, parseStoryText, generateStoryHtml, STORY_TEMPLATES } from '../src/index.js';
+import { composeStory, parseStoryText, generateStoryHtml, STORY_TEMPLATES, readStory } from '../src/index.js';
 
 let fails = 0;
 function assert(cond, msg) {
@@ -45,6 +45,55 @@ assert(html.includes(STORY_TEMPLATES[0].scenes[0].caption), 'HTML player contain
 const hostile = composeStory('a boy | TAG | Head | hi </script><script>alert(1)</script>', {});
 const hostileHtml = generateStoryHtml(hostile);
 assert(!hostileHtml.includes('</script><script>alert(1)'), 'Exported HTML escapes "</script>" in captions');
+
+// 6. The story reader: a story in the writer's own words, read as a whole
+{
+  const MIA = `Once upon a time, there was a little girl called Mia who lived near a big forest.
+One morning, she found a small puppy crying under a tree.
+She gave him some milk and he wagged his tail.
+They became best friends and played in the park every day.
+At night, Mia hugged the puppy and fell asleep.`;
+  const r = readStory(MIA);
+  const mia = r.cast.find((c) => c.name === 'Mia');
+  assert(r.scenes.length === 5 && r.scenes.every((sc, i) => sc.caption === MIA.split('\n')[i]), 'one scene per line, each keeping the writer\'s words as its caption');
+  assert(mia?.id === 'girl' && r.individuals.some((ind) => ind.key === mia.key && ind.base === 'girl' && ind.look?.seed), '"a little girl called Mia": a character with a look of her own');
+  const p = r.scenes.map((sc) => sc.prompt);
+  assert(p[1].startsWith(`${mia.key} looks at a small puppy`) && p[2].startsWith(`${mia.key} holds milk and looks at the puppy and the puppy wags`),
+    `"she found a puppy", "she gave him some milk and he wagged": she is Mia, he is the puppy (${p[2]})`);
+  assert(p[3].startsWith(`${mia.key} and the puppy smile at each other and jump`), `"they became best friends and played": Mia and the puppy (${p[3]})`);
+  assert(/in the forest$/.test(p[1]) && /in the park$/.test(p[4]) && /^At night/.test(p[4]), 'where it happens carries on (the forest, then the park) and night comes when the story says');
+  const clip = composeStory(MIA, { style: 'cartoon' });
+  assert(clip.title === 'My Story' && clip.scenes.length === 5 && clip.scenes.every((sc) => sc.svg.includes(`data-who="${mia.key}"`)) && clip.scenes[0].prompt.startsWith('Mia'),
+    'as a clip: Mia is the same figure in every scene; prompts shown with her name');
+  assert(clip.scenes.slice(1, 4).every((sc) => /data-id="dog"/.test(sc.svg)), 'the puppy is in the scenes it is part of');
+
+  const rex = readStory('Tom had a dog called Rex. Every morning they went to the park together. One day it started to rain. "Look, a rainbow!" said Tom.');
+  const [tom, dog] = ['Tom', 'Rex'].map((n) => rex.cast.find((c) => c.name === n));
+  assert(rex.scenes.length === 4 && tom.id === 'boy' && dog.id === 'dog', 'without lines: one scene per sentence; Tom is a boy, Rex a dog');
+  assert(rex.scenes[1].prompt.startsWith(`${tom.key} and ${dog.key} walks to the park`) && !/together/.test(rex.scenes[1].prompt), '"they went to the park": Tom and Rex walk there');
+  assert(rex.scenes[2].prompt === `${tom.key} and ${dog.key} in the park in the rain`,
+    `"it started to rain": whoever was there, in the rain (${rex.scenes[2].prompt})`);
+  assert(/says “Look, a rainbow!”/.test(rex.scenes[3].prompt) && rex.scenes[3].prompt.startsWith(tom.key), '"“Look, a rainbow!” said Tom": Tom says it');
+
+  const more = readStory(`Lily visited Grandma Rose.
+Grandma sat on the sofa and read a book.
+Lily sat next to her and listened.
+Mrs Brown was a kind teacher. Their dog Max jumped. Zoe was an astronaut. She smiled.`);
+  const by = (n) => more.cast.find((c) => c.name === n);
+  assert(by('Lily')?.id === 'girl' && by('Grandma Rose')?.id === 'old_woman' && more.scenes[1].prompt.startsWith(by('Grandma Rose').key),
+    '"Lily" is a girl (not the flower); "Grandma" later is Grandma Rose');
+  assert(more.scenes[2].prompt.includes(`next to ${by('Grandma Rose').key}`), '"Lily sat next to her": her is Grandma, not Lily');
+  assert(by('Mrs Brown')?.id === 'teacher' && by('Max')?.id === 'dog' && by('Zoe')?.id === 'astronaut' && !more.cast.some((c) => /^(Their|Her)$/.test(c.name ?? '')),
+    '"Mrs Brown was a kind teacher", "their dog Max", "Zoe was an astronaut" ("Their" is not a name)');
+  assert(more.scenes[more.scenes.length - 1].prompt.includes(`${by('Zoe').key} smiles`), '"Zoe was an astronaut. She smiled.": she is still Zoe');
+  const opening = readStory('It was a cold winter day. Sam built a snowman in the garden.');
+  assert(opening.scenes.length === 1 && opening.scenes[0].caption.startsWith('It was a cold winter day.') && / in the snow$/.test(opening.scenes[0].prompt),
+    'an opening with nobody in it goes with the first scene; winter is snowy');
+  const saved = readStory('pgc1 walked into the forest. She saw a fox.', { individuals: [{ key: 'pgc1', base: 'girl' }] });
+  assert(saved.scenes[1].prompt.startsWith('pgc1 looks at a fox') && saved.individuals.length === 0, 'the studio\'s own characters (keys) are part of the cast');
+  assert(composeStory('a boy waves | Hello!', {}).scenes[0].caption === 'Hello!' && composeStory('puppy-friend', {}).scenes.length === STORY_TEMPLATES.find((t) => t.id === 'puppy-friend').scenes.length,
+    'scripts with "prompt | caption" and the story templates work as before');
+}
 
 console.log(`\nStory Engine test suite: ${fails === 0 ? 'ALL PASSED!' : `${fails} FAILS`}`);
 process.exit(fails === 0 ? 0 : 1);

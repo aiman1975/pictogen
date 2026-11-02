@@ -1,0 +1,357 @@
+// The story reader: a story written the way people write (one part per line, or just sentences)
+// read as a whole, so its scenes belong together. It keeps a cast (who is who: "a little girl
+// called Mia", "Rex the dog", "she", "the puppy", "they"), carries where and when it happens from
+// scene to scene ("near a big forest", "at night", "it started to rain"), and turns story verbs
+// into what the engine draws ("found a puppy" -> looks at it, "gave him some milk" -> holds the milk
+// out to him, "fell asleep" -> sleeps). Each scene gets a prompt for the engine and keeps the
+// writer's own words as its caption. English only; no model, just rules, so it reads typical
+// children's stories, not every sentence there is.
+//
+//   readStory(text, { individuals }) -> { scenes: [{ prompt, caption }], individuals, cast }
+//     individuals: the studio's named characters ({ key: 'pgc1', base }), already in the text as
+//     their keys; characters the story names itself get keys of their own (pgc21...) and a look
+
+import { parseText } from './text/matcher.js';
+import { getConcept } from './concepts/index.js';
+import { COLOR_WORDS } from './core/color.js';
+
+const FEMALE = new Set(['girl', 'woman', 'old_woman', 'princess', 'queen', 'witch', 'fairy', 'woman_fairy', 'woman_mage', 'policewoman',
+  'woman_doctor', 'nurse', 'teacher', 'woman_superhero']);
+const MALE = new Set(['boy', 'man', 'old_man', 'prince', 'king', 'man_teacher', 'man_superhero', 'police_officer', 'firefighter', 'doctor',
+  'cook', 'farmer', 'astronaut', 'pirate', 'wizard', 'man_mage']);
+const BEINGS = new Set(['alien', 'alien_monster', 'ghost', 'snowman']);
+const isCreature = (id) => /^(people|animals|wildlife)/.test(getConcept(id)?.category ?? '') || BEINGS.has(id);
+const isAnimal = (id) => /^(animals|wildlife)/.test(getConcept(id)?.category ?? '');
+const genderOf = (id) => (FEMALE.has(id) ? 'f' : MALE.has(id) ? 'm' : isAnimal(id) ? 'a' : 'n');
+
+// First names, to tell a girl from a boy when the story only says the name
+const GIRL_NAMES = new Set(`mia emma olivia ava sophia lily ella grace chloe ruby isla amelia emily lucy anna sara sarah zoe hannah
+  maya nora leah julia eva alice rosie rose daisy molly poppy holly evie freya ivy luna stella bella lola nina tina amy kate katie
+  jessica jenny laura lisa maria sofia aisha fatima layla hana yasmin noor sana lea marie clara heidi elsa anya mira`.split(/\s+/));
+const BOY_NAMES = new Set(`tom max sam leo jack noah liam oliver ben finn harry charlie george oscar alfie theo leon luca adam
+  james john jake ryan dylan ethan lucas henry arthur archie freddie toby joe josh daniel david peter paul mark luke tim timmy
+  ali omar yusuf hamza adam karim samir rami felix hugo otto nils jonas paul ivan`.split(/\s+/));
+// Titles that say what someone is: "Grandma Rose", "Mr Brown", "King Leo"
+const TITLES = {
+  mr: 'man', mrs: 'woman', ms: 'woman', miss: 'woman', dr: 'doctor', doctor: 'doctor', grandma: 'old_woman', granny: 'old_woman',
+  nana: 'old_woman', grandpa: 'old_man', grandad: 'old_man', uncle: 'man', aunt: 'woman', auntie: 'woman', king: 'king', queen: 'queen',
+  prince: 'prince', princess: 'princess', captain: 'pirate', farmer: 'farmer', teacher: 'teacher', professor: 'man',
+};
+// Words that start sentences and are not names ("Suddenly", "Once")
+const NOT_NAMES = new Set(`once one two three the a an and but then so suddenly finally later soon after before when while every
+  next that this there these those at in on by with without into from to of for meanwhile today tomorrow yesterday tonight
+  first last afterwards everyone everybody nobody somebody someone something nothing all both each it its they he she we i you
+  oh wow yes no hello hi goodbye bye look come go let lets please thank thanks good great well now here what who why how where
+  together outside inside upstairs downstairs far near long little big happy sad deep high under over behind across through
+  along around beside inside poor dear sweet brave tiny huge old young her his their our my your its him them us me today`.split(/\s+/));
+// Story verbs in the past, in the present the engine reads
+const PRESENT = {
+  ran: 'runs', sat: 'sits', rode: 'rides', flew: 'flies', swam: 'swims', ate: 'eats', drank: 'drinks', held: 'holds', threw: 'throws',
+  caught: 'catches', sang: 'sings', came: 'comes', went: 'goes', saw: 'sees', found: 'finds', gave: 'gives', took: 'takes', got: 'gets',
+  slept: 'sleeps', woke: 'wakes', met: 'meets', brought: 'brings', read: 'reads', made: 'makes', wore: 'wears', began: 'begins',
+  was: 'is', were: 'are', had: 'has', fell: 'falls', felt: 'feels', became: 'becomes', thought: 'thinks', said: 'says', told: 'tells',
+  stood: 'stands', climbed: 'climbs', jumped: 'jumps', walked: 'walks', waved: 'waves', danced: 'dances', played: 'plays',
+  hugged: 'hugs', cuddled: 'cuddles', laughed: 'laughs', smiled: 'smiles', cried: 'cries', looked: 'looks', watched: 'watches',
+  wagged: 'wags', barked: 'barks', shouted: 'shouts', whispered: 'whispers', asked: 'asks', called: 'calls', lived: 'lives',
+  carried: 'carries', picked: 'picks', opened: 'opens', helped: 'helps', kissed: 'kisses', painted: 'paints', cooked: 'cooks',
+};
+const SAY_VERBS = 'said|says|asked|asks|shouted|shouts|cried|called|calls|whispered|whispers|replied|replies|barked|barks|yelled|answered|sang|laughed|giggled|exclaimed';
+
+// Where and when: carried from scene to scene until the story says otherwise
+const PLACES = [
+  ['forest', /\b(forest|woods|jungle)\b/, 'in the forest'],
+  ['park', /\b(park|playground)\b/, 'in the park'],
+  ['garden', /\b(garden|yard|backyard)\b/, 'in the garden'],
+  ['beach', /\b(beach|seaside|shore|sand)\b/, 'on the beach'],
+  ['sea', /\b(sea|ocean|lake|river|pond)\b/, (w) => `by the ${w}`],
+  ['city', /\b(city|town|street|village)\b/, 'in the city'],
+  ['classroom', /\b(school|classroom)\b/, 'in the classroom'],
+  ['kitchen', /\bkitchen\b/, 'in the kitchen'],
+  ['bedroom', /\b(bedroom|bed)\b/, 'in the bedroom'],
+  ['home', /\b(home|house|living room|inside|indoors)\b/, 'at home'],
+];
+const TIMES = [
+  ['night', /\b(night|nighttime|midnight|bedtime|dark|moon|stars)\b/],
+  ['evening', /\b(evening|sunset|dusk)\b/],
+  ['day', /\b(morning|sunrise|dawn|daytime|afternoon|next day|sunny|sun came out|woke up|wakes up)\b/],
+];
+const WEATHER = [
+  ['rain', /\b(rain|raining|rained|rainy|storm|stormy)\b/],
+  ['snow', /\b(snow|snowing|snowed|snowy|winter|frozen|icy|snowman)\b/],
+  ['clear', /\b(stopped raining|stopped snowing|sun came out|rainbow)\b/],
+];
+
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7).toString(36).slice(0, 8);
+const kindOf = (word) => {
+  const m = parseText(word).matches.find((x) => isCreature(x.id));
+  return m ? m.id : null;
+};
+
+/** Quoted words kept aside (⟦0⟧, ⟦1⟧...), so sentences are not split inside them */
+function protect(text) {
+  const quotes = [];
+  const out = text.replace(/["“]([^"“”]*)["”]/g, (_, q) => `⟦${quotes.push(q) - 1}⟧`);
+  return { text: out, quotes };
+}
+const restore = (s, quotes) => s.replace(/⟦(\d+)⟧/g, (_, i) => `“${quotes[+i]}”`);
+
+/** The story's sentences (quotes kept whole) */
+function sentences(text) {
+  return text.split(/(?<=[.!?…])\s+(?=[A-Z⟦])|(?<=⟧)\s+(?=[A-Z])/).map((s) => s.trim()).filter(Boolean);
+}
+
+/** The scenes: one per line when the story has lines (long lines split in two), else one per sentence */
+function splitScenes(text) {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const out = [];
+  const words = (s) => s.split(/\s+/).length;
+  for (const line of lines.length > 1 ? lines : [text.trim()]) {
+    let parts = sentences(line);
+    // (a very short sentence goes with the one before it: "Woof!", "Oh no!")
+    parts = parts.reduce((acc, s) => {
+      if (acc.length && ((words(s) <= 2 && !/⟦/.test(s)) || /^⟦\d+⟧[.!?]*$/.test(s))) acc[acc.length - 1] += ` ${s}`;
+      else acc.push(s);
+      return acc;
+    }, []);
+    if (lines.length > 1) {
+      for (let i = 0; i < parts.length; i += 2) out.push(parts.slice(i, i + 2).join(' '));
+    } else out.push(...parts);
+  }
+  return out.filter((s) => !/^the end[.!]*$/i.test(s.trim()));
+}
+
+/**
+ * Reads a story. Returns its scenes ({ prompt: for the engine, caption: the writer's words }), the
+ * characters it names itself (as individuals with keys and looks) and the whole cast.
+ */
+export function readStory(text, { individuals = [] } = {}) {
+  const { text: safe, quotes } = protect(String(text ?? '').replace(/[’]/g, "'"));
+  const cast = [];
+  let tick = 0, nextKey = 21;
+  const mention = (m) => { m.last = ++tick; return m; };
+  // The studio's own characters, already keys in the text
+  for (const ind of individuals) if (ind?.key && getConcept(ind.base)) cast.push({ name: ind.key, key: ind.key, id: ind.base, gender: genderOf(ind.base), saved: true, last: 0 });
+  const named = (name) => cast.find((m) => m.name && m.name.toLowerCase() === name.toLowerCase());
+  const addNamed = (name, id, color, noun = null) => {
+    const had = named(name);
+    if (had) return had;
+    // (a girl's name is "she" whatever she is: Zoe the astronaut)
+    const first = name.split(' ').pop().toLowerCase();
+    const gender = /^people/.test(getConcept(id)?.category ?? '') && GIRL_NAMES.has(first) ? 'f'
+      : /^people/.test(getConcept(id)?.category ?? '') && BOY_NAMES.has(first) ? 'm' : genderOf(id);
+    const m = { name, noun, key: `pgc${nextKey++}`, id, gender, last: 0, look: { seed: hash(name.toLowerCase()) } };
+    if (color && /^#/.test(COLOR_WORDS[color] ?? '')) m.look.main = COLOR_WORDS[color];
+    cast.push(m);
+    return m;
+  };
+  // A name said with nothing about who it is: a girl's or a boy's name, else the first "she" or "he" after it
+  const guessKind = (name, from) => {
+    const n = name.toLowerCase();
+    if (GIRL_NAMES.has(n)) return 'girl';
+    if (BOY_NAMES.has(n)) return 'boy';
+    const after = safe.slice(from).match(/\b(she|her|he|him|his)\b/i)?.[1]?.toLowerCase();
+    return after && ['she', 'her'].includes(after) ? 'girl' : 'boy';
+  };
+
+  let place = null, time = null, weather = null;
+  let lastScene = [], prevScene = []; // who was in the scenes before ("they")
+  const scenes = [];
+  let offset = 0;
+  let opening = ''; // ("It was a cold winter day." before anyone is there: said with the first scene that has someone)
+  const all = splitScenes(safe);
+  for (const [n, raw] of all.entries()) {
+    offset = safe.indexOf(raw, offset);
+    const caption = `${opening}${restore(raw, quotes)}`;
+    const inScene = new Set();
+    const parts = sentences(raw).map((s) => readSentence(s).replace(/[\s.,;:!?]+$/, ''));
+    let prompt = parts.filter(Boolean).join(', then ');
+    // Someone speaking: whoever was with them in the scene before is still there, listening
+    if (/⟦\d+⟧/.test(raw) && inScene.size) {
+      const listeners = lastScene.filter((m) => !inScene.has(m) && !BEINGS.has(m.id));
+      if (listeners.length && listeners.length + inScene.size <= 4) {
+        prompt += ` and ${listeners.map((m) => m.key ?? `the ${m.noun}`).join(' and ')}`;
+        listeners.forEach((m) => inScene.add(m));
+      }
+    }
+    // A scene where nobody is named ("It started to rain") still has whoever was there
+    if (!inScene.size && lastScene.length) {
+      prompt = `${prompt.trim() ? `${prompt} and ` : ''}${lastScene.map((m) => m.key ?? `the ${m.noun}`).join(' and ')}`;
+      lastScene.forEach((m) => inScene.add(m));
+    }
+    // Where and when, carried on: the scene's own words first
+    const low = raw.toLowerCase();
+    const p = PLACES.find(([, re]) => re.test(low));
+    if (p) { place = [...p]; place.word = low.match(p[1])[1]; }
+    const t = TIMES.find(([, re]) => re.test(low));
+    if (t) time = t[0];
+    const w = WEATHER.find(([, re]) => re.test(low));
+    if (w) weather = w[0] === 'clear' ? null : w[0];
+    if (place && !place[1].test(prompt.toLowerCase())) prompt += ` ${typeof place[2] === 'function' ? place[2](place.word) : place[2]}`;
+    if (time === 'night' && !/\bnight\b/.test(prompt)) prompt += ' at night';
+    if (time === 'evening' && !/\b(evening|sunset)\b/.test(prompt)) prompt += ' at sunset';
+    if (weather && !new RegExp(`\\b${weather}\\b`).test(prompt)) prompt += ` in the ${weather}`;
+    if (!inScene.size && !lastScene.length && n < all.length - 1) { opening = `${caption} `; continue; }
+    opening = '';
+    scenes.push({ prompt: restore(prompt.replace(/\s+/g, ' ').replace(/\s+([,.!?])/g, '$1').trim(), quotes), caption });
+    prevScene = lastScene;
+    lastScene = [...inScene];
+
+    // One sentence, read for the engine
+    function readSentence(sentence) {
+      let s = ` ${sentence} `;
+      // Speech: "“Hello!” said Mia." / "Mia said, “Hello!”" -> Mia says “Hello!”
+      s = s.replace(new RegExp(`(⟦\\d+⟧)[,]?\\s+(?:${SAY_VERBS})\\s+((?:the|a|an|her|his)\\s+[a-z]+|[A-Z][a-z]+|he|she|they)\\b[.!]?`, 'g'), ' $2 says $1 ');
+      s = s.replace(new RegExp(`\\b(${SAY_VERBS})\\s*[,:]?\\s*(⟦\\d+⟧)`, 'g'), 'says $2');
+      // Introductions: "a little girl called Mia", "Rex, a brown puppy,", "Rex the dog", "Grandma Rose", "his name was Rex"
+      s = s.replace(/\b(?:a|an|the)\s+((?:[a-z]+\s+){0,3}?)([a-z]+)\s+(?:called|named)\s+([A-Z][a-z]+)/g, (all, adj, word, name) => {
+        const id = kindOf(word) ?? kindOf(adj.trim().split(/\s+/).pop() || '');
+        if (!id) return all;
+        const color = adj.split(/\s+/).find((a) => COLOR_WORDS[a]);
+        addNamed(name, id, color, word);
+        return name;
+      });
+      s = s.replace(/\b([A-Z][a-z]+),\s+(?:a|an|the)\s+((?:[a-z]+\s+){0,3}?)([a-z]+)\s*,?/g, (all, name, adj, word) => {
+        const id = !NOT_NAMES.has(name.toLowerCase()) && kindOf(word);
+        if (!id) return all;
+        addNamed(name, id, adj.split(/\s+/).find((a) => COLOR_WORDS[a]), word);
+        return `${name} `;
+      });
+      // "Zoe was an astronaut", "Mrs Brown was a kind teacher": what they are
+      s = s.replace(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)?) (?:is|was) (?:a|an) ((?:[a-z]+ ){0,3}[a-z]+)\b/g, (all, name, words) => {
+        if (NOT_NAMES.has(name.split(' ')[0].toLowerCase())) return all;
+        // (the last word that says what someone is: "a kind teacher" -> a teacher)
+        const list = words.split(' ');
+        const at = list.map((w) => kindOf(w)).lastIndexOf(list.map((w) => kindOf(w)).filter(Boolean).pop());
+        const id = at >= 0 ? kindOf(list[at]) : null;
+        if (!id) return all;
+        const had = named(name);
+        // (a job or a costume keeps who they are: Zoe the astronaut is still "she")
+        if (had) { had.id = id; if (had.gender === 'n' || genderOf(id) === 'f' || genderOf(id) === 'a') had.gender = genderOf(id) === 'n' ? had.gender : genderOf(id); } else addNamed(name, id, null, list[at]);
+        return `${name.replace(' ', '_')} is ${list.slice(0, at).join(' ')} ${list.slice(at + 1).join(' ')}`;
+      });
+      // "their dog Max", "his sister Ella", "a puppy Rex"
+      s = s.replace(/\b(?:[Aa]n?|[Tt]he|[Mm]y|[Hh]is|[Hh]er|[Tt]heir|[Oo]ur|[Yy]our)\s+((?:[a-z]+\s+){0,2}?)([a-z]+)\s+([A-Z][a-z]+)\b/g, (all, adj, word, name) => {
+        const id = !NOT_NAMES.has(name.toLowerCase()) && kindOf(word);
+        if (!id) return all;
+        addNamed(name, id, adj.split(/\s+/).find((a) => COLOR_WORDS[a]), word);
+        return name;
+      });
+      s = s.replace(/\b([A-Z][a-z]+)\s+the\s+([a-z]+)\b/g, (all, name, word) => {
+        const id = !NOT_NAMES.has(name.toLowerCase()) && kindOf(word);
+        if (!id) return all;
+        addNamed(name, id, null, word);
+        return name;
+      });
+      s = s.replace(/\b(Mr|Mrs|Ms|Miss|Dr|Doctor|Grandma|Granny|Nana|Grandpa|Grandad|Uncle|Aunt|Auntie|King|Queen|Prince|Princess|Captain|Farmer|Teacher|Professor)\.?\s+([A-Z][a-z]+)/g,
+        (all, title, name) => { addNamed(`${title} ${name}`, TITLES[title.toLowerCase()], null, title.toLowerCase()); return `${title}_${name}`; });
+      s = s.replace(/\b(?:her|his|its|their)\s+name\s+(?:was|is)\s+([A-Z][a-z]+)/gi, (all, name) => {
+        // (the last one named with nothing but a kind gets the name)
+        const who = [...cast].filter((m) => !m.name).sort((a, b) => b.last - a.last)[0];
+        if (who) { Object.assign(who, { name, key: `pgc${nextKey++}`, look: { seed: hash(name.toLowerCase()) } }); return name; }
+        return all;
+      });
+
+      // Word by word: names, pronouns, the creatures it speaks of, verbs
+      const toks = (s.replace(/(\w)'s\b/g, '$1').match(/⟦\d+⟧|[A-Za-z_'][A-Za-z0-9_']*|[0-9]+|[^\sA-Za-z0-9]/g) ?? []);
+      const out = [];
+      const here = new Set(); // who this sentence has named so far
+      const ref = (m) => { mention(m); inScene.add(m); here.add(m); return m.key ?? `the ${m.noun}`; };
+      // (an object - "sat next to her", "gave him" - is someone other than who the sentence is about)
+      const pick = (gender, object = false) => {
+        const other = (m) => !object || !here.has(m);
+        const fits = cast.filter((m) => (gender === 'f' ? m.gender === 'f' : m.gender === 'm') && m.last > 0 && other(m));
+        const animals = cast.filter((m) => m.gender === 'a' && m.last > 0 && other(m));
+        const best = (list) => list.sort((a, b) => b.last - a.last)[0];
+        // ("he wagged his tail": the puppy, when no boy or man is in the story yet)
+        return best(fits) ?? best(animals) ?? null;
+      };
+      for (let i = 0; i < toks.length; i++) {
+        const tok = toks[i], low = tok.toLowerCase(), next = toks[i + 1]?.toLowerCase() ?? '';
+        if (/^⟦/.test(tok)) { out.push(tok); continue; }
+        // A titled name ("Grandma_Rose")
+        if (tok.includes('_')) { const m = named(tok.replace('_', ' ')); out.push(m ? ref(m) : tok.replace('_', ' ')); continue; }
+        // A character already met, by name (or the studio's key)
+        const known = named(tok);
+        if (known && (/^[A-Z]/.test(tok) || /^pgc\d+$/.test(tok))) { out.push(ref(known)); continue; }
+        // A new name: capitalised, not a word the engine knows or a word that starts sentences
+        const first = i === 0 || /^[.!?⟧]$/.test(toks[i - 1] ?? '');
+        const listed = GIRL_NAMES.has(low) || BOY_NAMES.has(low);
+        const afterArticle = ['a', 'an', 'the', 'some'].includes(toks[i - 1]?.toLowerCase());
+        if (/^[A-Z][a-z]+$/.test(tok) && !afterArticle && !NOT_NAMES.has(low) && (listed || !/(ly|ing|ed)$/.test(low)) && !PRESENT[low]
+          && (listed || (!first && !kindOf(low)) || !parseText(low).matches.length)
+          && !['in', 'on', 'at', 'under', 'near', 'by'].includes(next)) {
+          out.push(ref(addNamed(tok, guessKind(tok, offset))));
+          continue;
+        }
+        // Pronouns: who they stand for
+        if (['she', 'he', 'him'].includes(low) || (low === 'her' && !isNoun(next))) {
+          const m = pick(['she', 'her'].includes(low) ? 'f' : 'm', ['her', 'him'].includes(low));
+          out.push(m ? ref(m) : tok);
+          continue;
+        }
+        if (['they', 'them'].includes(low)) {
+          // (the ones from the scene before, but not whoever this sentence is about: "Mum called them")
+          const who = (m) => !here.has(m) && !BEINGS.has(m.id);
+          const before = [...new Set([...lastScene, ...prevScene])].filter(who).slice(0, 4);
+          const group = before.length > 1 ? before : [...cast].filter((m) => m.last > 0 && who(m)).sort((a, b) => b.last - a.last).slice(0, 2);
+          out.push(group.length > 1 ? group.map(ref).join(' and ') : tok);
+          continue;
+        }
+        if (['his', 'her', 'its', 'their'].includes(low)) continue; // ("hugged her puppy": the puppy)
+        // A creature spoken of without a name ("a small puppy", "the puppy"): the same one each time
+        const id = /^[a-z]+$/.test(low) && !NOT_NAMES.has(low) && !PRESENT[low] && kindOf(low);
+        if (id && parseText(low).matches.length === 1 && parseText(low).matches[0].count === 1) {
+          let m = cast.find((c) => c.name && c.noun === low) ?? cast.find((c) => c.id === id && !c.name);
+          if (!m) { m = { id, noun: low, gender: genderOf(id), last: 0 }; cast.push(m); }
+          mention(m);
+          inScene.add(m);
+          out.push(m.key ?? tok);
+          if (m.key && ['a', 'an', 'the'].includes(out[out.length - 2]?.toLowerCase())) out.splice(out.length - 2, 1);
+          continue;
+        }
+        out.push(PRESENT[low] ?? tok);
+      }
+      return verbs(out.join(' '));
+    }
+  }
+
+  return {
+    scenes,
+    individuals: cast.filter((m) => m.key && !m.saved).map((m) => ({ key: m.key, base: m.id, look: m.look })),
+    cast: cast.map((m) => ({ name: m.name ?? null, key: m.key ?? null, id: m.id, noun: m.noun ?? null })),
+  };
+}
+
+// A word after "her" that makes it "her ..." (her puppy, her red ball), not "her" herself
+const isNoun = (w) => Boolean(w) && /^[a-z]+$/.test(w) && !['and', 'to', 'a', 'an', 'the', 'with', 'in', 'on', 'at', 'up', 'out', 'back', 'some', 'too', 'again', 'goodbye', 'hello', 'home', 'very', 'so'].includes(w) && !PRESENT[w];
+
+/**
+ * Story verbs as the engine draws them: finding or seeing is looking at, giving is holding it out
+ * to someone, playing together is jumping about, becoming friends is smiling at each other,
+ * falling asleep is sleeping
+ */
+function verbs(s) {
+  const REF = '(pgc\\d+|the [a-z]+)';
+  return ` ${s} `
+    .replace(new RegExp(`\\bgives ${REF} (?:a |another |a big )?(?:hug|cuddle|kiss)\\b`, 'g'), 'hugs $1')
+    .replace(new RegExp(`\\bgives ${REF} (?:some |a |an |the )?([a-z]+)`, 'g'), 'holds $2 and looks at $1')
+    .replace(new RegExp(`\\bgives (?:some |a |an |the )?([a-z]+) to ${REF}`, 'g'), 'holds $1 and looks at $2')
+    .replace(new RegExp(`${REF} plays with ${REF}`, 'g'), '$1 and $2 jump')
+    .replace(/\b(plays|play)\b(?! with)/g, 'jump')
+    .replace(/\b(?:becomes|become|are|is) (?:best |good |great )?friends\b/g, 'smile at each other')
+    .replace(/\b(?:falls asleep|fall asleep|goes to sleep|go to sleep|is asleep|sleeps|slept)\b/g, 'sleeps')
+    .replace(/\b(?:finds|find|sees|see|spots|spotted|notices|noticed|discovers|discovered|meets|meet)\b/g, 'looks at')
+    .replace(/\breads (?:a |the |her |his )?(?:story|stories|tale|bedtime story)\b/g, 'reads a book')
+    .replace(/\bgoes to\b/g, 'walks to')
+    .replace(/\bto looks at\b/g, 'and looks at')
+    .replace(/\bgoes (home|inside|outside|out)\b/g, 'walks')
+    .replace(/\b(happily|cheerfully|gladly)\b/g, 'happy').replace(/\b(sadly|unhappily)\b/g, 'sad').replace(/\b(angrily|crossly)\b/g, 'angry')
+    .replace(/\b(excitedly)\b/g, 'excited').replace(/\b(sleepily)\b/g, 'sleepy').replace(/\b(nervously|fearfully)\b/g, 'scared')
+    .replace(/\b(?:follows|followed|follow)\b/g, 'walks to')
+    .replace(/\bbarks\b/g, 'wags')
+    .replace(/\bit (?:starts|started|begins|began|is starting) to (?:rain|snow)\b/gi, ' ')
+    .replace(/\b(?:once upon a time|there (?:is|was|are|were|lives|lived)|who (?:lives|lived)|every (?:day|morning|evening|night)|one (?:day|morning|evening|night)|the next (?:day|morning)|together|suddenly|finally)\b/gi, ' ')
+    .replace(/^\s*[,.;]+/, '')
+    .trim();
+}

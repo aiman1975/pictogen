@@ -1,5 +1,6 @@
 // PictoGen Story & Clip Engine: Multi-scene animated clips for Kids Stories,
 // Science Documentaries, News & Editorial Briefs, and How-To Explainer Guides.
+import { readStory } from './story-reader.js';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
 import { pgSound, pgSoundTrack, pgVoiced, pgBank, pgMusicBars, pgMusicTrack, pgMusicLoop } from './sound-synth.js';
@@ -420,9 +421,17 @@ export function parseStoryText(text) {
 export function composeStory(storyInput, opts = {}) {
   const { style = 'flat', seed = 1, vary = false, genre = 'kids', aspect = '16:9' } = opts;
   const dims = ASPECT_RATIOS[aspect] || ASPECT_RATIOS['16:9'];
-  const scenesRaw = Array.isArray(storyInput) ? storyInput : parseStoryText(storyInput);
+  // A story in the writer's own words (lines or sentences, no "prompt | caption" parts): read as a
+  // whole (src/story-reader.js), so its scenes share one cast, place and time
+  const isTemplate = typeof storyInput === 'string' && STORY_TEMPLATES.some((t) => t.id === storyInput.trim().toLowerCase());
+  const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !storyInput.includes('|')
+    ? readStory(storyInput, { individuals: opts.individuals ?? [] }) : null;
+  const scenesRaw = Array.isArray(storyInput) ? storyInput : read ? read.scenes : parseStoryText(storyInput);
+  const individuals = read ? [...(opts.individuals ?? []), ...read.individuals] : opts.individuals;
+  // (the story's own names, for showing its prompts: "pgc21 waves" -> "Mia waves")
+  const shown = (prompt) => (read ? prompt.replace(/\bpgc\d+\b/g, (k) => read.cast.find((c) => c.key === k && !/^pgc/.test(c.name ?? ''))?.name ?? k) : prompt);
 
-  let title = opts.title;
+  let title = opts.title ?? (read ? 'My Story' : undefined);
   let detectedGenre = genre;
 
   if (typeof storyInput === 'string') {
@@ -454,7 +463,7 @@ export function composeStory(storyInput, opts = {}) {
       // Steps edited in the studio's timeline view travel with a saved scene
       ...(Array.isArray(sc.beats) ? { beats: sc.beats } : {}),
       // Named individuals ("pgc1" -> one particular boy), the same in every scene
-      ...(opts.individuals ? { individuals: opts.individuals } : {}),
+      ...(individuals ? { individuals } : {}),
       carry: { ...carry },
       // A caption of its own (not the prompt repeated) is what a talking figure says, lip-synced
       ...(sc.caption && sc.caption.toLowerCase().replace(/[.!?\s]+$/, '') !== sc.prompt.toLowerCase().replace(/[.!?\s]+$/, '') ? { caption: sc.caption } : {}),
@@ -466,7 +475,7 @@ export function composeStory(storyInput, opts = {}) {
 
     return {
       index: i,
-      prompt: sc.prompt,
+      prompt: shown(sc.prompt),
       tag: sc.tag || (detectedGenre === 'howto' ? `STEP ${i + 1}` : detectedGenre === 'news' ? 'UPDATE' : detectedGenre === 'documentary' ? `CHAPTER ${i + 1}` : undefined),
       headline: sc.headline || '',
       caption: sc.caption || `${sc.prompt.charAt(0).toUpperCase()}${sc.prompt.slice(1)}${/[.!?]$/.test(sc.prompt) ? '' : '.'}`,
@@ -488,6 +497,7 @@ export function composeStory(storyInput, opts = {}) {
     seed,
     totalDuration,
     scenes,
+    ...(read ? { cast: read.cast.filter((c) => c.name || c.noun) } : {}),
   };
 }
 
