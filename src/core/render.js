@@ -5,6 +5,7 @@ import { getStyle, INK } from './styles.js';
 import { createRng } from './rng.js';
 import { resolveColor, lighten } from './color.js';
 import { seatPose, reachPose } from '../poses.js';
+import { EMOTE_CSS } from '../emotes.js';
 import { getConcept } from '../concepts/index.js';
 import { heldShape } from '../held.js';
 
@@ -120,6 +121,13 @@ export const ANIMATION_CSS = `
   transform-box: fill-box;
 }
 
+/* Idle life: a person standing still breathes, the body rising a little (any motion below wins) */
+@keyframes pgBreathe {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-0.5px) scaleY(1.012); }
+}
+.pg-rig-person .pg-body-torso { transform-origin: 50% 100%; animation: pgBreathe 3.6s ease-in-out var(--pg-idle, 0s) infinite; }
+${EMOTE_CSS}
 /* Eye Blinking */
 @keyframes pgBlink {
   0%, 90%, 96%, 100% { transform: scaleY(1); }

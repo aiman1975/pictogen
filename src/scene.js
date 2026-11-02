@@ -4,6 +4,7 @@
 import { conceptOf, whoOf, lookOf } from './individuals.js';
 import { lipKeys, lipCss } from './speech.js';
 import { layoutBubbles } from './bubble.js';
+import { emote } from './emotes.js';
 import { actionCues, stillCues, soundTrack, voiceOf } from './sound.js';
 import { getConcept } from './concepts/index.js';
 import { createKit } from './core/kit.js';
@@ -1021,6 +1022,8 @@ export function composeScene(matches, opts = {}) {
   // A named individual's key and id, and a dressed-differently figure, for the studio (its photo,
   // and redrawing it the same way)
   const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''} data-seed="${it.look.seed}"${it.look.vary ? ' data-vary="1"' : ''}${it.look.colors ? ` data-colors="${Object.entries(it.look.colors).map(([r, c]) => `${r}:${c}`).join(' ')}"` : ''}${it.holding ? ` data-held="${it.holding.c.id}"${it.holding.m.color ? ` data-held-color="${it.holding.m.color}"` : ''}` : ''}`;
+  // Where a sign over a figure's head goes, in its own units (a person's head is near the top)
+  const headOf = (it) => (/^people/.test(it.c.category ?? '') ? [62, 6] : [68, 16]);
   // What a figure holds, for drawConcept
   const heldOf = (it) => (it.holding ? { id: it.holding.c.id, color: it.holding.m.color } : undefined);
   // Whoever sits on a seat or rides a bike, drawn on it in its own units (s: its scale): hips on the
@@ -1134,7 +1137,9 @@ export function composeScene(matches, opts = {}) {
     // while the animation wrapper, shadow and travel motion around it stay; whoever sits on it or
     // rides it comes after, in its motion
     const drawing = shapesToSvg(shapes, style, { olk });
-    let wrappedContent = `<g class="pg-figure">${drawing}</g>${carried(it, s)}`;
+    // (how it feels, as a sign over its head: "!", "?", a heart, "Zzz"...)
+    const sign = emote(animation === 'sleep' ? 'sleepy' : expression, { head: headOf(it), mirrored: flip });
+    let wrappedContent = `<g class="pg-figure">${drawing}${sign}</g>${carried(it, s)}`;
     if (limbs && limbs !== 'blink' && !drawing.includes(`pg-anim-${limbs}`)) {
       wrappedContent = `<g class="pg-anim-${limbs}">${wrappedContent}</g>`;
     }
@@ -1234,6 +1239,9 @@ export function composeScene(matches, opts = {}) {
       // (sitting on a seat: hips up on it)
       if (pose.lift) svg = `<g transform="translate(0 ${r2(-pose.lift / s)})">${svg}</g>`;
       if (pose.mirror) svg = `<g transform="translate(100 0) scale(-1 1)">${svg}</g>`;
+      // How it feels in this pose, as a sign over its head (there while it feels that way)
+      const [hx, hy] = headOf(it);
+      svg += emote(pose.anim === 'sleep' ? 'sleepy' : pose.expression, { head: [hx, hy - (pose.lift ?? 0) / s] });
       const still = last && last.variant === key;
       const attrs = `${pose.anim ? ` data-anim="${pose.anim}"` : ''}${pose.view ? ` data-view="${pose.view}"` : ''}`;
       poses += `<g class="pg-timeline-pose"${attrs} opacity="${still ? 1 : 0}" style="animation: ${name}v${i} ${r2(T)}s step-end infinite;">${svg}</g>`;

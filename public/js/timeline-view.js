@@ -15,6 +15,7 @@ const POSE_LABEL = Object.fromEntries(POSES);
 const FEELINGS = [
   ['happy', '😊 happy'], ['laugh', '😃 laughing'], ['surprised', '😮 surprised'], ['sad', '😢 sad'], ['wink', '😉 winking'],
   ['angry', '😠 angry'], ['confused', '🤔 confused'], ['skeptical', '🤨 skeptical'], ['talking', '🗣 talking'], ['neutral', '😐 calm'],
+  ['scared', '😨 scared'], ['sleepy', '😴 sleepy'], ['excited', '🤩 excited'], ['love', '😍 in love'], ['shy', '☺️ shy'],
 ];
 const FEELING_LABEL = Object.fromEntries(FEELINGS);
 const DOES = [

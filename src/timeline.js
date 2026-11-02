@@ -342,6 +342,8 @@ export function parseTimeline(text, { force = false, names = null } = {}) {
 
     // Subjects: concepts before the verb, else a pronoun, else whoever acted last
     let subjects = parse(before.join(' ')).matches;
+    // ("she" or "he" alone is someone already there, not a new woman or man)
+    if (subjects.length === 1 && ['she', 'he'].includes(subjects[0].word) && resolvePronoun(subjects[0].word)) subjects = [];
     subjects.forEach(remember);
     let subjectIds = subjects.map((m) => m.id);
     if (!subjectIds.length) {
@@ -422,7 +424,9 @@ export function parseTimeline(text, { force = false, names = null } = {}) {
         actions.push({ actor, type: 'appear' });
         if (!actorIds.includes(actor)) actorIds.push(actor);
       }
-      lastSubjects = subjectIds;
+      // ("she reads a book, then waves": she waves, not the book)
+      const movers = subjectIds.filter((id) => ['people', 'animals', 'wildlife', 'animals_nature'].some((c) => (getConcept(conceptOf(id))?.category ?? '').startsWith(c)));
+      lastSubjects = movers.length ? movers : subjectIds;
     }
     return { text, actions, ...length };
   };

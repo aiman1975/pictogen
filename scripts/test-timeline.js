@@ -347,6 +347,26 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check([chair, bench, bike, named, hands, hug, sitT.svg, hugT.svg].every((svg) => !wellFormedError(svg)), 'all of them are well-formed XML');
 }
 
+// 2i-d. Feelings: more of them, changing over time, a sign over the head
+{
+  const feel = (t) => parseText(t).matches.map((m) => `${m.id}:${m.expression ?? ''}`).join(' ');
+  check(feel('a scared girl') === 'girl:scared' && feel('a sleepy boy') === 'boy:sleepy' && feel('an excited dog') === 'dog:excited'
+    && feel('a girl loves her dog') === 'girl:love dog:' && feel('a shy boy') === 'boy:shy' && feel('a tired man yawns') === 'man:sleepy',
+    'new feelings: scared, sleepy (tired, yawns), excited, in love ("loves her dog"), shy');
+  const changes = generate('a girl is scared, then a puppy runs to her, then she is excited, then she loves the puppy');
+  const steps = changes.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.expression ? '~' + a.expression : ''}`).join('+')).join(' | ');
+  check(steps === 'girl:expr~scared | dog:moveTo | girl:expr~excited | girl:expr~love', `feelings change over time, "she" is the girl (${steps})`);
+  const signs = (svg) => [...svg.matchAll(/class="pg-emote pg-emote-(\w+)"/g)].map((m) => m[1]);
+  check(['scared', 'excited', 'love'].every((e) => signs(changes.svg).includes(e)), `each feeling has its sign in the pose that shows it (${[...new Set(signs(changes.svg))]})`);
+  check(signs(generate('a surprised man and a confused woman').svg).join() === 'surprised,confused' && signs(generate('a happy boy').svg).length === 0,
+    'still scenes: "!" over the surprised man, "?" over the confused woman; none for plain happy');
+  check(signs(generate('a boy walks in, then sits on a bench, then he is sleepy').svg).includes('sleepy'), 'Zzz over a sleepy boy on a bench');
+  check(generate('she reads a book, then waves').beats[1].actions.map((a) => a.actor).join() === 'woman', '"she reads a book, then waves": she waves, not the book');
+  const faces = ['scared', 'sleepy', 'excited', 'love', 'shy'].map((e) => shapesToSvg(drawConcept('girl', { seed: 1, expression: e }), 'flat'));
+  check(new Set(faces).size === 5 && faces.every((f) => !wellFormedError(`<svg xmlns="http://www.w3.org/2000/svg">${f}</svg>`)), 'each new feeling has a face of its own');
+  check(!wellFormedError(changes.svg), 'well-formed XML');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

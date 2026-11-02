@@ -63,7 +63,8 @@ export function drawFacialExpression(d, p, cx = 50, cy = 28) {
 
   // --- EYES & BROWS ---
   // Eyes (and brows) shift toward whoever the figure looks at (opts.gaze)
-  const animeEyes = p.opts.style === 'anime' && !['laugh', 'laughing', 'wink', 'winking'].includes(expr);
+  // (closed, heart or shy eyes are drawn the same in anime)
+  const animeEyes = p.opts.style === 'anime' && !['laugh', 'laughing', 'wink', 'winking', 'sleepy', 'love', 'shy'].includes(expr);
   d.group(gazeShift(p), () => d.group({ class: 'pg-face-eyes' }, () => {
     if (animeEyes) return drawAnimeEyes(d, cx, cy, expr, p);
     switch (expr) {
@@ -137,6 +138,49 @@ export function drawFacialExpression(d, p, cx = 50, cy = 28) {
         d.circle(cx + 6.2, cy + 0.5, 1.9, { fill: INK, kind: 'detail' });
         break;
 
+      case 'scared':
+        // Brows raised in the middle, wide eyes with small pupils, a drop of sweat
+        d.line(cx - 8, cy - 4, cx - 3, cy - 6.5, { stroke: INK, sw: 1.5, kind: 'line' });
+        d.line(cx + 8, cy - 4, cx + 3, cy - 6.5, { stroke: INK, sw: 1.5, kind: 'line' });
+        for (const x of [cx - 5.5, cx + 5.5]) {
+          d.circle(x, cy, 2.8, { fill: '#ffffff', stroke: INK, sw: 0.9, kind: 'detail' });
+          d.circle(x, cy + 0.3, 1.2, { fill: INK, kind: 'detail' });
+        }
+        d.path(`M${cx + 11} ${cy - 5} Q${cx + 12.6} ${cy - 1.5} ${cx + 11} ${cy - 0.6} Q${cx + 9.4} ${cy - 1.5} ${cx + 11} ${cy - 5} Z`, { fill: '#81d4fa', kind: 'accent' });
+        break;
+
+      case 'sleepy':
+        // Eyes closed (drooping lids), brows relaxed
+        d.path(`M${cx - 8} ${cy + 0.5} Q${cx - 5.5} ${cy + 2.6} ${cx - 3} ${cy + 0.5}`, { kind: 'line', stroke: INK, sw: 1.8 });
+        d.path(`M${cx + 3} ${cy + 0.5} Q${cx + 5.5} ${cy + 2.6} ${cx + 8} ${cy + 0.5}`, { kind: 'line', stroke: INK, sw: 1.8 });
+        break;
+
+      case 'excited':
+        // Brows up, big shining eyes
+        d.path(`M${cx - 8} ${cy - 5} Q${cx - 5.5} ${cy - 7} ${cx - 3} ${cy - 5}`, { kind: 'line', stroke: INK, sw: 1.5 });
+        d.path(`M${cx + 3} ${cy - 5} Q${cx + 5.5} ${cy - 7} ${cx + 8} ${cy - 5}`, { kind: 'line', stroke: INK, sw: 1.5 });
+        for (const x of [cx - 5.5, cx + 5.5]) {
+          d.circle(x, cy, 2.6, { fill: INK, kind: 'detail' });
+          d.circle(x + 0.9, cy - 0.9, 0.9, { kind: 'highlight', opacity: 0.95 });
+          d.circle(x - 0.8, cy + 0.9, 0.5, { kind: 'highlight', opacity: 0.9 });
+        }
+        break;
+
+      case 'love':
+        // Heart eyes
+        for (const x of [cx - 5.5, cx + 5.5]) {
+          d.path(`M${x} ${cy + 2.6} C${x - 4.4} ${cy - 0.4} ${x - 2.6} ${cy - 3.6} ${x} ${cy - 1.4} C${x + 2.6} ${cy - 3.6} ${x + 4.4} ${cy - 0.4} ${x} ${cy + 2.6} Z`, { fill: '#e53935', kind: 'accent' });
+        }
+        break;
+
+      case 'shy':
+        // Looking down and away, blushing
+        d.circle(cx - 6.2, cy + 1.2, 1.8, { fill: INK, kind: 'detail' });
+        d.circle(cx + 4.8, cy + 1.2, 1.8, { fill: INK, kind: 'detail' });
+        d.ellipse(cx - 9.5, cy + 4.8, 3.6, 2, { fill: '#ff8a80', opacity: 0.7, kind: 'accent' });
+        d.ellipse(cx + 9.5, cy + 4.8, 3.6, 2, { fill: '#ff8a80', opacity: 0.7, kind: 'accent' });
+        break;
+
       default: // 'happy' or 'neutral'
         d.circle(cx - 5.5, cy, 2, { fill: INK, kind: 'detail' });
         d.circle(cx + 5.5, cy, 2, { fill: INK, kind: 'detail' });
@@ -197,6 +241,31 @@ export function drawFacialExpression(d, p, cx = 50, cy = 28) {
       case 'calm':
         // Straight neutral line
         d.line(cx - 4.5, cy + 6.5, cx + 4.5, cy + 6.5, { kind: 'line', stroke: INK, sw: 2 });
+        break;
+
+      case 'scared':
+        // A wobbly, worried mouth
+        d.path(`M${cx - 5} ${cy + 7} Q${cx - 3.3} ${cy + 5.6} ${cx - 1.7} ${cy + 7} Q${cx} ${cy + 8.4} ${cx + 1.7} ${cy + 7} Q${cx + 3.3} ${cy + 5.6} ${cx + 5} ${cy + 7}`, { kind: 'line', stroke: INK, sw: 1.8 });
+        break;
+
+      case 'sleepy':
+        // A little yawn
+        d.ellipse(cx, cy + 7, 1.8, 2.4, { fill: INK, kind: 'detail' });
+        break;
+
+      case 'excited':
+        // A big open smile
+        d.path(`M${cx - 5.5} ${cy + 4.5} Q${cx} ${cy + 11.5} ${cx + 5.5} ${cy + 4.5} Z`, { fill: '#c62828', kind: 'body' });
+        d.path(`M${cx - 3} ${cy + 8.2} Q${cx} ${cy + 10} ${cx + 3} ${cy + 8.2} Z`, { fill: '#ff8a80', kind: 'accent' });
+        break;
+
+      case 'love':
+        d.path(`M${cx - 5.5} ${cy + 5} Q${cx} ${cy + 10.5} ${cx + 5.5} ${cy + 5}`, { kind: 'line', stroke: INK, sw: 1.9 });
+        break;
+
+      case 'shy':
+        // A small, wavy smile
+        d.path(`M${cx - 3} ${cy + 6.5} Q${cx - 1.5} ${cy + 7.8} ${cx} ${cy + 6.8} Q${cx + 1.5} ${cy + 7.8} ${cx + 3} ${cy + 6.5}`, { kind: 'line', stroke: INK, sw: 1.6 });
         break;
 
       case 'talking':
@@ -269,7 +338,7 @@ function drawAnimeHair(d, p, role, cx, cy, r, view = 'front') {
  */
 const ANIME_IRIS = ['#3a7bd5', '#8e44ad', '#16a085', '#b9770e', '#2e86c1'];
 function drawAnimeEyes(d, cx, cy, expr, p) {
-  const mood = { shocked: 'surprised', crying: 'sad', mad: 'angry', puzzled: 'confused', suspicious: 'skeptical' }[expr] || expr;
+  const mood = { shocked: 'surprised', crying: 'sad', mad: 'angry', puzzled: 'confused', suspicious: 'skeptical', scared: 'surprised', excited: 'happy' }[expr] || expr;
   const iris = p.opts.eyeColor || ANIME_IRIS[Math.abs(String(p.opts.seed ?? '').split('').reduce((h, ch) => h * 31 + ch.charCodeAt(0), 7)) % ANIME_IRIS.length];
   const brows = {
     surprised: [[-8, -7, -3, -7.8], [3, -7.8, 8, -7]],
@@ -298,7 +367,9 @@ function drawAnimeEyes(d, cx, cy, expr, p) {
  * as the front face so blinking and talking still animate. Same expressions as drawFacialExpression.
  */
 export function drawProfileFace(d, p, cx, cy, r) {
-  const expr = p.opts.expression || p.expression || 'happy';
+  // (feelings the profile has no face of its own for: the nearest it has)
+  const own = p.opts.expression || p.expression || 'happy';
+  const expr = { scared: 'surprised', excited: 'laugh', love: 'happy', shy: 'happy', sleepy: 'neutral' }[own] ?? own;
   const ex = cx + r * 0.42, ey = cy - 0.5;
   const mx = cx + r * 0.62, my = cy + 6;
 

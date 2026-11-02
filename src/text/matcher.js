@@ -30,6 +30,11 @@ export const EXPRESSION_WORDS = {
   confused: 'confused', puzzled: 'confused',
   suspicious: 'skeptical', skeptical: 'skeptical', doubtful: 'skeptical',
   neutral: 'neutral', calm: 'neutral',
+  scared: 'scared', afraid: 'scared', frightened: 'scared', terrified: 'scared', nervous: 'scared', worried: 'scared', fearful: 'scared',
+  sleepy: 'sleepy', tired: 'sleepy', yawns: 'sleepy', yawning: 'sleepy', drowsy: 'sleepy', yawn: 'sleepy',
+  excited: 'excited', thrilled: 'excited', delighted: 'excited', overjoyed: 'excited',
+  loves: 'love', loving: 'love', adores: 'love', adoring: 'love', smitten: 'love',
+  shy: 'shy', embarrassed: 'shy', blushing: 'shy', blushes: 'shy', bashful: 'shy',
 };
 
 export const MOTION_WORDS = {
@@ -655,7 +660,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     // "a superhero flies", "she waves": after someone who can move, a motion word is what they
     // do, not the insect or the sea ("three flies", "the waves" stay things)
     const prev = toks[i - 1];
-    const afterMover = (MOTION_WORDS[t] || HOLD_VERBS.has(t) || RIDE_VERBS.has(t)) && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev] && !COLOR_WORDS[prev]
+    const afterMover = (MOTION_WORDS[t] || HOLD_VERBS.has(t) || RIDE_VERBS.has(t) || EXPRESSION_WORDS[t]) && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev] && !COLOR_WORDS[prev]
       && (SUBJECT_PRONOUNS.has(prev) || names?.has(prev)
         || (lastConceptIndex === i - 1 && found.length && MOVERS.has(getConcept(found[found.length - 1].id.split('~')[0])?.category)));
 

@@ -77,14 +77,16 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] Anime hair: a fringe of pointed locks, spikes or face-framing locks, the shine across the crown,
       in all four views
 - [ ] Profile anime eyes; style-specific animal faces
-- [ ] More expressions plus **expression changes over time** ("sad, then happy")
+- [x] More expressions (scared, sleepy, excited, in love, shy) and **expression changes over time**
+      ("sad, then happy"), with a comic sign over the head ("!", "?", a heart, Zzz...)
 - [x] **Eye gaze and looking at each other**: "they look at each other", "the boy looks at the dog",
       "watches the bird", "waves at her", "smiles at us", in timelines and still scenes. People turn
       three-quarters toward whoever they look at with their eyes on them (up at the sky, down at a
       dog); farther away only the eyes follow the nearest figure; animals face whoever they look at.
       A "looks at…" step and an "At" choice for gestures in the timeline view
 - [ ] Eyes that follow a figure while it moves; eyebrows; a head tilt toward the one looked at
-- [ ] Idle life: breathing, weight shift, occasional glances; secondary motion (hair, ears, tails)
+- [x] Idle life: breathing, occasional glances, tails and ears
+- [ ] Weight shift; secondary motion (hair)
 - [x] Holding things: "a woman holds a phone", "a girl with a balloon", "a boy reads a book", "she
       drinks a cup of coffee", "a boy hugs a cat": the hands meet in front, as far apart as the thing
       is wide, and it is drawn at hand size between them (`src/held.js`); balloons, umbrellas, flags
