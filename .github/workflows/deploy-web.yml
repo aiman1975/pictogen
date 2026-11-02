@@ -1,14 +1,16 @@
 # Publishes the studio to Firebase Hosting, at https://manostudio-app.web.app (the Hosting site named
-# by the repository variable FIREBASE_SITE, default "manostudio-app", in the project FIREBASE_PROJECT_ID),
-# on every push to main. Until that site can be used, it keeps publishing to the project's first
+# by the repository variable FIREBASE_SITE, default "manostudio-app", in the project FIREBASE_PROJECT_ID).
+# Stopped for now: it runs only by hand (Actions -> Deploy web studio -> Run workflow), not on every
+# push to main; to publish on every push again, add back under "on:"
+#   push:
+#     branches: [main]
+# Until that site can be used, it keeps publishing to the project's first
 # address, so the site stays up to date; once it is live there, the first address is taken offline.
 # One-time setup: docs/DEPLOY.md (a Firebase project, and its service account key saved as the
 # repository secret FIREBASE_SERVICE_ACCOUNT). Without the secret, the site is built but not published.
 name: Deploy web studio
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
