@@ -1,7 +1,7 @@
 // Scene composer: places matched concepts into a simple illustrated scene
 // (sky / ground / water, day / night / sunset / snow / rain) for stories, slides and blog posts.
 
-import { conceptOf, whoOf } from './individuals.js';
+import { conceptOf, whoOf, lookOf } from './individuals.js';
 import { lipKeys, lipCss } from './speech.js';
 import { layoutBubbles } from './bubble.js';
 import { actionCues, stillCues, soundTrack, voiceOf } from './sound.js';
@@ -837,7 +837,19 @@ export function composeScene(matches, opts = {}) {
     const n = clamp(m.count || 1, 1, c.maxCount ?? 5);
     const before = ofKind.get(c.id) ?? 0;
     ofKind.set(c.id, before + n);
-    for (let k = 0; k < n; k++) items.push({ c, m, k, aid: m.id, alt: before + k });
+    // A figure's clothes and hair from an earlier scene of the same clip ("a girl in a purple dress",
+    // then "the girl waves"): opts.carry, figure id -> { color, hair }
+    const was = opts.carry?.[m.id];
+    const mc = was && ((!m.color && was.color) || (!m.hair && was.hair)) ? { ...m, color: m.color ?? was.color, hair: m.hair ?? was.hair } : m;
+    for (let k = 0; k < n; k++) items.push({ c, m: mc, k, aid: m.id, alt: before + k });
+  }
+  // How each figure is drawn the same way every time: a recurring character by its own look
+  // (opts.identities, src/individuals.js), anyone else by the scene's seed
+  // (and heard in its own voice: the n-th character has the n-th voice of its kind)
+  for (const it of items) {
+    it.look = lookOf(it.aid, { seed, k: it.k, alt: it.alt, vary, looks: opts.identities });
+    if (it.m.hair) it.look = { ...it.look, colors: { ...it.look.colors, hair: it.m.hair } };
+    it.voice = opts.identities?.has(it.aid) ? Number(whoOf(it.aid).slice(3)) - 1 : it.alt;
   }
   items.splice(maxItems);
   // Things in someone's hands ("a woman holds a phone"): drawn in the hands of their holder, one
@@ -900,7 +912,7 @@ export function composeScene(matches, opts = {}) {
   const out = [];
   // A named individual's key and id, and a dressed-differently figure, for the studio (its photo,
   // and redrawing it the same way)
-  const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''}${it.alt > 0 ? ' data-vary="1"' : ''}${it.holding ? ` data-held="${it.holding.c.id}"${it.holding.m.color ? ` data-held-color="${it.holding.m.color}"` : ''}` : ''}`;
+  const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''} data-seed="${it.look.seed}"${it.look.vary ? ' data-vary="1"' : ''}${it.look.colors ? ` data-colors="${Object.entries(it.look.colors).map(([r, c]) => `${r}:${c}`).join(' ')}"` : ''}${it.holding ? ` data-held="${it.holding.c.id}"${it.holding.m.color ? ` data-held-color="${it.holding.m.color}"` : ''}` : ''}`;
   // What a figure holds, for drawConcept
   const heldOf = (it) => (it.holding ? { id: it.holding.c.id, color: it.holding.m.color } : undefined);
   // Who says what in a still scene ("Tom says “Hello!”"): figure id -> words
@@ -965,7 +977,7 @@ export function composeScene(matches, opts = {}) {
       soundLoop = Math.max(soundLoop ?? 0, loop);
     }
     // Its mood said out loud (one after another), its words babbled in time with its lips
-    if (it.m.expression || words) cues.push(...stillCues({ expression: it.m.expression, words, at: 0.3 + cues.length * 0.45 }, voiceOf(it.c.id, it.alt)));
+    if (it.m.expression || words) cues.push(...stillCues({ expression: it.m.expression, words, at: 0.3 + cues.length * 0.45 }, voiceOf(it.c.id, it.voice)));
     if (!animation) {
       if (it.c.category === 'people') animation = 'blink';
       else if (it.c.id === 'sun') animation = 'pulse';
@@ -983,9 +995,8 @@ export function composeScene(matches, opts = {}) {
     // walking or running across the scene is drawn in profile by the people themselves.
     const view = it.m.view ?? look?.view ?? (motion === 'recede' ? 'back' : motion === 'approach' ? 'front' : undefined);
     const shapes = drawConcept(it.c, {
-      seed: `${seed}:${it.aid}:${it.k}`,
+      ...it.look,
       color: it.m.color,
-      vary: vary || it.alt > 0,
       expression,
       animation: limbs,
       view,
@@ -1085,7 +1096,7 @@ export function composeScene(matches, opts = {}) {
       });
       motionCss.push(`@keyframes ${name}v${i} { ${frames}}`);
       const shapes = drawConcept(it.c, {
-        seed: `${seed}:${it.aid}:${it.k}`, color: it.m.color, vary: vary || it.alt > 0, style,
+        ...it.look, color: it.m.color, style,
         expression: pose.expression || 'happy', animation: pose.anim, view: pose.view, gaze: pose.gaze, held: heldOf(it),
       });
       // The drawing sits innermost in .pg-figure, so the studio can redraw it (a new expression)
@@ -1193,7 +1204,7 @@ export function composeScene(matches, opts = {}) {
     timeline.beatTimes = beatTimes;
     for (const { key, t0, act } of doings) {
       const { it } = actorSlots.get(key);
-      cues.push(...actionCues(act, t0, voiceOf(it.c.id, it.alt)));
+      cues.push(...actionCues(act, t0, voiceOf(it.c.id, it.voice)));
     }
     soundLoop = r2(T); // (the animation's loop)
     for (const [key, slot] of actorSlots) {

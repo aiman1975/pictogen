@@ -376,6 +376,14 @@
     .char-row img { width: 34px; height: 40px; border-radius: 50%; object-fit: cover; }
     .char-name { font-weight: 800; }
     .char-base { color: var(--text-muted); font-size: 0.75rem; }
+    .char-pic { width: 34px; height: 34px; border-radius: 50%; background: var(--surface); overflow: hidden; display: grid; place-items: center; }
+    .char-pic svg { width: 34px; height: 34px; }
+    .char-preview { align-self: center; width: 150px; height: 150px; border-radius: 16px; background: linear-gradient(#e0f2fe, #f0fdf4); }
+    .char-preview svg { width: 100%; height: 100%; }
+    .char-swatches { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+    .char-swatches span { width: 4.2rem; font-weight: 700; font-size: 0.8rem; color: var(--text-muted); }
+    .char-swatch { width: 24px; height: 24px; border-radius: 50%; background: var(--c); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--border); cursor: pointer; padding: 0; }
+    .char-swatch.on { box-shadow: 0 0 0 2px var(--text); }
     .face-modal { position: fixed; inset: 0; z-index: 100; background: rgb(15 23 42 / 0.55); display: grid; place-items: center; padding: 16px; overflow: auto; }
     .face-card { background: var(--surface); color: var(--text); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 1.1rem 1.25rem; width: min(360px, 100%); display: flex; flex-direction: column; gap: 0.6rem; }
     .face-card h3 { font-size: 1.05rem; font-weight: 800; }
@@ -1697,7 +1705,8 @@
       }
 
       svgViewport.innerHTML = '<div style="color: #64748b; font-weight: 700;">Drawing…</div>';
-      const cast = state.mode === 'scene' ? named(state.prompt) : { text: state.prompt, named: [] };
+      // (named characters in scenes and comic strips: their own figures and looks)
+      const cast = state.mode === 'scene' || state.mode === 'comic' ? named(state.prompt) : { text: state.prompt, named: [] };
 
       try {
         const res = await fetch('/api/generate', {
@@ -2048,8 +2057,10 @@
           expression,
           animation,
           view,
-          seed: `${state.seed}:${item.dataset.aid || item.dataset.id}:${k}`,
-          vary: state.vary || k > 0 || item.dataset.vary === '1',
+          // drawn the way the scene drew it: the same seed, and a character's own colours
+          seed: item.dataset.seed ?? `${state.seed}:${item.dataset.aid || item.dataset.id}:${k}`,
+          vary: item.dataset.seed ? item.dataset.vary === '1' : state.vary || k > 0 || item.dataset.vary === '1',
+          ...(item.dataset.colors ? { colors: Object.fromEntries(item.dataset.colors.split(' ').map((rc) => rc.split(':'))) } : {}),
           color: item.dataset.color,
           // (what it holds stays in its hands)
           ...(item.dataset.held ? { held: { id: item.dataset.held, color: item.dataset.heldColor } } : {}),
@@ -2793,7 +2804,7 @@
     window.pictogenStudio = {
       getSvgElement, getState: () => state, getStory: () => storyState, showToast, regenerate: () => runGenerate(),
       // the prompt as the engine gets it: named characters as their neutral keys
-      castOf: () => (state.mode === 'scene' ? named(state.prompt) : { text: state.prompt, named: [] }),
+      castOf: () => (state.mode === 'scene' || state.mode === 'comic' ? named(state.prompt) : { text: state.prompt, named: [] }),
     };
   </script>
   <script type="module" src="/js/scene-sound.js"></script>

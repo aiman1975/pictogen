@@ -358,6 +358,48 @@ try {
   await page.click('#characters-panel [data-remove="0"]');
   check((await page.evaluate(() => window.pictogenCharacters.list().length)) === 0, 'a character can be removed');
 
+  // 6b. Recurring characters without a photo: a name, a kind and colours of their own, the same in
+  // every scene and comic panel
+  await page.click('#characters-panel [data-do="new"]');
+  await page.waitForSelector('.face-modal .char-preview svg');
+  await page.fill('.face-name', 'Mia');
+  await page.click('.char-swatch[data-role="main"][data-colour="#fdd835"]');
+  await page.click('.char-swatch[data-role="hair"][data-colour="#c8662b"]');
+  await page.click('.face-modal [data-do="save"]');
+  await page.waitForSelector('.face-modal', { state: 'detached' });
+  await page.click('#characters-panel [data-do="new"]');
+  await page.fill('.face-name', 'Rex');
+  await page.selectOption('.face-base', 'dog');
+  check((await page.$$eval('.char-swatches', (rows) => rows.map((r) => r.getAttribute('aria-label')).join())) === 'Fur', 'a dog is coloured by its fur');
+  await page.click('.char-swatch[data-role="main"][data-colour="#212121"]');
+  await page.click('.face-modal [data-do="save"]');
+  await page.waitForSelector('.face-modal', { state: 'detached' });
+  const sentBefore = sent.length;
+  await draw('Mia walks in, then waves at Rex');
+  const mia = await page.evaluate(() => {
+    const el = document.querySelector('#svg-viewport [data-character="Mia"]'), rex = document.querySelector('#svg-viewport [data-character="Rex"]');
+    return { colors: el?.dataset.colors, yellow: !!el?.innerHTML.toLowerCase().includes('#fdd835'), rex: rex?.dataset.id, black: !!rex?.innerHTML.includes('#212121') };
+  });
+  check(/main:#fdd835 hair:#c8662b/.test(mia.colors ?? '') && mia.yellow && mia.rex === 'dog' && mia.black, `Mia wears her yellow dress and Rex is a black dog (${JSON.stringify(mia)})`);
+  check(sent.slice(sentBefore).every((body) => !body.includes('Mia') && !body.includes('Rex')), 'their names never reach the engine');
+  await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="comic"]').click());
+  await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'comic' && !document.getElementById('characters-panel').hidden);
+  {
+    const input = await page.$('textarea, input[type=text]');
+    await input.fill('Mia finds Rex "Hello!" "Woof!" "Best friends!"');
+    await input.press('Enter');
+    await page.waitForFunction(() => document.querySelector('#svg-viewport tspan[data-who]'));
+  }
+  const strip = await page.evaluate(() => ({
+    title: [...document.querySelectorAll('#svg-viewport tspan[data-who]')].map((t) => t.textContent).join(),
+    mia: document.querySelectorAll('#svg-viewport g[data-character="Mia"]').length,
+  }));
+  check(strip.title === 'MIA,REX' && strip.mia === 3, `in a comic strip Mia is in all three panels, and the title says her name (${JSON.stringify(strip)})`);
+  await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="scene"]').click());
+  await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'scene');
+  await page.click('#characters-panel [data-remove="1"]');
+  await page.click('#characters-panel [data-remove="0"]');
+
   check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
 
   // A labelled diagram: rename a label by clicking it, blank them for a quiz; then a worksheet PDF

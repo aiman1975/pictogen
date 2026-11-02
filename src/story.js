@@ -440,8 +440,10 @@ export function composeStory(storyInput, opts = {}) {
     else title = 'Kids Animated Story Clip';
   }
 
+  // Recurring characters look the same in every scene: one seed for the whole clip, a named
+  // character's own look, and a colour once said kept ("a girl in a purple dress", later "the girl")
+  const carry = {};
   const scenes = scenesRaw.map((sc, i) => {
-    // Use the same base seed across scenes so recurring characters maintain 100% visual consistency across frames
     const result = generate(sc.prompt, {
       mode: 'scene',
       style,
@@ -453,9 +455,14 @@ export function composeStory(storyInput, opts = {}) {
       ...(Array.isArray(sc.beats) ? { beats: sc.beats } : {}),
       // Named individuals ("pgc1" -> one particular boy), the same in every scene
       ...(opts.individuals ? { individuals: opts.individuals } : {}),
+      carry: { ...carry },
       // A caption of its own (not the prompt repeated) is what a talking figure says, lip-synced
       ...(sc.caption && sc.caption.toLowerCase().replace(/[.!?\s]+$/, '') !== sc.prompt.toLowerCase().replace(/[.!?\s]+$/, '') ? { caption: sc.caption } : {}),
     });
+
+    for (const m of result.matches) {
+      if (m.color || m.hair) carry[m.id] = { color: m.color ?? carry[m.id]?.color, hair: m.hair ?? carry[m.id]?.hair };
+    }
 
     return {
       index: i,

@@ -10,6 +10,7 @@ import { createKit } from './core/kit.js';
 import { drawLetterCreature, LETTER_PALETTES } from './concepts/alphabet.js';
 import { layoutBubbles, fitText, textWidth } from './bubble.js';
 import { takeQuotes } from './speech.js';
+import { conceptOf, whoOf, lookOf } from './individuals.js';
 
 const fmt = (v) => Math.round(v * 100) / 100;
 
@@ -963,7 +964,7 @@ export function renderStickman(matches, opts = {}) {
  * three panels' lines; the bubbles fit their words and stay inside their panels (src/bubble.js).
  */
 export function renderComicStrip(matches, opts = {}) {
-  const { width = 840, height = 320, seed = 1, text = 'a boy on an adventure', style = 'comic' } = opts;
+  const { width = 840, height = 320, seed = 1, text = 'a boy on an adventure', style = 'comic', identities } = opts;
   const W = width, H = height;
   const panelStyle = ['stickman', 'cute2d', 'editorial', 'geometric', 'whiteboard', 'doodle', 'papercut'].includes(style) ? style : 'comic';
   const { text: unquoted, quotes } = takeQuotes(text);
@@ -971,18 +972,26 @@ export function renderComicStrip(matches, opts = {}) {
 
   // The hero: the first person (or animal) in the prompt; what they find: the next thing (saying
   // the second line when the prompt gives one)
-  const rank = (m) => ({ people: 0, people_body: 0, animals: 1, animals_nature: 1, wildlife: 1 }[getConcept(m.id)?.category] ?? 2);
-  const ordered = [...matches].filter((m) => getConcept(m.id)).sort((a, b) => rank(a) - rank(b));
-  const c1 = getConcept(ordered[0]?.id) || getConcept('boy');
-  const c2 = ordered.slice(1).map((m) => getConcept(m.id)).find((c) => c && c.id !== c1.id) || null;
+  // (a named character - "boy~pgc1" - is drawn in its own look in all three panels, marked with
+  // data-who for the studio to put its photo face on; the prompt's colours are kept)
+  const kind = (m) => getConcept(conceptOf(m.id));
+  const rank = (m) => ({ people: 0, people_body: 0, animals: 1, animals_nature: 1, wildlife: 1 }[kind(m)?.category] ?? 2);
+  const ordered = [...matches].filter((m) => kind(m)).sort((a, b) => rank(a) - rank(b));
+  const m1 = ordered[0] ?? { id: 'boy' };
+  const c1 = kind(m1);
+  const m2 = ordered.slice(1).find((m) => m.id !== m1.id && (kind(m) !== c1 || identities?.has(m.id))) ?? null;
+  const c2 = m2 ? kind(m2) : null;
+  const lookFor = (m, s) => ({ ...(identities?.has(m.id) ? lookOf(m.id, { looks: identities }) : { seed: s }), ...(m.color ? { color: m.color } : {}) });
+  const look1 = lookFor(m1, seed), look2 = m2 ? lookFor(m2, seed + 1) : null;
 
   const gap = Math.max(6, W * 0.014), top = 46, foot = 26;
   const pW = (W - 4 * gap) / 3, pH = H - top - foot;
   const figH = Math.min(pH * 0.6, pW * 0.8);
-  const figure = (c, opt, cx, h) => {
+  const figure = (c, opt, cx, h, m) => {
     const s = h / 100, base = c.baseline ?? 96;
     const shapes = shapesToSvg(drawConcept(c, { seed, style: panelStyle, ...opt }), panelStyle, { olk: 1.2 });
-    return { svg: `<g transform="translate(${fmt(cx - 50 * s)} ${fmt(pH - 8 - base * s)}) scale(${fmt(s)})">${shapes}</g>`, x: cx, top: pH - 8 - base * s + 4 * s, w: h * (c.width ?? 0.8) };
+    const who = m && whoOf(m.id) ? ` data-who="${whoOf(m.id)}"` : '';
+    return { svg: `<g${who} transform="translate(${fmt(cx - 50 * s)} ${fmt(pH - 8 - base * s)}) scale(${fmt(s)})">${shapes}</g>`, x: cx, top: pH - 8 - base * s + 4 * s, w: h * (c.width ?? 0.8) };
   };
   const bubbleSize = Math.max(9, Math.min(15, pW / 17));
   const panel = (i, label, badge, body, speaker, line) => {
@@ -1003,10 +1012,10 @@ export function renderComicStrip(matches, opts = {}) {
 
   // (emoji people are drawn larger than our own: kept to their size)
   const heroH = figH * Math.min(1, c1.scale ?? 1);
-  const p1 = figure(c1, { expression: 'happy', animation: 'walk' }, pW / 2, heroH);
-  const p2 = figure(c1, { expression: 'surprised', animation: 'point' }, c2 ? pW * 0.32 : pW / 2, heroH);
-  const thing = c2 ? figure(c2, { seed: seed + 1 }, pW * 0.74, figH * Math.min(1, Math.max(0.45, c2.scale ?? 0.7))) : null;
-  const p3 = figure(c1, { expression: 'laugh', animation: 'thumbsup' }, pW / 2, heroH);
+  const p1 = figure(c1, { ...look1, expression: 'happy', animation: 'walk' }, pW / 2, heroH, m1);
+  const p2 = figure(c1, { ...look1, expression: 'surprised', animation: 'point' }, c2 ? pW * 0.32 : pW / 2, heroH, m1);
+  const thing = c2 ? figure(c2, look2, pW * 0.74, figH * Math.min(1, Math.max(0.45, c2.scale ?? 0.7)), m2) : null;
+  const p3 = figure(c1, { ...look1, expression: 'laugh', animation: 'thumbsup' }, pW / 2, heroH, m1);
   // Surprise lines by the hero's head
   const sx = Math.max(24, p2.x - p2.w / 2 - 6), sy = p2.top + 10;
   const zap = `<path d="M ${fmt(sx)} ${fmt(sy + 14)} l -12 -8 M ${fmt(sx + 2)} ${fmt(sy + 2)} l -9 -13 M ${fmt(sx + 12)} ${fmt(sy - 6)} l -4 -14" stroke="#111827" stroke-width="2.5" stroke-linecap="round"/>`;
@@ -1014,7 +1023,23 @@ export function renderComicStrip(matches, opts = {}) {
   // The title fits the banner's right side, cut short with "…" when long
   const brand = '📰 THE PICTOGEN CHRONICLES';
   const titleRoom = W - 48 - textWidth(brand, 12) - 24;
-  const title = fitText(`STRIP #${seed} • ${(unquoted.replace(/\bqq\d+\b/g, '').replace(/\s+/g, ' ').trim() || 'COMIC STRIP').toUpperCase()}`, { maxW: titleRoom, maxLines: 1, size: 11, minSize: 8 });
+  // (a named character's key is written as its kind, "GIRL", marked with data-who: the studio puts
+  // the name there, on the user's own machine)
+  const kindOf = new Map(matches.filter((m) => whoOf(m.id)).map((m) => [whoOf(m.id), (getConcept(conceptOf(m.id))?.label || conceptOf(m.id)).replace(/_/g, ' ').toUpperCase()]));
+  const said = unquoted.replace(/\bqq\d+\b/g, '').replace(/\bpgc\d+\b/g, (k) => `\u0001${k}\u0002`).replace(/\s+/g, ' ').trim();
+  const shown = said.replace(/\u0001(pgc\d+)\u0002/g, (_, k) => kindOf.get(k) ?? '');
+  const title = fitText(`STRIP #${seed} • ${(shown || 'COMIC STRIP').toUpperCase()}`, { maxW: titleRoom, maxLines: 1, size: 11, minSize: 8 });
+  // Each kind word that stands for a character, in order, wrapped for its name
+  const order = [...said.matchAll(/\u0001(pgc\d+)\u0002/g)].map((x) => x[1]).filter((k) => kindOf.has(k));
+  let titleSvg = esc(title.lines[0] || '');
+  let from = 0;
+  for (const k of order) {
+    const at = titleSvg.indexOf(kindOf.get(k), from);
+    if (at < 0) break;
+    const tag = `<tspan data-who="${k}">${kindOf.get(k)}</tspan>`;
+    titleSvg = titleSvg.slice(0, at) + tag + titleSvg.slice(at + kindOf.get(k).length);
+    from = at + tag.length;
+  }
   const footer = fitText('MADE WITH PICTOGEN', { maxW: W - 24, maxLines: 1, size: 9.5, minSize: 7 });
 
   const content = `
@@ -1022,7 +1047,7 @@ export function renderComicStrip(matches, opts = {}) {
     <rect width="${W}" height="${H}" fill="none" stroke="#111827" stroke-width="4"/>
     <rect x="8" y="8" width="${W - 16}" height="28" fill="#111827"/>
     <text x="24" y="27" font-family="${FONT}" font-size="12" font-weight="900" fill="#ffffff" letter-spacing="0.04em">${brand}</text>
-    ${titleRoom > 40 ? `<text x="${W - 24}" y="27" text-anchor="end" font-family="${FONT}" font-size="${fmt(title.size)}" font-weight="700" fill="#fbbf24">${esc(title.lines[0] || '')}</text>` : ''}
+    ${titleRoom > 40 ? `<text x="${W - 24}" y="27" text-anchor="end" font-family="${FONT}" font-size="${fmt(title.size)}" font-weight="700" fill="#fbbf24">${titleSvg}</text>` : ''}
     ${panel(0, '1. SETUP', '#e2e8f0', p1.svg, p1, lines[0])}
     ${panel(1, '2. DISCOVERY', '#e2e8f0', zap + p2.svg + (thing?.svg ?? ''), thing && quotes[1] ? thing : p2, lines[1])}
     ${panel(2, '3. PUNCHLINE', '#fef08a', p3.svg, p3, lines[2])}

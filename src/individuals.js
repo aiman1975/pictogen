@@ -19,3 +19,35 @@ export function individualNames(list, known) {
   }
   return names;
 }
+
+const ROLES = ['main', 'hair', 'skin', 'pants'];
+
+/**
+ * A recurring character's look, the same in every scene, clip and comic panel: { key, base, look:
+ * { seed?, main?, hair?, skin?, pants? } } -> Map individual id -> { seed, colors }. Colours are
+ * "#rrggbb"; the seed (a short neutral string) picks whatever colours are not given. Without a look,
+ * the key itself is the seed, so a character never borrows its looks from whoever else is in the
+ * scene.
+ */
+export function individualLooks(list, known) {
+  const looks = new Map();
+  for (const [key, id] of individualNames(list, known)) {
+    const look = (Array.isArray(list) ? list : []).find((p) => p?.key === key)?.look;
+    const colors = {};
+    for (const role of ROLES) if (typeof look?.[role] === 'string' && /^#[0-9a-f]{6}$/i.test(look[role])) colors[role] = look[role].toLowerCase();
+    const seed = typeof look?.seed === 'string' && /^[a-z0-9]{1,16}$/i.test(look.seed) ? look.seed : key;
+    looks.set(id, { seed: `who:${seed}`, colors: Object.keys(colors).length ? colors : null });
+  }
+  return looks;
+}
+
+/**
+ * How one figure is drawn so it looks the same wherever it appears: a recurring character by its
+ * own look; anyone else by the scene's seed, dressed differently from the others of its kind (alt).
+ *   -> { seed, vary, colors? } for drawConcept
+ */
+export function lookOf(id, { seed = 1, k = 0, alt = 0, vary = false, looks } = {}) {
+  const own = looks?.get(id);
+  if (own) return own.colors ? { seed: own.seed, vary: false, colors: own.colors } : { seed: own.seed, vary: true };
+  return { seed: `${seed}:${id}:${k}`, vary: vary || alt > 0 };
+}

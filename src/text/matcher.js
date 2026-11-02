@@ -288,6 +288,50 @@ function viewPhrase(toks, i) {
   return null;
 }
 
+// What someone wears and their hair, said about them ("a girl in a purple dress", "a man wearing a
+// red coat", "a boy with curly black hair", "a blonde woman", "a red-haired girl"): the colours of
+// their own clothes and hair, not more things to draw
+const CLOTHES = new Set(['dress', 'dresses', 'shirt', 'shirts', 'tshirt', 'top', 'blouse', 'coat', 'jacket', 'jumper', 'sweater',
+  'hoodie', 'cardigan', 'outfit', 'clothes', 'suit', 'uniform', 'skirt', 'gown', 'frock', 'costume', 'pyjamas', 'pajamas',
+  'overalls', 'raincoat', 'tunic', 'vest', 'jersey', 'tracksuit', 'onesie']);
+// Hair colours as hair is (red hair is ginger, not fire-engine red)
+const HAIR_SHADES = {
+  blonde: '#e6b94f', blond: '#e6b94f', golden: '#e6b94f', fair: '#e6b94f', yellow: '#f2d16b', ginger: '#c8662b', red: '#c8662b',
+  auburn: '#a0522d', orange: '#d9772f', brunette: '#5d4037', brown: '#5d4037', dark: '#2e211c', black: '#212121',
+  grey: '#b0b0b0', gray: '#b0b0b0', white: '#eeeeee', silver: '#cfd8dc', pink: '#f48fb1', blue: '#64b5f6',
+  purple: '#ba68c8', green: '#81c784', teal: '#4db6ac',
+};
+// Hair words that say nothing but the hair ("a blonde girl")
+const HAIR_ONLY = new Set(['blonde', 'blond', 'ginger', 'brunette', 'auburn']);
+const LOOK_FILLERS = new Set(['long', 'short', 'curly', 'straight', 'wavy', 'messy', 'spiky', 'pretty', 'new', 'big', 'little',
+  'favourite', 'favorite', 'bright', 'light', 'fluffy', 'cosy', 'cozy', 'warm', 'nice', 'lovely', 'sparkly', 'shiny', 'smart', 'fancy']);
+
+/**
+ * At toks[i], what someone wears or their hair: "in a purple dress", "wearing red", "dressed in
+ * blue", "with long blonde hair", "has a green coat". isThing(j): toks[j] starts something to draw.
+ * Returns { color?, hair?, len } (color: a colour word for their clothes, hair: "#rrggbb") or null.
+ */
+function lookPhrase(toks, i, isThing) {
+  let j = i;
+  const a = toks[j];
+  if (a === 'dressed' && toks[j + 1] === 'in') j += 2;
+  else if (['in', 'wearing', 'wears', 'with', 'has', 'have'].includes(a)) j += 1;
+  else return null;
+  if (['a', 'an', 'the', 'some'].includes(toks[j]) || POSSESSIVES.has(toks[j])) j++;
+  for (let n = 0; n < 2 && LOOK_FILLERS.has(toks[j]); n++) j++;
+  const colour = toks[j];
+  if (!COLOR_WORDS[colour] && !HAIR_SHADES[colour]) return null;
+  j++;
+  for (let n = 0; n < 2 && LOOK_FILLERS.has(toks[j]); n++) j++;
+  if (toks[j] === 'hair' && HAIR_SHADES[colour]) return { hair: HAIR_SHADES[colour], len: j + 1 - i };
+  if (!COLOR_WORDS[colour]) return null;
+  if (toks[j] === 't' && toks[j + 1] === 'shirt') j++;
+  if (CLOTHES.has(toks[j])) return { color: colour, len: j + 1 - i };
+  // "a girl dressed in red", "wearing blue": the colour alone (not "in red boots" or "with a red ball")
+  if (a !== 'with' && a !== 'has' && a !== 'have' && j === i + (a === 'dressed' ? 3 : 2) && !isThing(j)) return { color: colour, len: j - i };
+  return null;
+}
+
 function lev(a, b) {
   const m = a.length, n = b.length;
   let prev = Array.from({ length: n + 1 }, (_, j) => j);
@@ -348,6 +392,7 @@ function mergeMatches(found) {
     const target = out.find((o) =>
       o.id === m.id && (o.heldBy ?? null) === (m.heldBy ?? null) &&
       (!m.color || !o.color || o.color === m.color) &&
+      (!m.hair || !o.hair || o.hair === m.hair) &&
       (!m.expression || !o.expression || o.expression === m.expression) &&
       (!m.animation || !o.animation || o.animation === m.animation) &&
       (!m.view || !o.view || o.view === m.view)
@@ -355,6 +400,7 @@ function mergeMatches(found) {
     if (target) {
       target.count = Math.max(target.count, m.count);
       target.color = target.color ?? m.color;
+      target.hair = target.hair ?? m.hair;
       target.size = target.size ?? m.size;
       target.expression = target.expression ?? m.expression;
       target.animation = target.animation ?? m.animation;
@@ -407,6 +453,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     }
     found.push({
       id: hit.id, word: hit.word, color: pend.color, size: pend.size, ...(pend.count != null ? { countGiven: true } : {}),
+      ...(pend.hair ? { hair: pend.hair } : {}),
       count: pend.count != null ? Math.max(1, Math.min(pend.count, MAX_COUNT)) : hit.plural ? 3 : 1,
       expression: pend.expression ?? hit.expression,
       animation: pend.animation ?? hit.animation,
@@ -436,6 +483,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     const t = toks[i];
     const next = toks[i + 1];
 
+    const justNamed = lastConceptIndex === i - 1; // (someone named just before: "a boy with curly hair")
     if (['and', 'or', 'but', 'with', 'without', 'then'].includes(t)) {
       lastConceptIndex = -99;
     }
@@ -453,6 +501,24 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     }
     // ("waves at a dog", "flies over the city": nothing in the hands)
     else if (['then', 'while', 'when', 'but', ...NOT_HELD_AFTER].includes(t)) holding = null;
+    // What the person just named wears, and their hair ("a girl in a purple dress")
+    const looks = lastPerson >= 0 && lastPerson === found.length - 1 && justNamed
+      ? lookPhrase(toks, i, (j) => j < toks.length && !!at(toks, j)) : null;
+    if (looks) {
+      const who = found[lastPerson];
+      if (looks.color) who.color = looks.color;
+      if (looks.hair) who.hair = looks.hair;
+      holding = null;
+      lastConceptIndex = i + looks.len - 1;
+      i += looks.len;
+      continue;
+    }
+    // ... or said before them ("a blonde girl", "a red-haired boy")
+    if ((HAIR_ONLY.has(t) && next && at(toks, i + 1)) || (HAIR_SHADES[t] && /^haired$/.test(next) && toks[i + 2])) {
+      pend.hair = HAIR_SHADES[t];
+      i += next === 'haired' ? 2 : 1;
+      continue;
+    }
     const seen = viewPhrase(toks, i);
     if (seen) {
       // "back view of a boy" -> the next figure; "a boy and a girl seen from behind" -> the list so far

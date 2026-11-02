@@ -13,7 +13,7 @@ import { getConcept } from './concepts/index.js';
 import { parseTimeline, extractCamera, editTimeline, lookRelations, speechRelations } from './timeline.js';
 import { takeQuotes } from './speech.js';
 import { findDiagram, renderDiagram, renderLabelledPictures, DIAGRAMS } from './diagrams.js';
-import { conceptOf, individualNames } from './individuals.js';
+import { conceptOf, individualNames, individualLooks } from './individuals.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
 export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
@@ -49,10 +49,14 @@ export function generate(text, opts = {}) {
   const dim = (v, d) => (Number.isFinite(+v) && +v > 0 ? +v : d);
   const width = dim(opts.width, 640), height = dim(opts.height, 360);
   text = String(text ?? '');
-  // Named individuals (opts.individuals: [{ key: 'pgc1', base: 'boy' }], see src/individuals.js): in a
-  // scene each is its own figure ("boy~pgc1"); elsewhere (icons, comics...) simply its kind
-  const individuals = individualNames(opts.individuals, (id) => getConcept(id)?.category === 'people' || !!getConcept(id));
-  const names = mode === 'scene' ? individuals : new Map([...individuals].map(([k, id]) => [k, conceptOf(id)]));
+  // Named individuals (opts.individuals: [{ key: 'pgc1', base: 'boy', look? }], see src/individuals.js):
+  // in a scene or a comic strip each is its own figure ("boy~pgc1") with its own look, the same
+  // every time; elsewhere (icons, diagrams...) simply its kind
+  const known = (id) => !!getConcept(id);
+  const individuals = individualNames(opts.individuals, known);
+  const own = mode === 'scene' || mode === 'comic';
+  const names = own ? individuals : new Map([...individuals].map(([k, id]) => [k, conceptOf(id)]));
+  const identities = own ? individualLooks(opts.individuals, known) : null;
   // Camera directions ("zoom in on the dog") are not things to draw: read the scene without them,
   // but keep whatever they point at ("a close-up of a cat" still draws the cat).
   // Quoted speech ("says “Hello!”") is said, not drawn: the scene is read without it
@@ -99,7 +103,7 @@ export function generate(text, opts = {}) {
       ...timeline.props.filter((m) => !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary)),
     ];
   }
-  const common = { style, seed, vary, width, height, text };
+  const common = { style, seed, vary, width, height, text, identities };
   let svg, diagram = null;
   // A labelled diagram: asked for by its mode ("diagram", or "callout"), or in a scene by a school
   // topic said plainly ("the parts of a plant", "the water cycle"); labels renamed or left blank
@@ -156,7 +160,9 @@ export function generate(text, opts = {}) {
     const speech = timeline ? [] : speechRelations(text, { names });
     const caption = typeof opts.caption === 'string' && opts.caption.trim() ? opts.caption.trim().slice(0, 400) : null;
     if (timeline) timeline.caption = caption;
-    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption };
+    // Colours carried over from earlier scenes of a clip (composeStory): figure id -> colour
+    const carry = opts.carry && typeof opts.carry === 'object' ? opts.carry : undefined;
+    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption, carry };
     svg = composeScene(matches, sceneOpts);
     if (sceneOpts.speechDuration) common.duration = Math.max(common.duration ?? 0, sceneOpts.speechDuration);
     if (camera?.duration) common.duration = Math.max(common.duration ?? 0, camera.duration);

@@ -78,11 +78,15 @@ export function handleApi(method, url, payload = {}) {
 
   // Render single concept with custom expression / animation
   if (pathname === '/api/render-concept' && method === 'POST') {
-    const { id, style = 'flat', expression = 'happy', animation, color, vary, seed = 1, view, held } = payload;
+    const { id, style = 'flat', expression = 'happy', animation, color, vary, seed = 1, view, held, colors } = payload;
     const c = getConcept(id);
     if (!c) return json({ error: `Unknown concept: ${id}` }, 404);
+    // A recurring character's own colours ({ main, hair, skin, pants }: "#rrggbb")
+    const own = colors && typeof colors === 'object'
+      ? Object.fromEntries(Object.entries(colors).filter(([r, v]) => ['main', 'hair', 'skin', 'pants'].includes(r) && /^#[0-9a-f]{6}$/i.test(v)))
+      : null;
     const shapes = drawConcept(c, {
-      seed, color, vary, expression, animation, style, view: ['front', 'three-quarter', 'side', 'back'].includes(view) ? view : undefined,
+      seed, color, vary, expression, animation, style, ...(own && Object.keys(own).length ? { colors: own } : {}), view: ['front', 'three-quarter', 'side', 'back'].includes(view) ? view : undefined,
       // what the figure holds ({ id, color }), drawn in its hands again
       ...(held && typeof held.id === 'string' && getConcept(held.id) ? { held: { id: held.id, color: typeof held.color === 'string' ? held.color : undefined } } : {}),
     });

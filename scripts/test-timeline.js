@@ -257,7 +257,7 @@ const ind = generate('pgc1 walks in, then pgc2 runs to him, then they look at ea
 const indActs = ind.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.target ? '>' + a.target : ''}`).join('+')).join(' | ');
 check(indActs === 'boy~pgc1:enter | boy~pgc2:moveTo>boy~pgc1 | boy~pgc2:look>boy~pgc1+boy~pgc1:look>boy~pgc2', `two boys act on their own: ${indActs}`);
 const whoAttrs = [...ind.svg.matchAll(/data-who="(pgc\d)"/g)].map((m) => m[1]).join();
-check(whoAttrs === 'pgc1,pgc2' && (ind.svg.match(/data-vary="1"/g) || []).length === 1, 'each is marked with its key, and the second boy is dressed differently');
+check(whoAttrs === 'pgc1,pgc2' && /data-seed="who:pgc1"/.test(ind.svg) && /data-seed="who:pgc2"/.test(ind.svg), 'each is marked with its key, and dressed by his own look, not by who else is there');
 const stillTwo = generate('pgc1 and pgc2 dancing under the stars', { individuals: IND });
 check(stillTwo.matches.map((m) => `${m.id}/${m.animation}`).join() === 'boy~pgc1/dance,boy~pgc2/dance,star/undefined' && !wellFormedError(stillTwo.svg), 'a still scene draws both, both dancing');
 const mixed = generate('pgc1 and a boy walk in, then pgc1 waves', { individuals: IND });
@@ -271,6 +271,42 @@ const byWho = (who) => { const i = trio.svg.indexOf(`data-who="${who}"`); return
 const trioHomes = ['pgc1', 'pgc2', 'pgc3'].map((w) => homeOf(byWho(w)));
 const closest = Math.min(...trioHomes.flatMap((a, i) => trioHomes.slice(i + 1).map((b) => Math.abs(a - b))));
 check(closest > 40, `walking up to a group, nobody ends on top of someone (${trioHomes.map(Math.round).join(', ')})`);
+
+// 2i-b. Recurring characters: the same look in every scene, clip and comic panel
+{
+  const figureOf = (svg, who) => { const i = svg.indexOf(`data-who="${who}"`); const j = svg.indexOf('class="movable-item"', i + 1); return i < 0 ? '' : svg.slice(i, j < 0 ? undefined : j); };
+  const fills = (frag) => [...new Set(frag.match(/fill="#[0-9a-f]{6}"/gi) || [])].sort().join();
+  const together = generate('pgc1 and pgc2 walk in', { individuals: IND }).svg, alone = generate('pgc2 waves', { individuals: IND }).svg;
+  check(fills(figureOf(together, 'pgc2')).length > 0 && figureOf(alone, 'pgc2').includes(fills(figureOf(alone, 'pgc2')).split(',')[0]) && fills(figureOf(together, 'pgc2')).split(',').filter((f) => /#00897b|#1e88e5|#e53935|#43a047|#fb8c00|#8e24aa/i.test(f)).join() === fills(figureOf(alone, 'pgc2')).split(',').filter((f) => /#00897b|#1e88e5|#e53935|#43a047|#fb8c00|#8e24aa/i.test(f)).join(),
+    'a named boy wears the same shirt with someone else or alone (it no longer depends on who else is in the scene)');
+  const OWN = [{ key: 'pgc1', base: 'girl', look: { seed: 'k3f9', main: '#ffca28', hair: '#212121', skin: '#8d5524' } }, { key: 'pgc2', base: 'dog', look: { main: '#212121' } }];
+  const s1 = generate('pgc1 walks in, then waves at pgc2', { individuals: OWN }).svg, s2 = generate('pgc1 and a boy dance in the park', { individuals: OWN, seed: 7 }).svg;
+  check([s1, s2].every((svg) => ['#ffca28', '#212121', '#8d5524'].every((c) => figureOf(svg, 'pgc1').toLowerCase().includes(c))) && /data-colors="main:#ffca28 hair:#212121 skin:#8d5524"/.test(s1),
+    'a character with its own colours (yellow dress, black hair, dark skin) wears them in every scene, whatever its seed');
+  check(figureOf(s1, 'pgc2').includes('#212121'), 'pets have their own colour too (a black dog)');
+  check(generate('pgc1 walks in', { individuals: [{ key: 'pgc1', base: 'girl', look: { main: 'red; x', skin: '#zzzzzz', seed: '../x' } }] }).svg.includes('data-seed="who:pgc1"'), 'looks that are not plain colours and seeds are ignored');
+  const comic = generate('pgc1 finds pgc2 "Hi!" "Woof!" "Best friends!"', { mode: 'comic', individuals: OWN }).svg;
+  check((comic.match(/<g data-who="pgc1"/g) || []).length === 3 && (comic.match(/<g data-who="pgc2"/g) || []).length === 1, 'in a comic strip a named character is in all three panels, marked for its photo face');
+  check(/<tspan data-who="pgc1">GIRL<\/tspan> FINDS <tspan data-who="pgc2">DOG<\/tspan>/.test(comic) && !/PGC\d/.test(comic), 'its title says "GIRL FINDS DOG" (no keys), marked for the studio to write the names');
+  // (comic ink: purple prints as #9646cd)
+  const purpleComic = generate('a girl in a purple dress finds a kite', { mode: 'comic' }).svg;
+  check(/#9646cd/i.test(purpleComic) && !/#9646cd/i.test(generate('a girl finds a kite', { mode: 'comic' }).svg), 'a comic strip\'s hero wears what the prompt says');
+  // Saying what someone wears and their hair: their colours, not more things to draw
+  const said = (t) => parseText(t).matches.map((m) => [m.id, m.color, m.hair, m.heldBy].filter(Boolean).join(':')).join(' ');
+  check(said('a girl in a purple dress walks in') === 'girl:purple', `"a girl in a purple dress": a purple dress on the girl (${said('a girl in a purple dress walks in')})`);
+  check(said('a man wearing a red coat and a dog') === 'man:red dog', '"wearing a red coat"');
+  check(said('a boy with curly black hair') === 'boy:#212121', '"with curly black hair": his hair');
+  check(said('a blonde woman reads a book') === 'woman:#e6b94f book:woman' && said('a red-haired girl') === 'girl:#c8662b', '"a blonde woman", "a red-haired girl"');
+  check(said('a girl wearing a yellow t-shirt waves') === 'girl:yellow' && said('a woman dressed in blue') === 'woman:blue', '"a yellow t-shirt", "dressed in blue"');
+  check(said('a girl with a red ball') === 'girl ball:red:girl' && said('a boy in a park') === 'boy' && said('a cat in a box') === 'cat box', 'not a description: "with a red ball", "in a park", "a cat in a box"');
+  const green = generate('a boy in a green shirt walks in, then waves').svg;
+  check((green.match(/#43a047/gi) || []).length > 2, 'a timeline\'s figure wears what the prompt says in every pose');
+  // A clip: one look for the whole story, a colour said once kept
+  const clip = composeStory([{ prompt: 'a girl in a purple dress with blonde hair walks in' }, { prompt: 'the girl flies a kite' }, { prompt: 'the girl waves, then a boy runs to her' }]);
+  check(clip.scenes.every((sc) => /#8e24aa/i.test(sc.svg) && /#e6b94f/i.test(sc.svg)), 'in a clip, the girl in the purple dress with blonde hair is the same girl in every scene');
+  const named = composeStory([{ prompt: 'pgc1 walks in' }, { prompt: 'pgc2 and pgc1 play' }], { individuals: OWN });
+  check(named.scenes.every((sc) => figureOf(sc.svg, 'pgc1').toLowerCase().includes('#ffca28')), 'a named character keeps its look through a clip');
+}
 
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');

@@ -1,13 +1,39 @@
-// "Your characters": a face photo on a figure, called by name in prompts ("Tom walks in, then
-// waves"). The photo is cropped to the head's oval here, in the browser, and never leaves it: the
-// server only sees "the boy", and the face is put on the finished drawing on this page, so GIF and
-// video exports carry it too. Drawings mark where a face goes with data-face="cx cy r" (people.js).
+// "Your characters": recurring characters called by name in prompts ("Tom walks in, then waves"),
+// who look the same in every scene, clip and comic panel: their own clothes, hair and skin (or fur),
+// and a face from a photo if wanted. The photo is cropped to the head's oval here, in the browser,
+// and never leaves it: the server only sees "the boy" and his colours, and the face is put on the
+// finished drawing on this page, so GIF and video exports carry it too. Drawings mark where a face
+// goes with data-face="cx cy r" (people.js).
 
 const studio = window.pictogenStudio;
 const panel = document.getElementById('characters-panel');
 const KEY = 'pictogen.characters.v1';
 const MAX = 8;
-const BASES = [['boy', 'Boy'], ['girl', 'Girl'], ['man', 'Man'], ['woman', 'Woman']];
+const BASES = [['boy', 'Boy'], ['girl', 'Girl'], ['man', 'Man'], ['woman', 'Woman'], ['old_woman', 'Grandma'], ['old_man', 'Grandpa'],
+  ['baby', 'Baby'], ['dog', 'Dog'], ['cat', 'Cat']];
+const PETS = new Set(['dog', 'cat']);
+const PHOTO_BASES = BASES.filter(([b]) => !PETS.has(b));
+// The colours to pick from: clothes, hair and skin for people, fur for pets
+const SWATCHES = {
+  main: ['#e53935', '#fb8c00', '#fdd835', '#43a047', '#00897b', '#1e88e5', '#3949ab', '#8e24aa', '#ec407a', '#795548', '#455a64', '#fafafa'],
+  hair: ['#212121', '#4e342e', '#795548', '#a1662f', '#e6b94f', '#c8662b', '#b0b0b0', '#f48fb1'],
+  skin: ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524'],
+  fur: ['#bcaaa4', '#8d6e63', '#5d4037', '#fb8c00', '#ffe0b2', '#212121', '#9e9e9e', '#fafafa'],
+};
+/** What can be coloured on a kind of character: [role, label, swatches] */
+const rolesOf = (base) => (PETS.has(base) ? [['main', 'Fur', SWATCHES.fur]]
+  : base === 'baby' ? [['main', 'Clothes', SWATCHES.main], ['skin', 'Skin', SWATCHES.skin]]
+    : [['main', 'Clothes', SWATCHES.main], ['hair', 'Hair', SWATCHES.hair], ['skin', 'Skin', SWATCHES.skin]]);
+const pick = (list) => list[Math.floor(Math.random() * list.length)];
+/** A new character's look: colours of its own (clothes no one else wears, when there are enough) */
+function newLook(base, others = []) {
+  const look = { seed: Math.random().toString(36).slice(2, 8) || 'a' };
+  for (const [role, , list] of rolesOf(base)) {
+    const free = list.filter((c) => !others.some((o) => o.look?.[role] === c));
+    look[role] = pick(role === 'main' && free.length ? free : list);
+  }
+  return look;
+}
 // The face oval: a little taller than wide, like a head. The saved photo is its bounding box.
 const RATIO = 1.18;
 const OUT_W = 200, OUT_H = Math.round(OUT_W * RATIO);
@@ -25,7 +51,12 @@ let uid = 0;
 function load() {
   try {
     const list = JSON.parse(localStorage.getItem(KEY) || '[]');
-    return Array.isArray(list) ? list.filter((c) => c && c.name && c.photo && BASES.some(([b]) => b === c.base)) : [];
+    const valid = Array.isArray(list) ? list.filter((c) => c && c.name && BASES.some(([b]) => b === c.base) && (!c.photo || typeof c.photo === 'string')) : [];
+    // (characters saved before they had looks of their own get one now, kept from then on)
+    let changed = false;
+    valid.forEach((c, i) => { if (!c.look) { c.look = newLook(c.base, valid.slice(0, i)); changed = true; } });
+    if (changed) try { localStorage.setItem(KEY, JSON.stringify(valid)); } catch { /* */ }
+    return valid;
   } catch {
     return [];
   }
@@ -41,8 +72,8 @@ const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** The neutral key a character's name becomes in a prompt ("Tom" -> "pgc1"): no name leaves the page */
 const keyOf = (c) => `pgc${characters.indexOf(c) + 1}`;
-/** All characters as the engine knows them: { key, base } (kind of figure), never names or photos */
-const individuals = () => characters.map((c) => ({ key: keyOf(c), base: c.base }));
+/** All characters as the engine knows them: { key, base, look } (kind and colours), never names or photos */
+const individuals = () => characters.map((c) => ({ key: keyOf(c), base: c.base, look: c.look }));
 
 /**
  * "Tom walks in, then Max waves at him" -> { text: "pgc1 walks in, then pgc2 waves at him",
@@ -78,37 +109,43 @@ const SVG = 'http://www.w3.org/2000/svg';
 function apply(svg, named) {
   if (!svg || !named?.length) return svg;
   for (const c of named) {
-    for (const item of svg.querySelectorAll(`.movable-item[data-who="${keyOf(c)}"]`)) {
+    // (a scene's figures, and a comic strip's panels)
+    for (const item of svg.querySelectorAll(`[data-who="${keyOf(c)}"]`)) {
       item.dataset.character = c.name;
-      for (const head of item.querySelectorAll('[data-face]')) {
-        if (head.querySelector(':scope > .pg-photo-face')) continue;
-        const [cx, cy, r] = head.dataset.face.split(' ').map(Number);
-        const rx = r * 1.02, ry = rx * RATIO, oy = cy - r * 0.06;
-        const id = `pgface${Date.now().toString(36)}${uid++}`;
-        const g = document.createElementNS(SVG, 'g');
-        g.setAttribute('class', 'pg-photo-face');
-        g.setAttribute('data-mood', head.dataset.mood || 'happy');
-        // Cut at the mouth line: the upper face stays, the jaw below it drops to talk, showing a dark
-        // mouth behind. Both fade out toward the oval's edge, so the drawn hair and head frame them.
-        const top = oy - ry, mouth = top + 2 * ry * MOUTH_LINE, seam = 0.35;
-        const img = `<image href="${c.photo}" x="${cx - rx}" y="${top}" width="${2 * rx}" height="${2 * ry}" preserveAspectRatio="none" mask="url(#${id})"/>`;
-        g.innerHTML = `<defs><radialGradient id="${id}g"><stop offset="0.7" stop-color="#fff"/><stop offset="0.97" stop-color="#000"/></radialGradient>`
-          + `<mask id="${id}" maskUnits="userSpaceOnUse"><ellipse cx="${cx}" cy="${oy}" rx="${rx}" ry="${ry}" fill="url(#${id}g)"/></mask>`
-          + `<clipPath id="${id}u"><rect x="${cx - rx}" y="${top}" width="${2 * rx}" height="${mouth - top + seam}"/></clipPath>`
-          + `<clipPath id="${id}j"><rect x="${cx - rx}" y="${mouth - seam}" width="${2 * rx}" height="${top + 2 * ry - mouth + seam}"/></clipPath></defs>`
-          + `<ellipse class="pg-photo-mouth" cx="${cx}" cy="${mouth}" rx="${rx * 0.3}" ry="${r * 0.15}" fill="#3b1a1a" style="transform-box: view-box; transform-origin: ${cx}px ${mouth}px"/>`
-          + `<g class="pg-photo-jaw" style="--jaw: ${(r * 0.13).toFixed(2)}px"><g clip-path="url(#${id}j)">${img}</g></g>`
-          + `<g clip-path="url(#${id}u)">${img}</g>`;
-        // Turned three-quarters or in profile, the photo narrows toward the side the figure faces
-        const turn = { 'three-quarter': [0.84, 0.22], side: [0.66, 0.36] }[head.dataset.view];
-        if (turn) g.setAttribute('transform', `translate(${cx + r * turn[1]} 0) scale(${turn[0]} 1) translate(${-cx} 0)`);
-        // The drawn eyes and mouth hide under the photo (and would blink through it)
-        head.querySelectorAll('.pg-face-eyes, .pg-face-mouth').forEach((f) => f.setAttribute('display', 'none'));
-        head.appendChild(g);
-      }
+      // (a comic strip's title says the name where the drawing says "GIRL")
+      if (item.tagName === 'tspan') { item.textContent = c.name.toUpperCase(); continue; }
+      if (c.photo) for (const head of item.querySelectorAll('[data-face]')) putFace(head, c.photo);
     }
   }
   return svg;
+}
+
+/** A face photo on one drawn head (data-face="cx cy r"), cut to talk at the mouth line */
+function putFace(head, photo) {
+    if (head.querySelector(':scope > .pg-photo-face')) return;
+    const [cx, cy, r] = head.dataset.face.split(' ').map(Number);
+    const rx = r * 1.02, ry = rx * RATIO, oy = cy - r * 0.06;
+    const id = `pgface${Date.now().toString(36)}${uid++}`;
+    const g = document.createElementNS(SVG, 'g');
+    g.setAttribute('class', 'pg-photo-face');
+    g.setAttribute('data-mood', head.dataset.mood || 'happy');
+    // Cut at the mouth line: the upper face stays, the jaw below it drops to talk, showing a dark
+    // mouth behind. Both fade out toward the oval's edge, so the drawn hair and head frame them.
+    const top = oy - ry, mouth = top + 2 * ry * MOUTH_LINE, seam = 0.35;
+    const img = `<image href="${photo}" x="${cx - rx}" y="${top}" width="${2 * rx}" height="${2 * ry}" preserveAspectRatio="none" mask="url(#${id})"/>`;
+    g.innerHTML = `<defs><radialGradient id="${id}g"><stop offset="0.7" stop-color="#fff"/><stop offset="0.97" stop-color="#000"/></radialGradient>`
+      + `<mask id="${id}" maskUnits="userSpaceOnUse"><ellipse cx="${cx}" cy="${oy}" rx="${rx}" ry="${ry}" fill="url(#${id}g)"/></mask>`
+      + `<clipPath id="${id}u"><rect x="${cx - rx}" y="${top}" width="${2 * rx}" height="${mouth - top + seam}"/></clipPath>`
+      + `<clipPath id="${id}j"><rect x="${cx - rx}" y="${mouth - seam}" width="${2 * rx}" height="${top + 2 * ry - mouth + seam}"/></clipPath></defs>`
+      + `<ellipse class="pg-photo-mouth" cx="${cx}" cy="${mouth}" rx="${rx * 0.3}" ry="${r * 0.15}" fill="#3b1a1a" style="transform-box: view-box; transform-origin: ${cx}px ${mouth}px"/>`
+      + `<g class="pg-photo-jaw" style="--jaw: ${(r * 0.13).toFixed(2)}px"><g clip-path="url(#${id}j)">${img}</g></g>`
+      + `<g clip-path="url(#${id}u)">${img}</g>`;
+    // Turned three-quarters or in profile, the photo narrows toward the side the figure faces
+    const turn = { 'three-quarter': [0.84, 0.22], side: [0.66, 0.36] }[head.dataset.view];
+    if (turn) g.setAttribute('transform', `translate(${cx + r * turn[1]} 0) scale(${turn[0]} 1) translate(${-cx} 0)`);
+    // The drawn eyes and mouth hide under the photo (and would blink through it)
+    head.querySelectorAll('.pg-face-eyes, .pg-face-mouth').forEach((f) => f.setAttribute('display', 'none'));
+    head.appendChild(g);
 }
 
 /** The same for SVG markup (clip scenes, which are mounted again for video export) */
@@ -125,26 +162,132 @@ function withFaces(markup, named) {
 
 function render() {
   const st = studio.getState();
-  panel.hidden = st.mode !== 'scene';
+  // (scenes, clips and comic strips)
+  panel.hidden = !['scene', 'comic', 'story'].includes(st.mode);
   if (panel.hidden) return;
   const example = characters[0] ? `“${esc(characters[0].name)} walks in, then waves”` : '';
+  const full = characters.length >= MAX ? 'disabled' : '';
   panel.innerHTML = `
     <div class="tl-head">
       <span class="tl-title">🙂 Your characters</span>
-      <button class="tl-btn primary" data-do="add" ${characters.length >= MAX ? 'disabled' : ''} title="Put a face from a photo on a character">＋ Add from a photo</button>
+      <button class="tl-btn primary" data-do="new" ${full} title="A character with a name and a look of their own">＋ New character</button>
+      <button class="tl-btn" data-do="add" ${full} title="Put a face from a photo on a character">📷 From a photo</button>
       <input type="file" accept="image/*" hidden>
     </div>
     ${characters.length ? `<ul class="char-list">${characters.map((c, i) => `
-      <li class="char-row"><img src="${c.photo}" alt=""><span class="char-name">${esc(c.name)}</span><span class="char-base">${esc(BASES.find(([b]) => b === c.base)[1])}</span>
+      <li class="char-row">${c.photo ? `<img src="${c.photo}" alt="">` : `<span class="char-pic" data-pic="${i}"></span>`}<span class="char-name">${esc(c.name)}</span><span class="char-base">${esc(labelOf(c.base))}</span>
+        <button class="tl-btn" data-edit="${i}" aria-label="Change ${esc(c.name)}" title="Change the look">✎</button>
         <button class="tl-btn danger" data-remove="${i}" aria-label="Remove ${esc(c.name)}" title="Remove">✕</button></li>`).join('')}</ul>
-      <div class="tl-empty">Use the names in prompts: ${example}.</div>`
-    : '<div class="tl-empty">Put a face on a boy, girl, man or woman, give them a name, and use it in your prompts. The photo stays in this browser.</div>'}`;
+      <div class="tl-empty">Use the names in prompts: ${example}. They look the same in every scene, clip and comic.</div>`
+    : '<div class="tl-empty">Make a character (a boy, a grandma, a dog...) with a name and their own clothes and colours, and use the name in your prompts: they look the same in every scene. Add a face from a photo if you like; it stays in this browser.</div>'}`;
+  // Each character without a photo is shown as drawn
+  panel.querySelectorAll('[data-pic]').forEach(async (el) => {
+    const c = characters[+el.dataset.pic];
+    const markup = await drawing(c.base, c.look).catch(() => '');
+    if (markup) el.innerHTML = `<svg viewBox="12 4 76 76" aria-hidden="true">${markup}</svg>`;
+  });
+}
+
+const labelOf = (base) => BASES.find(([b]) => b === base)?.[1] ?? base;
+/** A character drawn on its own, in the studio's style and its own colours (markup in 0..100 units) */
+const drawn = new Map();
+async function drawing(base, look, style = studio.getState().style) {
+  const colors = Object.fromEntries(rolesOf(base).map(([role]) => [role, look?.[role]]).filter(([, v]) => v));
+  const key = JSON.stringify([base, colors, look?.seed, style]);
+  if (!drawn.has(key)) {
+    drawn.set(key, fetch('/api/render-concept', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: base, style, colors, seed: `who:${look?.seed ?? 'a'}`, expression: 'happy' }),
+    }).then((r) => r.json()).then((d) => d.markup || ''));
+  }
+  return drawn.get(key);
+}
+
+/** Why a name can't be used (or '') */
+function nameError(name, self = null) {
+  if (!/^[\p{L}][\p{L}' -]{0,19}$/u.test(name)) return 'Give the character a name, using letters (for example Tom).';
+  if (characters.some((c) => c !== self && c.name.toLowerCase() === name.toLowerCase())) return `There already is a character called ${name}.`;
+  if (/^(the|a|an|he|she|they|it|boy|girl|man|woman|dog|cat|baby|grandma|grandpa|and|then)$/i.test(name)) return 'Pick a name that is not an everyday word.';
+  return '';
+}
+
+/**
+ * Making a character, or changing one: a name, what they are, and their colours, with the character
+ * drawn as it will look (its photo face on, when it has one)
+ */
+function openEditor(existing = null) {
+  const draft = existing
+    ? { name: existing.name, base: existing.base, look: { ...existing.look }, photo: existing.photo }
+    : (() => { const base = 'girl'; return { name: '', base, look: newLook(base, characters) }; })();
+  const kinds = draft.photo ? PHOTO_BASES : BASES;
+  const modal = document.createElement('div');
+  modal.className = 'face-modal';
+  modal.innerHTML = `
+    <div class="face-card" role="dialog" aria-modal="true" aria-labelledby="char-title">
+      <h3 id="char-title">${existing ? `Change ${esc(existing.name)}` : 'A new character'}</h3>
+      <div class="char-preview" aria-hidden="true"></div>
+      <div class="face-row">
+        <label>Name <input class="face-name" maxlength="20" placeholder="e.g. Mia" autocomplete="off" value="${esc(draft.name)}"></label>
+        <label>Is a <select class="face-base">${kinds.map(([b, l]) => `<option value="${b}"${b === draft.base ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+      </div>
+      <div class="char-colours"></div>
+      <p class="face-note">They look like this in every scene, clip and comic strip.</p>
+      <p class="face-error" role="alert"></p>
+      <div class="face-actions"><button class="tl-btn" data-do="cancel">Cancel</button><button class="tl-btn primary" data-do="save">${existing ? 'Save' : 'Make this character'}</button></div>
+    </div>`;
+  document.body.appendChild(modal);
+  const preview = modal.querySelector('.char-preview');
+  const colours = modal.querySelector('.char-colours');
+  let shown = 0;
+  const redraw = async () => {
+    const n = ++shown;
+    const markup = await drawing(draft.base, draft.look).catch(() => '');
+    if (n !== shown) return;
+    preview.innerHTML = `<svg viewBox="0 0 100 100">${markup}</svg>`;
+    if (draft.photo) preview.querySelectorAll('[data-face]').forEach((head) => putFace(head, draft.photo));
+  };
+  const paint = () => {
+    colours.innerHTML = rolesOf(draft.base).map(([role, label, list]) => `
+      <div class="char-swatches" role="radiogroup" aria-label="${label}"><span>${label}</span>${list.map((c) => `<button type="button" class="char-swatch${draft.look[role] === c ? ' on' : ''}" role="radio" aria-checked="${draft.look[role] === c}" data-role="${role}" data-colour="${c}" style="--c:${c}" title="${label}"></button>`).join('')}</div>`).join('');
+    redraw();
+  };
+  paint();
+  const close = () => modal.remove();
+  const error = (msg) => { modal.querySelector('.face-error').textContent = msg; };
+  modal.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  modal.querySelector('.face-base').addEventListener('change', (e) => {
+    draft.base = e.target.value;
+    // (a dog has fur, not clothes: colours that don't fit the new kind are picked again)
+    for (const [role, , list] of rolesOf(draft.base)) if (!list.includes(draft.look[role])) draft.look[role] = pick(list);
+    paint();
+  });
+  modal.addEventListener('click', (e) => {
+    const sw = e.target.closest('.char-swatch');
+    if (sw) { draft.look[sw.dataset.role] = sw.dataset.colour; paint(); return; }
+    const act = e.target.closest('[data-do]')?.dataset.do;
+    if (act === 'cancel') return close();
+    if (act !== 'save') return;
+    const name = modal.querySelector('.face-name').value.trim().replace(/\s+/g, ' ');
+    const why = nameError(name, existing);
+    if (why) return error(why);
+    const look = { seed: draft.look.seed, ...Object.fromEntries(rolesOf(draft.base).map(([role]) => [role, draft.look[role]])) };
+    if (existing) Object.assign(existing, { name, base: draft.base, look });
+    else characters.push({ name, base: draft.base, look });
+    save();
+    close();
+    render();
+    studio.showToast(existing ? `${name} is changed` : `${name} is ready: try “${name} walks in, then waves”`);
+  });
+  modal.querySelector('.face-name').focus();
 }
 
 panel.addEventListener('click', (e) => {
   const el = e.target.closest('button');
   if (!el) return;
   if (el.dataset.do === 'add') panel.querySelector('input[type=file]').click();
+  else if (el.dataset.do === 'new') openEditor();
+  else if (el.dataset.edit !== undefined) openEditor(characters[+el.dataset.edit]);
   else if (el.dataset.remove !== undefined) {
     const [gone] = characters.splice(+el.dataset.remove, 1);
     save();
@@ -214,11 +357,26 @@ function removeBackground(out, stage, k) {
   return true;
 }
 
+/** The skin tone nearest the cheeks in a cropped face (the oval's box), or null */
+function skinOf(out) {
+  const { width: w, height: h } = out;
+  const px = out.getContext('2d').getImageData(Math.round(w * 0.28), Math.round(h * 0.55), Math.round(w * 0.44), Math.round(h * 0.12)).data;
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < px.length; i += 4) if (px[i + 3] > 200) { r += px[i]; g += px[i + 1]; b += px[i + 2]; n++; }
+  if (!n) return null;
+  const rgb = [r / n, g / n, b / n];
+  const hex = (c) => [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16));
+  return SWATCHES.skin.reduce((best, c) => {
+    const d = hex(c).reduce((sum, v, k) => sum + (v - rgb[k]) ** 2, 0);
+    return d < best.d ? { c, d } : best;
+  }, { c: null, d: Infinity }).c;
+}
+
 function openCrop(img, done) {
   const modal = document.createElement('div');
   modal.className = 'face-modal';
   const used = new Set(characters.map((c) => c.base));
-  const base = BASES.find(([b]) => !used.has(b))?.[0] ?? 'boy';
+  const base = PHOTO_BASES.find(([b]) => !used.has(b))?.[0] ?? 'boy';
   modal.innerHTML = `
     <div class="face-card" role="dialog" aria-modal="true" aria-labelledby="face-title">
       <h3 id="face-title">Fit the face in the oval</h3>
@@ -239,7 +397,7 @@ function openCrop(img, done) {
       <label class="face-zoom">Zoom <input type="range" min="0" max="1" step="0.001" aria-label="Zoom"></label>
       <div class="face-row">
         <label>Name <input class="face-name" maxlength="20" placeholder="e.g. Tom" autocomplete="off"></label>
-        <label>Is a <select class="face-base">${BASES.map(([b, l]) => `<option value="${b}"${b === base ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label>Is a <select class="face-base">${PHOTO_BASES.map(([b, l]) => `<option value="${b}"${b === base ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
       </div>
       <label class="face-check"><input type="checkbox" class="face-plain" checked> Remove a plain background around the face</label>
       <p class="face-note">🔒 The photo stays in this browser: it is never uploaded.</p>
@@ -296,9 +454,8 @@ function openCrop(img, done) {
     if (act === 'cancel') return close();
     if (act !== 'save') return;
     const name = modal.querySelector('.face-name').value.trim().replace(/\s+/g, ' ');
-    if (!/^[\p{L}][\p{L}' -]{0,19}$/u.test(name)) return error('Give the character a name, using letters (for example Tom).');
-    if (characters.some((c) => c.name.toLowerCase() === name.toLowerCase())) return error(`There already is a character called ${name}.`);
-    if (/^(the|a|an|he|she|they|it|boy|girl|man|woman|dog|cat|and|then)$/i.test(name)) return error('Pick a name that is not an everyday word.');
+    const why = nameError(name);
+    if (why) return error(why);
     // Save the oval's box at OUT_W x OUT_H
     const out = document.createElement('canvas');
     out.width = OUT_W; out.height = OUT_H;
@@ -307,11 +464,16 @@ function openCrop(img, done) {
     const cleared = modal.querySelector('.face-plain').checked && removeBackground(out, canvas, 2);
     const webp = cleared && out.toDataURL('image/webp', 0.9);
     const photo = cleared ? (webp.startsWith('data:image/webp') ? webp : out.toDataURL('image/png')) : out.toDataURL('image/jpeg', 0.88);
-    characters.push({ name, base: modal.querySelector('.face-base').value, photo });
+    const base = modal.querySelector('.face-base').value;
+    // Their own colours, the drawn skin (neck, hands) matching the face's
+    const look = newLook(base, characters);
+    const skin = skinOf(out);
+    if (skin) look.skin = skin;
+    characters.push({ name, base, photo, look });
     if (!save()) { characters.pop(); return error('The browser has no room left to keep this photo.'); }
     close();
     render();
-    studio.showToast(`${name} is ready: try “${name} walks in, then waves”`);
+    studio.showToast(`${name} is ready: try “${name} walks in, then waves” (✎ changes their clothes)`);
   });
   modal.querySelector('.face-name').focus();
 }

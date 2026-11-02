@@ -129,7 +129,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       their own, looping smoothly; the view never shows past the edge of the scene
 - [ ] Camera: cuts between shots, shake, dolly-zoom
 - [ ] Scene transitions (cut, fade, wipe) and caption timing tied to the beats
-- [ ] Recurring characters: the same boy looks the same in every scene (seeded identity)
+- [x] **Recurring characters**: a named character has a look of its own (clothes, hair, skin or fur,
+      picked in the studio) and is drawn and voiced the same in every scene, clip scene and comic panel,
+      whoever else is there; a colour said once ("a girl in a purple dress") stays with that figure
+      through a clip; prompts describe clothes and hair ("wearing a red coat", "a blonde woman")
 - [x] **Your characters from photos**: crop a face into the head's oval (eye line, chin mark,
       plain backgrounds removed), name it, use the name in prompts; the photo stays in the browser
 - [x] **Named individuals**: several figures of one kind that each act on their own ("Tom and Max
