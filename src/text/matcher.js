@@ -332,6 +332,73 @@ function lookPhrase(toks, i, isThing) {
   return null;
 }
 
+// Doing things together: sitting on something, riding it, holding hands, hugging
+const SIT_VERBS = new Set(['sit', 'sits', 'sitting', 'sat', 'seated']);
+const RIDE_VERBS = new Set(['ride', 'rides', 'riding', 'rode', 'cycle', 'cycles', 'cycling', 'pedal', 'pedals', 'pedalling', 'pedaling']);
+const HUG_VERBS = new Set(['hug', 'hugs', 'hugging', 'hugged', 'cuddle', 'cuddles', 'cuddling', 'embrace', 'embraces', 'embracing']);
+const HAND_HOLD = new Set(['hold', 'holds', 'holding', 'held', 'join', 'joins', 'joining']);
+const CLAUSE_BREAKS = new Set(['then', 'while', 'when', 'but', 'after', 'before', 'because', 'so']);
+// What can be sat on (with the seat's height in its drawing, see the concepts) and ridden
+const SEATS = new Set(['chair', 'bench', 'sofa']);
+const RIDES = new Set(['bike']);
+const isPerson = (m) => /^people/.test(getConcept(m.id.split('~')[0])?.category ?? '');
+
+/**
+ * Who does what together, from where the words are (found[].at: the word's index in toks):
+ *   a seat or a ride: m.carries = { how: 'sit' | 'ride', by: [person ids] } ("a boy and a girl sit on
+ *   a bench", "a girl rides a bike"; the riders and sitters sit: animation 'sit')
+ *   two people: m.pair = { how: 'hands' | 'hug', with: id } on both ("a boy and his grandpa hold
+ *   hands", "a girl hugs her grandma", "two friends hug")
+ */
+function relations(toks, found) {
+  const breaks = toks.map((t, i) => (CLAUSE_BREAKS.has(t) ? i : -1)).filter((i) => i >= 0);
+  const clauseOf = (i) => [Math.max(-1, ...breaks.filter((b) => b < i)), Math.min(toks.length, ...breaks.filter((b) => b > i))];
+  const people = (from, to) => found.filter((m) => m.at > from && m.at < to && isPerson(m) && !m.heldBy);
+  const pairUp = (list, how) => {
+    for (let k = 0; k + 1 < list.length; k += 2) {
+      list[k].pair = { how, with: list[k + 1].id };
+      list[k + 1].pair = { how, with: list[k].id };
+      for (const m of [list[k], list[k + 1]]) if (m.animation === 'hold') delete m.animation;
+    }
+    // (two of a kind in one: "two boys hug")
+    if (list.length === 1 && list[0].count > 1) list[0].pair = { how, with: list[0].id };
+  };
+  for (let j = 0; j < toks.length; j++) {
+    const t = toks[j];
+    const [from, to] = clauseOf(j);
+    // (who: the people before the word in its sentence, or, for "they", whoever came before)
+    const subjects = () => {
+      const own = people(from, j);
+      return own.length ? own : people(-1, j).slice(-2);
+    };
+    if (SIT_VERBS.has(t) || RIDE_VERBS.has(t) || (t === 'on' && j > 0)) {
+      const ride = RIDE_VERBS.has(t);
+      let thing = found.find((m) => (m.at > j || (ride && m.at === j)) && m.at < Math.min(to, j + 5) && (t === 'on' ? RIDES.has(m.id) || SEATS.has(m.id) : (ride ? RIDES : SEATS).has(m.id)) && !m.carries);
+      // ("a boy cycling": on a bike of his own)
+      if (!thing && /^(cycl|pedal)/.test(t) && getConcept('bike') && subjects().length) found.push(thing = { id: 'bike', word: t, count: 1, at: j });
+      // "a girl on a bike" rides it; "a cat on a chair" is just there
+      const onBike = t === 'on' && thing && RIDES.has(thing.id);
+      if (t === 'on' && !onBike) continue;
+      const who = (t === 'on' ? people(from, j).slice(-1) : subjects()).filter((m) => !m.carries);
+      if (!thing || !who.length) continue;
+      thing.carries = { how: ride || onBike ? 'ride' : 'sit', by: who.map((m) => m.id) };
+      for (const m of who) m.animation = 'sit';
+      continue;
+    }
+    if (HAND_HOLD.has(t) && toks[j + 1] === 'hands' || (t === 'hand' && toks[j + 1] === 'in' && toks[j + 2] === 'hand')) {
+      // ("a boy holds hands with his grandpa": both sides of the words)
+      pairUp([...subjects(), ...people(j, to)].filter((m, k, all) => all.indexOf(m) === k), 'hands');
+      continue;
+    }
+    if (HUG_VERBS.has(t)) {
+      const who = subjects();
+      const other = found.find((m) => m.at > j && m.at < to && !m.heldBy && (isPerson(m) || MOVERS.has(getConcept(m.id)?.category)));
+      if (other && who.length) pairUp([who[who.length - 1], other], 'hug');
+      else if (who.length) pairUp(who, 'hug');
+    }
+  }
+}
+
 function lev(a, b) {
   const m = a.length, n = b.length;
   let prev = Array.from({ length: n + 1 }, (_, j) => j);
@@ -433,6 +500,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
   const unknown = [];
   const excluded = [];
   let pend = {};
+  let tokAt = 0; // (where the word being read is: each thing found remembers it, for relations())
   let lastConceptIndex = -99;
   let list = []; // indices into `found` of the current "x and y" list
   let lastPerson = -1; // the last person named (who holds what follows a word for holding)
@@ -454,6 +522,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     found.push({
       id: hit.id, word: hit.word, color: pend.color, size: pend.size, ...(pend.count != null ? { countGiven: true } : {}),
       ...(pend.hair ? { hair: pend.hair } : {}),
+      at: tokAt,
       count: pend.count != null ? Math.max(1, Math.min(pend.count, MAX_COUNT)) : hit.plural ? 3 : 1,
       expression: pend.expression ?? hit.expression,
       animation: pend.animation ?? hit.animation,
@@ -482,6 +551,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
   for (let i = 0; i < toks.length;) {
     const t = toks[i];
     const next = toks[i + 1];
+    tokAt = i;
 
     const justNamed = lastConceptIndex === i - 1; // (someone named just before: "a boy with curly hair")
     if (['and', 'or', 'but', 'with', 'without', 'then'].includes(t)) {
@@ -585,7 +655,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     // "a superhero flies", "she waves": after someone who can move, a motion word is what they
     // do, not the insect or the sea ("three flies", "the waves" stay things)
     const prev = toks[i - 1];
-    const afterMover = (MOTION_WORDS[t] || HOLD_VERBS.has(t)) && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev] && !COLOR_WORDS[prev]
+    const afterMover = (MOTION_WORDS[t] || HOLD_VERBS.has(t) || RIDE_VERBS.has(t)) && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev] && !COLOR_WORDS[prev]
       && (SUBJECT_PRONOUNS.has(prev) || names?.has(prev)
         || (lastConceptIndex === i - 1 && found.length && MOVERS.has(getConcept(found[found.length - 1].id.split('~')[0])?.category)));
 
@@ -654,6 +724,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     }
     i++;
   }
-  for (const m of found) delete m.countGiven;
+  relations(toks, found);
+  for (const m of found) { delete m.countGiven; delete m.at; }
   return { matches: mergeMatches(found), unknown: [...new Set(unknown)], excluded: [...new Set(excluded)], tokens: toks };
 }

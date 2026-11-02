@@ -4,6 +4,7 @@ import { createKit } from './kit.js';
 import { getStyle, INK } from './styles.js';
 import { createRng } from './rng.js';
 import { resolveColor, lighten } from './color.js';
+import { seatPose, reachPose } from '../poses.js';
 import { getConcept } from '../concepts/index.js';
 import { heldShape } from '../held.js';
 
@@ -98,7 +99,19 @@ export function drawConcept(conceptOrId, opts = {}) {
       for (const [x, y] of g.hands) kit.circle(x, y, g.r, { fill: g.fill, stroke: g.stroke, sw: g.sw });
     });
   }
-  return kit.shapes;
+  // Poses made from the drawing (src/poses.js): sitting (on opts.seat: 'seat', 'ground', 'ride'; a
+  // person sitting with nothing under them sits on the ground) and a hand reaching out (opts.reach)
+  let shapes = kit.shapes;
+  if (/^people/.test(c.category ?? '')) {
+    const seat = opts.seat ?? (opts.animation === 'sit' || opts.animation === 'sitting' ? 'ground' : null);
+    if (seat) shapes = seatPose(shapes, { mode: seat, view: opts.view });
+    if (opts.reach) {
+      const reached = reachPose(shapes, { side: opts.reach });
+      reached.seatAt ??= shapes.seatAt;
+      shapes = reached;
+    }
+  }
+  return shapes;
 }
 
 export const ANIMATION_CSS = `

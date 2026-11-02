@@ -104,6 +104,10 @@ const EXIT_VERBS = new Set(['leave', 'leaves', 'leaving', 'left', 'exit', 'exits
 const LOOK_VERBS = new Set(['look', 'looks', 'looking', 'looked', 'watch', 'watches', 'watching', 'watched', 'stare', 'stares', 'staring', 'stared',
   'gaze', 'gazes', 'gazing', 'gazed', 'glance', 'glances', 'glancing', 'glanced']);
 // Walking up to someone or something named right after the verb ("reaches the boy", "joins her")
+// Hugging someone: walking up to them and holding them ("then hugs her grandma")
+const HUG_VERBS = new Set(['hug', 'hugs', 'hugging', 'hugged', 'cuddle', 'cuddles', 'cuddling', 'embrace', 'embraces', 'embracing']);
+// What can be sat on ("then sits on the bench": walks to it and sits there)
+const SEAT_IDS = new Set(['chair', 'bench', 'sofa']);
 const REACH_VERBS = new Set(['reach', 'reaches', 'reached', 'reaching', 'join', 'joins', 'joined', 'meet', 'meets', 'met']);
 const EXPRESSION_VERBS = { smile: 'happy', smiles: 'happy', grin: 'happy', grins: 'happy', frown: 'sad', frowns: 'sad', cries: 'sad', laughs: 'laugh' };
 const DETERMINERS = new Set(['a', 'an', 'the', 'this', 'that', 'his', 'her', 'their', 'its', 'my', 'your', 'our']);
@@ -289,7 +293,7 @@ export function parseTimeline(text, { force = false, names = null } = {}) {
     const speech = quoteAt >= 0 ? quotes[+toks[quoteAt].slice(2)] : null;
     if (quoteAt >= 0) toks = toks.filter((t) => !/^qq\d+$/.test(t));
     // The first verb that makes something happen
-    const acts = (t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has(t) || LOOK_VERBS.has(t) || speaks(t) || motionOf(t);
+    const acts = (t) => ENTER_VERBS.has(t) || EXIT_VERBS.has(t) || REACH_VERBS.has(t) || LOOK_VERBS.has(t) || HUG_VERBS.has(t) || speaks(t) || motionOf(t);
     let v = toks.findIndex((t) => acts(t) || expressionOf(t));
     // "a happy girl waves": a feeling before anyone is named describes who comes next, the verb is later
     if (v >= 0 && !acts(toks[v]) && !parse(toks.slice(0, v).join(' ')).matches.length) {
@@ -378,6 +382,15 @@ export function parseTimeline(text, { force = false, names = null } = {}) {
         let type, extra = {};
         if (isLook) { type = 'look'; extra = { target: gazeAt(actor) }; } // looks at someone (or around)
         else if (isSpeech || (speech && motion === 'talk')) { type = 'pose'; extra = { anim: 'talk' }; } // says, asks, whispers...
+        else if (HUG_VERBS.has(verb)) {
+          // Hugs someone: walks up close and holds them (or, with nobody named, holds whoever came before)
+          const words = after.filter((t) => !DETERMINERS.has(t) || t === 'her');
+          const pronoun = words.length === 1 && ['him', 'her', 'them'].includes(words[0]);
+          const hit = pronoun ? resolvePronoun(words[0], [actor]) : parse(words.filter((t) => t !== 'her').join(' ')).matches.find((m) => m.id !== actor)?.id;
+          if (hit && !pronoun) remember(parse(words.filter((t) => t !== 'her').join(' ')).matches.find((m) => m.id === hit));
+          type = hit && hit !== actor ? 'moveTo' : 'pose';
+          extra = hit && hit !== actor ? { target: hit, hug: true } : { anim: 'hold' };
+        }
         else if (depth) type = depth; // walks toward us / away into the distance
         else if (outOfScene) type = 'exit';
         else if (targetId) {
@@ -385,7 +398,14 @@ export function parseTimeline(text, { force = false, names = null } = {}) {
           type = tid && tid !== actor ? 'moveTo' : 'pose';
           extra = { target: tid };
         } else if (ENTER_VERBS.has(verb) || intoScene) type = 'enter';
-        else if (motion && motion !== 'walk' && motion !== 'run' && motion !== 'walk-across') { type = 'pose'; extra = { anim: motion }; }
+        else if (motion && motion !== 'walk' && motion !== 'run' && motion !== 'walk-across') {
+          type = 'pose';
+          extra = { anim: motion };
+          // "sits on the bench": on it (walking over first)
+          const seat = motion === 'sit' && (parse(after.join(' ')).matches.find((m) => SEAT_IDS.has(m.id))?.id
+            ?? (after.includes('it') ? [...mentioned.keys()].reverse().find((id) => SEAT_IDS.has(id)) : null));
+          if (seat) extra.seat = seat;
+        }
         else if (motion) type = 'enter';
         else type = 'expr';
         const expression = expressionOf(verb) || toks.map(expressionOf).find(Boolean);
@@ -524,10 +544,13 @@ export function editTimeline(beats, cast, base = null) {
       if (a.type === 'pose') {
         if (!POSE_ANIMS.includes(a.anim)) continue;
         action.anim = a.anim;
+        // (sitting on something there: a chair, a bench, a sofa)
+        if (a.anim === 'sit' && known(a.seat) && SEAT_IDS.has(a.seat)) action.seat = a.seat;
       }
       if (a.type === 'moveTo') {
         if (!known(a.target) || a.target === a.actor) continue;
         action.target = a.target;
+        if (a.hug === true) action.hug = true;
       }
       // Looking at someone (or at us): a 'look' step, or a gesture or feeling aimed at someone
       const lookable = (id) => id === 'camera' || (known(id) && id !== a.actor) || (id === a.actor && (byId.get(id).count ?? 1) > 1);

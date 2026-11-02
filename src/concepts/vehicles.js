@@ -9,54 +9,44 @@ export default [
     category: 'vehicles',
     placement: 'ground',
     scale: 0.75,
-    baseline: 92,
-    width: 0.85,
-    colors: { main: '#e53935', wheel: '#37474f', seat: '#212121', metal: '#b0bec5' },
+    baseline: 93,
+    width: 0.95,
+    // Facing right. Where a rider goes (src/scene.js): hips on the saddle, hands on the handlebar
+    saddle: [39, 40],
+    grip: [65, 29],
+    colors: { main: '#e53935', wheel: '#37474f', rim: '#eceff1', seat: '#3e2723', metal: '#90a4ae' },
     palettes: { main: ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00acc1'] },
     draw(d, p) {
-      const frame = p.c('main');
-      const wheel = p.c('wheel');
-      const metal = p.c('metal');
-      const seat = p.c('seat');
-
-      // Rear wheel (center ~24, 70, radius 18)
-      d.circle(24, 70, 18, { fill: 'none', stroke: wheel, sw: 4, kind: 'body' });
-      d.circle(24, 70, 4, { fill: metal, kind: 'detail' });
-      d.line(24, 52, 24, 88, { stroke: metal, sw: 1.2, kind: 'line' });
-      d.line(6, 70, 42, 70, { stroke: metal, sw: 1.2, kind: 'line' });
-
-      // Front wheel (center ~76, 70, radius 18)
-      d.circle(76, 70, 18, { fill: 'none', stroke: wheel, sw: 4, kind: 'body' });
-      d.circle(76, 70, 4, { fill: metal, kind: 'detail' });
-      d.line(76, 52, 76, 88, { stroke: metal, sw: 1.2, kind: 'line' });
-      d.line(58, 70, 94, 70, { stroke: metal, sw: 1.2, kind: 'line' });
-
-      // Bottom bracket / pedal crank (center 48, 70)
-      d.circle(48, 70, 4.5, { fill: metal, kind: 'detail' });
-      d.line(48, 70, 52, 80, { stroke: metal, sw: 2.5, kind: 'line' });
-      d.line(50, 80, 56, 80, { stroke: seat, sw: 2.5, kind: 'line' });
-
-      // Diamond frame:
-      // Rear axle (24,70) -> Seat joint (42, 44)
-      d.line(24, 70, 42, 44, { stroke: frame, sw: 3.5, kind: 'line' });
-      // Rear axle (24,70) -> Bottom bracket (48, 70)
-      d.line(24, 70, 48, 70, { stroke: frame, sw: 3.5, kind: 'line' });
-      // Bottom bracket (48, 70) -> Seat joint (42, 44)
-      d.line(48, 70, 42, 44, { stroke: frame, sw: 3.5, kind: 'line' });
-      // Seat joint (42, 44) -> Head tube (68, 38)
-      d.line(42, 44, 68, 38, { stroke: frame, sw: 3.5, kind: 'line' });
-      // Bottom bracket (48, 70) -> Head tube (68, 38)
-      d.line(48, 70, 68, 38, { stroke: frame, sw: 3.5, kind: 'line' });
-      // Front fork: Head tube (68, 34) -> Front axle (76, 70)
-      d.line(68, 34, 76, 70, { stroke: frame, sw: 3.5, kind: 'line' });
-
-      // Seat post & Saddle
-      d.line(42, 44, 40, 37, { stroke: metal, sw: 3, kind: 'line' });
-      d.path('M32 37 Q42 35 48 37 Q46 41 38 40 Z', { fill: seat, kind: 'body' });
-
-      // Handlebars
-      d.line(68, 34, 69, 27, { stroke: metal, sw: 3, kind: 'line' });
-      d.path('M65 27 Q70 25 74 29', { stroke: seat, sw: 3, kind: 'line' });
+      const frame = p.c('main'), tire = p.c('wheel'), rim = p.c('rim'), metal = p.c('metal'), seat = p.c('seat');
+      // Wheels: a tyre, the rim inside it, spokes and the hub (filled, so every style shows them)
+      for (const cx of [22, 78]) {
+        d.circle(cx, 75, 18, { fill: tire, kind: 'body' });
+        d.circle(cx, 75, 14, { fill: rim, kind: 'detail' });
+        for (const a of [0, 60, 120]) {
+          const r = (a * Math.PI) / 180, dx = Math.cos(r) * 13, dy = Math.sin(r) * 13;
+          d.line(cx - dx, 75 - dy, cx + dx, 75 + dy, { stroke: metal, sw: 1, kind: 'line' });
+        }
+        d.circle(cx, 75, 3, { fill: metal, kind: 'detail' });
+      }
+      // The frame: chain stay, seat stay, seat tube, top tube, down tube, fork
+      const bar = (x1, y1, x2, y2, w = 4) => d.line(x1, y1, x2, y2, { stroke: frame, sw: w, strokeLinecap: 'round', kind: 'body' });
+      bar(22, 75, 46, 75);
+      bar(22, 75, 40, 47);
+      bar(46, 75, 40, 47);
+      bar(40, 47, 66, 44);
+      bar(46, 75, 66, 44);
+      bar(66, 40, 78, 75, 3.5);
+      // Pedals and crank
+      d.circle(46, 75, 5, { fill: metal, kind: 'detail' });
+      d.line(46, 75, 51, 84, { stroke: metal, sw: 2.5, strokeLinecap: 'round', kind: 'line' });
+      d.rect(48, 83, 8, 3, { fill: seat, rx: 1, kind: 'detail' });
+      // Seat post and saddle, stem and handlebar
+      d.line(40, 47, 39, 42, { stroke: metal, sw: 3, kind: 'line' });
+      d.path('M30 41 Q40 37 47 40 Q45 44 36 43 Z', { fill: seat, kind: 'body' });
+      d.line(66, 44, 64, 31, { stroke: metal, sw: 3, strokeLinecap: 'round', kind: 'line' });
+      d.path('M58 31 Q64 27 70 31', { stroke: seat, sw: 3.5, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+      // A basket on the front, and a bell
+      d.circle(61, 30, 1.8, { fill: '#fdd835', kind: 'accent' });
     },
   },
   {

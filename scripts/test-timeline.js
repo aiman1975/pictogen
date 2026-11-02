@@ -308,6 +308,45 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check(named.scenes.every((sc) => figureOf(sc.svg, 'pgc1').toLowerCase().includes('#ffca28')), 'a named character keeps its look through a clip');
 }
 
+// 2i-c. Doing things together: sitting on something, riding a bike, holding hands, hugging
+{
+  const rel = (t) => parseText(t).matches.map((m) => [m.id, m.animation, m.carries && `${m.carries.how}:${m.carries.by}`, m.pair && `${m.pair.how}:${m.pair.with}`].filter(Boolean).join('/')).join(' ');
+  check(rel('a boy sits on a chair') === 'boy/sit chair/sit:boy' && rel('a boy and a girl sit on a bench') === 'boy/sit girl/sit bench/sit:boy,girl',
+    `"sits on a chair", "a boy and a girl sit on a bench": who sits on what (${rel('a boy and a girl sit on a bench')})`);
+  check(rel('a girl rides a bike') === 'girl/sit bike/ride:girl' && rel('a girl on a bike') === 'girl/sit bike/ride:girl' && rel('a boy cycles to school') === 'boy/sit school bike/ride:boy',
+    `"rides a bike", "on a bike", "cycles to school" (his own bike, not three) (${rel('a boy cycles to school')})`);
+  check(rel('a boy and a girl hold hands') === 'boy/hands:girl girl/hands:boy' && rel('a boy holds hands with his grandpa') === 'boy/hands:old_man old_man/hands:boy',
+    '"hold hands", "holds hands with his grandpa"');
+  check(rel('a girl hugs her grandma') === 'girl/hug:old_woman old_woman/hug:girl' && rel('a girl hugs a cat') === 'girl cat' && rel('a cat on a chair') === 'cat chair',
+    '"hugs her grandma" (a cat is held, not hugged; "a cat on a chair" is just there)');
+  const item = (svg, id) => svg.match(new RegExp(`<g class="movable-item" data-id="${id}"`, 'g'))?.length ?? 0;
+  const chair = generate('a boy sits on a chair').svg;
+  check(item(chair, 'chair') === 1 && item(chair, 'boy') === 0 && /class="pg-sitter" data-id="boy"/.test(chair), 'a boy on a chair is drawn on it, with it (not beside it)');
+  const bench = generate('a boy and his grandma sit on a bench in the park').svg;
+  check((bench.match(/class="pg-sitter"/g) || []).length === 2, 'two on a bench, side by side');
+  const bike = generate('a girl rides a bike in the park').svg;
+  check(/class="pg-rider" data-id="girl"/.test(bike) && item(bike, 'girl') === 0, 'a girl rides her bike: on the saddle');
+  const named = generate('pgc1 sits on a chair', { individuals: [{ key: 'pgc1', base: 'girl', look: { main: '#ffca28' } }] }).svg;
+  check(/class="pg-sitter" data-id="girl" data-who="pgc1"/.test(named) && /#ffca28/i.test(named), 'a named character sits in her own look, marked for her photo face');
+  const hands = generate('a boy and a girl hold hands').svg;
+  check(/class="pg-hands"/.test(hands) && item(hands, 'boy') === 1 && item(hands, 'girl') === 1, 'holding hands: side by side, the hands joined');
+  const hug = generate('a girl hugs her grandma').svg;
+  check(/class="pg-heart"/.test(hug) && /data-id="girl"[^>]*data-animation="hold"/.test(hug), 'a hug: close, arms round, a heart above');
+  const ground = drawConcept('woman', { seed: 1, animation: 'sit' });
+  check(!ground.some((sh) => sh.type === 'g-start' && /pg-leg-left/.test(sh.class ?? '')) && ground.seatAt > 80, 'sitting with nothing under her, she sits cross-legged on the ground');
+  const seated = drawConcept('boy', { seed: 1, seat: 'seat' }), reach = drawConcept('boy', { seed: 1, reach: 'right' });
+  check(seated.seatAt > 66 && seated.seatAt < 85 && reach.hand?.[0] > 75, `poses made from the drawing: the hips on a seat (${seated.seatAt}), a hand reaching out (${reach.hand})`);
+  // In a timeline: walking over to the chair, then sitting on it; walking up to grandma for a hug
+  const sitT = generate('a boy walks in, then sits on a chair, then waves');
+  const sitActs = sitT.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.seat ? '@' + a.seat : ''}`).join('+')).join(' | ');
+  check(sitActs === 'boy:enter | boy:pose/sit@chair | boy:pose/wave' && /data-anim="sit"/.test(sitT.svg) && /data-anim="wave"/.test(sitT.svg),
+    `"then sits on a chair, then waves": sits on it, and waves sitting there (${sitActs})`);
+  const hugT = generate('a girl walks in, then hugs her grandma');
+  check(hugT.beats[1].actions[0].type === 'moveTo' && hugT.beats[1].actions[0].hug && /data-anim="hold"/.test(hugT.svg), '"then hugs her grandma": walks up to her and holds her');
+  check(generate('a woman walks to a bench, then sits on it').beats[1].actions[0].seat === 'bench', '"sits on it": the bench she walked to');
+  check([chair, bench, bike, named, hands, hug, sitT.svg, hugT.svg].every((svg) => !wellFormedError(svg)), 'all of them are well-formed XML');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

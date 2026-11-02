@@ -94,7 +94,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       police officer, firefighter, doctor, nurse, chef, farmer, astronaut, pirate, wizard, witch,
       fairy - the drawn people in costume (glasses, hats, crowns, capes, coats, gowns), in all 23
       styles and from every side, with their own voices (older, younger, a robot)
-- [ ] Interactions: sitting on a chair, riding a bike, holding hands
+- [x] **Interactions**: sitting on a chair, a bench or a sofa (or the ground, cross-legged), riding a
+      bike, holding hands, hugging, in still scenes and timelines ("then sits on the bench"), poses
+      made from any person's drawing (`src/poses.js`)
+- [ ] Riding in timelines (riding across together), holding hands while walking, a hug back
 
 ### 3. Environment
 - [ ] Parallax layers (far hills, mid trees, near grass) that move with the camera

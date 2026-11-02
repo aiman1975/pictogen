@@ -1,4 +1,5 @@
 // Objects concepts.
+import { darken } from '../core/color.js';
 
 export default [
   {
@@ -133,22 +134,80 @@ export default [
     placement: 'ground',
     scale: 0.75,
     baseline: 96,
-    width: 0.6,
-    colors: { main: '#ffffff' },
+    width: 1.1,
+    // The seat's top, for someone sitting on it (src/scene.js)
+    seatTop: 59,
+    colors: { main: '#ef5350', wood: '#b07a45', woodDark: '#7b4f2a' },
+    palettes: { main: ['#ef5350', '#42a5f5', '#66bb6a', '#ffca28', '#ab47bc'] },
     draw(d, p) {
-      const fill = p.c('main') || '#ffffff';
-      // Backrest frame
-      d.rect(34, 18, 32, 38, { rx: 3, fill, stroke: '#000000', sw: 3.2, kind: 'body' });
-      // Backrest horizontal rungs (matching roadmap Image Quadrant 4)
-      d.line(34, 30, 66, 30, { stroke: '#000000', sw: 2.8, strokeLinecap: 'round', kind: 'line' });
-      d.line(34, 42, 66, 42, { stroke: '#000000', sw: 2.8, strokeLinecap: 'round', kind: 'line' });
-      // Seat cushion
-      d.rect(28, 56, 44, 10, { rx: 2, fill, stroke: '#000000', sw: 3.2, kind: 'body' });
-      // Legs
-      d.line(34, 66, 34, 96, { stroke: '#000000', sw: 3.2, strokeLinecap: 'round', kind: 'line' });
-      d.line(66, 66, 66, 96, { stroke: '#000000', sw: 3.2, strokeLinecap: 'round', kind: 'line' });
-      d.line(40, 66, 40, 93, { stroke: '#000000', sw: 2.4, strokeLinecap: 'round', kind: 'line' });
-      d.line(60, 66, 60, 93, { stroke: '#000000', sw: 2.4, strokeLinecap: 'round', kind: 'line' });
+      const wood = p.c('wood'), dark = p.c('woodDark'), main = p.c('main');
+      // The back legs, further away, under the seat
+      d.rect(9, 70, 6, 22, { fill: dark, rx: 2, kind: 'body' });
+      d.rect(85, 70, 6, 22, { fill: dark, rx: 2, kind: 'body' });
+      // The back: two posts, a rounded top rail and two slats
+      d.rect(6, 6, 9, 62, { fill: wood, rx: 3, kind: 'body' });
+      d.rect(85, 6, 9, 62, { fill: wood, rx: 3, kind: 'body' });
+      d.rect(4, 2, 92, 14, { fill: wood, rx: 7, kind: 'body' });
+      d.rect(15, 24, 70, 7, { fill: dark, rx: 3, kind: 'detail' });
+      d.rect(15, 38, 70, 7, { fill: dark, rx: 3, kind: 'detail' });
+      // The seat and its cushion
+      d.rect(-6, 64, 112, 10, { fill: wood, rx: 4, kind: 'body' });
+      d.rect(-2, 57, 104, 10, { fill: main, rx: 5, kind: 'body' });
+      // The front legs
+      d.rect(-3, 72, 9, 24, { fill: wood, rx: 2, kind: 'body' });
+      d.rect(94, 72, 9, 24, { fill: wood, rx: 2, kind: 'body' });
+    },
+  },
+  {
+    id: 'bench',
+    aliases: ['park bench', 'pew'],
+    tags: ['park', 'outdoor', 'seat', 'object'],
+    category: 'objects',
+    placement: 'ground',
+    scale: 0.7,
+    baseline: 96,
+    width: 1.9,
+    seatTop: 60,
+    seatSpan: [-30, 130],
+    colors: { main: '#b5713c', iron: '#37474f' },
+    palettes: { main: ['#b5713c', '#8d6e63', '#43a047', '#1e88e5'] },
+    draw(d, p) {
+      const wood = p.c('main'), iron = p.c('iron'), dark = darken(wood, 0.2);
+      // Iron sides: legs and the posts holding the back
+      for (const x of [-34, 126]) {
+        d.rect(x, 14, 8, 82, { fill: iron, rx: 3, kind: 'body' });
+        d.rect(x + 6, 66, 6, 28, { fill: iron, rx: 2, kind: 'body' });
+      }
+      // Back slats and seat slats
+      d.rect(-40, 16, 180, 10, { fill: wood, rx: 4, kind: 'body' });
+      d.rect(-40, 31, 180, 10, { fill: wood, rx: 4, kind: 'body' });
+      d.rect(-44, 60, 188, 8, { fill: wood, rx: 3, kind: 'body' });
+      d.rect(-44, 69, 188, 6, { fill: dark, rx: 3, kind: 'detail' });
+    },
+  },
+  {
+    id: 'sofa',
+    aliases: ['couch', 'settee', 'sofas', 'couches'],
+    tags: ['furniture', 'indoor', 'room', 'home', 'object'],
+    category: 'objects',
+    placement: 'ground',
+    scale: 0.75,
+    baseline: 96,
+    width: 1.8,
+    seatTop: 57,
+    seatSpan: [-14, 114],
+    colors: { main: '#5c6bc0', cushion: '#7986cb', feet: '#4e342e' },
+    palettes: { main: ['#5c6bc0', '#26a69a', '#ef5350', '#8d6e63', '#ffb300'] },
+    draw(d, p) {
+      const main = p.c('main'), cushion = p.c('cushion'), dark = darken(main, 0.18);
+      d.rect(-26, 88, 8, 8, { fill: p.c('feet'), rx: 2, kind: 'detail' });
+      d.rect(118, 88, 8, 8, { fill: p.c('feet'), rx: 2, kind: 'detail' });
+      d.rect(-30, 14, 160, 52, { fill: main, rx: 14, kind: 'body' });
+      d.rect(-36, 66, 172, 24, { fill: dark, rx: 8, kind: 'body' });
+      d.rect(-16, 54, 66, 18, { fill: cushion, rx: 7, kind: 'body' });
+      d.rect(50, 54, 66, 18, { fill: cushion, rx: 7, kind: 'body' });
+      d.rect(-42, 40, 26, 50, { fill: main, rx: 11, kind: 'body' });
+      d.rect(116, 40, 26, 50, { fill: main, rx: 11, kind: 'body' });
     },
   },
   {

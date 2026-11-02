@@ -33,7 +33,9 @@ function detectEnv(items, words) {
   const ids = new Set(items.map((i) => i.c.id));
   const tags = new Set(items.flatMap((i) => i.c.tags || []));
   const sunset = any('sunset');
-  const room = any('room') || tags.has('furniture') || ['chair', 'table', 'window', 'door', 'bed', 'box'].some((id) => ids.has(id));
+  // (furniture is indoors, unless the words say where: "a bench in the park", "a chair outside")
+  const outdoors = ['park', 'garden', 'outside', 'outdoors', 'yard', 'street', 'meadow'].some((x) => w.has(x)) || any('forest') || any('beach');
+  const room = !outdoors && (any('room') || tags.has('furniture') || ['chair', 'table', 'window', 'door', 'bed', 'box', 'sofa'].some((id) => ids.has(id)));
   const parallax = any('parallax') || items.some((it) => ['walk', 'run', 'walk-across', 'drive'].includes(it.m?.animation));
   const forest = any('forest') || tags.has('plant') || ids.has('tree');
   // Which room: a classroom, an office, a kitchen, a bedroom, or just a room
@@ -527,6 +529,13 @@ function playTimeline(timeline, slots, props, W) {
   // (always when told to look at them) with their eyes on them; farther away only the eyes follow.
   // Animals face whoever they look at, else the way they last went.
   const pose = (key, extra = {}) => {
+    const st = state.get(key);
+    // (sitting on a seat: whatever it does, it does sitting there - "then waves")
+    if (st.seated) return seatedPose(key, { ...extra, anim: extra.anim && extra.anim !== 'sit' ? extra.anim : 'sit' });
+    return standingPose(key, extra);
+  };
+  const seatedPose = (key, extra) => ({ ...standingPose(key, extra), seat: 'seat', lift: state.get(key).seated.lift });
+  const standingPose = (key, extra = {}) => {
     const st = state.get(key), slot = slots.get(key), view = slot.it.m.view;
     const target = lookTarget(key);
     if (!st.isPerson) return { expression: st.expression, view, mirror: st.lookAt && target ? target.x < st.x : st.facing < 0, ...extra };
@@ -572,8 +581,8 @@ function playTimeline(timeline, slots, props, W) {
       if (a.expression) st.expression = a.expression;
       const wasPresent = st.present;
       if (!st.present) st.k = 1; // (re)appearing figures start in the front row
-      let move = null, d = 0, shown = null, words = null;
-      if (['approach', 'recede', 'enter', 'moveTo', 'exit'].includes(a.type)) st.lookAt = null; // eyes on the way ahead
+      let move = null, d = 0, shown = null, words = null, then = null, dMove = 0;
+      if (['approach', 'recede', 'enter', 'moveTo', 'exit'].includes(a.type)) { st.lookAt = null; st.seated = null; } // eyes on the way ahead
       if (a.lookAt) st.lookAt = a.lookAt; // "waves at her"
       if (a.type === 'approach' || a.type === 'recede') {
         // Toward the camera (from the horizon if not there yet, else a step closer) or away into the
@@ -596,7 +605,9 @@ function playTimeline(timeline, slots, props, W) {
           // Come in from the side with more room, or approach from the side you are on;
           // a group lines up beside the target, the nth one further out
           let side = st.present ? Math.sign(st.x - tgt.cx) || 1 : tgt.cx < W / 2 ? 1 : -1;
-          const spot = (sd) => clamp(tgt.cx + sd * (tgt.w / 2 + slot.w / 2 + W * 0.04 + n * (slot.w + W * 0.02)), slot.w / 2, W - slot.w / 2);
+          // (a hug: close enough to hold them)
+          const gap = a.hug ? -Math.min(slot.w, tgt.w) * 0.42 : W * 0.04;
+          const spot = (sd) => clamp(tgt.cx + sd * (tgt.w / 2 + slot.w / 2 + gap + n * (slot.w + W * 0.02)), slot.w / 2, W - slot.w / 2);
           // Not on top of someone else standing there: then the target's other side, if that is free
           const taken = (x) => [...state].some(([other, o]) => other !== key && o.present && slots.get(other).id !== a.target
             && Math.abs(o.x - x) < (slot.w + slots.get(other).w) * 0.4);
@@ -617,12 +628,41 @@ function playTimeline(timeline, slots, props, W) {
         shown = { anim: a.gait, ...pose(key), view: slot.it.m.view ?? (st.isPerson ? 'side' : undefined), mirror: st.facing < 0 };
         st.x = x1;
         if (a.type === 'exit') st.present = false;
+        if (a.hug && posOf(a.target)) {
+          // Then holds them, turned to them, for the rest of the step
+          st.lookAt = a.target;
+          dMove = d;
+          d += 1.8;
+          then = pose(key, { anim: 'hold' });
+        }
       } else if (a.type === 'look') {
         // Turns to look at someone (or at us), and keeps looking until it does something else
         st.present = true;
         st.lookAt = a.target || 'camera';
         d = 1.4;
         shown = pose(key);
+      } else if (a.type === 'pose' && a.seat && props.get(a.seat)?.h) {
+        // Sitting on something: walking over to it first, then sitting there, hips on the seat
+        const prop = props.get(a.seat), c = getConcept(a.seat);
+        const others = [...state.values()].filter((o) => o.seated?.id === a.seat).length;
+        const x1 = clamp(prop.cx + (c.seatSpan ? (others % 2 ? 0.22 : -0.22) * prop.w : 0), slot.w / 2, W - slot.w / 2);
+        const seatAbove = (((c.baseline ?? 96) - c.seatTop) / 100) * prop.h;
+        const hipAbove = (((slot.it.c.baseline ?? 96) - (drawConcept(slot.it.c, { ...slot.it.look, seat: 'seat' }).seatAt ?? 76)) / 100) * slot.h;
+        const lift = Math.max(-slot.h * 0.15, seatAbove - hipAbove);
+        if (!st.present || Math.abs(st.x - x1) > 2) {
+          const x0 = st.present ? st.x : off(key, x1 < W / 2 ? -1 : 1);
+          dMove = clamp(Math.abs(x1 - x0) / (0.95 * slot.h), 0.6, 6);
+          st.facing = x1 < x0 ? -1 : 1;
+          move = { x0, x1, k0: st.k, k1: 1 };
+          shown = { anim: 'walk', ...pose(key), view: slot.it.m.view ?? (st.isPerson ? 'side' : undefined), mirror: st.facing < 0 };
+        }
+        st.present = true;
+        st.x = x1;
+        st.k = 1;
+        st.seated = { id: a.seat, lift };
+        d = dMove + 2;
+        then = pose(key, { anim: 'sit' });
+        if (!shown) { shown = then; then = null; }
       } else if (a.type === 'pose') {
         st.present = true;
         d = GESTURE_SECONDS[a.anim] ?? 2;
@@ -639,7 +679,7 @@ function playTimeline(timeline, slots, props, W) {
         d = st.present ? 1.4 : 0.8;
         st.present = true;
       }
-      group.push({ key, d, move, shown, wasPresent, act: { type: a.type, gait: a.gait, anim: a.anim, expression: a.expression, words } });
+      group.push({ key, d, move, shown, then, dMove, wasPresent, act: { type: a.type, gait: a.gait, anim: a.anim, expression: a.expression, words } });
       });
       // Group members set off one after another, the one going furthest first so nobody walks
       // through the others (gestures stay in unison)
@@ -677,7 +717,13 @@ function playTimeline(timeline, slots, props, W) {
         if (act.delay && act.wasPresent) track.push({ t0: t, t1: t0, x0: m.x0, x1: m.x0, k0: m.k0, k1: m.k0, pose: pose(id) });
         // A gesture lasts as long as the beat: the boy keeps waving while the dog runs up to him
         t1 = m ? t + act.d : t + beatLen;
+        // (walking somewhere, then something there - sitting down, a hug - for the rest of the step)
+        if (act.then && m) t1 = t0 + act.dMove;
         track.push({ t0, t1, x0: m ? m.x0 : st.x, x1: m ? m.x1 : st.x, k0: m ? m.k0 : st.k, k1: m ? m.k1 : st.k, pose: act.shown });
+        if (act.then && m) {
+          track.push({ t0: t1, t1: t + beatLen, x0: m.x1, x1: m.x1, k0: m.k1, k1: m.k1, pose: act.then });
+          t1 = t + beatLen;
+        }
       }
       if (st.present && t1 < t + beatLen) track.push({ t0: t1, t1: t + beatLen, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
     }
@@ -795,8 +841,10 @@ function cameraCss(keys, T, W, H) {
 /** Lays out a row of items horizontally; sets it.cx and possibly shrinks it.h. */
 function layoutRow(list, W, maxH, rng) {
   if (!list.length) return;
-  list.forEach((it) => { it.h = Math.min(it.h, maxH); it.w = it.h * (it.c.width ?? 0.8); });
-  const baseGap = (a, b) => (a.c.id === b.c.id ? W * 0.03 : W * 0.035);
+  // (it.wf: a wider share, a seat with its sitters; it.gapK: the gap after it, as a share of its
+  // height, partners holding hands or hugging)
+  list.forEach((it) => { it.h = Math.min(it.h, maxH); it.w = it.h * (it.wf ?? it.c.width ?? 0.8); });
+  const baseGap = (a, b) => (a.gapK != null ? a.gapK * a.h : a.c.id === b.c.id ? W * 0.03 : W * 0.035);
   const gaps = list.slice(1).map((it, i) => baseGap(list[i], it));
   const avail = W * 0.92;
   const gapSum = gaps.reduce((s, g) => s + g, 0);
@@ -805,11 +853,12 @@ function layoutRow(list, W, maxH, rng) {
     const f = Math.max(0.2, (avail - gapSum) / widthSum);
     list.forEach((it) => { it.h *= f; it.w *= f; });
     widthSum *= f;
+    list.forEach((it, i) => { if (it.gapK != null && i < gaps.length) gaps[i] = it.gapK * it.h; });
   } else {
     // spread different objects apart a little when there is room
     const extra = avail - widthSum - gapSum;
     const spread = Math.min(extra / (list.length + 1), W * 0.07);
-    gaps.forEach((g, i) => { if (list[i].c.id !== list[i + 1].c.id) gaps[i] += spread; });
+    gaps.forEach((g, i) => { if (list[i].c.id !== list[i + 1].c.id && list[i].gapK == null) gaps[i] += spread; });
   }
   const total = widthSum + gaps.reduce((s, g) => s + g, 0);
   let x = (W - total) / 2 + (rng() - 0.5) * Math.max(0, W - total) * 0.3;
@@ -860,8 +909,32 @@ export function composeScene(matches, opts = {}) {
     if (holder) { holder.holding = it; it.inHand = true; }
   }
   for (let i = items.length - 1; i >= 0; i--) if (items[i].inHand) items.splice(i, 1);
-
   const { timeline } = opts;
+  // Doing things together in a still scene (src/text/matcher.js relations): sitters and riders go
+  // on their seat or bike (drawn with it, see carried()), partners stand side by side
+  const isPerson = (it) => /^people/.test(it.c.category ?? '');
+  if (!timeline) {
+    for (const it of items) {
+      const by = it.m.carries?.by;
+      if (!by || !(it.c.seatTop || it.c.saddle)) continue;
+      const room = it.c.saddle || it.c.id === 'chair' ? 1 : 3;
+      it.carried = items.filter((o) => o !== it && by.includes(o.aid) && !o.onSeat && !o.carried && isPerson(o)).slice(0, room);
+      for (const o of it.carried) o.onSeat = it;
+    }
+    for (const it of items) {
+      const want = it.m.pair;
+      if (!want || it.partner || it.onSeat || !isPerson(it)) continue;
+      const o = items.find((x) => x !== it && x.aid === want.with && !x.partner && !x.onSeat && (x.m.pair?.with === it.aid || want.with === it.aid));
+      if (!o) continue;
+      it.partner = o; o.partner = it;
+      it.together = want.how; o.together = want.how;
+      it.first = true;
+      // (side by side in the row: the partner right after)
+      items.splice(items.indexOf(o), 1);
+      items.splice(items.indexOf(it) + 1, 0, o);
+    }
+  }
+
   const env = detectEnv(items, words);
   // A figure walking toward or away from the camera, or a timeline where actors walk and stop:
   // the ground must not scroll sideways under them.
@@ -891,6 +964,41 @@ export function composeScene(matches, opts = {}) {
     items.forEach((it) => { it.h *= zoom; });
   }
 
+  // A seat is as high as the hips of whoever sits on it (the tallest, if several: the others' feet
+  // dangle), and wide enough for them; sitters and riders keep their size, as a share of it
+  for (const it of items) {
+    if (!it.carried?.length) continue;
+    for (const o of it.carried) {
+      o.pose = drawConcept(o.c, { ...o.look, style, seat: it.c.saddle ? 'ride' : 'seat', view: it.c.saddle ? 'side' : o.m.view });
+    }
+    if (it.c.seatTop) {
+      const hips = Math.max(...it.carried.map((o) => ((o.c.baseline ?? 96) - o.pose.seatAt) * (o.h / 100)));
+      it.h = hips / (((it.c.baseline ?? 96) - it.c.seatTop) / 100);
+      const need = it.carried.reduce((sum, o) => sum + o.h * (o.c.width ?? 0.8) * 0.85, 0);
+      it.wf = Math.max(it.c.width ?? 0.8, need / it.h);
+    }
+    for (const o of it.carried) o.ratio = o.h / it.h;
+  }
+  for (let i = items.length - 1; i >= 0; i--) if (items[i].onSeat) items.splice(i, 1);
+  // Partners: holding hands, the gap that makes their hands meet; hugging, close and turned to each other
+  for (const it of items) {
+    if (!it.first) continue;
+    const o = it.partner;
+    it.noFlip = true; o.noFlip = true;
+    if (it.together === 'hands') {
+      it.reach = 'right'; o.reach = 'left';
+      const a = drawConcept(it.c, { ...it.look, style, reach: 'right' }).hand, b = drawConcept(o.c, { ...o.look, style, reach: 'left' }).hand;
+      // (centre to centre: where the hands are, minus half of each one's width)
+      it.gapK = a && b ? ((a[0] - 50) * it.h - (b[0] - 50) * o.h) / 100 / it.h - ((it.c.width ?? 0.8) * it.h + (o.c.width ?? 0.8) * o.h) / 2 / it.h : 0;
+    } else {
+      it.looking = { view: 'three-quarter', mirror: false, gaze: { x: 1, y: 0 } };
+      o.looking = { view: 'three-quarter', mirror: true, gaze: { x: -1, y: 0 } };
+      it.m = { ...it.m, animation: it.m.animation ?? 'hold' };
+      o.m = { ...o.m, animation: o.m.animation ?? 'hold' };
+      it.gapK = -0.32 * Math.min((it.c.width ?? 0.8), (o.c.width ?? 0.8) * (o.h / it.h));
+    }
+  }
+
   for (const it of items) {
     const pl = it.c.placement || 'ground';
     if (groups[pl] && pl !== 'front' && pl !== 'back') groups[pl].push(it);
@@ -915,6 +1023,22 @@ export function composeScene(matches, opts = {}) {
   const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''} data-seed="${it.look.seed}"${it.look.vary ? ' data-vary="1"' : ''}${it.look.colors ? ` data-colors="${Object.entries(it.look.colors).map(([r, c]) => `${r}:${c}`).join(' ')}"` : ''}${it.holding ? ` data-held="${it.holding.c.id}"${it.holding.m.color ? ` data-held-color="${it.holding.m.color}"` : ''}` : ''}`;
   // What a figure holds, for drawConcept
   const heldOf = (it) => (it.holding ? { id: it.holding.c.id, color: it.holding.m.color } : undefined);
+  // Whoever sits on a seat or rides a bike, drawn on it in its own units (s: its scale): hips on the
+  // seat (spread along a bench) or the saddle, each in its own look and marked for its photo face
+  const carried = (it, s) => (it.carried ?? []).map((o, i, all) => {
+    const k = o.ratio;
+    const ride = Boolean(it.c.saddle);
+    const shapes = drawConcept(o.c, {
+      ...o.look, color: o.m.color, style, expression: o.m.expression || 'happy', seat: ride ? 'ride' : 'seat',
+      view: ride ? 'side' : o.m.view, held: heldOf(o), animation: o.m.expression === 'talking' ? 'talk' : undefined,
+    });
+    const span = it.c.seatSpan ?? [12, 88];
+    const x = ride ? it.c.saddle[0] - (shapes.hipX ?? 50) * k
+      : span[0] + ((i + 0.5) * (span[1] - span[0])) / all.length - 50 * k;
+    const y = (ride ? it.c.saddle[1] : it.c.seatTop) - (shapes.seatAt ?? 70) * k;
+    const svg = shapesToSvg(shapes, style, { olk: clamp(W / 280 / (2.4 * s * k), 0.35, 4) });
+    return `<g class="pg-${ride ? 'rider' : 'sitter'}" data-id="${o.c.id}"${who(o)} transform="translate(${r2(x)} ${r2(y)}) scale(${r2(k * 1000) / 1000})">${svg}</g>`;
+  }).join('');
   // Who says what in a still scene ("Tom says “Hello!”"): figure id -> words
   const said = new Map((opts.speech || []).map((sp) => [sp.who, sp.text]));
   const talkers = []; // who speaks where, for their speech bubbles: { x, top, text, room, of }
@@ -959,7 +1083,7 @@ export function composeScene(matches, opts = {}) {
     if (!it.looking) placed.push({ it, cx, y });
     const look = it.looking?.mirror !== undefined ? it.looking : null;
     const x0 = cx - 50 * s, y0 = y - base * s;
-    const flip = look ? look.mirror && it.c.flippable !== false : it.k % 2 === 1 && it.c.flippable !== false;
+    const flip = look ? look.mirror && it.c.flippable !== false : it.k % 2 === 1 && it.c.flippable !== false && !it.noFlip;
     const tr = flip ? `translate(${x0 + 100 * s} ${y0}) scale(${-s} ${s})` : `translate(${x0} ${y0}) scale(${s})`;
     const olk = clamp(W / 280 / (2.4 * s), 0.35, 4);
     // Words to say: its own ("Tom says “Hi!”"), or a clip scene's caption when the figure talks
@@ -1003,11 +1127,14 @@ export function composeScene(matches, opts = {}) {
       gaze: look?.gaze,
       style,
       held: heldOf(it),
+      reach: it.reach,
     });
+    it.at = { x0, y0, s, flip };
     // The drawing sits innermost in .pg-figure, so the studio can redraw it (a new expression)
-    // while the animation wrapper, shadow and travel motion around it stay
+    // while the animation wrapper, shadow and travel motion around it stay; whoever sits on it or
+    // rides it comes after, in its motion
     const drawing = shapesToSvg(shapes, style, { olk });
-    let wrappedContent = `<g class="pg-figure">${drawing}</g>`;
+    let wrappedContent = `<g class="pg-figure">${drawing}</g>${carried(it, s)}`;
     if (limbs && limbs !== 'blink' && !drawing.includes(`pg-anim-${limbs}`)) {
       wrappedContent = `<g class="pg-anim-${limbs}">${wrappedContent}</g>`;
     }
@@ -1043,7 +1170,7 @@ export function composeScene(matches, opts = {}) {
     const variants = new Map();
     for (const seg of track) {
       const p = seg.pose;
-      const key = `${p.anim}|${p.expression}|${p.view}|${p.mirror}|${p.gaze ? `${p.gaze.x},${p.gaze.y}` : ''}`;
+      const key = `${p.anim}|${p.expression}|${p.view}|${p.mirror}|${p.gaze ? `${p.gaze.x},${p.gaze.y}` : ''}|${p.seat ?? ''}|${p.lift ?? ''}`;
       if (!variants.has(key)) variants.set(key, { pose: p, windows: [] });
       seg.variant = key;
       variants.get(key).windows.push(seg);
@@ -1097,13 +1224,15 @@ export function composeScene(matches, opts = {}) {
       motionCss.push(`@keyframes ${name}v${i} { ${frames}}`);
       const shapes = drawConcept(it.c, {
         ...it.look, color: it.m.color, style,
-        expression: pose.expression || 'happy', animation: pose.anim, view: pose.view, gaze: pose.gaze, held: heldOf(it),
+        expression: pose.expression || 'happy', animation: pose.anim, view: pose.view, gaze: pose.gaze, held: heldOf(it), seat: pose.seat,
       });
       // The drawing sits innermost in .pg-figure, so the studio can redraw it (a new expression)
       // while the pose's animation wrapper and mirroring around it stay
       const drawing = shapesToSvg(shapes, style, { olk });
       let svg = `<g class="pg-figure">${drawing}</g>`;
       if (pose.anim && !drawing.includes(`pg-anim-${pose.anim}`)) svg = `<g class="pg-anim-${pose.anim}">${svg}</g>`;
+      // (sitting on a seat: hips up on it)
+      if (pose.lift) svg = `<g transform="translate(0 ${r2(-pose.lift / s)})">${svg}</g>`;
       if (pose.mirror) svg = `<g transform="translate(100 0) scale(-1 1)">${svg}</g>`;
       const still = last && last.variant === key;
       const attrs = `${pose.anim ? ` data-anim="${pose.anim}"` : ''}${pose.view ? ` data-view="${pose.view}"` : ''}`;
@@ -1198,6 +1327,26 @@ export function composeScene(matches, opts = {}) {
     return p ? { x: p.cx, y: p.anchor === 'bottom' ? p.y - p.h * 0.55 : p.y, h: p.h } : null;
   };
   for (const draw of later) draw();
+  // Partners' hands joined (a hand in a hand), a heart over a hug
+  for (const it of items) {
+    if (!it.first || !it.at || !it.partner.at) continue;
+    const o = it.partner, A = it.at, B = o.at;
+    if (it.together === 'hands') {
+      const a = drawConcept(it.c, { ...it.look, style, reach: 'right' }), b = drawConcept(o.c, { ...o.look, style, reach: 'left' });
+      if (!a.hand || !b.hand) continue;
+      const pa = [A.x0 + a.hand[0] * A.s, A.y0 + a.hand[1] * A.s], pb = [B.x0 + b.hand[0] * B.s, B.y0 + b.hand[1] * B.s];
+      const r = Math.max(A.s, B.s) * 3.6, mid = [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2];
+      out.push(`<g class="pg-hands">`
+        + `<line x1="${r2(pa[0])}" y1="${r2(pa[1])}" x2="${r2(mid[0])}" y2="${r2(mid[1])}" stroke="${a.handFill}" stroke-width="${r2(A.s * 7)}" stroke-linecap="round"/>`
+        + `<line x1="${r2(pb[0])}" y1="${r2(pb[1])}" x2="${r2(mid[0])}" y2="${r2(mid[1])}" stroke="${b.handFill}" stroke-width="${r2(B.s * 7)}" stroke-linecap="round"/>`
+        + `<circle cx="${r2(mid[0])}" cy="${r2(mid[1])}" r="${r2(r)}" fill="${a.handFill}"/></g>`);
+    } else {
+      const x = (A.x0 + 50 * A.s + B.x0 + 50 * B.s) / 2, y = Math.min(A.y0, B.y0) - 2 * A.s, k = A.s * 0.16;
+      motionCss.push(`@keyframes ${uid}heart { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }`);
+      out.push(`<g class="pg-heart" transform="translate(${r2(x)} ${r2(y)})"><g style="transform-box: fill-box; transform-origin: center; animation: ${uid}heart 1.4s ease-in-out infinite;">`
+        + `<path transform="scale(${r2(k * 1000) / 1000})" d="M0 30 C-40 0 -28 -26 0 -10 C28 -26 40 0 0 30 Z" fill="#f43f5e"/></g></g>`);
+    }
+  }
   if (timeline && actorSlots.size) {
     const { T, tracks, camera: events, beatTimes, speeches, doings } = playTimeline(timeline, actorSlots, propsAt, W);
     timeline.duration = r2(T);
