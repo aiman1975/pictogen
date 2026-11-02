@@ -13,6 +13,7 @@
 
 import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, existsSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -46,8 +47,9 @@ const LIST = await (await fetch('/web/files.json')).json();
 const FILES = new Map();
 const where = (p) => (p.startsWith('/public/') ? p.slice(7) : p);
 await Promise.all(LIST.map(async (p) => {
-  const res = await fetch(where(p));
-  if (res.ok) FILES.set(p, new Uint8Array(await res.arrayBuffer()));
+  // (one that can't be fetched - offline and not kept - is simply not there)
+  const res = await fetch(where(p)).catch(() => null);
+  if (res?.ok) FILES.set(p, new Uint8Array(await res.arrayBuffer()));
 }));
 const pathOf = (p) => decodeURIComponent(p instanceof URL ? p.pathname : typeof p === 'string' && /^[a-z]+:/i.test(p) ? new URL(p).pathname : String(p));
 class Bytes extends Uint8Array {
@@ -168,6 +170,56 @@ for (const page of ['index.html', 'studio.html', 'showcase.html']) {
   writeFileSync(f, html.replace(/<head>/i, `<head>\n${head}`));
 }
 writeFileSync(join(out, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
+// (only when a page asks: an apple-touch-icon.png at the root, as some phones look for it there)
+cpSync(join(out, 'icons', 'apple-touch-icon.png'), join(out, 'apple-touch-icon.png'));
+
+// The installable app: every page gets the app's manifest, icons and /js/app.js, and the offline
+// worker (/sw.js) keeps every file of the site on the device once it is first opened, so PictoGen
+// works with no internet. Its cache is named after the files' contents: a new build replaces it.
+const app = `<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#4f46e5">
+<link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PictoGen">
+<script type="module" src="/js/app.js"></script>`;
+for (const page of ['index.html', 'studio.html', 'showcase.html', 'help.html']) {
+  const f = join(out, page);
+  if (existsSync(f)) writeFileSync(f, readFileSync(f, 'utf8').replace(/<head>/i, `<head>\n${app}`));
+}
+const files = walk(out).map((f) => '/' + relative(out, f).split('\\').join('/'))
+  .filter((f) => !['/sw.js', '/robots.txt'].includes(f)).sort();
+const version = createHash('sha1');
+for (const f of files) version.update(f).update(readFileSync(join(out, f)));
+// (the pages by their own addresses too: /studio, /help...)
+const pages = { '/': '/index.html', '/studio': '/studio.html', '/help': '/help.html', '/showcase': '/showcase.html' };
+writeFileSync(join(out, 'sw.js'), `// The offline worker (made by scripts/build-web.js): keeps every file of the site on this device,
+// so PictoGen opens and works with no internet. Files come from the device first; a new version of
+// the site (a new build) replaces them all.
+const CACHE = 'pictogen-${version.digest('hex').slice(0, 12)}';
+const FILES = ${JSON.stringify(files)};
+const PAGES = ${JSON.stringify(pages)};
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys()
+    .then((keys) => Promise.all(keys.filter((k) => k.startsWith('pictogen-') && k !== CACHE).map((k) => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
+  // (a page by its address, whatever follows it: /studio?text=a+cat is the studio)
+  const path = url.pathname.replace(/\\/$/, '') || '/';
+  const key = PAGES[path] ?? PAGES[path.replace(/\\.html$/, '')] ?? url.pathname;
+  e.respondWith(caches.open(CACHE).then((c) => c.match(key, { ignoreSearch: true }).then((hit) => hit || fetch(req).then((res) => {
+    if (res.ok && res.type === 'basic') c.put(req, res.clone());
+    return res;
+  }).catch(() => (req.mode === 'navigate' ? c.match('/studio.html') : Response.error())))));
+});
+`);
 
 const size = walk(out).reduce((s, f) => s + statSync(f).size, 0);
 console.log(`built ${relative(root, out) || out}: ${walk(out).length} files, ${(size / 1e6).toFixed(1)} MB`);

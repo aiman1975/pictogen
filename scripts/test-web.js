@@ -104,6 +104,28 @@ else {
     check(shown && !showErrors.length, `the showcase page plays from the engine in the browser${showErrors.length ? ': ' + showErrors.join('; ') : ''}`);
     const voice = await show.evaluate(() => ({ value: document.getElementById('voice-source').value, sub: document.querySelector('.start-subtext').textContent }));
     check(voice.value === 'speech' && !/Zira/.test(voice.sub), `without the recordings, the showcase is narrated by the browser's voice (${voice.value})`);
+    // The installable app: a manifest with its icons, and the offline worker keeps every file, so the
+    // studio opens and draws with no network at all
+    const manifest = JSON.parse(readFileSync(join(dir, 'manifest.webmanifest'), 'utf8'));
+    const sw = readFileSync(join(dir, 'sw.js'), 'utf8');
+    check(manifest.start_url === '/studio' && manifest.display === 'standalone' && manifest.icons.every((i) => existsSync(join(dir, i.src)))
+      && /<link rel="manifest"/.test(readFileSync(join(dir, 'help.html'), 'utf8')) && /"\/studio.html"/.test(sw) && /"\/src\/data\/fluent-emoji-flat.json"/.test(sw),
+      'installable: a manifest with its icons on every page, and an offline worker that keeps every file');
+    const ctx = await browser.newContext();
+    const app = await ctx.newPage();
+    await app.goto(`http://localhost:${port}/studio`, { waitUntil: 'load' });
+    await app.evaluate(() => navigator.serviceWorker.ready);
+    await app.waitForFunction(async () => {
+      const keys = await caches.keys();
+      return keys.length === 1 && (await (await caches.open(keys[0])).keys()).length >= 100;
+    }, null, { timeout: 60000 });
+    check((await app.locator('[data-install]').count()) > 0, 'the studio has an "Install app" button (shown where the browser can install it)');
+    await ctx.setOffline(true);
+    await app.goto(`http://localhost:${port}/studio?text=a+girl+hugs+her+grandma`, { waitUntil: 'load' });
+    await app.waitForFunction(() => document.querySelectorAll('#svg-viewport svg .movable-item').length >= 2, null, { timeout: 60000 });
+    const offlineHelp = await app.goto(`http://localhost:${port}/help`, { waitUntil: 'load' });
+    check(offlineHelp.ok(), 'offline (no network at all), the studio still opens and draws, and the help page opens');
+    await ctx.close();
     check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
   } finally {
     await browser.close();

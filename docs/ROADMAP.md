@@ -174,6 +174,7 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       fonts inside, turned into a PDF in the browser (JPEG pages, no library) or printed: write about
       the picture, count and write, label the diagram (blank labels, word bank), colour it in; an
       answer key for counting and labelling
+- [x] **Installable offline app**: manifest, icons, an offline worker keeping the whole site on the device
 - [ ] Export from the command line / server (needs a headless browser; optional dependency)
 - [ ] Lottie JSON export for app developers
 - [ ] Transparent-background PNG sequences for video editors

@@ -21,6 +21,8 @@ const MIME = {
   '.txt': 'text/plain; charset=utf-8',
   '.webm': 'video/webm',
   '.mp4': 'video/mp4',
+  '.webmanifest': 'application/manifest+json',
+  '.mp3': 'audio/mpeg',
 };
 
 const MAX_BODY = 1024 * 1024;
