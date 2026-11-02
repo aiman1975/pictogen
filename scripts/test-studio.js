@@ -434,6 +434,20 @@ try {
   await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.length === 3 && window.pictogenStudio.getStory().title === 'My Story');
   const told = await page.evaluate(() => window.pictogenStudio.getStory().scenes.map((sc) => ({ caption: sc.caption, who: (sc.svg.match(/data-who="(pgc\d+)"/) || [])[1] })));
   check(told[0].caption.startsWith('Once upon a time') && told.every((sc) => sc.who && sc.who === told[0].who), `a story in three lines: three scenes, Lily the same girl in each (${JSON.stringify(told.map((sc) => sc.who))})`);
+  // How it was read: the cast and each scene; a scene changed; Lily kept as one of your characters
+  await page.waitForFunction(() => !document.getElementById('story-review').hidden && document.querySelectorAll('.sr-row').length === 3);
+  check((await page.textContent('#story-review')).includes('Lily') && (await page.inputValue('.sr-input[data-i="2"]')).includes('Lily hugs'), 'the story panel shows the cast and what each scene draws, with names');
+  await page.fill('.sr-input[data-i="2"]', 'Lily and the puppy sit on a bench at night');
+  await page.press('.sr-input[data-i="2"]', 'Enter');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[2]?.edited && /pg-sitter/.test(window.pictogenStudio.getStory().scenes[2].svg));
+  check(true, 'changing what a scene shows makes the clip again with it');
+  const sentKeep = sent.length;
+  await page.click('.sr-who button[data-keep="Lily"]');
+  await page.waitForFunction(() => window.pictogenCharacters.list().some((c) => c.name === 'Lily') && !document.querySelector('.sr-who button[data-keep="Lily"]'));
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[2]?.edited && window.pictogenStudio.getStory().scenes.every((sc) => /data-who="pgc\d"/.test(sc.svg)));
+  check(sent.slice(sentKeep).every((body) => !body.includes('Lily')), 'kept as a character, Lily is in every scene as her own key, the change to scene 3 still there, her name never sent');
+  await page.evaluate(() => { const i = window.pictogenCharacters.list().findIndex((c) => c.name === 'Lily'); document.querySelector(`#characters-panel [data-remove="${i}"]`)?.click(); });
+  check(await page.isVisible('#story-btn-read'), 'a button reads the story aloud');
   await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="scene"]').click());
   await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'scene');
   await clearClip();

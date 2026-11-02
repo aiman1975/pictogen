@@ -480,5 +480,17 @@ function openCrop(img, done) {
   modal.querySelector('.face-name').focus();
 }
 
-window.pictogenCharacters = { rewrite, apply, withFaces, individuals, nameOfKey, restore, refresh: render, list: () => characters };
+/** Keeps a character from a story ("Mia", a girl) as one of yours: '' when done, else why not */
+function keep(name, base) {
+  if (!BASES.some(([b]) => b === base)) return `${name} can't be kept as a character yet (only people and pets)`;
+  if (characters.length >= MAX) return `There is room for ${MAX} characters`;
+  const why = nameError(name);
+  if (why) return why;
+  characters.push({ name, base, look: newLook(base, characters) });
+  save();
+  render();
+  return '';
+}
+
+window.pictogenCharacters = { rewrite, apply, withFaces, individuals, nameOfKey, restore, keep, refresh: render, list: () => characters, BASES };
 render();

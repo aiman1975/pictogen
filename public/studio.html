@@ -322,6 +322,18 @@
     }
     .timeline-panel[hidden] { display: none; }
     .tl-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+    .story-review .tl-hint { font-size: 0.78rem; color: var(--text-muted); }
+    .sr-cast { display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; margin-bottom: 0.6rem; font-size: 0.88rem; }
+    .sr-who { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .sr-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .sr-row { display: flex; gap: 0.6rem; align-items: flex-start; padding: 6px 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-subtle); }
+    .sr-row.on { border-color: #f59e0b; box-shadow: 0 0 0 1px #f59e0b; }
+    .sr-go { flex: none; width: 28px; height: 28px; border-radius: 50%; border: none; background: #f59e0b; color: #fff; font-weight: 900; cursor: pointer; }
+    .sr-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .sr-caption { font-weight: 700; font-size: 0.9rem; }
+    .sr-draw { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--text-muted); font-weight: 700; }
+    .sr-input { flex: 1; min-width: 0; font: inherit; font-weight: 600; color: var(--text); padding: 3px 7px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+    .sr-skip { font-size: 0.75rem; color: var(--text-muted); }
     .tl-title { font-weight: 800; color: var(--text); margin-right: auto; }
     .tl-time { font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-size: 0.75rem; min-width: 7.5em; }
     .tl-btn {
@@ -1224,6 +1236,8 @@
         <div class="timeline-panel" id="timeline-panel" hidden></div>
         <!-- Your clip: saved scenes played together in Clip Studio (public/js/clip-tray.js) -->
         <div class="timeline-panel clip-tray" id="clip-tray" hidden></div>
+        <!-- How the story box's story was read (public/js/story-review.js) -->
+        <div class="timeline-panel story-review" id="story-review" hidden></div>
         <!-- Your characters: face photos on figures, called by name (public/js/characters.js) -->
         <div class="timeline-panel characters-panel" id="characters-panel" hidden></div>
 
@@ -1259,6 +1273,7 @@
             <div id="story-dots-container" style="display: flex; gap: 6px;"></div>
 
             <button class="btn-action" id="story-btn-sound" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Sound on or off: chimes, voices and effects">🔔</button>
+            <button class="btn-action" id="story-btn-read" style="background:none; border:none; color:#64748b; font-size: 1.1rem; padding: 2px;" title="Read the captions aloud with this device's own voice (in the studio; videos are made without it)" aria-pressed="false">🗣</button>
             <button class="btn-action" id="story-btn-music" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Background music for the clip's genre, on or off">🎵</button>
             <button class="btn-action" id="story-btn-book" style="background:#f59e0b; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="The clip as a picture book to print: a cover, a page for each scene with its caption, The End">📖 Picture Book</button>
             <button class="btn-action" id="story-btn-export-html" style="background:#10b981; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Export standalone offline animated player">💾 Export Clip (.html)</button>
@@ -1646,6 +1661,7 @@
       if (state.mode !== 'scene') window.pictogenTimeline?.update(null);
       window.pictogenClip?.refresh();
       window.pictogenCharacters?.refresh();
+      window.pictogenStoryReview?.refresh();
       syncUrl();
 
       if (state.mode === 'story') {
@@ -1673,6 +1689,8 @@
             body: JSON.stringify({
               text: named(state.prompt).text,
               individuals: window.pictogenCharacters?.individuals() ?? [],
+              // what the writer changed in "How I read your story" (names as keys, like the story)
+              edits: Object.fromEntries(Object.entries(state.storyEdits || {}).map(([k, v]) => [named(k).text, named(v).text])),
               ...clipRequest(),
               style: state.style,
               genre: state.genre,
@@ -1686,6 +1704,7 @@
           const clipScenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
           // (and the captions say their names again where the engine got keys)
           const said = (t) => window.pictogenCharacters?.restore(t) ?? t;
+          storyState.cast = data.cast || null; // (a story read in the writer's words: its cast)
           storyState.scenes = data.scenes.map((sc, i) => ({
             ...sc,
             prompt: said(sc.prompt),
@@ -1716,6 +1735,7 @@
             `).join('');
 
           renderStoryScene(0, false);
+          window.pictogenStoryReview?.refresh();
           showToast(`Playing ${storyState.genre} clip: ${data.title}`);
         } catch (err) {
           svgViewport.innerHTML = `<div style="color: #ef4444; font-weight: 700;">Error: ${err.message}</div>`;
@@ -1728,6 +1748,7 @@
         storyPresetsRow.style.display = 'none';
         clearInterval(storyState.progressInterval);
         clearTimeout(storyState.timer);
+        window.pictogenNarrator?.stop();
       }
 
       if (state.mode === 'coloring') {
@@ -2352,14 +2373,58 @@
 
       initMovableObjects();
       renderStoryDots();
+      window.pictogenStoryReview?.highlight(storyState.curIndex);
 
       if (withChime) playStoryChime();
       if (storyState.sound && storyState.isPlaying) window.pictogenSound?.play(getSvgElement());
       else window.pictogenSound?.stop();
       // The genre's background music, across the scenes
       if (storyState.isPlaying) window.pictogenSound?.startMusic(storyState.genre || 'kids');
+      // The caption read aloud; the scene stays as long as that takes
+      if (narrator.on && storyState.isPlaying) {
+        storyState.duration = Math.max(storyState.duration, narrator.seconds(sc.caption) * 1000);
+        narrator.say(sc.caption);
+      } else narrator.stop();
       startStoryProgress();
     }
+
+    // Reading the captions aloud with the browser's own voice (the system's voices, offline where it
+    // has them): a scene stays until its sentence has been read
+    const narrator = {
+      on: false, ended: true, onDone: null,
+      voice() {
+        const voices = ('speechSynthesis' in window ? speechSynthesis.getVoices() : []).filter((v) => /^en/i.test(v.lang));
+        const nice = /natural|neural|samantha|zira|aria|jenny|libby|sonia|serena|karen|moira|tessa|daniel|kate|hazel|susan/i;
+        return voices.find((v) => v.localService && nice.test(v.name)) || voices.find((v) => v.localService) || voices.find((v) => nice.test(v.name)) || voices[0] || null;
+      },
+      say(text) {
+        if (!this.on || !('speechSynthesis' in window) || !text) return;
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        const v = this.voice();
+        if (v) { u.voice = v; u.lang = v.lang; }
+        u.rate = 0.95;
+        u.pitch = 1.05;
+        this.ended = false;
+        u.onend = u.onerror = () => { this.ended = true; const done = this.onDone; this.onDone = null; done?.(); };
+        speechSynthesis.speak(u);
+      },
+      stop() { this.onDone = null; this.ended = true; if ('speechSynthesis' in window) speechSynthesis.cancel(); },
+      // (about how long reading takes: a little over a third of a second a word)
+      seconds: (text) => 1 + String(text || '').split(/\s+/).filter(Boolean).length * 0.4,
+    };
+    window.pictogenNarrator = narrator;
+    const storyBtnRead = document.getElementById('story-btn-read');
+    if (!('speechSynthesis' in window)) storyBtnRead.hidden = true;
+    storyBtnRead.addEventListener('click', () => {
+      narrator.on = !narrator.on;
+      storyBtnRead.style.color = narrator.on ? '#f59e0b' : '#64748b';
+      storyBtnRead.setAttribute('aria-pressed', String(narrator.on));
+      showToast(narrator.on ? 'Reading the story aloud' : 'Not reading aloud');
+      if (!narrator.on) return narrator.stop();
+      const sc = storyState.scenes?.[storyState.curIndex];
+      if (sc && storyState.isPlaying) { storyState.duration = Math.max(storyState.duration, narrator.seconds(sc.caption) * 1000); narrator.say(sc.caption); startStoryProgress(); }
+    });
 
     function startStoryProgress() {
       clearInterval(storyState.progressInterval);
@@ -2377,7 +2442,9 @@
       }, 50);
 
       storyState.timer = setTimeout(() => {
-        renderStoryScene(storyState.curIndex + 1);
+        // (still reading the sentence: on to the next scene when it is read)
+        if (narrator.on && !narrator.ended) narrator.onDone = () => storyState.isPlaying && renderStoryScene(storyState.curIndex + 1);
+        else renderStoryScene(storyState.curIndex + 1);
       }, storyState.duration);
     }
 
@@ -2390,12 +2457,14 @@
       storyBtnPlay.textContent = storyState.isPlaying ? '⏸ Pause' : '▶ Play';
       if (storyState.isPlaying) {
         storyState.startTime = Date.now();
+        narrator.say(storyState.scenes?.[storyState.curIndex]?.caption);
         startStoryProgress();
         if (storyState.sound) window.pictogenSound?.resume(getSvgElement());
         window.pictogenSound?.startMusic(storyState.genre || 'kids');
       } else {
         clearInterval(storyState.progressInterval);
         clearTimeout(storyState.timer);
+        narrator.stop();
         window.pictogenSound?.stop();
         window.pictogenSound?.stopMusic();
       }
@@ -2691,6 +2760,7 @@
           coloringPaletteBar.style.display = 'none';
           clearInterval(storyState.progressInterval);
           clearTimeout(storyState.timer);
+          window.pictogenNarrator?.stop();
           promptInput.placeholder = "Type what you want to see, e.g. 'a girl with a balloon in the park'";
         }
         runGenerate();
@@ -2849,6 +2919,7 @@
   <script type="module" src="/js/characters.js"></script>
   <script type="module" src="/js/worksheet.js"></script>
   <script type="module" src="/js/book.js"></script>
+  <script type="module" src="/js/story-review.js"></script>
   <script type="module">
     import { exportGif, exportVideo, videoFormat, mountOffscreen, download } from '/js/video-export.js';
     window.pictogenVideo = { exportGif, exportVideo, videoFormat, mountOffscreen };

@@ -204,14 +204,14 @@ export function readStory(text, { individuals = [] } = {}) {
       s = s.replace(new RegExp(`(⟦\\d+⟧)[,]?\\s+(?:${SAY_VERBS})\\s+((?:the|a|an|her|his)\\s+[a-z]+|[A-Z][a-z]+|he|she|they)\\b[.!]?`, 'g'), ' $2 says $1 ');
       s = s.replace(new RegExp(`\\b(${SAY_VERBS})\\s*[,:]?\\s*(⟦\\d+⟧)`, 'g'), 'says $2');
       // Introductions: "a little girl called Mia", "Rex, a brown puppy,", "Rex the dog", "Grandma Rose", "his name was Rex"
-      s = s.replace(/\b(?:a|an|the)\s+((?:[a-z]+\s+){0,3}?)([a-z]+)\s+(?:called|named)\s+([A-Z][a-z]+)/g, (all, adj, word, name) => {
+      s = s.replace(/\b(?:a|an|the)\s+((?:[a-z]+\s+){0,3}?)([a-z]+)\s+(?:called|named)\s+([A-Z][a-z]+|pgc\d+)/g, (all, adj, word, name) => {
         const id = kindOf(word) ?? kindOf(adj.trim().split(/\s+/).pop() || '');
         if (!id) return all;
         const color = adj.split(/\s+/).find((a) => COLOR_WORDS[a]);
         addNamed(name, id, color, word);
         return name;
       });
-      s = s.replace(/\b([A-Z][a-z]+),\s+(?:a|an|the)\s+((?:[a-z]+\s+){0,3}?)([a-z]+)\s*,?/g, (all, name, adj, word) => {
+      s = s.replace(/\b([A-Z][a-z]+|pgc\d+),\s+(?:a|an|the)\s+((?:[a-z]+\s+){0,3}?)([a-z]+)\s*,?/g, (all, name, adj, word) => {
         const id = !NOT_NAMES.has(name.toLowerCase()) && kindOf(word);
         if (!id) return all;
         addNamed(name, id, adj.split(/\s+/).find((a) => COLOR_WORDS[a]), word);
@@ -231,13 +231,13 @@ export function readStory(text, { individuals = [] } = {}) {
         return `${name.replace(' ', '_')} is ${list.slice(0, at).join(' ')} ${list.slice(at + 1).join(' ')}`;
       });
       // "their dog Max", "his sister Ella", "a puppy Rex"
-      s = s.replace(/\b(?:[Aa]n?|[Tt]he|[Mm]y|[Hh]is|[Hh]er|[Tt]heir|[Oo]ur|[Yy]our)\s+((?:[a-z]+\s+){0,2}?)([a-z]+)\s+([A-Z][a-z]+)\b/g, (all, adj, word, name) => {
+      s = s.replace(/\b(?:[Aa]n?|[Tt]he|[Mm]y|[Hh]is|[Hh]er|[Tt]heir|[Oo]ur|[Yy]our)\s+((?:[a-z]+\s+){0,2}?)([a-z]+)\s+([A-Z][a-z]+|pgc\d+)\b/g, (all, adj, word, name) => {
         const id = !NOT_NAMES.has(name.toLowerCase()) && kindOf(word);
         if (!id) return all;
         addNamed(name, id, adj.split(/\s+/).find((a) => COLOR_WORDS[a]), word);
         return name;
       });
-      s = s.replace(/\b([A-Z][a-z]+)\s+the\s+([a-z]+)\b/g, (all, name, word) => {
+      s = s.replace(/\b([A-Z][a-z]+|pgc\d+)\s+the\s+([a-z]+)\b/g, (all, name, word) => {
         const id = !NOT_NAMES.has(name.toLowerCase()) && kindOf(word);
         if (!id) return all;
         addNamed(name, id, null, word);

@@ -27,6 +27,10 @@ const storyOpts = (payload) => ({
   vary: Boolean(payload.vary),
   title: payload.title,
   individuals: Array.isArray(payload.individuals) ? payload.individuals : undefined,
+  // a story's scenes as the writer changed them: sentence -> what to draw
+  edits: payload.edits && typeof payload.edits === 'object' && !Array.isArray(payload.edits)
+    ? Object.fromEntries(Object.entries(payload.edits).filter(([k, v]) => typeof k === 'string' && typeof v === 'string').slice(0, 80))
+    : undefined,
 });
 
 /**

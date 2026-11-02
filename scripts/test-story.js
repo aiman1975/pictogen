@@ -95,5 +95,14 @@ Mrs Brown was a kind teacher. Their dog Max jumped. Zoe was an astronaut. She sm
     'scripts with "prompt | caption" and the story templates work as before');
 }
 
+// 7. Scenes the writer changed ("How I read your story"): kept with their sentence, names as in the story
+{
+  const t = 'A little girl called Mia found a puppy.\nMia hugged the puppy.';
+  const st = composeStory(t, { edits: { 'Mia hugged the puppy.': 'Mia and the puppy sit on a bench at night' } });
+  assert(st.scenes[1].edited && st.scenes[1].prompt === 'Mia and the puppy sit on a bench at night' && /pg-sitter/.test(st.scenes[1].svg)
+    && /data-who="pgc21"/.test(st.scenes[1].svg) && !st.scenes[0].edited, 'a scene changed by the writer draws what they wrote, Mia still Mia');
+  assert(Array.isArray(st.scenes[0].unknown) && st.cast.some((c) => c.name === 'Mia'), 'each scene says what it could not draw; the clip has its cast');
+}
+
 console.log(`\nStory Engine test suite: ${fails === 0 ? 'ALL PASSED!' : `${fails} FAILS`}`);
 process.exit(fails === 0 ? 0 : 1);

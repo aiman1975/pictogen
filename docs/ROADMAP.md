@@ -136,8 +136,9 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [ ] Scene transitions (cut, fade, wipe) and caption timing tied to the beats
 - [x] **Stories in your own words** (`src/story-reader.js`): a story in lines or sentences read as a
       whole - a cast (named, "she", "they"), places and time carried on, story verbs, dialogue
-- [ ] Story reader: a "how I read your story" review panel, narration read aloud, an evaluation set
-      of real children's stories
+- [x] Story reader: a "How I read your story" panel (change a scene, keep a character), the captions
+      read aloud with the browser's voice
+- [ ] Story reader: a larger evaluation set of real children's stories; narration in exported videos
 - [x] **Recurring characters**: a named character has a look of its own (clothes, hair, skin or fur,
       picked in the studio) and is drawn and voiced the same in every scene, clip scene and comic panel,
       whoever else is there; a colour said once ("a girl in a purple dress") stays with that figure

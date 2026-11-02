@@ -426,7 +426,15 @@ export function composeStory(storyInput, opts = {}) {
   const isTemplate = typeof storyInput === 'string' && STORY_TEMPLATES.some((t) => t.id === storyInput.trim().toLowerCase());
   const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !storyInput.includes('|')
     ? readStory(storyInput, { individuals: opts.individuals ?? [] }) : null;
-  const scenesRaw = Array.isArray(storyInput) ? storyInput : read ? read.scenes : parseStoryText(storyInput);
+  // What the writer changed in "How I read your story" (opts.edits: their sentence -> what to draw
+  // instead, the names as in the story)
+  const toKeys = (prompt) => (read?.cast ?? []).filter((c) => c.key && c.name && c.name !== c.key)
+    .sort((a, b) => b.name.length - a.name.length)
+    .reduce((p, c) => p.replace(new RegExp(`\\b${c.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'), c.key), prompt);
+  const edits = opts.edits && typeof opts.edits === 'object' ? opts.edits : {};
+  const scenesRaw = Array.isArray(storyInput) ? storyInput
+    : read ? read.scenes.map((sc) => (typeof edits[sc.caption] === 'string' && edits[sc.caption].trim() ? { ...sc, prompt: toKeys(edits[sc.caption].trim().slice(0, 300)), edited: true } : sc))
+      : parseStoryText(storyInput);
   const individuals = read ? [...(opts.individuals ?? []), ...read.individuals] : opts.individuals;
   // (the story's own names, for showing its prompts: "pgc21 waves" -> "Mia waves")
   const shown = (prompt) => (read ? prompt.replace(/\bpgc\d+\b/g, (k) => read.cast.find((c) => c.key === k && !/^pgc/.test(c.name ?? ''))?.name ?? k) : prompt);
@@ -483,6 +491,8 @@ export function composeStory(storyInput, opts = {}) {
       duration: Math.max(sc.duration || 5.0, result.duration || 0),
       svg: result.svg,
       matches: result.matches,
+      // (what could not be drawn, and whether the writer changed what to draw)
+      ...(read ? { unknown: result.unknown, ...(sc.edited ? { edited: true } : {}) } : {}),
     };
   });
 
