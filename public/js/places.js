@@ -22,6 +22,13 @@ const EXTRAS = [
   ['shooting', '🌠 Shooting star'], ['fireflies', '🟡 Fireflies'], ['butterflies', '🦋 Butterflies'], ['bubbles', '🫧 Bubbles'], ['leaves', '🍁 Falling leaves'],
 ];
 const ROOMS = new Set(['classroom', 'office', 'kitchen', 'bedroom', 'room']);
+// A room's own colours and things (src/places.js: wall, floor, things, board, boardText)
+const WALLS = ['#f8fafc', '#fff3e0', '#e3f2fd', '#e8f5e9', '#fce4ec', '#ede7f6', '#fffde7', '#263238'];
+const FLOORS = ['#f1f5f9', '#c98a4b', '#8d6e63', '#b0bec5', '#a1887f', '#d7ccc8', '#90a4ae', '#5d4037'];
+const THINGS = [['board', '🟩 Board'], ['window', '🪟 Window'], ['clock', '🕒 Clock'], ['shelf', '📚 Shelf'], ['plant', '🪴 Plant'],
+  ['map', '🗺️ Map'], ['poster', '🖼️ Picture'], ['bunting', '🎏 Bunting'], ['lamp', '💡 Lamp']];
+// What each kind of room has unless other things are picked
+const ROOM_THINGS = { classroom: ['board', 'clock', 'bunting'], office: ['window', 'poster', 'shelf', 'clock', 'plant'], room: ['window', 'poster'], kitchen: [], bedroom: ['window', 'poster'] };
 // (plain place words stay what they are in every prompt: a place can't be called just "forest")
 const PLAIN = /^(the |a |an )?(meadow|park|forest|woods|jungle|city|town|beach|sea|ocean|lake|river|desert|mountains?|farm|castle|space|classroom|school|office|kitchen|bedroom|room|home|garden|street|house|night|day|sunset|rain|snow|autumn|winter|underwater|outside|inside)$/i;
 
@@ -48,7 +55,8 @@ const label = (list, k) => list.find(([v]) => v === k)?.[1] ?? k;
 /** The neutral key a place's name becomes ("Grandma's farm" -> "pgp1") */
 const keyOf = (p) => `pgp${places.indexOf(p) + 1}`;
 /** All places as the engine knows them: keys and what they are made of, never names */
-const asSent = (p, key = keyOf(p)) => ({ key, place: p.place, time: p.time, weather: p.weather, extras: p.extras ?? [] });
+const asSent = (p, key = keyOf(p)) => ({ key, place: p.place, time: p.time, weather: p.weather, extras: p.extras ?? [],
+  ...(ROOMS.has(p.place) ? { wall: p.wall, floor: p.floor, things: p.things, board: p.board, boardText: p.boardText } : {}) });
 const list = () => places.map((p) => asSent(p));
 
 /** "Tom waves at Grandma's farm" -> "Tom waves at pgp1" (not inside quoted speech) */
@@ -117,7 +125,8 @@ function render() {
 
 function openEditor(existing = null) {
   const draft = existing
-    ? { name: existing.name, place: existing.place, time: existing.time, weather: existing.weather, extras: [...(existing.extras ?? [])] }
+    ? { name: existing.name, place: existing.place, time: existing.time, weather: existing.weather, extras: [...(existing.extras ?? [])],
+      wall: existing.wall, floor: existing.floor, things: existing.things ? [...existing.things] : undefined, board: existing.board, boardText: existing.boardText ?? '' }
     : { name: '', place: 'farm', time: 'day', weather: 'clear', extras: ['clouds'] };
   const modal = document.createElement('div');
   modal.className = 'face-modal';
@@ -127,6 +136,7 @@ function openEditor(existing = null) {
       <div class="place-preview" aria-hidden="true"></div>
       <label class="face-row">Name <input class="face-name" maxlength="30" placeholder="e.g. Grandma's farm" autocomplete="off" value="${esc(draft.name)}"></label>
       <div class="char-features place-choices"></div>
+      <label class="face-row place-board-text" hidden>On the board <input class="place-board" maxlength="60" placeholder="e.g. 2 + 2 = 4" autocomplete="off"></label>
       <p class="face-note">It moves in the studio, in clips and in exports. The name stays in this browser.</p>
       <p class="face-error" role="alert"></p>
       <div class="face-actions"><button class="tl-btn" data-do="cancel">Cancel</button><button class="tl-btn primary" data-do="save">${existing ? 'Save' : 'Make this place'}</button></div>
@@ -140,13 +150,24 @@ function openEditor(existing = null) {
     const svg = await picture(draft);
     if (n === shown) preview.innerHTML = svg;
   };
+  const boardRow = modal.querySelector('.place-board-text'), boardInput = modal.querySelector('.place-board');
+  boardInput.value = draft.boardText ?? '';
+  let typing = null;
+  boardInput.addEventListener('input', () => { draft.boardText = boardInput.value; clearTimeout(typing); typing = setTimeout(redraw, 350); });
+  const swatches = (key, title, list) => `<div class="char-swatches" role="radiogroup" aria-label="${title}"><span>${title}</span>${list.map((c) => `<button type="button" class="char-swatch${draft[key] === c ? ' on' : ''}" role="radio" aria-checked="${draft[key] === c}" data-key="${key}" data-colour="${c}" style="--c:${c}" title="${title}"></button>`).join('')}<button type="button" class="char-chip${draft[key] ? '' : ' on'}" data-key="${key}" data-colour="">Usual</button></div>`;
+  const thingsOf = () => draft.things ?? ROOM_THINGS[draft.place] ?? [];
   const chips = (key, title, list, on) => `<div class="char-chips" role="group" aria-label="${title}"><span>${title}</span>${list.map(([v, l]) => `<button type="button" class="char-chip${on(v) ? ' on' : ''}" data-key="${key}" data-value="${v}" aria-pressed="${on(v)}">${l}</button>`).join('')}</div>`;
   const paint = () => {
     const room = ROOMS.has(draft.place);
     choices.innerHTML = chips('place', 'Where', PLACES, (v) => draft.place === v)
       + chips('time', 'When', TIMES, (v) => draft.time === v)
       + (room ? '' : chips('weather', 'Weather', WEATHER, (v) => draft.weather === v))
-      + (room ? '' : chips('extras', 'And', EXTRAS, (v) => draft.extras.includes(v)));
+      + (room ? '' : chips('extras', 'And', EXTRAS, (v) => draft.extras.includes(v)))
+      // (a room: its walls, its floor, what is in it, its board)
+      + (room ? swatches('wall', 'Walls', WALLS) + swatches('floor', 'Floor', FLOORS)
+        + chips('things', 'Things', THINGS, (v) => thingsOf().includes(v))
+        + chips('board', 'Board', [['chalk', 'Chalkboard'], ['white', 'Whiteboard']], (v) => (draft.board ?? 'chalk') === v) : '');
+    boardRow.hidden = !(room && thingsOf().includes('board'));
     redraw();
   };
   paint();
@@ -154,10 +175,14 @@ function openEditor(existing = null) {
   const error = (msg) => { modal.querySelector('.face-error').textContent = msg; };
   modal.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
   modal.addEventListener('click', (e) => {
+    const sw = e.target.closest('[data-colour]');
+    if (sw) { draft[sw.dataset.key] = sw.dataset.colour || undefined; paint(); return; }
     const chip = e.target.closest('.char-chip');
     if (chip) {
       const { key, value } = chip.dataset;
       if (key === 'extras') draft.extras = draft.extras.includes(value) ? draft.extras.filter((x) => x !== value) : [...draft.extras, value];
+      // (picking things replaces the room's usual ones)
+      else if (key === 'things') { const t = thingsOf(); draft.things = t.includes(value) ? t.filter((x) => x !== value) : [...t, value]; }
       else draft[key] = value;
       paint();
       return;
@@ -168,7 +193,9 @@ function openEditor(existing = null) {
     const name = modal.querySelector('.face-name').value.trim().replace(/\s+/g, ' ');
     const why = nameError(name, existing);
     if (why) return error(why);
-    const made = { name, place: draft.place, time: draft.time, weather: ROOMS.has(draft.place) ? 'clear' : draft.weather, extras: ROOMS.has(draft.place) ? [] : draft.extras };
+    const room = ROOMS.has(draft.place);
+    const made = { name, place: draft.place, time: draft.time, weather: room ? 'clear' : draft.weather, extras: room ? [] : draft.extras,
+      ...(room ? { wall: draft.wall, floor: draft.floor, things: draft.things, board: draft.board, boardText: (draft.boardText ?? '').trim() || undefined } : {}) };
     if (existing) Object.assign(existing, made);
     else places.push(made);
     if (!save()) return error('The browser has no room left to keep this place.');

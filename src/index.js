@@ -11,7 +11,11 @@ const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...EN
 const PLACE_WORDS = new Set(['forest', 'woods', 'jungle', 'park', 'garden', 'home', 'coral', 'reef']);
 // (and these are always the backdrop in a scene, drawn by src/places.js: dunes and cacti, snowy
 // peaks, a castle on a hill, a barn and fields)
-const BACKDROP_WORDS = new Set(['desert', 'mountain', 'mountains', 'castle', 'farm', 'barn']);
+const BACKDROP_WORDS = new Set(['desert', 'mountain', 'mountains', 'castle', 'farm', 'barn', 'board']);
+// Words written on the board: 'the board says "2 + 2 = 4"', 'writes "Hello" on the board'
+const BOARD = '(?:chalkboard|blackboard|whiteboard|board)';
+const BOARD_SAYS = new RegExp(`\\b${BOARD}\\b(?:\\s+(?:that|which))?(?:\\s+(?:says|said|reads|shows|showing|with))?\\s*[:,]?\\s*["“]([^"”“]{1,60})["”]`, 'i');
+const ON_BOARD = new RegExp(`["“]([^"”“]{1,60})["”]\\s+(?:on|onto)\\s+(?:the\\s+|a\\s+)?${BOARD}\\b`, 'i');
 import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/render.js';
 import { getConcept } from './concepts/index.js';
 import { parseTimeline, extractCamera, editTimeline, lookRelations, speechRelations } from './timeline.js';
@@ -59,6 +63,13 @@ export function generate(text, opts = {}) {
   // studio): its key in the prompt sets the scene's backdrop ("Tom waves in pgp1"), src/places.js
   const taken = takePlace(text, placeKeys(opts.places));
   text = taken.text;
+  // Words on the board are written there, not said by anyone (the quote leaves the prompt)
+  let boardText = null;
+  const onBoard = text.match(BOARD_SAYS) || text.match(ON_BOARD);
+  if (onBoard) {
+    boardText = onBoard[1].trim();
+    text = text.replace(onBoard[0], onBoard[0].replace(/\s*[:,]?\s*["“][^"”“]*["”]/, '')).replace(/\s+(?:says|said|reads|shows|showing)\b(?=\s*$|\s*[,.])/i, '').replace(/\s{2,}/g, ' ').trim();
+  }
   // Named individuals (opts.individuals: [{ key: 'pgc1', base: 'boy', look? }], see src/individuals.js):
   // in a scene or a comic strip each is its own figure ("boy~pgc1") with its own look, the same
   // every time; elsewhere (icons, diagrams...) simply its kind
@@ -176,7 +187,7 @@ export function generate(text, opts = {}) {
     if (timeline) timeline.caption = caption;
     // Colours carried over from earlier scenes of a clip (composeStory): figure id -> colour
     const carry = opts.carry && typeof opts.carry === 'object' ? opts.carry : undefined;
-    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption, carry, ...(taken.setting ? { setting: taken.setting } : {}) };
+    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption, carry, ...(taken.setting ? { setting: taken.setting } : {}), ...(boardText ? { boardText } : {}) };
     svg = composeScene(matches, sceneOpts);
     if (sceneOpts.speechDuration) common.duration = Math.max(common.duration ?? 0, sceneOpts.speechDuration);
     if (camera?.duration) common.duration = Math.max(common.duration ?? 0, camera.duration);

@@ -22,7 +22,7 @@ export const ENV_WORDS = {
   rain: ['rain', 'raining', 'rainy', 'storm', 'stormy', 'thunder', 'cloudy'],
   water: ['sea', 'ocean', 'lake', 'river', 'beach', 'pond', 'swim', 'swimming', 'sail', 'sailing', 'water', 'island', 'boat'],
   beach: ['beach', 'sand', 'island', 'shore'],
-  room: ['room', 'office', 'indoor', 'inside', 'indoors', 'studio', 'classroom', 'school', 'lesson', 'kitchen', 'bedroom', 'desk', 'home'],
+  room: ['room', 'office', 'indoor', 'inside', 'indoors', 'studio', 'classroom', 'school', 'lesson', 'kitchen', 'bedroom', 'desk', 'home', 'board', 'chalkboard', 'blackboard', 'whiteboard'],
   forest: ['forest', 'woods', 'park', 'nature', 'jungle', 'garden'],
   city: ['city', 'town', 'downtown', 'skyline', 'skyscraper', 'skyscrapers', 'building', 'buildings', 'urban', 'street'],
   parallax: ['walk', 'walking', 'run', 'running', 'jog', 'jogging', 'stroll', 'across', 'drive', 'driving', 'road', 'street', 'cartoon', 'parallax', 'zeichentrick'],
@@ -31,6 +31,8 @@ export const ENV_WORDS = {
 };
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+// The board on a classroom's wall ("points at the board", "a whiteboard")
+const BOARD_WORDS = ['board', 'chalkboard', 'blackboard', 'whiteboard'];
 
 function detectEnv(items, words) {
   const w = new Set(words);
@@ -48,7 +50,7 @@ function detectEnv(items, words) {
   const forest = any('forest') || tags.has('plant') || ids.has('tree');
   // Which room: a classroom, an office, a kitchen, a bedroom, or just a room
   const roomKind = !room ? null
-    : w.has('classroom') || w.has('school') || w.has('lesson') ? 'classroom'
+    : w.has('classroom') || w.has('school') || w.has('lesson') || BOARD_WORDS.some((b) => w.has(b)) ? 'classroom'
       : w.has('office') || w.has('desk') ? 'office'
         : w.has('kitchen') ? 'kitchen'
           : w.has('bedroom') || ids.has('bed') ? 'bedroom' : 'room';
@@ -61,6 +63,8 @@ function detectEnv(items, words) {
     beach: any('beach'),
     room,
     roomKind,
+    // (a whiteboard instead of the chalkboard, when the words say so)
+    ...(w.has('whiteboard') ? { whiteboard: true } : {}),
     forest,
     // A place named: trees along the horizon (a park, a forest), buildings (a city)
     woods: any('forest') && !places.jungle,
@@ -152,15 +156,22 @@ function roomDecor(d, env, W, H, wall, floor) {
       for (let wy = y + h - bh + 4; wy < y + h - 4; wy += 7) d.rect(bx + 3, wy, w / n - 8, 2.5, { ...bg, fill: env.night ? '#ffe082' : tone('#e3f2fd', 0.1) });
     }
   };
-  switch (env.roomKind) {
-    case 'classroom': {
-      // A chalkboard with a sum and letters on it, a tray of chalk, a clock, an alphabet strip
-      const bx = W * 0.24, by = H * 0.1, bw = W * 0.52, bh = H * 0.3;
-      d.rect(bx - 6, by - 6, bw + 12, bh + 12, { ...bg, fill: tone('#a1683a', 0.15), rx: 3 });
-      d.rect(bx, by, bw, bh, { ...bg, fill: '#2f5d46' });
-      const chalk = { kind: 'line', stroke: '#f1f5f9', sw: 2.4 };
+  // The board: a chalkboard (or a whiteboard) with "1 + 2 = 3" and a line of writing, or the words
+  // the prompt or the place asks for (env.boardText)
+  const board = (bx, by, bw, bh) => {
+    const white = env.whiteboard || env.roomCustom?.board === 'white';
+    d.rect(bx - 6, by - 6, bw + 12, bh + 12, { ...bg, fill: white ? tone('#b0bec5', 0.15) : tone('#a1683a', 0.15), rx: 3 });
+    d.rect(bx, by, bw, bh, { ...bg, fill: white ? '#fcfdfe' : '#2f5d46' });
+    const chalk = { kind: 'line', stroke: white ? '#1565c0' : '#f1f5f9', sw: 2.4 };
+    const u = bh / 6, cx0 = bx + bw * 0.12, cy0 = by + bh * 0.3;
+    if (env.boardText) {
+      // (the words, as big as fit: one or two lines)
+      const words = String(env.boardText).slice(0, 60), lines = words.length > 22 ? splitBoard(words) : [words];
+      const size = Math.min(bh * (lines.length > 1 ? 0.26 : 0.36), (bw * 0.9) / Math.max(...lines.map((l) => l.length)) * 1.7);
+      const ys = lines.length > 1 ? [by + bh * 0.42, by + bh * 0.76] : [by + bh * 0.6];
+      lines.forEach((l, i) => d.raw(`<text x="${r2(bx + bw / 2)}" y="${r2(ys[i])}" text-anchor="middle" font-family="${BOARD_FONT}" font-size="${r2(size)}" font-weight="700" fill="${white ? '#1565c0' : '#f1f5f9'}">${esc(l)}</text>`, { kind: 'detail' }));
+    } else {
       // "1 + 2 = 3" in chalk strokes, and a wavy line of "writing"
-      const u = bh / 6, cx0 = bx + bw * 0.12, cy0 = by + bh * 0.3;
       d.line(cx0, cy0 - u, cx0, cy0 + u, chalk);
       d.line(cx0 + u * 1.2, cy0, cx0 + u * 2.6, cy0, chalk); d.line(cx0 + u * 1.9, cy0 - u * 0.7, cx0 + u * 1.9, cy0 + u * 0.7, chalk);
       d.path(`M ${cx0 + u * 3.2} ${cy0 - u * 0.6} Q ${cx0 + u * 4.2} ${cy0 - u * 1.5} ${cx0 + u * 4.2} ${cy0 - u * 0.3} L ${cx0 + u * 3.2} ${cy0 + u} L ${cx0 + u * 4.4} ${cy0 + u}`, { ...chalk, fill: 'none' });
@@ -169,16 +180,61 @@ function roomDecor(d, env, W, H, wall, floor) {
       let wave = `M ${bx + bw * 0.12} ${by + bh * 0.72}`;
       for (let x = bx + bw * 0.12; x < bx + bw * 0.8; x += u) wave += ` q ${u / 4} ${-u / 2} ${u / 2} 0 t ${u / 2} 0`;
       d.path(wave, { ...chalk, sw: 1.8, fill: 'none', opacity: 0.8 });
-      d.rect(bx, by + bh + 6, bw, 5, { ...bg, fill: tone('#8d5a2b', 0.15) });
-      d.rect(bx + bw * 0.7, by + bh + 3, bw * 0.06, 3, { ...bg, fill: '#ffffff' });
+    }
+    d.rect(bx, by + bh + 6, bw, 5, { ...bg, fill: tone(white ? '#90a4ae' : '#8d5a2b', 0.15) });
+    d.rect(bx + bw * 0.7, by + bh + 3, bw * 0.06, 3, { ...bg, fill: white ? '#e53935' : '#ffffff' });
+  };
+  const bunting = () => {
+    const flags = ['#ef5350', '#ffca28', '#66bb6a', '#42a5f5', '#ab47bc'];
+    for (let i = 0; i < 5; i++) {
+      const fx = W * 0.03 + i * W * 0.035;
+      d.poly([[fx, H * 0.08], [fx + W * 0.03, H * 0.08], [fx + W * 0.015, H * 0.15]], { ...bg, fill: tone(flags[i], 0.15) });
+    }
+    d.line(W * 0.02, H * 0.08, W * 0.22, H * 0.08, { ...edge, sw: 1.5 });
+  };
+  const worldMap = (x, y, w, h) => frame(x, y, w, h, (fx, fy, fw, fh) => {
+    d.rect(fx, fy, fw, fh, { ...bg, fill: tone('#81d4fa', 0.15) });
+    for (const [px, py, rx, ry] of [[0.22, 0.38, 0.14, 0.2], [0.3, 0.72, 0.08, 0.16], [0.55, 0.35, 0.12, 0.16], [0.58, 0.68, 0.08, 0.14], [0.8, 0.45, 0.14, 0.18]]) d.ellipse(fx + fw * px, fy + fh * py, fw * rx, fh * ry, { ...bg, fill: tone('#81c784', 0.15) });
+  });
+  const shelf = (sx, sy, sw) => {
+    d.rect(sx, sy, sw, 5, { ...bg, fill: tone('#8d6e63', 0.15) });
+    ['#5c6bc0', '#26a69a', '#ffa726', '#ec407a', '#78909c'].forEach((c, i) => d.rect(sx + 6 + i * sw * 0.13, sy - H * 0.1 + (i % 2) * 4, sw * 0.1, H * 0.1 - (i % 2) * 4, { ...bg, fill: tone(c, 0.2) }));
+  };
+  const plant = (x) => {
+    d.rect(x - W * 0.03, floorY - H * 0.08, W * 0.06, H * 0.08, { ...bg, fill: tone('#8d6e63', 0.15) });
+    for (const [dx, dy] of [[-0.03, -0.17], [0, -0.21], [0.03, -0.16], [-0.015, -0.12], [0.02, -0.11]]) d.ellipse(x + W * dx, floorY + H * dy, W * 0.022, H * 0.05, { ...bg, fill: tone('#43a047', 0.15) });
+  };
+  const lamp = (x) => {
+    d.line(x, floorY, x, floorY - H * 0.36, { ...edge, sw: 2.5 });
+    d.path(`M ${x - W * 0.035} ${floorY - H * 0.36} L ${x + W * 0.035} ${floorY - H * 0.36} L ${x + W * 0.022} ${floorY - H * 0.45} L ${x - W * 0.022} ${floorY - H * 0.45} Z`, { ...bg, fill: tone('#ffe082', 0.15) });
+    d.ellipse(x, floorY, W * 0.025, H * 0.01, { ...bg, fill: ink });
+  };
+  // A room made in the studio: the things picked, each in its place on the wall or the floor
+  if (env.roomCustom?.things) {
+    const x = env.roomCustom.things;
+    if (x.has('board')) board(W * 0.27, H * 0.1, W * 0.46, H * 0.28);
+    if (x.has('bunting')) bunting();
+    const walls = ['window', 'map', 'poster'].filter((t) => x.has(t));
+    const at = [[W * 0.05, H * 0.2, W * 0.16, H * 0.22], [W * 0.79, H * 0.14, W * 0.15, H * 0.2]];
+    walls.slice(0, 2).forEach((t, i) => {
+      const [fx, fy, fw, fh] = at[i];
+      if (t === 'window') windowAt(fx + 4, fy + 4, fw - 8, fh - 8, env.night ? (wx, wy, ww, wh) => d.circle(wx + ww * 0.7, wy + wh * 0.3, Math.min(ww, wh) * 0.12, { ...bg, fill: '#fff59d' }) : hills);
+      else if (t === 'map') worldMap(fx, fy, fw, fh);
+      else frame(fx, fy, fw, fh, hills);
+    });
+    const rightUsed = walls.length > 1;
+    if (x.has('clock')) clock(rightUsed ? W * 0.76 : W * 0.88, rightUsed ? H * 0.47 : H * 0.17, Math.min(W, H) * 0.05);
+    if (x.has('shelf')) shelf(W * 0.8, rightUsed ? H * 0.5 : H * 0.34, W * 0.16);
+    if (x.has('plant')) plant(W * 0.95);
+    if (x.has('lamp')) lamp(W * 0.04);
+    return;
+  }
+  switch (env.roomKind) {
+    case 'classroom': {
+      // A board with a sum (or the words asked for), a tray of chalk, a clock, an alphabet strip
+      board(W * 0.24, H * 0.1, W * 0.52, H * 0.3);
       clock(W * 0.88, H * 0.17, Math.min(W, H) * 0.06);
-      // Alphabet bunting along the top of the left wall
-      const flags = ['#ef5350', '#ffca28', '#66bb6a', '#42a5f5', '#ab47bc'];
-      for (let i = 0; i < 5; i++) {
-        const fx = W * 0.03 + i * W * 0.035;
-        d.poly([[fx, H * 0.08], [fx + W * 0.03, H * 0.08], [fx + W * 0.015, H * 0.15]], { ...bg, fill: tone(flags[i], 0.15) });
-      }
-      d.line(W * 0.02, H * 0.08, W * 0.22, H * 0.08, { ...edge, sw: 1.5 });
+      bunting();
       break;
     }
     case 'office': {
@@ -243,6 +299,16 @@ function roomDecor(d, env, W, H, wall, floor) {
   }
   void floor;
 }
+
+// The board's words in two lines, split at the space nearest the middle
+function splitBoard(text) {
+  const mid = text.length / 2;
+  let best = -1;
+  for (let i = 0; i < text.length; i++) if (text[i] === ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
+  return best < 0 ? [text] : [text.slice(0, best), text.slice(best + 1)];
+}
+// Hand-written looking, where the system has one; Nunito otherwise
+const BOARD_FONT = "'Comic Sans MS','Chalkboard SE','Segoe Print','Nunito',sans-serif";
 
 // How dark a color is, 0 (white) .. 1 (black)
 function darkness(hex) {
@@ -366,7 +432,9 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
   // Indoors (styles with their own backdrop above keep it)
   if (env.room) {
     // A wall, a floor and a baseboard line, in the style's own colors
-    const [wallColor, floorColor] = ROOM_COLORS[style] ?? ['#f8fafc', '#f1f5f9'];
+    // (a room made in the studio has its own wall and floor colours)
+    const [wallColor, floorColor] = [env.roomCustom?.wall, env.roomCustom?.floor].every(Boolean) ? [env.roomCustom.wall, env.roomCustom.floor]
+      : [env.roomCustom?.wall ?? (ROOM_COLORS[style] ?? ['#f8fafc', '#f1f5f9'])[0], env.roomCustom?.floor ?? (ROOM_COLORS[style] ?? ['#f8fafc', '#f1f5f9'])[1]];
     d.rect(0, 0, W, H, { ...bg, fill: wallColor });
     d.rect(0, H * 0.88, W, H * 0.12, { ...bg, fill: floorColor });
     d.group({ class: `pg-place pg-place-${env.roomKind}` }, () => roomDecor(d, env, W, H, wallColor, floorColor));
@@ -1002,6 +1070,8 @@ export function composeScene(matches, opts = {}) {
 
   // (one of "your places", made in the studio: opts.setting, src/places.js)
   const env = opts.setting ? applySetting(detectEnv(items, words), opts.setting) : detectEnv(items, words);
+  // (words on the board: from the prompt, else from the place made in the studio)
+  if (opts.boardText || env.roomCustom?.boardText) env.boardText = opts.boardText || env.roomCustom.boardText;
   // A figure walking toward or away from the camera, or a timeline where actors walk and stop:
   // the ground must not scroll sideways under them.
   if (timeline || items.some((it) => ['approach', 'recede'].includes(it.m.animation))) env.parallax = false;

@@ -37,7 +37,11 @@ export const PLACE_CHOICES = {
   time: ['day', 'sunset', 'night'],
   weather: ['clear', 'rain', 'snow', 'autumn'],
   extras: ['mountains', 'castle', 'stars', 'shooting', 'clouds', 'fireflies', 'bubbles', 'leaves', 'butterflies'],
+  // a room's things, on the wall and the floor; its board: a chalkboard or a whiteboard
+  things: ['board', 'window', 'clock', 'shelf', 'plant', 'map', 'poster', 'bunting', 'lamp'],
+  board: ['chalk', 'white'],
 };
+const HEX = /^#[0-9a-f]{6}$/i;
 const ROOMS = new Set(['classroom', 'office', 'kitchen', 'bedroom', 'room']);
 // (place flags that pick the backdrop; a setting turns all of them off first)
 const PLACE_FLAGS = ['room', 'water', 'beach', 'woods', 'park', 'city', 'space', 'underwater', 'desert', 'farm', 'jungle', 'mountains', 'castle'];
@@ -47,7 +51,14 @@ export function cleanPlace(p) {
   if (!p || typeof p !== 'object') return null;
   const one = (k, d) => (PLACE_CHOICES[k].includes(p[k]) ? p[k] : d);
   const extras = Array.isArray(p.extras) ? [...new Set(p.extras.filter((x) => PLACE_CHOICES.extras.includes(x)))] : [];
-  return { place: one('place', 'meadow'), time: one('time', 'day'), weather: one('weather', 'clear'), extras };
+  // (a room's own colours, things and board)
+  const room = {};
+  if (HEX.test(p.wall ?? '')) room.wall = p.wall;
+  if (HEX.test(p.floor ?? '')) room.floor = p.floor;
+  if (Array.isArray(p.things)) room.things = [...new Set(p.things.filter((x) => PLACE_CHOICES.things.includes(x)))];
+  if (PLACE_CHOICES.board.includes(p.board)) room.board = p.board;
+  if (typeof p.boardText === 'string' && p.boardText.trim()) room.boardText = p.boardText.trim().slice(0, 60);
+  return { place: one('place', 'meadow'), time: one('time', 'day'), weather: one('weather', 'clear'), extras, ...room };
 }
 
 /** opts.places -> Map key -> place (keys "pgp1".."pgp99", at most 24) */
@@ -87,7 +98,11 @@ export function applySetting(env, setting) {
   for (const f of PLACE_FLAGS) out[f] = false;
   out.roomKind = null;
   const p = s.place;
-  if (ROOMS.has(p)) { out.room = true; out.roomKind = p; }
+  if (ROOMS.has(p)) {
+    out.room = true; out.roomKind = p;
+    // (its own colours, things and board: src/scene.js roomDecor)
+    if (s.wall || s.floor || s.things || s.board || s.boardText) out.roomCustom = { wall: s.wall, floor: s.floor, board: s.board, boardText: s.boardText, ...(s.things ? { things: new Set(s.things) } : {}) };
+  }
   else if (p === 'forest') out.woods = true;
   else if (p === 'beach') { out.water = true; out.beach = true; }
   else if (p === 'sea') out.water = true;

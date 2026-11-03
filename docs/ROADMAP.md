@@ -117,6 +117,8 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       weather and things in it (mountains or a castle behind, clouds drifting, twinkling stars, a
       shooting star, fireflies, butterflies, bubbles, falling leaves), name it ("Grandma's farm") and
       use the name in prompts and stories; the engine gets a key ("pgp1") and what it is made of
+- [x] The classroom's board ("the board", a whiteboard) with words on it from the prompt; rooms made in
+      "Your places" with their own walls, floor, things and board
 - [ ] Time-of-day and weather changes inside a clip (sunset falls, rain starts)
 - [ ] Props that react: trees sway in wind, water ripples around a swimmer
 

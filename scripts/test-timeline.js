@@ -555,6 +555,20 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check(stick('man', { view: 'side' }) !== stick('man', { view: 'side', expression: 'sad' }) && stick('man', { view: 'side', expression: 'laugh' }) !== stick('man', { view: 'side' }), 'its profile shows feelings');
 }
 
+// 2i-o. The classroom's board (not a film clapperboard), words on it, rooms made in the studio
+{
+  const textOn = (svg) => (svg.match(/<text[^>]*>([^<]*)<\/text>/) || [])[1];
+  const a = generate('a teacher points at the board');
+  check(/pg-place-classroom/.test(a.svg) && !a.matches.some((m) => /clapper/.test(m.id)), '"the board" is the classroom\'s board, not a clapperboard');
+  const b = generate('a teacher points at the board that says "2 + 2 = 4"');
+  check(textOn(b.svg) === '2 + 2 = 4' && !/data-lips/.test(b.svg), 'words on the board are written there, not said');
+  check(textOn(generate('a girl writes "Hello class!" on the whiteboard').svg) === 'Hello class!' && /#fcfdfe/.test(generate('a whiteboard').svg), '"writes ... on the whiteboard": a whiteboard with the words');
+  const places = [{ key: 'pgp1', place: 'classroom', wall: '#e3f2fd', floor: '#b0bec5', board: 'white', boardText: 'Photosynthesis', things: ['board', 'map', 'plant', 'nonsense'] }];
+  const c = generate('a teacher explains in pgp1', { places });
+  check(textOn(c.svg) === 'Photosynthesis' && /#e3f2fd/i.test(c.svg) && /#b0bec5/i.test(c.svg) && !wellFormedError(c.svg), 'a room made in the studio: its walls, floor, things and board text');
+  check(textOn(generate('a teacher points at the board that says "Hi" in pgp1', { places }).svg) === 'Hi', 'the prompt\'s words on the board win over the place\'s');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

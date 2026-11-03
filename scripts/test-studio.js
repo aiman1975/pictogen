@@ -507,6 +507,20 @@ try {
   });
   check(farm.farm && farm.hills && farm.flies > 5 && farm.girl, `"a girl waves at Grandma's farm": the girl at the farm made here, mountains behind, fireflies (${JSON.stringify(farm)})`);
   check(sent.slice(sentPlace).every((body) => !body.includes('Grandma')) && sent.slice(sentPlace).some((body) => body.includes('pgp1')), 'the place\'s name never reaches the engine (only "pgp1")');
+  // A room of one's own: blue walls, a whiteboard with words, a map and a plant
+  await page.click('#places-panel [data-do="new"]');
+  await page.fill('.face-name', 'Biology room');
+  await page.click('.char-chip[data-key="place"][data-value="classroom"]');
+  await page.click('.char-swatch[data-key="wall"][data-colour="#e3f2fd"]');
+  await page.click('.char-chip[data-key="board"][data-value="white"]');
+  await page.click('.char-chip[data-key="things"][data-value="map"]');
+  await page.fill('.place-board', 'Photosynthesis');
+  await page.click('.face-modal [data-do="save"]');
+  await page.waitForSelector('.face-modal', { state: 'detached' });
+  await draw('a teacher explains in Biology room');
+  check(await page.evaluate(() => document.querySelector('#svg-viewport svg text')?.textContent === 'Photosynthesis' && document.querySelector('#svg-viewport svg').innerHTML.toLowerCase().includes('#e3f2fd')),
+    'a room made here: its own walls, a whiteboard with the words asked for');
+  await page.click('#places-panel [data-remove="1"]');
   await page.click('#places-panel [data-remove="0"]');
   check(!(await page.evaluate(() => window.pictogenPlaces.list().length)), 'a place can be removed');
 
