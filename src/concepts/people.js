@@ -407,6 +407,12 @@ export function drawProfileFace(d, p, cx, cy, r) {
   }
 
   d.group({ class: 'pg-face-eyes' }, () => {
+    // (refreshed: the eye's white and a coloured iris behind its pupil)
+    if (fresh(p) && !['laugh', 'laughing', 'wink', 'winking'].includes(expr)) {
+      const big = ['surprised', 'shocked'].includes(expr) ? 1.15 : 1, dy = ['sad', 'crying', 'angry', 'mad', 'skeptical', 'suspicious'].includes(expr) ? 0.4 : 0;
+      d.ellipse(ex + 0.3, ey + dy, 2.7 * big, 3.2 * big, { fill: '#ffffff', kind: 'detail', stroke: INK, sw: 0.6 });
+      d.circle(ex + 0.5, ey + dy + 0.15, 2.4 * big, { fill: p.c('eye', '#7b5a43'), kind: 'accent' });
+    }
     switch (expr) {
       case 'laugh':
       case 'laughing':
@@ -591,7 +597,8 @@ function drawSidePerson(d, p, s) {
       d.rect(a.x, a.y, a.w, half + 2, { fill: shade(skin), rx: a.w / 2 });
       d.joint('pg-forearm', [a.x + a.w / 2, a.y + half], () => d.rect(a.x, a.y + half - 2, a.w, half + 2, { fill: shade(skin), rx: a.w / 2 }));
     }
-    if (s.arm.sleeve) d.rect(a.x - 0.5, a.y - 1, a.w + 1, 10, { fill: shade(main), rx: 3 });
+    // (a sleeve; refreshed, the man's and the woman's shirts have short sleeves too)
+    if (s.arm.sleeve || (fresh(p) && (s.role === 'man' || s.role === 'woman'))) d.rect(a.x - 0.5, a.y - 1, a.w + 1, s.arm.sleeve ? 10 : 9.5, { fill: shade(main), rx: 3 });
   };
   // Thigh and shin with the shoe, bending at the knee as the leg swings through
   const leg = (shade) => {
@@ -600,6 +607,7 @@ function drawSidePerson(d, p, s) {
     d.joint('pg-shin', [l.x + l.w / 2, l.y + half], () => {
       d.rect(l.x, l.y + half - 1, l.w, half + 1, { fill: shade(legFill), rx: l.rx ?? 2 });
       d.ellipse(s.shoe.x, s.shoe.y, s.shoe.rx, s.shoe.ry, { fill: shade(p.c('shoe')) });
+      if (fresh(p)) sole(d, s.shoe.x, s.shoe.y, s.shoe.rx, s.shoe.ry, shade(p.c('shoe')));
     });
   };
   // Limbs turn at the shoulder and hip (fixed pivots: a bending knee must not move the hip)
@@ -623,12 +631,23 @@ function drawSidePerson(d, p, s) {
       d.rect(...s.neck, { fill: skin });
       if (s.torso.poly) d.poly(s.torso.poly, { fill: main, kind: 'body' });
       else d.path(s.torso.path, { fill: main });
+      if (fresh(p)) {
+        // (refreshed: a collar at the neck, a belt or a sash, the back in soft shade)
+        const [x0, y0, x1, y1] = g.torso, [nx, , nw] = s.neck;
+        d.path(`M${nx - 1} ${y0 + 0.4} Q${nx + nw / 2} ${y0 + 2.8} ${nx + nw + 1.5} ${y0 + 0.4}`, freshLine(darken(main, 0.28), 1.4));
+        if (s.role === 'man') d.rect(x0 + 0.6, y1 - 3.4, x1 - x0 - 1.6, 3.2, { fill: '#3e2723', kind: 'accent' });
+        if (s.role === 'girl') d.rect(x0 + 3.6, 54.6, x1 - x0 - 7.6, 2.6, { fill: darken(main, 0.15), kind: 'accent' });
+        if (s.role === 'boy') d.line(x0 + 0.5, y1 - 2.5, x1 - 0.5, y1 - 2.5, freshLine(darken(main, 0.18), 0.9));
+        // (a dress widens below: no straight shading down its back)
+        if (!s.torso.poly) shading(d, `M${x0} ${y0 + 1} L${x0 + 4} ${y0 + 1} L${x0 + 4} ${y1} L${x0 + 1} ${y1} Z`);
+      }
       dress(p, 'body', d, g);
       d.joint('pg-head', [cx, cy + r], () => {
         if (s.hairBehind) d.path(s.hairBehind, { fill: hair, kind: 'body' });
         d.circle(cx + r - 0.6, cy + 2.5, 2.4, { fill: skin }); // nose: behind the head so only its tip shows
         d.circle(cx, cy, r, { fill: skin });
         d.path(s.hair, { fill: hair, kind: 'body' });
+        if (fresh(p)) hairShine(d, p, `M${cx - 8} ${cy - r + 5.5} Q${cx - 2} ${cy - r + 1.6} ${cx + 4} ${cy - r + 2.6}`);
         if (isAnime(p)) drawAnimeHair(d, p, s.role, cx, cy, r, 'side');
         if (s.ear) {
           d.circle(s.ear[0], s.ear[1], s.ear[2], { fill: darken(skin, 0.08), kind: 'accent' });
@@ -688,16 +707,19 @@ const SIDE = {
  * Wraps eyes in .pg-face-eyes and mouth in .pg-face-mouth for CSS animation compatibility.
  */
 function drawMinimalFace(d, cx, cy, expr, strokeColor = '#000000', p = null) {
+  // (the refreshed stickman's eyes are a little taller: friendlier, still plain)
+  const tall = p && p.opts.style === 'stickman' && fresh(p);
+  const dotEye = (x, y, r, o) => (tall ? d.ellipse(x, y, r * 0.9, r * 1.25, o) : d.circle(x, y, r, o));
   d.group(p && gazeShift(p), () => d.group({ class: 'pg-face-eyes' }, () => {
     if (expr === 'laugh' || expr === 'laughing') {
       d.path(`M${cx - 8} ${cy} Q${cx - 5.5} ${cy - 4} ${cx - 3} ${cy}`, { stroke: strokeColor, sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
       d.path(`M${cx + 3} ${cy} Q${cx + 5.5} ${cy - 4} ${cx + 8} ${cy}`, { stroke: strokeColor, sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
     } else if (expr === 'wink' || expr === 'winking') {
-      d.circle(cx - 6, cy, 2.2, { fill: strokeColor, kind: 'detail' });
+      dotEye(cx - 6, cy, 2.2, { fill: strokeColor, kind: 'detail' });
       d.path(`M${cx + 3} ${cy} Q${cx + 6} ${cy + 3} ${cx + 9} ${cy}`, { stroke: strokeColor, sw: 2.2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
     } else {
-      d.circle(cx - 6, cy, expr === 'surprised' || expr === 'shocked' ? 2.8 : 2.2, { fill: strokeColor, kind: 'detail' });
-      d.circle(cx + 6, cy, expr === 'surprised' || expr === 'shocked' ? 2.8 : 2.2, { fill: strokeColor, kind: 'detail' });
+      dotEye(cx - 6, cy, expr === 'surprised' || expr === 'shocked' ? 2.8 : 2.2, { fill: strokeColor, kind: 'detail' });
+      dotEye(cx + 6, cy, expr === 'surprised' || expr === 'shocked' ? 2.8 : 2.2, { fill: strokeColor, kind: 'detail' });
       if (expr === 'angry' || expr === 'mad') {
         d.line(cx - 9, cy - 5, cx - 3, cy - 2.5, { stroke: strokeColor, sw: 2.2, strokeLinecap: 'round', kind: 'line' });
         d.line(cx + 9, cy - 5, cx + 3, cy - 2.5, { stroke: strokeColor, sw: 2.2, strokeLinecap: 'round', kind: 'line' });
@@ -739,6 +761,30 @@ function drawMinimalFace(d, cx, cy, expr, strokeColor = '#000000', p = null) {
   });
 }
 
+/** The stickman's face seen from the side: one eye near the front of the head, a mouth below it */
+function drawMinimalProfile(d, p, cx, cy, expr, ink = '#000000') {
+  const L = (sw = 2.2) => ({ stroke: ink, sw, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+  const ex = cx + 1, ey = cy, mx = cx + 3.5, my = cy + 8;
+  const big = ['surprised', 'shocked'].includes(expr);
+  d.group(gazeShift(p), () => d.group({ class: 'pg-face-eyes' }, () => {
+    if (['laugh', 'laughing'].includes(expr)) { d.path(`M${ex - 2.5} ${ey} Q${ex} ${ey - 3.5} ${ex + 2.5} ${ey}`, L()); return; }
+    if (['wink', 'winking'].includes(expr)) { d.path(`M${ex - 2.5} ${ey} Q${ex} ${ey + 3} ${ex + 2.5} ${ey}`, L()); return; }
+    d.ellipse(ex, ey, big ? 2.5 : 1.95, big ? 3.2 : 2.6, { fill: ink, kind: 'detail' });
+    if (['angry', 'mad'].includes(expr)) d.line(ex - 3, ey - 6.5, ex + 3, ey - 3.5, L());
+    else if (['sad', 'crying'].includes(expr)) d.line(ex - 3, ey - 3.8, ex + 3, ey - 6.2, L(2));
+    else if (big) d.path(`M${ex - 3} ${ey - 5} Q${ex} ${ey - 8} ${ex + 3} ${ey - 5}`, L(2));
+    else if (['confused', 'puzzled', 'skeptical', 'suspicious'].includes(expr)) d.line(ex - 3, ey - 5.5, ex + 3, ey - 4.5, L(2));
+  }));
+  d.group({ class: 'pg-face-mouth' }, () => {
+    if (['laugh', 'laughing'].includes(expr)) d.path(`M${mx - 4} ${my - 1.5} L${mx + 2.5} ${my - 1.5} Q${mx + 1} ${my + 4.5} ${mx - 4} ${my - 1.5} Z`, { fill: ink, stroke: ink, sw: 1, kind: 'detail' });
+    else if (['sad', 'crying'].includes(expr)) d.path(`M${mx - 4} ${my + 2} Q${mx - 1} ${my - 1.5} ${mx + 2} ${my + 1.5}`, L(2.4));
+    else if (big) d.circle(mx - 0.5, my, 2.4, { fill: ink, kind: 'detail' });
+    else if (['talking', 'speaking'].includes(expr)) d.ellipse(mx - 0.5, my, 2.8, 2, { fill: ink, kind: 'detail' });
+    else if (['angry', 'mad', 'skeptical', 'suspicious', 'neutral', 'calm'].includes(expr)) d.line(mx - 4, my + 0.5, mx + 2, my, L(2.4));
+    else d.path(`M${mx - 4} ${my - 0.5} Q${mx - 0.5} ${my + 3.5} ${mx + 2.5} ${my - 1.5}`, L(2.4));
+  });
+}
+
 // A costume's head things (a hat, glasses, a crown) on a stylized figure's head
 function dressHead(d, p, cx, cy, r, eye = cy) {
   if (!p.costume?.head) return;
@@ -755,23 +801,34 @@ export function drawStickPerson(d, p, role = 'boy') {
   const animClass = personRoot(p);
   const expr = p.opts.expression || p.expression || 'happy';
   const sw = 3.6;
+  // (refreshed: a real side view - a profile, legs one before the other - and shoe-shaped feet)
+  const side = fresh(p) && viewOf(p) === 'side';
+  const foot = (x, dir) => d.ellipse(x + dir * 2.6, 95.2, 4.4, 2.1, { fill: '#000000', kind: 'detail' });
 
   d.group({ class: animClass, style: idleStyle(p) }, () => {
     // Legs rigged with joint pivots
     d.group({ class: 'pg-leg-left' }, () => {
       if (anim === 'sit' || anim === 'sitting') {
         d.polyline([[50, 66], [40, 80], [30, 80]], { stroke: '#000000', sw, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+      } else if (side) {
+        d.line(50, 66, 45, 94, { stroke: '#000000', sw, strokeLinecap: 'round', kind: 'line' });
+        foot(45, 1);
       } else {
         d.line(50, 66, 38, 95, { stroke: '#000000', sw, strokeLinecap: 'round', kind: 'line' });
-        d.line(38, 95, 33, 95, { stroke: '#000000', sw: 3, strokeLinecap: 'round', kind: 'line' });
+        if (fresh(p)) foot(38, -1);
+        else d.line(38, 95, 33, 95, { stroke: '#000000', sw: 3, strokeLinecap: 'round', kind: 'line' });
       }
     });
     d.group({ class: 'pg-leg-right' }, () => {
       if (anim === 'sit' || anim === 'sitting') {
         d.polyline([[50, 66], [58, 80], [68, 80]], { stroke: '#000000', sw, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+      } else if (side) {
+        d.line(50, 66, 55, 94, { stroke: '#000000', sw, strokeLinecap: 'round', kind: 'line' });
+        foot(55, 1);
       } else {
         d.line(50, 66, 62, 95, { stroke: '#000000', sw, strokeLinecap: 'round', kind: 'line' });
-        d.line(62, 95, 67, 95, { stroke: '#000000', sw: 3, strokeLinecap: 'round', kind: 'line' });
+        if (fresh(p)) foot(62, 1);
+        else d.line(62, 95, 67, 95, { stroke: '#000000', sw: 3, strokeLinecap: 'round', kind: 'line' });
       }
     });
 
@@ -801,6 +858,10 @@ export function drawStickPerson(d, p, role = 'boy') {
       } else if (anim === 'think' || anim === 'thinking') {
         d.polyline([[50, 42], [36, 48], [42, 30]], { stroke: '#000000', sw: 3.4, strokeLinecap: 'round', fill: 'none', kind: 'line' });
         d.circle(42, 30, 2.8, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
+      } else if (side) {
+        // (mid-step: the near arm forward, the far one back)
+        d.line(50, 42, 59, 66, { stroke: '#000000', sw: 3.4, strokeLinecap: 'round', kind: 'line' });
+        d.circle(59, 66, 2.6, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
       } else {
         d.line(50, 42, 36, 72, { stroke: '#000000', sw: 3.4, strokeLinecap: 'round', kind: 'line' });
         d.circle(36, 72, 2.6, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
@@ -816,6 +877,9 @@ export function drawStickPerson(d, p, role = 'boy') {
       } else if (anim === 'dance' || anim === 'dancing') {
         d.polyline([[50, 42], [68, 56], [62, 68]], { stroke: '#000000', sw: 3.4, strokeLinecap: 'round', fill: 'none', kind: 'line' });
         d.circle(62, 68, 2.8, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
+      } else if (side) {
+        d.line(50, 42, 42, 66, { stroke: '#000000', sw: 3.4, strokeLinecap: 'round', kind: 'line' });
+        d.circle(42, 66, 2.6, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
       } else {
         d.line(50, 42, 64, 72, { stroke: '#000000', sw: 3.4, strokeLinecap: 'round', kind: 'line' });
         d.circle(64, 72, 2.6, { fill: '#ffffff', stroke: '#000000', sw: 2.2, kind: 'body' });
@@ -833,19 +897,21 @@ export function drawStickPerson(d, p, role = 'boy') {
         const ink = { stroke: '#000000', strokeLinecap: 'round', fill: 'none', kind: 'line' };
         if (role === 'girl') {
           d.path('M37 12 Q50 2 63 12', { ...ink, sw: 3.4 });
-          for (const sx of [-1, 1]) {
+          for (const sx of side ? [-1] : [-1, 1]) {
             d.path(`M${50 + sx * 14} 14 Q${50 + sx * 22} 12 ${50 + sx * 24} 22 Q${50 + sx * 20} 26 ${50 + sx * 15} 21`, { fill: '#000000', stroke: '#000000', sw: 1.6, kind: 'detail' });
           }
           d.path('M45 5 L50 8 L45 11 Z M55 5 L50 8 L55 11 Z', { fill: '#e11d48', stroke: '#000000', sw: 1.2, kind: 'accent' });
         } else if (role === 'woman') {
-          d.path('M35 22 Q33 6 50 4.5 Q67 6 65 22 Q67 32 70 38 M35 22 Q33 32 30 38', { ...ink, sw: 3.2 });
+          // (from the side the long hair falls only behind)
+          d.path(side ? 'M35 22 Q33 6 50 4.5 Q60 5 63.5 11.5 M35 22 Q33 32 30 38' : 'M35 22 Q33 6 50 4.5 Q67 6 65 22 Q67 32 70 38 M35 22 Q33 32 30 38', { ...ink, sw: 3.2 });
         } else if (role === 'man') {
           d.path('M36 14 Q40 4.5 52 4.5 Q62 5 65 13', { ...ink, sw: 4.2 });
         } else {
           d.path('M44 6 Q46 0.5 49 5 M49 5 Q52 -0.5 54 5.5 M54 5.5 Q58 2 58.5 7.5', { ...ink, sw: 2.6 });
         }
 
-        if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 18, expr, '#000000', p);
+        if (side) drawMinimalProfile(d, p, 56, 18, expr);
+        else if (!fromBehind(p)) drawMinimalFace(d, faceX(p), 18, expr, '#000000', p);
         dressHead(d, p, 50, 20, 15.5, 18);
       }, faceArea(p, 50, 20, 15.5));
     });

@@ -548,6 +548,11 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check(!svg('man', { refresh: true, features: { nose: 'pointy', hair: 'curly' } }).includes('pg-face-nose') && !svg('man', { refresh: true, features: { hair: 'curly' } }).includes('pg-hair-shine'), 'a chosen nose or hair style takes the drawn one\'s place');
   check(['teacher', 'king', 'knight', 'scientist'].every((id) => !wellFormedError(`<svg xmlns="http://www.w3.org/2000/svg">${svg(id, { refresh: true })}</svg>`)) && !wellFormedError(`<svg xmlns="http://www.w3.org/2000/svg">${svg('man', { refresh: true, features: { build: 'big', beard: 'long', gear: ['mask', 'tank'] } })}</svg>`),
     'costumes, bodies and things worn still fit, well-formed');
+  const side = (id, o = {}) => svg(id, { view: 'side', ...o });
+  check(['boy', 'girl', 'man', 'woman'].every((id) => side(id) !== side(id, { refresh: false }) && side(id).includes('pg-hair-shine')), 'the side view is refreshed too (an eye with a white, a shine in the hair, sleeves, soles)');
+  const stick = (id, o = {}) => shapesToSvg(drawConcept(id, { seed: 1, style: 'stickman', ...o }), 'stickman');
+  check(['boy', 'girl', 'man', 'woman'].every((id) => stick(id, { view: 'side' }) !== stick(id) && stick(id, { view: 'side' }) !== stick(id, { view: 'side', refresh: false })), 'the stickman has a real side view (a profile, legs one before the other)');
+  check(stick('man', { view: 'side' }) !== stick('man', { view: 'side', expression: 'sad' }) && stick('man', { view: 'side', expression: 'laugh' }) !== stick('man', { view: 'side' }), 'its profile shows feelings');
 }
 
 // 2j. Speech and lip-sync: quoted words, "says to", captions

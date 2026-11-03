@@ -153,7 +153,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       elephant can be ridden
 - [x] **The people refreshed** on the same skeleton (approved): eyes with whites and an iris, a nose,
       ears, a shine in the hair, collars, sleeves, a belt, soles, soft shading
-- [ ] The people's side view and the explainer styles' own figures in the refreshed look
+- [x] The people's side view refreshed (an eye with a white, a shine in the hair, sleeves, a belt or a
+      sash, soles), and the stickman: a real side view (a profile, legs one before the other, the arms
+      mid-step), shoe-shaped feet, taller eyes
+- [ ] Cute 2D, geometric, editorial and papercut figures: their own graphic looks, unchanged for now
 - [x] **Fantasy friends**: a unicorn with a rainbow mane (it can be ridden), a friendly furry
       monster, a little ghost that floats (`src/concepts/fantasy.js`), and a knight (armour, helmet,
       shield, wooden sword), a mermaid (a tail over the legs, under the sea) and a genie (a smoky
