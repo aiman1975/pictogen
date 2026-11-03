@@ -13,6 +13,7 @@ font, data file or dependency is added.
 | Scene sound: voices and effects | `src/sound.js`, `src/sound-synth.js` | MIT (`LICENSE`): synthesized in code, no recordings or samples | Yes | none beyond PictoGen's own | ✅ |
 | Kenney Interface Sounds 1.0 (23 effects: pop, jingle, ding, twinkle, blip, whoosh, whirl, plop, boing, bubble, blub) | `public/audio/pack/effects/` | CC0 1.0 (`public/audio/pack/licenses/kenney-interface-sounds.txt`) | Yes | None (credited in `THIRD_PARTY_NOTICES.md` as a courtesy) | ✅ |
 | Sound pack (recorded / generated audio) | `public/audio/pack/` | Per file, recorded in `manifest.json` (source, license, date) | Only files whose license allows it | Keep the generator's terms and the prompt for each file | ✅ checked by `npm run sound-pack -- check` and `npm test` (empty so far) |
+| Sea animals (octopus, sea turtle, seahorse, crab, whale, starfish) | `src/concepts/sea.js` | MIT (`LICENSE`): drawn in code | Yes | none beyond PictoGen's own | ✅ see below (7) |
 | Showcase narration audio | `public/audio/showcase-*.wav` | Recorded with the Windows "Microsoft Zira" desktop voice | **Unclear** | See below | ⚠️ decide before release |
 
 ## Findings and what was done
@@ -48,6 +49,14 @@ font, data file or dependency is added.
    note that purely AI-made sound is generally not protected by copyright in the US or EU (usable,
    but not exclusively ours). No imitation of real people's voices or of named artists. CC0
    files need no notice; anything else that requires attribution goes in `THIRD_PARTY_NOTICES.md`.
+
+7. **Figures drawn from AI reference pictures.** The sea animals were drawn by hand in code
+   (shapes, joints and motions written in `src/concepts/sea.js`) after looking at reference
+   pictures made once with Gemini (`gemini-3.1-flash-image`, Gemini API paid tier, 2026-11-03;
+   prompts: "a cute sea turtle / seahorse / red crab / blue whale / orange starfish / cartoon
+   octopus ... flat vector style, plain white background"). The pictures themselves are not part
+   of the product or the repository. Keep a copy of the Gemini API terms of that day with the
+   product's records.
 
 ## Rules for new material
 

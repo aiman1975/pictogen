@@ -487,6 +487,24 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check(/pg-gear-cape/.test(own) && /data-features="gear:cape"/.test(own), 'a character of your own wears what was picked for her (anything unknown left out)');
 }
 
+// 2i-k. Sea animals (src/concepts/sea.js): drawn in code from reference pictures, with moving parts
+{
+  const ids = (t) => parseText(t).matches.map((m) => m.id).join();
+  check(ids('an octopus, a sea turtle, a seahorse, a crab, a whale and a starfish') === 'octopus,sea_turtle,seahorse,crab,whale,starfish', 'six sea animals by name');
+  const parts = { octopus: 'pg-tentacle', sea_turtle: 'pg-arm-right', seahorse: 'pg-tail', crab: 'pg-claw-top', whale: 'pg-spout', starfish: 'pg-star-wiggle' };
+  check(Object.entries(parts).every(([id, cls]) => shapesToSvg(drawConcept(id, { seed: 1 }), 'flat').includes(cls)), 'each with its moving parts (tentacles, flippers, tail, snapping claws, spout, wiggle)');
+  const faces = ['happy', 'sad', 'laugh', 'surprised', 'sleepy', 'love'].map((e) => shapesToSvg(drawConcept('crab', { seed: 1, expression: e }), 'flat'));
+  check(new Set(faces).size === 6 && Object.keys(parts).every((id) => ['happy', 'love'].map((e) => shapesToSvg(drawConcept(id, { seed: 1, expression: e }), 'flat')).reduce((a, b) => a !== b)), 'they show feelings');
+  const sea = generate('an octopus, a crab and a starfish under the sea, then the octopus waves');
+  check(/pg-place-underwater/.test(sea.svg) && /data-id="octopus"/.test(sea.svg) && /pgTentacle/.test(sea.svg) && !wellFormedError(sea.svg), 'under the sea, moving, well-formed');
+  check(!/pg-place-underwater/.test(generate('a crab on the beach').svg.replace(/<style[\s\S]*?<\/style>/g, '')), 'a crab on the beach sits on the sand');
+  for (const style of ['cartoon', 'pixel', 'neon', 'sketch', 'watercolor']) {
+    const err = wellFormedError(generate('a whale, a seahorse and a sea turtle under the sea', { style }).svg);
+    if (err) check(false, `[${style}]: ${err}`);
+  }
+  check(true, 'well-formed in other styles');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

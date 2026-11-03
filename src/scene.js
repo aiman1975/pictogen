@@ -1386,8 +1386,17 @@ export function composeScene(matches, opts = {}) {
   const waterBottom = hasGround ? H * 0.84 : H;
   layoutRow(groups.water, W, (waterBottom - hY) * 1.2, rng);
   groups.water.forEach((it) => place(it, it.cx, hY + (waterBottom - hY) * 0.45));
-  layoutRow(groups.underwater, W, (waterBottom - hY) * 0.5, rng);
-  groups.underwater.forEach((it) => place(it, it.cx, hY + (waterBottom - hY) * (0.55 + rng() * 0.2), 'center'));
+  // (under the sea, the whole picture is water: sea animals are bigger and swim higher)
+  if (env.underwater) {
+    for (const it of groups.underwater) it.h *= 1.7;
+    layoutRow(groups.underwater, W, H * 0.42, rng);
+    // (above anyone standing on the seabed)
+    const standing = groups.front.length + groups.back.length > 0;
+    groups.underwater.forEach((it) => place(it, it.cx, standing ? H * (0.24 + rng() * 0.12) : H * (0.42 + rng() * 0.22), 'center'));
+  } else {
+    layoutRow(groups.underwater, W, (waterBottom - hY) * 0.5, rng);
+    groups.underwater.forEach((it) => place(it, it.cx, hY + (waterBottom - hY) * (0.55 + rng() * 0.2), 'center'));
+  }
 
   if (groups.front.length) {
     const front = groups.front;

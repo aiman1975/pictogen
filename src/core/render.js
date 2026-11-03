@@ -7,6 +7,7 @@ import { resolveColor, lighten } from './color.js';
 import { seatPose, reachPose } from '../poses.js';
 import { withFeatures, withBody } from '../looks.js';
 import { withGear, GEAR_CSS } from '../gear.js';
+import { SEA_CSS } from '../sea-motion.js';
 import { EMOTE_CSS } from '../emotes.js';
 import { PLACE_CSS } from '../places.js';
 import { getConcept } from '../concepts/index.js';
@@ -144,6 +145,7 @@ export const ANIMATION_CSS = `
 ${EMOTE_CSS}
 ${PLACE_CSS}
 ${GEAR_CSS}
+${SEA_CSS}
 /* Eye Blinking */
 @keyframes pgBlink {
   0%, 90%, 96%, 100% { transform: scaleY(1); }

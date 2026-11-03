@@ -147,6 +147,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] Story reader: a "How I read your story" panel (change a scene, keep a character), the captions
       read aloud with the browser's voice
 - [ ] Story reader: a larger evaluation set of real children's stories; narration in exported videos
+- [x] **Sea animals** (`src/concepts/sea.js`): an octopus (tentacles curl), a sea turtle (flippers
+      paddle), a seahorse (tail beats), a crab (claws snap, legs scuttle), a whale (its spout puffs)
+      and a starfish (it wiggles), drawn in code from Gemini reference pictures; every feeling and
+      style; bigger under the sea, swimming above whoever stands on the seabed
 - [x] **Character maker** (`src/looks.js`, `src/gear.js`): faces and hair, bodies and beards, and
       things to wear (a diving mask, goggles, a hard hat, a crown, a cap, headphones, a scarf, a tie,
       an air tank, a backpack, a cape, wings, flippers, boots) on any person, in every view and
