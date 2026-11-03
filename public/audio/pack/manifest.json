@@ -264,6 +264,330 @@
       "license": "Generated with the Gemini API (paid tier); Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
       "made": "2026-11-03",
       "notes": "prepared from music-sea.mp3 (30.73 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/aha-1.mp3",
+      "sound": "aha",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-aha-1.wav (0.71 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/aha-2.mp3",
+      "sound": "aha",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-aha-2.wav (0.73 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/aww-1.mp3",
+      "sound": "aww",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-aww-1.wav (0.93 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/giggle-1.mp3",
+      "sound": "giggle",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-giggle-1.wav (0.90 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/giggle-2.mp3",
+      "sound": "giggle",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-giggle-2.wav (0.42 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/hi-1.mp3",
+      "sound": "hi",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-hi-1.wav (0.34 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/hmm-1.mp3",
+      "sound": "hmm",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-hmm-1.wav (0.58 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/hmm-2.mp3",
+      "sound": "hmm",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-hmm-2.wav (1.20 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/hmph-1.mp3",
+      "sound": "hmph",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-hmph-1.wav (0.45 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/ooh-1.mp3",
+      "sound": "ooh",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-ooh-1.wav (0.38 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/ooh-2.mp3",
+      "sound": "ooh",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-ooh-2.wav (0.91 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/kid/yay-1.mp3",
+      "sound": "yay",
+      "voice": "kid",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from kid-yay-1.wav (0.66 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/aha-1.mp3",
+      "sound": "aha",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-aha-1.wav (0.76 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/aha-2.mp3",
+      "sound": "aha",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-aha-2.wav (0.51 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/aww-1.mp3",
+      "sound": "aww",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-aww-1.wav (1.16 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/giggle-1.mp3",
+      "sound": "giggle",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-giggle-1.wav (0.85 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/giggle-2.mp3",
+      "sound": "giggle",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-giggle-2.wav (0.92 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/hi-1.mp3",
+      "sound": "hi",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-hi-1.wav (0.68 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/hmm-1.mp3",
+      "sound": "hmm",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-hmm-1.wav (0.63 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/hmm-2.mp3",
+      "sound": "hmm",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-hmm-2.wav (1.12 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/hmph-1.mp3",
+      "sound": "hmph",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-hmph-1.wav (0.54 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/ooh-1.mp3",
+      "sound": "ooh",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-ooh-1.wav (0.64 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/ooh-2.mp3",
+      "sound": "ooh",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-ooh-2.wav (0.84 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/man/yay-1.mp3",
+      "sound": "yay",
+      "voice": "man",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from man-yay-1.wav (0.96 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/aha-1.mp3",
+      "sound": "aha",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-aha-1.wav (0.68 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/aha-2.mp3",
+      "sound": "aha",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-aha-2.wav (0.54 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/aww-1.mp3",
+      "sound": "aww",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-aww-1.wav (0.54 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/giggle-1.mp3",
+      "sound": "giggle",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-giggle-1.wav (1.52 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/giggle-2.mp3",
+      "sound": "giggle",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-giggle-2.wav (1.27 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/hi-1.mp3",
+      "sound": "hi",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-hi-1.wav (0.37 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/hmm-1.mp3",
+      "sound": "hmm",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-hmm-1.wav (0.77 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/hmm-2.mp3",
+      "sound": "hmm",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-hmm-2.wav (0.55 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/hmph-1.mp3",
+      "sound": "hmph",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-hmph-1.wav (0.18 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/ooh-1.mp3",
+      "sound": "ooh",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-ooh-1.wav (0.93 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/ooh-2.mp3",
+      "sound": "ooh",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-ooh-2.wav (1.31 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "voices/woman/yay-1.mp3",
+      "sound": "yay",
+      "voice": "woman",
+      "source": "Google Gemini TTS (gemini-3.8-flash-tts; prebuilt voices Leda and Zephyr raised 22% in pitch for children, Aoede, Kore, Charon, Puck) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; each clip checked for length and by listening with gemini-3.5-flash",
+      "license": "Generated with the Gemini API (paid tier); synthetic voices, no real person imitated; Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from woman-yay-1.wav (0.95 s after trimming silence, levelled, MP3)"
     }
   ]
 }
