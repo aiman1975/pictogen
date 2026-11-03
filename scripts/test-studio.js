@@ -370,6 +370,14 @@ try {
   await page.click('.char-chip[data-feature="hair"][data-value="curly"]');
   await page.click('.char-chip[data-feature="eyes"][data-value="big"]');
   await page.click('.char-chip[data-flag="freckles"]');
+  // ... and a cape and a crown to wear
+  await page.click('.char-wear summary');
+  await page.click('.char-chip[data-gear="cape"]');
+  await page.click('.char-chip[data-gear="crown"]');
+  await page.waitForFunction(() => document.querySelector('.char-preview .pg-gear-cape') && document.querySelector('.char-preview .pg-gear-crown'));
+  await page.click('.char-chip[data-gear="crown"]');
+  await page.waitForFunction(() => document.querySelector('.char-preview .pg-gear-cape') && !document.querySelector('.char-preview .pg-gear-crown'));
+  check(true, 'things to wear: a cape and a crown on, the crown off again (shown as picked)');
   await page.click('.face-modal [data-do="save"]');
   await page.waitForSelector('.face-modal', { state: 'detached' });
   await page.click('#characters-panel [data-do="new"]');
@@ -386,7 +394,11 @@ try {
     return { colors: el?.dataset.colors, yellow: !!el?.innerHTML.toLowerCase().includes('#fdd835'), rex: rex?.dataset.id, black: !!rex?.innerHTML.includes('#212121') };
   });
   check(/main:#fdd835 hair:#c8662b/.test(mia.colors ?? '') && mia.yellow && mia.rex === 'dog' && mia.black, `Mia wears her yellow dress and Rex is a black dog (${JSON.stringify(mia)})`);
-  check((await page.evaluate(() => document.querySelector('#svg-viewport [data-character="Mia"]').dataset.features)) === 'eyes:big hair:curly freckles:true', 'Mia has the curly hair, big eyes and freckles picked for her');
+  check((await page.evaluate(() => document.querySelector('#svg-viewport [data-character="Mia"]').dataset.features)) === 'eyes:big hair:curly freckles:true gear:cape', 'Mia has the curly hair, big eyes and freckles picked for her, and her cape');
+  await select('#svg-viewport .movable-item[data-character="Mia"]');
+  await clickExpression('sad');
+  check(await page.evaluate(() => { const m = document.querySelector('#svg-viewport .movable-item[data-character="Mia"]'); return !!m.querySelector('.pg-gear-cape') && m.innerHTML.includes('#4fc3f7'); }), 'turned sad, she still wears her cape');
+  await page.keyboard.press('Escape');
   check(sent.slice(sentBefore).every((body) => !body.includes('Mia') && !body.includes('Rex')), 'their names never reach the engine');
   await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="comic"]').click());
   await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'comic' && !document.getElementById('characters-panel').hidden);

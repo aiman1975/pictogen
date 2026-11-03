@@ -8,10 +8,12 @@
 //               cheeks: 'none'|'big', freckles: true, glasses: true,
 //               hair: 'short'|'spiky'|'curly'|'afro'|'pigtails'|'bun'|'ponytail'|'long'|'bob'|'bald',
 //               beard: 'stubble'|'short'|'long'|'moustache',
-//               build: 'slim'|'round'|'big', legs: 'short'|'long', arms: 'short'|'long', height: 'short'|'tall' }
+//               build: 'slim'|'round'|'big', legs: 'short'|'long', arms: 'short'|'long', height: 'short'|'tall',
+//               gear: ['mask', 'tank', 'flippers', ...] (things worn, src/gear.js) }
 // (height is how big the figure is drawn in a scene, src/scene.js: HEIGHTS)
 
 import { darken } from './core/color.js';
+import { cleanGear } from './gear.js';
 
 export const FEATURE_CHOICES = {
   face: ['round', 'oval', 'square', 'wide'],
@@ -37,7 +39,17 @@ export function cleanFeatures(f) {
   const out = {};
   for (const [k, list] of Object.entries(FEATURE_CHOICES)) if (list.includes(f[k])) out[k] = f[k];
   for (const k of FLAGS) if (f[k] === true) out[k] = true;
+  // (things worn: src/gear.js)
+  const gear = cleanGear(f.gear);
+  if (gear.length) out.gear = gear;
   return Object.keys(out).length ? out : null;
+}
+
+/** Two sets of features as one (b's win; things worn are added together) */
+export function mergeFeatures(a, b) {
+  if (!a && !b) return undefined;
+  const gear = [...new Set([...(a?.gear ?? []), ...(b?.gear ?? [])])];
+  return { ...a, ...b, ...(gear.length ? { gear } : {}) };
 }
 
 const r2 = (v) => Math.round(v * 100) / 100;

@@ -2139,7 +2139,7 @@
           seed: item.dataset.seed ?? `${state.seed}:${item.dataset.aid || item.dataset.id}:${k}`,
           vary: item.dataset.seed ? item.dataset.vary === '1' : state.vary || k > 0 || item.dataset.vary === '1',
           ...(item.dataset.colors ? { colors: Object.fromEntries(item.dataset.colors.split(' ').map((rc) => rc.split(':'))) } : {}),
-          ...(item.dataset.features ? { features: Object.fromEntries(item.dataset.features.split(' ').map((kv) => kv.split(':')).map(([k, v]) => [k, v === 'true' ? true : v])) } : {}),
+          ...(item.dataset.features ? { features: Object.fromEntries(item.dataset.features.split(' ').map((kv) => kv.split(':')).map(([k, v]) => [k, v === 'true' ? true : k === 'gear' ? v.split(',') : v])) } : {}),
           color: item.dataset.color,
           // (what it holds stays in its hands)
           ...(item.dataset.held ? { held: { id: item.dataset.held, color: item.dataset.heldColor } } : {}),

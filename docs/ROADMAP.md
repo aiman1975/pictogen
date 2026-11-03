@@ -147,6 +147,11 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] Story reader: a "How I read your story" panel (change a scene, keep a character), the captions
       read aloud with the browser's voice
 - [ ] Story reader: a larger evaluation set of real children's stories; narration in exported videos
+- [x] **Character maker** (`src/looks.js`, `src/gear.js`): faces and hair, bodies and beards, and
+      things to wear (a diving mask, goggles, a hard hat, a crown, a cap, headphones, a scarf, a tie,
+      an air tank, a backpack, a cape, wings, flippers, boots) on any person, in every view and
+      style; figures built from them ("a diver", "a builder", "a hiker", "a DJ")
+- [ ] Character maker: more to wear (aprons, lab coats, uniforms), colours for each thing worn
 - [x] **Recurring characters**: a named character has a look of its own (clothes, hair, skin or fur,
       picked in the studio) and is drawn and voiced the same in every scene, clip scene and comic panel,
       whoever else is there; a colour said once ("a girl in a purple dress") stays with that figure

@@ -4,6 +4,8 @@
 import { listConcepts, getConcept, registryVersion } from '../concepts/index.js';
 import { COLOR_WORDS } from '../core/color.js';
 import { canHold } from '../held.js';
+import { GEAR_FIGURES } from '../gear.js';
+import { mergeFeatures } from '../looks.js';
 
 export const STOPWORDS = new Set(
   `a an the and or but nor of in on at to with without from by for is are was were be been being am
@@ -317,6 +319,12 @@ const HAIR_ONLY = new Set(['blonde', 'blond', 'ginger', 'brunette', 'auburn']);
 const FEATURE_PARTS = new Set(['eyes', 'eye', 'eyelashes', 'lashes', 'eyebrows', 'brows', 'nose', 'mouth', 'face', 'cheeks', 'freckles',
   'glasses', 'spectacles', 'hair', 'ponytail', 'pigtails', 'bunches', 'braids', 'plaits', 'bun', 'afro',
   'belly', 'tummy', 'stomach', 'legs', 'arms', 'beard', 'moustache', 'mustache', 'stubble']);
+// Things worn (src/gear.js): "with a diving mask", "in flippers", "wearing a cape", "an air tank"
+const GEAR_WORDS = { mask: 'mask', snorkel: 'mask', goggles: 'goggles', helmet: 'helmet', hardhat: 'helmet', crown: 'crown', tiara: 'crown',
+  cap: 'cap', headphones: 'headphones', earphones: 'headphones', scarf: 'scarf', tie: 'tie', necktie: 'tie', tank: 'tank', backpack: 'backpack',
+  rucksack: 'backpack', schoolbag: 'backpack', cape: 'cape', cloak: 'cape', wings: 'wings', flippers: 'flippers', fins: 'flippers',
+  boots: 'boots', wellies: 'boots', wellingtons: 'boots', hat: 'hat' };
+for (const w of Object.keys(GEAR_WORDS)) FEATURE_PARTS.add(w);
 // Said before someone: their build or beard ("a chubby boy", "a skinny girl", "a bearded man")
 const BUILD_WORDS = { chubby: 'round', plump: 'round', tubby: 'round', fat: 'big', stout: 'big', thin: 'slim', slim: 'slim', skinny: 'slim', slender: 'slim', lanky: 'slim' };
 const HAIR_STYLE_WORDS = { curly: 'curly', wavy: 'curly', frizzy: 'curly', spiky: 'spiky', short: 'short', long: 'long', straight: 'long', afro: 'afro', bob: 'bob' };
@@ -341,6 +349,12 @@ function featureWords(adj, part) {
   else if (part === 'moustache' || part === 'mustache') f.beard = 'moustache';
   else if (part === 'stubble') f.beard = 'stubble';
   else if (part === 'freckles') f.freckles = true;
+  else if (GEAR_WORDS[part]) {
+    // (a hat is worn as a hard hat or a cap; any other hat is a thing of its own)
+    const g = part === 'hat' ? (adj.includes('hard') ? 'helmet' : adj.some((w) => ['baseball', 'peaked', 'sun'].includes(w)) ? 'cap' : null) : GEAR_WORDS[part];
+    if (!g) return null;
+    f.gear = [g];
+  }
   else if (part === 'glasses' || part === 'spectacles') f.glasses = true;
   else if (part === 'ponytail') f.hair = 'ponytail';
   else if (['pigtails', 'bunches', 'braids', 'plaits'].includes(part)) f.hair = 'pigtails';
@@ -357,7 +371,7 @@ function featureWords(adj, part) {
 }
 /** At toks[i]: "with big eyes", "and curly red hair", "has freckles", "wearing glasses" -> { features, hair?, len } */
 function featurePhrase(toks, i) {
-  if (!['with', 'has', 'have', 'and', 'wearing', 'wears'].includes(toks[i])) return null;
+  if (!['with', 'has', 'have', 'and', 'wearing', 'wears', 'in'].includes(toks[i])) return null;
   let j = i + 1;
   if (['a', 'an', 'the', 'some', 'two'].includes(toks[j]) || POSSESSIVES.has(toks[j])) j++;
   const adj = [];
@@ -554,13 +568,14 @@ function mergeMatches(found) {
       (!m.hair || !o.hair || o.hair === m.hair) &&
       (!m.expression || !o.expression || o.expression === m.expression) &&
       (!m.animation || !o.animation || o.animation === m.animation) &&
-      (!m.view || !o.view || o.view === m.view)
+      (!m.view || !o.view || o.view === m.view) &&
+      String(m.features?.gear ?? '') === String(o.features?.gear ?? '')
     );
     if (target) {
       target.count = Math.max(target.count, m.count);
       target.color = target.color ?? m.color;
       target.hair = target.hair ?? m.hair;
-      if (m.features) target.features = { ...m.features, ...target.features };
+      if (m.features) target.features = mergeFeatures(m.features, target.features);
       target.size = target.size ?? m.size;
       target.expression = target.expression ?? m.expression;
       target.animation = target.animation ?? m.animation;
@@ -671,7 +686,7 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
     const feat = lastPerson >= 0 && lastPerson === found.length - 1 && (justNamed || lookEnd === i - 1) ? featurePhrase(toks, i) : null;
     if (feat) {
       const who = found[lastPerson];
-      who.features = { ...who.features, ...feat.features };
+      who.features = mergeFeatures(who.features, feat.features);
       if (feat.hair) who.hair = feat.hair;
       holding = null;
       lastConceptIndex = i + feat.len - 1;
@@ -836,6 +851,22 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
         spreadMotion(anim);
       } else {
         pend.animation = anim;
+      }
+    } else if (GEAR_FIGURES[t] || (/s$/.test(t) && GEAR_FIGURES[t.slice(0, -1)])) {
+      // Someone made of what they wear: "a diver" (a mask, an air tank, flippers), "a girl diver",
+      // "a diver girl", "two hikers" (src/gear.js)
+      const fig = GEAR_FIGURES[t] ?? GEAR_FIGURES[t.slice(0, -1)];
+      const prev = found[found.length - 1];
+      const nextHit = i + 1 < toks.length ? at(toks, i + 1) : null;
+      if (prev && lastPerson === found.length - 1 && lastConceptIndex === i - 1) {
+        prev.features = mergeFeatures(prev.features, { gear: fig.gear });
+        lastConceptIndex = i;
+      } else if (nextHit && /^people/.test(getConcept(nextHit.id.split('~')[0])?.category ?? '')) {
+        pend.features = mergeFeatures(pend.features, { gear: fig.gear });
+      } else {
+        pend.features = mergeFeatures(pend.features, { gear: fig.gear });
+        push({ id: fig.id, word: t, plural: !GEAR_FIGURES[t] });
+        lastConceptIndex = i;
       }
     } else if (!STOPWORDS.has(t)) {
       // (words that set the scene - "sea", "space" - are never typos for something to draw)

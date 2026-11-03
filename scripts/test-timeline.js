@@ -466,6 +466,27 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check([farm.svg, clip.scenes[0].svg].every((x) => !wellFormedError(x)), 'well-formed');
 }
 
+// 2i-j. Things worn (character maker, step 3: src/gear.js): figures built from what they wear
+{
+  const gearOf = (t) => parseText(t).matches.map((m) => `${m.id}:${(m.features?.gear ?? []).join('+')}`).join(' ');
+  check(gearOf('a diver') === 'man:mask+tank+flippers' && gearOf('a girl diver') === 'girl:mask+tank+flippers' && gearOf('a diver girl') === 'girl:mask+tank+flippers' && !parseText('a scuba diver').unknown.length,
+    '"a diver" is a man with a diving mask, an air tank and flippers; "a girl diver" is a girl');
+  check(gearOf('a man with a diving mask and flippers') === 'man:mask+flippers' && gearOf('a girl in a red cape and a crown') === 'girl:cape+crown' && gearOf('a boy wearing a hard hat') === 'boy:helmet',
+    'said in words: "with a diving mask and flippers", "in a red cape and a crown", "wearing a hard hat"');
+  check(gearOf('a builder and a man') === 'man:helmet+boots man:' && gearOf('a boy holds a backpack') === 'boy: backpack:' && gearOf('a bird with wings') !== 'bird:wings',
+    'a builder and a man are two figures; a backpack held is held; a bird\'s wings are its own');
+  const fig = (gear, view) => shapesToSvg(drawConcept('man', { seed: 1, view, features: { gear } }), 'flat');
+  const plain = fig([]);
+  const all = ['mask', 'goggles', 'helmet', 'crown', 'cap', 'headphones', 'scarf', 'tie', 'tank', 'backpack', 'cape', 'wings', 'flippers', 'boots'];
+  check(all.every((g) => fig([g]) !== plain && fig([g]).includes(`pg-gear-${g === 'flippers' ? 'flipper' : g === 'boots' ? 'boot' : g}`)), 'each of the 14 things changes the figure, in a group of its own');
+  check(['front', 'three-quarter', 'side', 'back'].every((v) => { const x = fig(all, v); return !wellFormedError(`<svg xmlns="http://www.w3.org/2000/svg">${x}</svg>`) && /pg-gear-tank/.test(x); }), 'everything at once, from every side, well-formed');
+  const diver = generate('a diver swims under the sea, then waves');
+  check(/pg-gear-mask/.test(diver.svg) && /pg-gear-flipper/.test(diver.svg) && !wellFormedError(diver.svg), 'a diver under the sea, moving: mask and flippers in every pose');
+  check(['cartoon', 'pixel', 'neon', 'sketch'].every((style) => !wellFormedError(generate('a girl with a cape and wings and a crown', { style }).svg)), 'in other styles too');
+  const own = generate('pgc1 waves', { individuals: [{ key: 'pgc1', base: 'girl', look: { seed: 'x', features: { gear: ['cape', 'nonsense'] } } }] }).svg;
+  check(/pg-gear-cape/.test(own) && /data-features="gear:cape"/.test(own), 'a character of your own wears what was picked for her (anything unknown left out)');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

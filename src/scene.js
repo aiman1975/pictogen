@@ -5,7 +5,7 @@ import { conceptOf, whoOf, lookOf } from './individuals.js';
 import { lipKeys, lipCss } from './speech.js';
 import { layoutBubbles } from './bubble.js';
 import { emote } from './emotes.js';
-import { HEIGHTS } from './looks.js';
+import { HEIGHTS, mergeFeatures } from './looks.js';
 import { actionCues, stillCues, soundTrack, voiceOf } from './sound.js';
 import { getConcept } from './concepts/index.js';
 import { createKit } from './core/kit.js';
@@ -936,7 +936,7 @@ export function composeScene(matches, opts = {}) {
     // then "the girl waves"): opts.carry, figure id -> { color, hair }
     const was = opts.carry?.[m.id];
     const mc = was && ((!m.color && was.color) || (!m.hair && was.hair) || was.features)
-      ? { ...m, color: m.color ?? was.color, hair: m.hair ?? was.hair, ...(was.features || m.features ? { features: { ...was.features, ...m.features } } : {}) } : m;
+      ? { ...m, color: m.color ?? was.color, hair: m.hair ?? was.hair, ...(was.features || m.features ? { features: mergeFeatures(was.features, m.features) } : {}) } : m;
     for (let k = 0; k < n; k++) items.push({ c, m: mc, k, aid: m.id, alt: before + k });
   }
   // How each figure is drawn the same way every time: a recurring character by its own look
@@ -946,7 +946,7 @@ export function composeScene(matches, opts = {}) {
     it.look = lookOf(it.aid, { seed, k: it.k, alt: it.alt, vary, looks: opts.identities });
     if (it.m.hair) it.look = { ...it.look, colors: { ...it.look.colors, hair: it.m.hair } };
     // (a face and hair said in the prompt: "with big eyes and curly hair")
-    if (it.m.features && Object.keys(it.m.features).length) it.look = { ...it.look, features: { ...it.look.features, ...it.m.features } };
+    if (it.m.features && Object.keys(it.m.features).length) it.look = { ...it.look, features: mergeFeatures(it.look.features, it.m.features) };
     it.voice = opts.identities?.has(it.aid) ? Number(whoOf(it.aid).slice(3)) - 1 : it.alt;
   }
   items.splice(maxItems);

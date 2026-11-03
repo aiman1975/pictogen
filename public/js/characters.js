@@ -37,6 +37,10 @@ const FEATURES = [
 ];
 const DEFAULT = { hair: 'own', face: 'round', eyes: 'normal', brows: 'none', nose: 'none', mouth: 'normal', cheeks: 'normal', beard: 'none', build: 'normal', height: 'normal', legs: 'normal', arms: 'normal' };
 const FLAGS = [['freckles', 'Freckles'], ['lashes', 'Eyelashes'], ['glasses', 'Glasses']];
+// Things to wear (src/gear.js): a diver is a mask, an air tank and flippers
+const GEAR = [['mask', '🤿 Diving mask'], ['goggles', '🥽 Goggles'], ['helmet', '⛑️ Hard hat'], ['crown', '👑 Crown'], ['cap', '🧢 Cap'],
+  ['headphones', '🎧 Headphones'], ['scarf', '🧣 Scarf'], ['tie', '👔 Tie'], ['tank', '🫧 Air tank'], ['backpack', '🎒 Backpack'],
+  ['cape', '🦸 Cape'], ['wings', '🪽 Wings'], ['flippers', '🦶 Flippers'], ['boots', '🥾 Boots']];
 
 /** What can be coloured on a kind of character: [role, label, swatches] */
 const rolesOf = (base) => (PETS.has(base) ? [['main', 'Fur', SWATCHES.fur]]
@@ -254,6 +258,7 @@ function openEditor(existing = null) {
       </div>
       <div class="char-colours"></div>
       <details class="char-more"><summary>🙂 Face, hair &amp; body</summary><div class="char-features"></div></details>
+      <details class="char-more char-wear"><summary>🎒 Things to wear</summary><div class="char-features char-gear"></div></details>
       <p class="face-note">They look like this in every scene, clip and comic strip.</p>
       <p class="face-error" role="alert"></p>
       <div class="face-actions"><button class="tl-btn" data-do="cancel">Cancel</button><button class="tl-btn primary" data-do="save">${existing ? 'Save' : 'Make this character'}</button></div>
@@ -279,8 +284,12 @@ function openEditor(existing = null) {
     featureBox.innerHTML = FEATURES.map(([key, label, list]) => `
       <div class="char-chips" role="radiogroup" aria-label="${label}"><span>${label}</span>${list.map(([v, l]) => `<button type="button" class="char-chip${(f[key] ?? DEFAULT[key]) === v ? ' on' : ''}" data-feature="${key}" data-value="${v}">${l}</button>`).join('')}</div>`).join('')
       + `<div class="char-chips"><span>Extras</span>${FLAGS.map(([k, l]) => `<button type="button" class="char-chip${f[k] ? ' on' : ''}" data-flag="${k}" aria-pressed="${!!f[k]}">${l}</button>`).join('')}</div>`;
+    modal.querySelector('.char-wear').hidden = PETS.has(draft.base);
+    const worn = new Set(f.gear ?? []);
+    gearBox.innerHTML = `<div class="char-chips">${GEAR.map(([k, l]) => `<button type="button" class="char-chip${worn.has(k) ? ' on' : ''}" data-gear="${k}" aria-pressed="${worn.has(k)}">${l}</button>`).join('')}</div>`;
     redraw();
   };
+  const gearBox = modal.querySelector('.char-gear');
   paint();
   const close = () => modal.remove();
   const error = (msg) => { modal.querySelector('.face-error').textContent = msg; };
@@ -297,7 +306,11 @@ function openEditor(existing = null) {
     const chip = e.target.closest('.char-chip');
     if (chip) {
       const f = { ...draft.look.features };
-      if (chip.dataset.flag) { if (f[chip.dataset.flag]) delete f[chip.dataset.flag]; else f[chip.dataset.flag] = true; }
+      if (chip.dataset.gear) {
+        const g = new Set(f.gear ?? []);
+        if (g.has(chip.dataset.gear)) g.delete(chip.dataset.gear); else g.add(chip.dataset.gear);
+        if (g.size) f.gear = [...g]; else delete f.gear;
+      } else if (chip.dataset.flag) { if (f[chip.dataset.flag]) delete f[chip.dataset.flag]; else f[chip.dataset.flag] = true; }
       else if (chip.dataset.value === DEFAULT[chip.dataset.feature]) delete f[chip.dataset.feature];
       else f[chip.dataset.feature] = chip.dataset.value;
       draft.look.features = Object.keys(f).length ? f : undefined;

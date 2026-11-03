@@ -6,6 +6,7 @@ import { createRng } from './rng.js';
 import { resolveColor, lighten } from './color.js';
 import { seatPose, reachPose } from '../poses.js';
 import { withFeatures, withBody } from '../looks.js';
+import { withGear, GEAR_CSS } from '../gear.js';
 import { EMOTE_CSS } from '../emotes.js';
 import { PLACE_CSS } from '../places.js';
 import { getConcept } from '../concepts/index.js';
@@ -108,7 +109,10 @@ export function drawConcept(conceptOrId, opts = {}) {
   // A person's own face and hair (src/looks.js)
   if (opts.features && /^people/.test(c.category ?? '')) {
     shapes = withFeatures(shapes, opts.features, { hairColor: p.colors.hair, skin: p.colors.skin, view: opts.view });
+    // (and what they wear, src/gear.js: on the head, the back, round the neck; then the feet)
+    shapes = withGear(shapes, opts.features.gear, { part: 'upper', main: p.colors.main });
     shapes = withBody(shapes, opts.features, { main: p.colors.main });
+    shapes = withGear(shapes, opts.features.gear, { part: 'feet' });
   }
   if (/^people/.test(c.category ?? '')) {
     const seat = opts.seat ?? (opts.animation === 'sit' || opts.animation === 'sitting' ? 'ground' : null);
@@ -139,6 +143,7 @@ export const ANIMATION_CSS = `
 .pg-glow { transform-box: fill-box; transform-origin: center; animation: pgGlow 2.2s ease-in-out infinite; }
 ${EMOTE_CSS}
 ${PLACE_CSS}
+${GEAR_CSS}
 /* Eye Blinking */
 @keyframes pgBlink {
   0%, 90%, 96%, 100% { transform: scaleY(1); }
