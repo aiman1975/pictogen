@@ -184,6 +184,86 @@
       "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
       "made": "2026-10-18",
       "notes": "prepared from whoosh.wav (0.32 s after trimming silence, levelled, MP3); Kenney Interface Sounds, open_002.wav"
+    },
+    {
+      "file": "music/adventure-1.mp3",
+      "music": "adventure",
+      "source": "Google Lyria 3 (lyria-3-clip-preview) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; prompt as in docs/SOUND_PACK.md",
+      "license": "Generated with the Gemini API (paid tier); Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from music-adventure.mp3 (30.73 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "music/bedtime-1.mp3",
+      "music": "bedtime",
+      "source": "Google Lyria 3 (lyria-3-clip-preview) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; prompt as in docs/SOUND_PACK.md",
+      "license": "Generated with the Gemini API (paid tier); Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from music-bedtime.mp3 (28.49 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "music/calm-1.mp3",
+      "music": "calm",
+      "source": "Google Lyria 3 (lyria-3-clip-preview) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; prompt as in docs/SOUND_PACK.md",
+      "license": "Generated with the Gemini API (paid tier); Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from music-calm.mp3 (30.73 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "music/celebration-1.mp3",
+      "music": "celebration",
+      "source": "Google Lyria 3 (lyria-3-clip-preview) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; prompt as in docs/SOUND_PACK.md",
+      "license": "Generated with the Gemini API (paid tier); Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from music-celebration.mp3 (28.07 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "music/documentary-1.mp3",
+      "music": "documentary",
+      "source": "Google Lyria 3 (lyria-3-clip-preview) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; prompt as in docs/SOUND_PACK.md",
+      "license": "Generated with the Gemini API (paid tier); Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from music-documentary.mp3 (30.73 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "music/howto-1.mp3",
+      "music": "howto",
+      "source": "Google Lyria 3 (lyria-3-clip-preview) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; prompt as in docs/SOUND_PACK.md",
+      "license": "Generated with the Gemini API (paid tier); Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from music-howto.mp3 (30.25 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "music/kids-1.mp3",
+      "music": "kids",
+      "source": "Google Lyria 3 (lyria-3-clip-preview) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; prompt as in docs/SOUND_PACK.md",
+      "license": "Generated with the Gemini API (paid tier); Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from music-kids.mp3 (30.73 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "music/mystery-1.mp3",
+      "music": "mystery",
+      "source": "Google Lyria 3 (lyria-3-clip-preview) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; prompt as in docs/SOUND_PACK.md",
+      "license": "Generated with the Gemini API (paid tier); Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from music-mystery.mp3 (29.10 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "music/news-1.mp3",
+      "music": "news",
+      "source": "Google Lyria 3 (lyria-3-clip-preview) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; prompt as in docs/SOUND_PACK.md",
+      "license": "Generated with the Gemini API (paid tier); Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from music-news.mp3 (30.73 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "music/sea-1.mp3",
+      "music": "sea",
+      "source": "Google Lyria 3 (lyria-3-clip-preview) via the Gemini API, paid tier, made 2026-11-03 for PictoGen; prompt as in docs/SOUND_PACK.md",
+      "license": "Generated with the Gemini API (paid tier); Google does not claim ownership of generated output under its generative AI terms - confirm the current Gemini API terms before commercial release (docs/LICENSE_AUDIT.md)",
+      "made": "2026-11-03",
+      "notes": "prepared from music-sea.mp3 (30.73 s after trimming silence, levelled, MP3)"
     }
   ]
 }

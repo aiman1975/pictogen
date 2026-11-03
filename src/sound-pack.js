@@ -61,7 +61,16 @@ const MUSIC = [
   ['news', 'News & editorial', 'Modern news background music: pulsing synth bass, light ticking percussion, confident and neutral, 118 BPM, minor key'],
   ['documentary', 'Science & documentary', 'Calm ambient documentary music: warm strings and soft piano, slow, curious and wondrous, 70 BPM, no drums'],
   ['howto', 'How-to guides', 'Light upbeat tutorial background music: marimba, soft claps, friendly and focused, 100 BPM, major key'],
+  // Moods, picked for a clip in the studio (whatever its genre)
+  ['calm', 'Calm', 'Calm, gentle background music for children: soft acoustic guitar and warm felt piano, peaceful and relaxed, 80 BPM, major key'],
+  ['adventure', 'Adventure', 'Adventurous, exciting orchestral music for a children\'s story: bold brass, strings and timpani, brave and hopeful, 120 BPM, major key'],
+  ['mystery', 'Mystery', 'Curious, mysterious but friendly music for a children\'s story: pizzicato strings, celesta and soft woodwinds, tiptoeing, 90 BPM, minor key, not scary'],
+  ['sea', 'Under the sea', 'Dreamy underwater music for children: shimmering harp, soft marimba and gentle bubbling synth pads, floating and wondrous, 85 BPM, major key'],
+  ['bedtime', 'Bedtime', 'Soft bedtime lullaby music: music box, gentle harp and soft strings, slow and soothing, 65 BPM, major key'],
+  ['celebration', 'Celebration', 'Joyful celebration music for children: bright brass, bouncy bass, hand claps and glockenspiel, festive and happy, 128 BPM, major key'],
 ];
+/** The tunes a clip can play: [key, label] (its genre's, or a mood picked in the studio) */
+export const TUNES = MUSIC.map(([key, label]) => [key, label]);
 
 /**
  * Every file the pack can hold: { slot ('kid/ooh', 'kid/syl-a', 'woof', 'steps', 'music/kids'),

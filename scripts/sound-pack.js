@@ -75,7 +75,7 @@ function prepare(file, c, work) {
     const peak = +(vol.match(/max_volume: (-?[\d.]+) dB/)?.[1] ?? -3);
     filters.push(`volume=${(-3 - peak).toFixed(2)}dB`);
   }
-  r = ffmpeg('-i', trimmed, '-af', filters.join(','), '-c:a', 'libmp3lame', '-b:a', c.music ? '192k' : '160k', out);
+  r = ffmpeg('-i', trimmed, '-af', filters.join(','), '-c:a', 'libmp3lame', '-b:a', c.music ? '128k' : '160k', out);
   if (r.status !== 0) return { file, note: null, warn: 'could not convert; kept as is' };
   return { file: out, note: `prepared from ${basename(file)} (${length.toFixed(2)} s after trimming silence${length > max ? `, cut to ${max} s` : ''}, levelled, MP3)` };
 }

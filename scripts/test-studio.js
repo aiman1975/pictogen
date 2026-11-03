@@ -34,7 +34,11 @@ try {
   const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  // (the music pack's tunes load only when one is played)
+  const musicFetched = [];
+  page.on('request', (r) => { if (r.url().includes('/audio/pack/music/')) musicFetched.push(r.url()); });
   await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
+  check(musicFetched.length === 0, `opening the studio downloads no music (${musicFetched.length} tunes)`);
 
   const draw = async (prompt) => {
     const input = await page.$('textarea, input[type=text]');
@@ -466,6 +470,9 @@ try {
   check(sent.slice(sentKeep).every((body) => !body.includes('Lily')), 'kept as a character, Lily is in every scene as her own key, the change to scene 3 still there, her name never sent');
   await page.evaluate(() => { const i = window.pictogenCharacters.list().findIndex((c) => c.name === 'Lily'); document.querySelector(`#characters-panel [data-remove="${i}"]`)?.click(); });
   check(await page.isVisible('#story-btn-read'), 'a button reads the story aloud');
+  check(await page.evaluate(() => { const t = document.getElementById('story-tune'); t.value = 'sea'; t.dispatchEvent(new Event('change')); return window.pictogenStudio.getStory().tune === 'sea' && t.options.length === 11; }),
+    'the clip\'s music: its genre\'s, or one of ten tunes picked (here "Under the sea")');
+  await page.evaluate(() => { const t = document.getElementById('story-tune'); t.value = ''; t.dispatchEvent(new Event('change')); });
   await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="scene"]').click());
   await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'scene');
   await clearClip();

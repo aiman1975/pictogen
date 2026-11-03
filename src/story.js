@@ -6,7 +6,7 @@ import { FONT, esc } from './core/render.js';
 import { pgSound, pgSoundTrack, pgVoiced, pgBank, pgMusicBars, pgMusicTrack, pgMusicLoop } from './sound-synth.js';
 import { soundOf } from './sound.js';
 import { embeddedFontCss } from './fonts.js';
-import { packForClip } from './sound-pack.js';
+import { packForClip, TUNES } from './sound-pack.js';
 
 
 export const ASPECT_RATIOS = {
@@ -511,6 +511,8 @@ export function composeStory(storyInput, opts = {}) {
     seed,
     totalDuration,
     scenes,
+    // (its music: a mood picked for it, else its genre's; src/sound-pack.js TUNES)
+    ...(TUNES.some(([k]) => k === opts.tune) ? { tune: opts.tune } : {}),
     ...(read ? { cast: read.cast.filter((c) => c.name || c.noun) } : {}),
   };
 }
@@ -526,7 +528,8 @@ export function generateStoryHtml(story, opts = {}) {
   const title = esc(story.title || 'PictoGen Animated Clip');
   const genre = story.genre || 'kids';
   // The sound pack's files this clip uses (public/audio/pack), carried inside the file
-  const pack = opts.pack ?? packForClip((story.scenes || []).map((sc) => soundOf(sc.svg)), { genre });
+  const tune = TUNES.some(([k]) => k === story.tune) ? story.tune : genre;
+  const pack = opts.pack ?? packForClip((story.scenes || []).map((sc) => soundOf(sc.svg)), { genre: tune });
   const packJson = JSON.stringify(pack).replace(/</g, '\\u003c');
   const aspect = story.aspect || '16:9';
   const dims = ASPECT_RATIOS[aspect] || ASPECT_RATIOS['16:9'];
@@ -976,7 +979,7 @@ ${embeddedFontCss()}
     ${pgMusicTrack.toString()}
     ${pgMusicLoop.toString()}
     const PACK = /*pg-pack*/${packJson}/*pg-pack-end*/;
-    const clipGenre = '${genre}';
+    const clipGenre = '${tune}';
     let sceneTrack = null, musicTrack = null, bank = null, bankLoading = null, mix = null;
     let musicEnabled = true;
     const btnMusic = document.getElementById('btn-music');

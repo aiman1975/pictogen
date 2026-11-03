@@ -1290,7 +1290,13 @@
 
             <button class="btn-action" id="story-btn-sound" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Sound on or off: chimes, voices and effects">🔔</button>
             <button class="btn-action" id="story-btn-read" style="background:none; border:none; color:#64748b; font-size: 1.1rem; padding: 2px;" title="Read the captions aloud with this device's own voice (in the studio; videos are made without it)" aria-pressed="false">🗣</button>
-            <button class="btn-action" id="story-btn-music" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Background music for the clip's genre, on or off">🎵</button>
+            <button class="btn-action" id="story-btn-music" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Background music for the clip, on or off">🎵</button>
+            <select id="story-tune" title="The clip's music: its genre's, or a mood" aria-label="Music for the clip" style="font: inherit; font-size: 0.75rem; font-weight: 700; padding: 3px 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+              <option value="">Genre's music</option>
+              <option value="kids">😊 Happy</option><option value="calm">🌿 Calm</option><option value="adventure">🗺️ Adventure</option>
+              <option value="mystery">🔍 Mystery</option><option value="sea">🐠 Under the sea</option><option value="bedtime">🌙 Bedtime</option>
+              <option value="celebration">🎉 Celebration</option><option value="documentary">🔬 Science</option><option value="howto">💡 How-to</option><option value="news">📰 News</option>
+            </select>
             <button class="btn-action" id="story-btn-book" style="background:#f59e0b; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="The clip as a picture book to print: a cover, a page for each scene with its caption, The End">📖 Picture Book</button>
             <button class="btn-action" id="story-btn-export-html" style="background:#10b981; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Export standalone offline animated player">💾 Export Clip (.html)</button>
             <button class="btn-action" id="story-btn-export-video" style="background:#6366f1; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Render the whole clip, captions included, as a video">🎬 Export Video</button>
@@ -1450,6 +1456,7 @@
       isPlaying: true,
       sound: true,
       music: true,
+      tune: '', // (a mood picked for the clip's music, '' for its genre's)
       timer: null,
       progressInterval: null,
       startTime: 0,
@@ -1713,6 +1720,7 @@
               text: named(state.prompt).text,
               individuals: window.pictogenCharacters?.individuals() ?? [],
               places: window.pictogenPlaces?.places() ?? [],
+              ...(storyState.tune ? { tune: storyState.tune } : {}),
               // what the writer changed in "How I read your story" (names as keys, like the story)
               edits: Object.fromEntries(Object.entries(state.storyEdits || {}).map(([k, v]) => [named(k).text, named(v).text])),
               ...clipRequest(),
@@ -2405,7 +2413,7 @@
       if (storyState.sound && storyState.isPlaying) window.pictogenSound?.play(getSvgElement());
       else window.pictogenSound?.stop();
       // The genre's background music, across the scenes
-      if (storyState.isPlaying) window.pictogenSound?.startMusic(storyState.genre || 'kids');
+      if (storyState.isPlaying) window.pictogenSound?.startMusic(storyState.tune || storyState.genre || 'kids');
       // The caption read aloud; the scene stays as long as that takes
       if (narrator.on && storyState.isPlaying) {
         storyState.duration = Math.max(storyState.duration, narrator.seconds(sc.caption) * 1000);
@@ -2486,7 +2494,7 @@
         narrator.say(storyState.scenes?.[storyState.curIndex]?.caption);
         startStoryProgress();
         if (storyState.sound) window.pictogenSound?.resume(getSvgElement());
-        window.pictogenSound?.startMusic(storyState.genre || 'kids');
+        window.pictogenSound?.startMusic(storyState.tune || storyState.genre || 'kids');
       } else {
         clearInterval(storyState.progressInterval);
         clearTimeout(storyState.timer);
@@ -2523,11 +2531,21 @@
       storyBtnMusic.style.color = on ? '#f59e0b' : '#64748b';
       storyBtnMusic.style.opacity = on ? '1' : '0.6';
     }
+    const storyTune = document.getElementById('story-tune');
+    try { storyState.tune = localStorage.getItem('pictogen.tune.v1') || ''; storyTune.value = storyState.tune; } catch { /* not remembered */ }
+    storyTune.addEventListener('change', () => {
+      storyState.tune = storyTune.value;
+      try { localStorage.setItem('pictogen.tune.v1', storyState.tune); } catch { /* not remembered */ }
+      if (storyState.music && storyState.isPlaying && storyState.scenes?.length) {
+        window.pictogenSound?.stopMusic();
+        window.pictogenSound?.startMusic(storyState.tune || storyState.genre || 'kids');
+      }
+    });
     storyBtnMusic.addEventListener('click', () => {
       storyState.music = !storyState.music;
       showMusic(storyState.music);
       window.pictogenSound?.setMusic(storyState.music);
-      if (storyState.music && storyState.isPlaying && storyState.scenes?.length) window.pictogenSound?.startMusic(storyState.genre || 'kids');
+      if (storyState.music && storyState.isPlaying && storyState.scenes?.length) window.pictogenSound?.startMusic(storyState.tune || storyState.genre || 'kids');
     });
     window.addEventListener('load', () => {
       const on = window.pictogenSound ? window.pictogenSound.isEnabled() : true;
@@ -2556,6 +2574,7 @@
             text: named(state.prompt).text,
             individuals: window.pictogenCharacters?.individuals() ?? [],
               places: window.pictogenPlaces?.places() ?? [],
+              ...(storyState.tune ? { tune: storyState.tune } : {}),
             ...clipRequest(),
             style: state.style,
             genre: state.genre,
@@ -3001,7 +3020,7 @@
       const mounted = story.scenes.map((sc) => mountOffscreen(sc.svg));
       try {
         const shots = story.scenes.map((sc, i) => ({ svg: mounted[i].svg, duration: sc.duration || 5, scene: sc }));
-        const blob = await exportVideo(shots, { fps: 30, title: story.title, genre: story.genre, sound: story.sound, music: story.music, onProgress: progress });
+        const blob = await exportVideo(shots, { fps: 30, title: story.title, genre: story.genre, tune: story.tune, sound: story.sound, music: story.music, onProgress: progress });
         download(blob, `${slug(story.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
         studio.showToast(`Clip video saved (${Math.round(blob.size / 1024)} KB)`);
       } finally {

@@ -180,7 +180,9 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] **Sound pack**: recorded or AI-generated files replace sounds one by one (voices, babble
       syllables, animals, effects, music), each on record with its source and license
       (`npm run sound-pack`, `docs/SOUND_PACK.md`); whatever is missing stays synthesized
-- [ ] Fill the sound pack (70 slots); a volume per figure; music for single scenes
+- [x] **Music pack**: ten tunes made with Lyria 3 (kids, news, documentary, how-to; calm, adventure,
+      mystery, under the sea, bedtime, celebration), a mood picked per clip, loaded only when played
+- [ ] Fill the rest of the sound pack (voices, animals); a volume per figure; music for single scenes
 
 ### 5. Export
 - [x] **Video and GIF** from the studio: frames rendered exactly by seeking every animation (Web

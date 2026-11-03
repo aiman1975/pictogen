@@ -74,7 +74,18 @@ const repoPack = readPack();
 check(repoPack.files.filter((e) => /CC0/.test(e.license) && /Kenney/.test(e.source)).length >= 20 && existsSync(new URL('../public/audio/pack/licenses/kenney-interface-sounds.txt', import.meta.url)),
   'the shipped pack has Kenney\'s CC0 interface sounds, with their license text');
 check(!repoPack.problems.length, `the shipped sound pack is clean: every file listed with a source and a license${repoPack.problems.length ? ': ' + repoPack.problems.join('; ') : ''}`);
-check(CATALOGUE.length === 70 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') && CATALOGUE.some((c) => c.slot === 'music/documentary'), `the catalogue lists ${CATALOGUE.length} slots (voices, syllables, animals, effects, music)`);
+check(CATALOGUE.length === 76 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') && CATALOGUE.some((c) => c.slot === 'music/documentary'), `the catalogue lists ${CATALOGUE.length} slots (voices, syllables, animals, effects, music)`);
+// The music pack: a tune for each clip genre and each mood (made with Lyria), a mood picked for a clip
+{
+  const { TUNES, packForClip, readPack } = await import('../src/sound-pack.js');
+  const { composeStory, generateStoryHtml } = await import('../src/story.js');
+  const have = new Set(readPack().files.filter((e) => e.music).map((e) => e.music));
+  check(TUNES.length === 10 && TUNES.every(([k]) => have.has(k)), `ten tunes in the pack, one per genre and mood (${[...have].join(', ')})`);
+  check(packForClip([], { genre: 'sea' }).some((e) => e.music === 'sea') && !packForClip([], { genre: 'sea' }).some((e) => e.music === 'kids'), 'an exported clip carries only the tune it plays');
+  const clip = composeStory('a fish swims under the sea | Splash!', { tune: 'sea' });
+  const html = generateStoryHtml(clip);
+  check(clip.tune === 'sea' && html.includes("const clipGenre = 'sea'") && composeStory('a cat | Hi', { tune: 'nonsense' }).tune === undefined, 'a clip plays the mood picked for it (anything unknown: its genre\'s)');
+}
 const packDir = mkdtempSync(join(tmpdir(), 'pictogen-pack-'));
 const srcDir = mkdtempSync(join(tmpdir(), 'pictogen-src-'));
 const tool = (...a) => spawnSync(process.execPath, ['scripts/sound-pack.js', ...a, '--dir', packDir], { cwd: fileURLToPath(new URL('..', import.meta.url)), encoding: 'utf8' });

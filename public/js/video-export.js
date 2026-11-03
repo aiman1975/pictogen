@@ -277,10 +277,10 @@ export async function clipSound(shots, { fps = 30, title, music = null } = {}) {
  * time. sound: with the scenes' voices and effects (default true); music: with the genre's
  * background music under it (default false).
  */
-export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, sound = true, music = false, onProgress } = {}) {
+export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, tune, sound = true, music = false, onProgress } = {}) {
   const { frames, width, height } = await renderShots(shots, { fps, scale, format: 'video', title, genre, onProgress: (p) => onProgress && onProgress(p * 0.6) });
   const audio = sound || music
-    ? await clipSound(sound ? shots : shots.map((sh) => ({ ...sh, svg: null })), { fps, title, music: music ? { genre: genre || 'kids' } : null }).catch(() => null)
+    ? await clipSound(sound ? shots : shots.map((sh) => ({ ...sh, svg: null })), { fps, title, music: music ? { genre: tune || genre || 'kids' } : null }).catch(() => null)
     : null;
   const n = frames.length;
   let shown = 0;
