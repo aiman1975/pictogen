@@ -13,6 +13,7 @@ import { createRng } from './core/rng.js';
 import { drawConcept, shapesToSvg, svgDoc, newUid, styleWrap, esc } from './core/render.js';
 import { getStyle } from './core/styles.js';
 import { darken, lighten, mix } from './core/color.js';
+import { PLACE_ENV_WORDS, placeSky, shootingStar, space, underwater, desert, mountains, farm, jungle, castle, autumnLeaves } from './places.js';
 
 export const ENV_WORDS = {
   night: ['night', 'midnight', 'nighttime', 'dark', 'bedtime', 'sleep', 'sleeping', 'asleep', 'moon', 'stars'],
@@ -25,6 +26,8 @@ export const ENV_WORDS = {
   forest: ['forest', 'woods', 'park', 'nature', 'jungle', 'garden'],
   city: ['city', 'town', 'downtown', 'skyline', 'skyscraper', 'skyscrapers', 'building', 'buildings', 'urban', 'street'],
   parallax: ['walk', 'walking', 'run', 'running', 'jog', 'jogging', 'stroll', 'across', 'drive', 'driving', 'road', 'street', 'cartoon', 'parallax', 'zeichentrick'],
+  // More places, each with its own movement (src/places.js)
+  ...PLACE_ENV_WORDS,
 };
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -36,7 +39,10 @@ function detectEnv(items, words) {
   const tags = new Set(items.flatMap((i) => i.c.tags || []));
   const sunset = any('sunset');
   // (furniture is indoors, unless the words say where: "a bench in the park", "a chair outside")
-  const outdoors = ['park', 'garden', 'outside', 'outdoors', 'yard', 'street', 'meadow'].some((x) => w.has(x)) || any('forest') || any('beach');
+  const place = (k) => any(k) || (k === 'underwater' && /\bunder (the )?(sea|ocean|water)\b|\bocean floor\b|\bsea ?bed\b/.test(words.join(' ')))
+    || (k === 'space' && /\b(outer space|on the moon|in space)\b/.test(words.join(' ')));
+  const places = Object.fromEntries(Object.keys(PLACE_ENV_WORDS).map((k) => [k, place(k)]));
+  const outdoors = ['park', 'garden', 'outside', 'outdoors', 'yard', 'street', 'meadow'].some((x) => w.has(x)) || any('forest') || any('beach') || Object.values(places).some(Boolean);
   const room = !outdoors && (any('room') || tags.has('furniture') || ['chair', 'table', 'window', 'door', 'bed', 'box', 'sofa'].some((id) => ids.has(id)));
   const parallax = any('parallax') || items.some((it) => ['walk', 'run', 'walk-across', 'drive'].includes(it.m?.animation));
   const forest = any('forest') || tags.has('plant') || ids.has('tree');
@@ -57,10 +63,21 @@ function detectEnv(items, words) {
     roomKind,
     forest,
     // A place named: trees along the horizon (a park, a forest), buildings (a city)
-    woods: any('forest'),
+    woods: any('forest') && !places.jungle,
     park: w.has('park') || w.has('garden'),
     city: !room && any('city'),
     parallax,
+    // (one place drawn: space, then underwater, the desert, a farm, a jungle; mountains and a
+    // castle go behind; autumn leaves fall on any of them)
+    space: places.space,
+    underwater: !places.space && places.underwater,
+    desert: !places.space && !places.underwater && places.desert,
+    farm: !places.space && !places.underwater && !places.desert && places.farm,
+    jungle: !places.space && !places.underwater && !places.desert && places.jungle,
+    mountains: !places.space && !places.underwater && places.mountains && !ids.has('mountain'),
+    castle: !places.space && !places.underwater && places.castle && !ids.has('castle'),
+    autumn: !places.space && !places.underwater && places.autumn,
+    sun: ids.has('sun'),
   };
 }
 
@@ -70,6 +87,7 @@ function palette(env) {
   let water = ['#4fc3f7', '#29b6f6'];
   if (env.sunset) sky = ['#ff8a65', '#ffab76', '#ffd59e'];
   if (env.rain) sky = ['#90a4ae', '#a7b6bd', '#c5d0d5'];
+  if (env.autumn) ground = ['#c5a35a', '#b8964e', '#a88844'];
   if (env.snow) ground = ['#eef3f7', '#e3eaf0', '#d7e0e8'];
   if (env.night) {
     sky = ['#101a40', '#1a2a5c', '#253a73'];
@@ -261,7 +279,9 @@ function skyline(d, env, pal, rng, W, H, hY) {
 // Trees along the horizon (a park, a forest): round crowns in a darker green, overlapping
 function treeLine(d, env, pal, rng, W, hY, H) {
   const bg = { kind: 'bg' };
-  const back = mix(pal.ground[2], '#1b5e20', 0.45), front = mix(pal.ground[1], '#2e7d32', 0.35);
+  // (in autumn the trees turn orange and gold)
+  const back = env.autumn ? (env.night ? '#6d3a12' : '#d35400') : mix(pal.ground[2], '#1b5e20', 0.45);
+  const front = env.autumn ? (env.night ? '#7a5a14' : '#f39c12') : mix(pal.ground[1], '#2e7d32', 0.35);
   const dense = env.woods ? 1 : 0.6;
   for (const [color, size, lift] of [[back, 0.09, 0.07], [front, 0.07, 0.03]]) {
     for (let x = -10; x < W + 10; x += W * size * (1.2 + rng() * 0.8) / dense) {
@@ -352,10 +372,21 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
     return d.shapes;
   }
 
-  d.rect(0, 0, W, H, { ...bg, fill: pal.sky[0] });
-  d.rect(0, H * 0.3, W, hY - H * 0.3, { ...bg, fill: pal.sky[1] });
-  d.rect(0, H * 0.48, W, hY - H * 0.48, { ...bg, fill: pal.sky[2] });
+  if (env.underwater) {
+    d.group({ class: 'pg-place pg-place-underwater' }, () => underwater(d, env, pal, rng, W, H, hY));
+    return d.shapes;
+  }
+  const skyColors = placeSky(env, pal.sky);
+  d.rect(0, 0, W, H, { ...bg, fill: skyColors[0] });
+  d.rect(0, H * 0.3, W, hY - H * 0.3, { ...bg, fill: skyColors[1] });
+  d.rect(0, H * 0.48, W, hY - H * 0.48, { ...bg, fill: skyColors[2] });
 
+  if (env.space) {
+    d.group({ class: 'pg-place pg-place-space' }, () => space(d, env, pal, rng, W, H, hY));
+    shootingStar(d, rng, W, H);
+    return d.shapes;
+  }
+  if (env.night && !env.rain) shootingStar(d, rng, W, H);
   if (env.night) {
     for (let i = 0; i < 22; i++) {
       const delay = (rng() * 2).toFixed(2);
@@ -382,8 +413,14 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
     }
   } else if (env.city) {
     d.group({ class: 'pg-place pg-place-city' }, () => skyline(d, env, pal, rng, W, H, hY));
+  } else if (env.desert) {
+    if (env.mountains) d.group({ class: 'pg-place pg-place-mountains' }, () => mountains(d, env, pal, rng, W, H, hY));
+    d.group({ class: 'pg-place pg-place-desert' }, () => desert(d, env, pal, rng, W, H, hY));
   } else {
-    if (env.woods || env.park) d.group({ class: `pg-place pg-place-${env.park ? 'park' : 'woods'}` }, () => treeLine(d, env, pal, rng, W, hY, H));
+    if (env.mountains) d.group({ class: 'pg-place pg-place-mountains' }, () => mountains(d, env, pal, rng, W, H, hY));
+    if (env.castle) d.group({ class: 'pg-place pg-place-castle' }, () => castle(d, env, pal, rng, W, H, hY));
+    if (env.jungle) d.group({ class: 'pg-place pg-place-jungle' }, () => jungle(d, env, pal, rng, W, H, hY));
+    if (env.woods || env.park || (env.autumn && !env.farm && !env.castle && !env.jungle)) d.group({ class: `pg-place pg-place-${env.park ? 'park' : 'woods'}` }, () => treeLine(d, env, pal, rng, W, hY, H));
     d.ellipse(W * 0.18, hY + H * 0.04, W * 0.38, H * 0.13, { ...bg, fill: pal.ground[0] });
     d.ellipse(W * 0.82, hY + H * 0.05, W * 0.42, H * 0.11, { ...bg, fill: pal.ground[0] });
     d.rect(0, hY, W, H - hY, { ...bg, fill: pal.ground[1] });
@@ -392,7 +429,9 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
       // A sandy path winding off toward the horizon
       d.path(`M ${W * 0.36} ${H} C ${W * 0.42} ${H * 0.86} ${W * 0.62} ${H * 0.8} ${W * 0.56} ${hY + H * 0.02} L ${W * 0.6} ${hY + H * 0.02} C ${W * 0.7} ${H * 0.8} ${W * 0.56} ${H * 0.88} ${W * 0.64} ${H} Z`, { ...bg, fill: mix(pal.sand, pal.ground[1], 0.25) });
     }
+    if (env.farm) d.group({ class: 'pg-place pg-place-farm' }, () => farm(d, env, pal, rng, W, H, hY));
   }
+  if (env.autumn) autumnLeaves(d, env, rng, W, H);
 
   if (env.parallax) {
     // Conveyor-belt cartoon ground treadmill

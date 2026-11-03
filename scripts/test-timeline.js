@@ -428,6 +428,28 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check(!wellFormedError(generate('a man with a big belly and a long beard sits on a bench in the park').svg) && !wellFormedError(generate('a man with a big belly walks in, then waves').svg), 'they sit and walk, well-formed');
 }
 
+// 2i-h. More places, with movement (scene maker, step 1: src/places.js)
+{
+  // (a class drawn, not just named in the picture's CSS)
+  const drawn = (svg, c) => new RegExp(`class="[^"]*\\b${c}\\b`).test(svg);
+  const has = (t, ...cls) => { const g = generate(t); return cls.every((c) => drawn(g.svg, c)) && !wellFormedError(g.svg); };
+  check(has('a camel in the desert', 'pg-place-desert') && !generate('a camel in the desert').matches.some((m) => m.id === 'desert'), 'a desert: dunes and cacti behind the camel (not a desert icon in front)');
+  check(has('an astronaut in space', 'pg-place-space', 'pg-env-star', 'pg-env-planet', 'pg-env-shooting') && has('outer space', 'pg-place-space'), 'space: stars twinkle, a ringed planet floats, a shooting star; "outer space" is not an otter');
+  check(has('a fish underwater', 'pg-place-underwater', 'pg-env-bubble', 'pg-env-seaweed') && has('a girl under the sea', 'pg-place-underwater'), 'underwater: bubbles rise, seaweed sways');
+  check(has('a diver under the sea', 'pg-place-underwater') && !drawn(generate('a diver under the sea').svg, 'pg-place-room'), 'an unknown word ("diver") never turns "sea" into "seat"');
+  check(has('a boy on the farm', 'pg-place-farm') && has('a monkey in the jungle', 'pg-place-jungle', 'pg-env-vine') && !drawn(generate('a monkey in the jungle').svg, 'pg-place-woods'), 'a farm (barn, silo, fence), a jungle (vines swaying), not the forest');
+  check(has('a princess at the castle', 'pg-place-castle', 'pg-env-flag') && has('a girl in the mountains in winter', 'pg-place-mountains', 'pg-env-snow'), 'a castle with flags waving; snowy mountains');
+  check(has('a girl in the park in autumn', 'pg-env-leaf', 'pg-place-park') && has('a boy at night', 'pg-env-shooting') && !drawn(generate('a boy at night in the rain').svg, 'pg-env-shooting') && !drawn(generate('a boy in the park').svg, 'pg-env-leaf'), 'autumn leaves fall; a shooting star on a clear night (not in the rain)');
+  check(['pgBubbleRise', 'pgLeafFall', 'pgFlag', 'pgShoot', 'pgSway'].every((k) => generate('a fish underwater').svg.includes(k)), 'the movement is in the picture\'s own CSS (works offline, in clips and exports)');
+  for (const style of ['cartoon', 'pixel', 'neon', 'chalkboard', 'watercolor']) {
+    for (const t of ['a camel in the desert', 'an astronaut in space', 'a fish underwater', 'a boy on the farm in autumn', 'a princess at the castle at night']) {
+      const err = wellFormedError(generate(t, { style }).svg);
+      if (err) check(false, `"${t}" [${style}]: ${err}`);
+    }
+  }
+  check(true, 'the new places are well-formed in cartoon, pixel, neon, chalkboard and watercolor');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

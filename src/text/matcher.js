@@ -575,7 +575,7 @@ function mergeMatches(found) {
  *   { matches: [{ id:'apple', word:'apples', count:3, color:'red' }, { id:'boy', ... }], unknown: [...], excluded: [...], tokens: [...] }
  *   excluded: concept words negated in the prompt ("no cats", "without a hat") and left out
  */
-export function parseText(text, { fuzzy = false, names = null } = {}) {
+export function parseText(text, { fuzzy = false, names = null, keep = null } = {}) {
   const idx = getIndex();
   // Named individuals ("pgc1" -> "boy~pgc1", see src/individuals.js) read as words for their figure
   // ("pgc1 waves", "pgc1 walks toward us": its motion, as for "boy waves")
@@ -838,7 +838,8 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
         pend.animation = anim;
       }
     } else if (!STOPWORDS.has(t)) {
-      const f = fuzzy ? fuzzyLookup(t, idx) : null;
+      // (words that set the scene - "sea", "space" - are never typos for something to draw)
+      const f = fuzzy && !keep?.has(t) ? fuzzyLookup(t, idx) : null;
       if (f) push({ id: f.id, word: t, plural: false }, { fuzzy: true });
       else {
         unknown.push(t);

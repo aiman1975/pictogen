@@ -108,7 +108,13 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       night, a rug), any other room (a window, a picture); a city skyline (windows lit at night,
       pavement, road); trees along the horizon in a park (with a path) or a forest; all in the style's
       colours
-- [ ] More settings: space, underwater, mountains, a farm; furniture to sit on and use
+- [x] **More places, with movement** (`src/places.js`, scene maker step 1): a desert (dunes, cacti,
+      a hot sun), mountains (snowy peaks), space (a ringed planet floating, a lunar ground, twinkling
+      stars), underwater (light rays, seaweed swaying, bubbles rising), a farm (barn, silo, fence,
+      crop rows), a jungle (vines swaying), a castle on a hill (flags waving), autumn (orange trees,
+      leaves falling), a shooting star on clear nights; carried from scene to scene by the story reader
+- [ ] Scene maker step 2: "Your places" - pick a place, a time, the weather and moving things in the
+      studio, name it and use the name in prompts
 - [ ] Time-of-day and weather changes inside a clip (sunset falls, rain starts)
 - [ ] Props that react: trees sway in wind, water ripples around a swimmer
 

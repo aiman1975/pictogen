@@ -67,6 +67,10 @@ At night, Mia hugged the puppy and fell asleep.`;
     'as a clip: Mia is the same figure in every scene; prompts shown with her name');
   assert(clip.scenes.slice(1, 4).every((sc) => /data-id="dog"/.test(sc.svg)), 'the puppy is in the scenes it is part of');
 
+  const trip = readStory('Mia flew her rocket into space.\nShe waved at the planets.\nThen she landed in the desert.\nA camel came by.\nAt night she swam under the sea.');
+  const tp = trip.scenes.map((sc) => sc.prompt);
+  assert(/in space$/.test(tp[1]) && /in the desert$/.test(tp[3]) && /under the sea/.test(tp[4]), `the new places carry on from scene to scene too (space, the desert, under the sea): ${tp.join(' / ')}`);
+
   const rex = readStory('Tom had a dog called Rex. Every morning they went to the park together. One day it started to rain. "Look, a rainbow!" said Tom.');
   const [tom, dog] = ['Tom', 'Rex'].map((n) => rex.cast.find((c) => c.name === n));
   assert(rex.scenes.length === 4 && tom.id === 'boy' && dog.id === 'dog', 'without lines: one scene per sentence; Tom is a boy, Rex a dog');

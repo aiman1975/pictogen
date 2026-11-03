@@ -8,7 +8,10 @@ const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
 // Time-of-day / weather words: in a scene the backdrop already shows them, so a library icon
 // they happen to match ("sunset" -> city-at-sunset emoji) would be a stray object on the ground.
 const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...ENV_WORDS.snow, ...ENV_WORDS.rain]);
-const PLACE_WORDS = new Set(['forest', 'woods', 'jungle', 'park', 'garden', 'home']);
+const PLACE_WORDS = new Set(['forest', 'woods', 'jungle', 'park', 'garden', 'home', 'coral', 'reef']);
+// (and these are always the backdrop in a scene, drawn by src/places.js: dunes and cacti, snowy
+// peaks, a castle on a hill, a barn and fields)
+const BACKDROP_WORDS = new Set(['desert', 'mountain', 'mountains', 'castle', 'farm', 'barn']);
 import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/render.js';
 import { getConcept } from './concepts/index.js';
 import { parseTimeline, extractCamera, editTimeline, lookRelations, speechRelations } from './timeline.js';
@@ -73,10 +76,10 @@ export function generate(text, opts = {}) {
   // Nothing at all to draw: try again forgiving typos ("elefant"), so there is always a picture
   // when one is close
   if (!parsed.matches.length && !fuzzy && parsed.unknown.length) {
-    let forgiving = parseText(sceneText, { fuzzy: true, names });
+    let forgiving = parseText(sceneText, { fuzzy: true, names, keep: SETTING_WORDS });
     if (!forgiving.matches.length) {
       // Still nothing: each unknown word as its closest drawable word ("elefant" -> "elephant")
-      const swaps = new Map(parsed.unknown.map((w) => [w, suggestWords(w, 1)[0]]).filter(([, s]) => s));
+      const swaps = new Map(parsed.unknown.filter((w) => !SETTING_WORDS.has(w)).map((w) => [w, suggestWords(w, 1)[0]]).filter(([, s]) => s));
       if (swaps.size) forgiving = parseText(sceneText.replace(/[a-z']+/gi, (w) => swaps.get(w.toLowerCase()) ?? w), { names });
     }
     if (forgiving.matches.length) {
@@ -91,7 +94,7 @@ export function generate(text, opts = {}) {
   // horizon, not one big tree in front of her)
   const someone = matches.some((m) => /^(people|animals|wildlife)/.test(getConcept(conceptOf(m.id))?.category ?? ''));
   const backdrop = mode === 'scene'
-    ? matches.filter((m) => (ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary) || (someone && PLACE_WORDS.has(m.word)))
+    ? matches.filter((m) => (ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary) || (someone && PLACE_WORDS.has(m.word)) || BACKDROP_WORDS.has(m.word))
     : [];
   if (backdrop.length) matches = matches.filter((m) => !backdrop.includes(m));
   // Several things happening one after another: actors follow a timeline of beats - the prompt's,
@@ -101,7 +104,7 @@ export function generate(text, opts = {}) {
     ? [...timeline.actors.map(({ id, match }) => ({ ...match, id, count: match.count ?? 1, animation: undefined })), ...timeline.props]
     : matches.map((m) => ({ ...m, animation: undefined }));
   const edited = mode === 'scene' && Array.isArray(opts.beats);
-  const isBackdrop = (m) => (ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary) || (someone && PLACE_WORDS.has(m.word));
+  const isBackdrop = (m) => (ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary) || (someone && PLACE_WORDS.has(m.word)) || BACKDROP_WORDS.has(m.word);
   if (edited) timeline = editTimeline(opts.beats, cast.filter((m) => !isBackdrop(m)), timeline);
   if (timeline) {
     matches = [

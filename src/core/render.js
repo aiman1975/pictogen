@@ -7,6 +7,7 @@ import { resolveColor, lighten } from './color.js';
 import { seatPose, reachPose } from '../poses.js';
 import { withFeatures, withBody } from '../looks.js';
 import { EMOTE_CSS } from '../emotes.js';
+import { PLACE_CSS } from '../places.js';
 import { getConcept } from '../concepts/index.js';
 import { heldShape } from '../held.js';
 
@@ -137,6 +138,7 @@ export const ANIMATION_CSS = `
 @keyframes pgGlow { 0%, 100% { opacity: 0.75; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1.04); } }
 .pg-glow { transform-box: fill-box; transform-origin: center; animation: pgGlow 2.2s ease-in-out infinite; }
 ${EMOTE_CSS}
+${PLACE_CSS}
 /* Eye Blinking */
 @keyframes pgBlink {
   0%, 90%, 96%, 100% { transform: scaleY(1); }

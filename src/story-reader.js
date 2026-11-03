@@ -61,7 +61,14 @@ const SAY_VERBS = 'said|says|asked|asks|shouted|shouts|cried|called|calls|whispe
 
 // Where and when: carried from scene to scene until the story says otherwise
 const PLACES = [
-  ['forest', /\b(forest|woods|jungle)\b/, 'in the forest'],
+  ['space', /\b(outer space|in space|into space|galaxy|on the moon)\b/, 'in space'],
+  ['underwater', /\b(underwater|under the (sea|ocean|water)|seabed|sea bed|coral reef|ocean floor)\b/, 'under the sea'],
+  ['desert', /\b(desert|dunes|sahara|oasis)\b/, 'in the desert'],
+  ['mountains', /\b(mountains?|alps|peaks?|valley)\b/, 'in the mountains'],
+  ['castle', /\b(castle|palace|kingdom)\b/, 'at the castle'],
+  ['farm', /\b(farm|farmyard|barn|ranch)\b/, 'on the farm'],
+  ['jungle', /\b(jungle|rainforest)\b/, 'in the jungle'],
+  ['forest', /\b(forest|woods)\b/, 'in the forest'],
   ['park', /\b(park|playground)\b/, 'in the park'],
   ['garden', /\b(garden|yard|backyard)\b/, 'in the garden'],
   ['beach', /\b(beach|seaside|shore|sand)\b/, 'on the beach'],
