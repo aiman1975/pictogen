@@ -1175,6 +1175,9 @@
             <button class="btn-action" id="btn-download-gif" title="Animated GIF of this scene">🎞 GIF</button>
             <button class="btn-action" id="btn-download-video" title="Video of this scene (MP4 where your browser can record it, otherwise WebM)">🎬 Video</button>
             <button class="btn-action" id="btn-sound" title="Sound on or off: voices and effects, made by PictoGen itself">🔊 Sound</button>
+            <select id="sound-set" class="btn-action" title="Which sounds: playful (cartoon) or clean (subtle, for explainers and presentations); Auto picks by the style and the kind of clip" aria-label="Sound set" style="padding: 4px 6px;">
+              <option value="auto">🎚 Auto</option><option value="playful">🎈 Playful</option><option value="clean">🎧 Clean</option>
+            </select>
           </div>
         </div>
 
@@ -1818,6 +1821,7 @@
         svgViewport.innerHTML = data.svg;
         window.pictogenCharacters?.apply(getSvgElement(), cast.named);
         window.pictogenSound?.stopMusic(); // (a clip's music, if one was playing)
+        window.pictogenSound?.setClipKind(null); // (a single scene: 'auto' goes by its style)
         window.pictogenSound?.play(getSvgElement()); // its voices and effects, with the animation
 
         // Render inspector matches
@@ -2410,6 +2414,7 @@
       window.pictogenStoryReview?.highlight(storyState.curIndex);
 
       if (withChime) playStoryChime();
+      window.pictogenSound?.setClipKind(storyState.genre || 'kids');
       if (storyState.sound && storyState.isPlaying) window.pictogenSound?.play(getSvgElement());
       else window.pictogenSound?.stop();
       // The genre's background music, across the scenes
@@ -2527,6 +2532,14 @@
       if (on) window.pictogenSound?.resume(getSvgElement());
     }
     btnSound.addEventListener('click', () => setSound(!storyState.sound));
+    const soundSetPick = document.getElementById('sound-set');
+    soundSetPick.value = window.pictogenSound?.getSoundSet?.() ?? 'auto';
+    soundSetPick.addEventListener('change', () => {
+      window.pictogenSound?.setSoundSet(soundSetPick.value);
+      // (heard at once: the scene's sound again, in the new set)
+      if (state.mode !== 'story' && storyState.sound) window.pictogenSound?.resume?.(getSvgElement());
+      showToast(soundSetPick.value === 'clean' ? 'Clean sounds: subtle, for explainers and presentations' : soundSetPick.value === 'playful' ? 'Playful sounds: cartoon footsteps, boings and babble' : 'Sounds picked by the style and the kind of clip');
+    });
     function showMusic(on) {
       storyBtnMusic.style.color = on ? '#f59e0b' : '#64748b';
       storyBtnMusic.style.opacity = on ? '1' : '0.6';
@@ -2575,6 +2588,7 @@
             individuals: window.pictogenCharacters?.individuals() ?? [],
               places: window.pictogenPlaces?.places() ?? [],
               ...(storyState.tune ? { tune: storyState.tune } : {}),
+              sounds: window.pictogenSound?.getSoundSet?.() ?? 'auto',
             ...clipRequest(),
             style: state.style,
             genre: state.genre,

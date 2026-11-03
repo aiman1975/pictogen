@@ -3,7 +3,7 @@
 import { readStory } from './story-reader.js';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
-import { pgSound, pgSoundTrack, pgVoiced, pgBank, pgMusicBars, pgMusicTrack, pgMusicLoop } from './sound-synth.js';
+import { pgSound, pgSoundTrack, pgVoiced, pgBank, pgMusicBars, pgMusicTrack, pgMusicLoop, pgAmbience, pgCleanSet } from './sound-synth.js';
 import { soundOf } from './sound.js';
 import { embeddedFontCss } from './fonts.js';
 import { packForClip, TUNES } from './sound-pack.js';
@@ -513,6 +513,8 @@ export function composeStory(storyInput, opts = {}) {
     scenes,
     // (its music: a mood picked for it, else its genre's; src/sound-pack.js TUNES)
     ...(TUNES.some(([k]) => k === opts.tune) ? { tune: opts.tune } : {}),
+    // (its sound set: 'playful' or 'clean'; otherwise picked by its kind and style)
+    ...(['playful', 'clean'].includes(opts.sounds) ? { sounds: opts.sounds } : {}),
     ...(read ? { cast: read.cast.filter((c) => c.name || c.noun) } : {}),
   };
 }
@@ -973,6 +975,8 @@ ${embeddedFontCss()}
     // Nothing to load, works offline.
     ${pgSound.toString()}
     ${pgSoundTrack.toString()}
+    ${pgAmbience.toString()}
+    ${pgCleanSet.toString()}
     ${pgVoiced.toString()}
     ${pgBank.toString()}
     ${pgMusicBars.toString()}
@@ -980,6 +984,7 @@ ${embeddedFontCss()}
     ${pgMusicLoop.toString()}
     const PACK = /*pg-pack*/${packJson}/*pg-pack-end*/;
     const clipGenre = '${tune}';
+    const soundSet = '${['playful', 'clean'].includes(story.sounds) ? story.sounds : 'auto'}', clipKind = '${genre}';
     let sceneTrack = null, musicTrack = null, bank = null, bankLoading = null, mix = null;
     let musicEnabled = true;
     const btnMusic = document.getElementById('btn-music');
@@ -1018,7 +1023,7 @@ ${embeddedFontCss()}
         const ctx = audio();
         const svg = stage.querySelector('svg');
         const ms = resume && svg && svg.getAnimations ? Math.max(0, ...svg.getAnimations({ subtree: true }).map((a) => Number(a.currentTime) || 0)) : 0;
-        sceneTrack = pgSoundTrack(ctx, mix, JSON.parse(m.textContent), ms / 1000, { bank, onVoice: (at, s) => musicTrack && musicTrack.duck(at, s) });
+        sceneTrack = pgSoundTrack(ctx, mix, JSON.parse(m.textContent), ms / 1000, { bank, onVoice: (at, s) => musicTrack && musicTrack.duck(at, s), set: soundSet, genre: clipKind });
       } catch (e) {}
     }
     function playMusic() {

@@ -29,7 +29,48 @@ const VOCAL = { ooh: 'surprised', aha: 'happy', giggle: 'happy', yay: 'happy', h
 export const SOUND_NAMES = [
   ...Object.keys(VOCAL), 'snore', 'pop', 'boing', 'whoosh', 'steps', 'jingle', 'ding', 'blip', 'twinkle', 'plop', 'whirl', 'flutter', 'bubble',
   ...Object.values(CALLS),
+  // things in the scene, and the clean set's quieter ones
+  'ring', 'tick', 'typing', 'schoolbell', 'magic', 'applause', 'splash', 'thud', 'chime', 'click',
 ];
+
+// Things in a scene that make a sound of their own, once as it starts: concept id -> sound
+const THING_SOUNDS = { phone: 'ring', mobile_phone: 'ring', telephone: 'ring', clock: 'tick', alarm_clock: 'tick', laptop: 'typing', computer: 'typing',
+  desktop_computer: 'typing', keyboard: 'typing', bell: 'schoolbell', wizard: 'magic', fairy: 'magic', genie: 'magic', unicorn: 'magic', witch: 'magic', magic_wand: 'magic' };
+/** The sounds of a scene's things as it starts (a phone rings, a wizard's magic sparkles) */
+export function thingCues(ids, { classroom = false, cheering = 0 } = {}) {
+  const out = [];
+  const seen = new Set();
+  let t = 0.2;
+  if (classroom) { out.push({ t, s: 'schoolbell' }); seen.add('schoolbell'); t += 0.4; }
+  for (const id of ids) {
+    const s = THING_SOUNDS[id];
+    if (!s || seen.has(s)) continue;
+    seen.add(s);
+    out.push({ t: r3(t), s, ...(s === 'tick' || s === 'typing' ? { d: 3 } : {}) });
+    t += 0.35;
+  }
+  // (three or more cheering: applause)
+  if (cheering >= 3) out.push({ t: 0.4, s: 'applause', d: 2.5 });
+  return out;
+}
+
+/**
+ * The quiet sound of a place, under everything (src/sound-synth.js pgAmbience): birds outdoors by
+ * day, crickets at night, waves by the sea, bubbles under it, wind in the desert or the snow, rain,
+ * the city's hum, a hum in space; none indoors.
+ */
+export function ambienceOf(env) {
+  if (!env) return null;
+  if (env.space) return 'space';
+  if (env.underwater) return 'underwater';
+  if (env.room) return null;
+  if (env.rain) return 'rain';
+  if (env.water) return 'waves';
+  if (env.city) return 'city';
+  if (env.desert || env.snow) return 'wind';
+  if (env.night) return 'crickets';
+  return 'birds';
+}
 
 const r3 = (v) => Math.round(v * 1000) / 1000;
 
@@ -61,7 +102,8 @@ export function actionCues(act, t0, voice) {
   const d = Math.max(0.3, act.d ?? 1);
   if (['enter', 'moveTo', 'approach', 'recede', 'exit'].includes(act.type)) {
     if (act.gait === 'run') out.push({ t: t0, s: 'whoosh' });
-    out.push({ t: t0, s: 'steps', d: r3(d), ...(act.gait === 'run' ? { g: 'run' } : {}) });
+    // (z: how big the walker is - a child's or a crab's feet patter, a man's or a unicorn's thud)
+    out.push({ t: t0, s: 'steps', d: r3(d), ...(act.gait === 'run' ? { g: 'run' } : {}), ...(act.z ? { z: r3(act.z) } : {}) });
     // An animal that comes along says so when it gets there
     if (voice && !PEOPLE_VOICES.has(voice.v) && act.type !== 'exit' && act.type !== 'recede') out.push(...vocal('hi', t0 + d, voice));
   } else if (act.type === 'appear' && !act.wasPresent) {
@@ -85,9 +127,13 @@ export function actionCues(act, t0, voice) {
   return out.map((c) => ({ ...c, t: r3(c.t) }));
 }
 
-/** The cues of a figure in a still scene: its mood once, its words (from `start`) */
-export function stillCues({ expression, words, start = 0.5, at = 0.3 }, voice) {
+/** The cues of a figure in a still scene: its gesture and mood once, its words (from `start`) */
+export function stillCues({ expression, words, animation, start = 0.5, at = 0.3 }, voice) {
   const out = [];
+  // (a jump's boing, a cheer's "yay", a wave's "hey"... once, as the scene starts)
+  const g = animation && animation !== 'talk' && ANIM_SOUNDS[animation];
+  if (g && g !== 'snore') out.push(...(VOCAL[g] ? vocal(g, 0.15, voice) : [{ t: 0.15, s: g }]));
+  if (g === 'snore') out.push({ t: 0.4, s: 'snore', d: 3 });
   const mood = expression && MOOD_SOUNDS[expression];
   if (mood) out.push(...(VOCAL[mood] ? vocal(mood, at, voice) : [{ t: at, s: mood }]));
   if (words) out.push(...vocal('babble', start, voice, { n: babbleNotes(words) }));
@@ -98,9 +144,10 @@ export function stillCues({ expression, words, start = 0.5, at = 0.3 }, voice) {
  * The scene's sound: { loop, cues } in time order. loop: seconds after which it all starts again
  * (with the animation), or null to play once.
  */
-export function soundTrack(cues, loop = null) {
+export function soundTrack(cues, loop = null, { amb = null, clean = false } = {}) {
   const sorted = cues.filter((c) => !loop || c.t < loop).sort((a, b) => a.t - b.t);
-  return { loop: loop ? r3(loop) : null, cues: sorted };
+  // amb: the place's sound (ambienceOf); clean: a style that suits the clean sound set
+  return { loop: loop ? r3(loop) : null, cues: sorted, ...(amb ? { amb } : {}), ...(clean ? { clean: true } : {}) };
 }
 
 /** The sound of a scene's SVG, or null (read from its <metadata class="pg-sound">) */

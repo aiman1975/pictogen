@@ -21,10 +21,23 @@
  */
 export function pgSound(ctx, dest, cue, when, bank) {
   const t0 = Math.max(when, ctx.currentTime);
+  // The clean set (cue.k, for explainers and presentations): no babble, a soft thud for a boing,
+  // a quiet chime for a jingle, a click for a pop, everything a little quieter
+  const clean = cue.k === 'clean';
+  if (clean) {
+    if (cue.s === 'babble') return;
+    const swap = { boing: 'thud', jingle: 'chime', twinkle: 'chime', pop: 'click', blip: 'click', whirl: 'whoosh', plop: 'thud' }[cue.s];
+    if (swap) cue = { ...cue, s: swap };
+  }
   const p = cue.p || 1;
   const out = ctx.createGain();
-  out.gain.value = 0.8;
+  out.gain.value = clean ? (cue.v ? 0.6 : 0.45) : 0.8;
   out.connect(dest);
+  // How big the feet are (cue.z: 1 a grown-up, 0.3 a crab, 1.3 an elephant): steps quicker, lighter
+  // and higher for small ones, slower and deeper for big ones (closer together in the clean set)
+  const z = Math.max(clean ? 0.8 : 0.25, Math.min(clean ? 1.2 : 1.6, cue.z || 1));
+  const stepGap = (cue.g === 'run' ? 0.19 : 0.36) * (z < 0.5 ? 0.55 : z < 0.8 ? 0.75 : z > 1.15 ? 1.3 : 1);
+  const stepPitch = Math.max(0.65, Math.min(2.4, 1 / z));
   // White noise (a fixed sequence, so renders are repeatable)
   if (!ctx.__pgNoise) {
     const b = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
@@ -173,9 +186,8 @@ export function pgSound(ctx, dest, cue, when, bank) {
       }
     } else if (cue.s === 'steps') {
       if (bank.pick('steps', null, null, 0)) {
-        const gap = cue.g === 'run' ? 0.19 : 0.36;
-        const count = Math.max(1, Math.min(24, Math.floor((cue.d || 1) / gap)));
-        for (let i = 0; i < count; i++) play(bank.pick('steps', null, null, i), t0 + 0.05 + i * gap, 1 + (i % 2) * 0.04, { gain: cue.g === 'run' ? 0.8 : 1 });
+        const count = Math.max(1, Math.min(40, Math.floor((cue.d || 1) / stepGap)));
+        for (let i = 0; i < count; i++) play(bank.pick('steps', null, null, i), t0 + 0.05 + i * stepGap, Math.min(2, stepPitch) * (1 + (i % 2) * 0.04), { gain: (cue.g === 'run' ? 0.8 : 1) * Math.min(1.2, 0.5 + z * 0.5) });
         return;
       }
     } else {
@@ -255,17 +267,51 @@ export function pgSound(ctx, dest, cue, when, bank) {
     }
     case 'whoosh': hiss(t0, 0.5, 'bandpass', [[0, 300], [0.45, 2200], [1, 500]], 1.4, 0.45); break;
     case 'steps': {
-      // Soft footsteps for as long as it walks (quicker when it runs)
-      const gap = cue.g === 'run' ? 0.19 : 0.36;
-      const n = Math.max(1, Math.min(24, Math.floor((cue.d || 1) / gap)));
+      // Footsteps for as long as it walks (quicker when it runs): small feet patter, big feet thud
+      const n = Math.max(1, Math.min(40, Math.floor((cue.d || 1) / stepGap)));
       for (let i = 0; i < n; i++) {
-        const t = t0 + 0.05 + i * gap;
-        const peak = cue.g === 'run' ? 0.2 : 0.26;
-        blipTo(t, 'sine', i % 2 ? 125 : 105, 55, 0.08, peak);
-        hiss(t, 0.05, 'lowpass', [[0, 900], [1, 500]], 0.7, peak * 0.7);
+        const t = t0 + 0.05 + i * stepGap;
+        const peak = (cue.g === 'run' ? 0.2 : 0.26) * Math.min(1.3, 0.45 + z * 0.55);
+        blipTo(t, 'sine', (i % 2 ? 125 : 105) * stepPitch, 55 * stepPitch, 0.08 * Math.min(1.4, z + 0.2), peak);
+        hiss(t, 0.05, 'lowpass', [[0, 900 * stepPitch], [1, 500 * stepPitch]], 0.7, peak * 0.7);
       }
       break;
     }
+    // Things in the scene
+    case 'ring':
+      // A phone: two short rings of two close tones
+      for (const at of [0, 0.5]) for (const f of [440, 480]) { const g = gainAt(); env(g.gain, t0 + at, 0.09, 0.01, 0.32, 0.05); tone('sine', t0 + at, t0 + at + 0.4, g).frequency.value = f * 2; }
+      break;
+    case 'tick': {
+      // A clock: a tick a second
+      const n = Math.max(1, Math.min(12, Math.round(cue.d || 3)));
+      for (let i = 0; i < n; i++) blipTo(t0 + i, 'square', i % 2 ? 2400 : 2000, 1200, 0.025, 0.4, filter('bandpass', 2200, 1.2, out));
+      break;
+    }
+    case 'typing': {
+      // Keys clicking, unevenly
+      let t = t0;
+      const end = t0 + Math.min(6, cue.d || 2.5);
+      for (let i = 0; t < end; i++) { hiss(t, 0.025, 'bandpass', [[0, 2600 + (i % 5) * 300], [1, 2000]], 3, 0.25); t += 0.09 + ((i * 37) % 11) / 55; }
+      break;
+    }
+    case 'schoolbell': for (let i = 0; i < 10; i++) bell(t0 + i * 0.09, 1568, 0.09, 0.12); break;
+    case 'magic':
+      // A rising sparkle with a shimmer
+      [1568, 1976, 2349, 2637, 3136, 3951].forEach((f, i) => bell(t0 + i * 0.07, f, 0.08, 0.5));
+      hiss(t0, 0.9, 'highpass', [[0, 4000], [1, 7000]], 0.7, 0.06);
+      break;
+    case 'applause': {
+      // Many hands clapping, unevenly, for a while
+      const end = t0 + Math.min(5, cue.d || 2.5);
+      for (let i = 0, t = t0; t < end; i++) { hiss(t, 0.03, 'bandpass', [[0, 1400 + (i % 7) * 160], [1, 1100]], 1.2, 0.24 * Math.min(1, (end - t) / 0.8 + 0.2)); t += 0.025 + ((i * 53) % 13) / 260; }
+      break;
+    }
+    case 'splash': hiss(t0, 0.5, 'lowpass', [[0, 3500], [1, 700]], 0.8, 0.45); [0.1, 0.2].forEach((at, i) => blipTo(t0 + at, 'sine', 600 + i * 200, 1300, 0.06, 0.12)); break;
+    // The clean set's quieter sounds
+    case 'thud': blipTo(t0, 'sine', 160, 60, 0.12, 0.35); hiss(t0, 0.04, 'lowpass', [[0, 600], [1, 300]], 0.7, 0.15); break;
+    case 'chime': bell(t0, 1319, 0.1, 0.6); bell(t0 + 0.12, 1760, 0.08, 0.7); break;
+    case 'click': blipTo(t0, 'sine', 1800, 1400, 0.03, 0.12); break;
     case 'jingle': [1047, 1319, 1568, 2093].forEach((f, i) => bell(t0 + i * 0.11, f, 0.16, 0.5)); break;
     case 'ding': bell(t0, 1760, 0.22, 1.1); break;
     case 'blip': blipTo(t0, 'square', 880, 1320, 0.09, 0.25, filter('lowpass', 2500, 0.7, out)); break;
@@ -347,7 +393,12 @@ export function pgSoundTrack(ctx, dest, sound, from = 0, opts = {}) {
   const bus = ctx.createGain();
   bus.connect(dest);
   const zero = ctx.currentTime + 0.05 - from; // ctx time of the scene's time 0
-  const cues = (sound && sound.cues) || [];
+  // The sound set (opts.set): 'clean' or 'playful'; 'auto' (the default) is clean for a scene in a
+  // style that suits it (sound.clean) or a clip of the clean kinds (opts.genre)
+  const clean = pgCleanSet(opts.set, sound, opts.genre);
+  const cues = ((sound && sound.cues) || []).map((c) => (clean ? { ...c, k: 'clean' } : c));
+  // The place's sound under it all, for as long as the scene plays
+  const amb = sound && sound.amb ? pgAmbience(ctx, bus, sound.amb, ctx.currentTime + 0.05, { clean }) : null;
   const loop = sound && sound.loop > 0.5 ? sound.loop : null;
   let until = ctx.currentTime;
   const ahead = () => {
@@ -363,6 +414,7 @@ export function pgSoundTrack(ctx, dest, sound, from = 0, opts = {}) {
         }
       }
     }
+    if (amb) amb.events(until, to);
     until = to;
   };
   ahead();
@@ -370,8 +422,108 @@ export function pgSoundTrack(ctx, dest, sound, from = 0, opts = {}) {
   return {
     stop() {
       clearInterval(timer);
+      if (amb) amb.stop(ctx.currentTime + 0.3);
       bus.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
-      setTimeout(() => bus.disconnect(), 300);
+      setTimeout(() => bus.disconnect(), 400);
+    },
+  };
+}
+
+/** Whether a scene plays in the clean sound set: set 'clean' | 'playful' | 'auto' (see pgSoundTrack) */
+export function pgCleanSet(set, sound, genre) {
+  if (set === 'clean') return true;
+  if (set === 'playful') return false;
+  return Boolean((sound && sound.clean) || ['news', 'documentary', 'howto'].indexOf(genre) >= 0);
+}
+
+/**
+ * The quiet sound of a place (src/sound.js ambienceOf), from ctx time `start`: a bed of filtered
+ * noise or a hum that fades in, and things now and then (birds, crickets, bubbles, a passing car)
+ * scheduled by events(from, to) as time goes on; stop(at) fades it out. Repeatable: what happens
+ * when depends only on the time since the start.
+ */
+export function pgAmbience(ctx, dest, kind, start, opts = {}) {
+  const out = ctx.createGain();
+  const level = opts.clean ? 0.7 : 1;
+  out.gain.setValueAtTime(0.0001, start);
+  out.gain.linearRampToValueAtTime(level, start + 1.2);
+  out.connect(dest);
+  const sources = [];
+  if (!ctx.__pgNoise) {
+    const b = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = b.getChannelData(0);
+    let s = 7;
+    for (let i = 0; i < d.length; i++) { s = (s * 16807) % 2147483647; d[i] = s / 1073741823.5 - 1; }
+    ctx.__pgNoise = b;
+  }
+  const bed = (type, freq, q, gain, lfo) => {
+    const n = ctx.createBufferSource();
+    n.buffer = ctx.__pgNoise;
+    n.loop = true;
+    const f = ctx.createBiquadFilter();
+    f.type = type; f.frequency.value = freq; f.Q.value = q;
+    const g = ctx.createGain();
+    g.gain.value = gain;
+    n.connect(f); f.connect(g); g.connect(out);
+    n.start(start);
+    sources.push(n);
+    if (lfo) {
+      // A slow swell (waves) or a wandering pitch (wind)
+      const o = ctx.createOscillator();
+      o.frequency.value = lfo.rate;
+      const depth = ctx.createGain();
+      depth.gain.value = lfo.depth;
+      o.connect(depth);
+      depth.connect(lfo.on === 'freq' ? f.frequency : g.gain);
+      o.start(start);
+      sources.push(o);
+    }
+  };
+  const hum = (freq, gain) => {
+    const o = ctx.createOscillator();
+    o.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.value = gain;
+    o.connect(g); g.connect(out);
+    o.start(start);
+    sources.push(o);
+  };
+  if (kind === 'waves') bed('lowpass', 550, 0.6, 0.05, { rate: 0.11, depth: 0.04 });
+  else if (kind === 'underwater') bed('lowpass', 260, 0.8, 0.07);
+  else if (kind === 'rain') bed('highpass', 2500, 0.5, 0.035);
+  else if (kind === 'wind') bed('bandpass', 650, 1.2, 0.06, { rate: 0.07, depth: 260, on: 'freq' });
+  else if (kind === 'city') bed('lowpass', 180, 0.7, 0.07);
+  else if (kind === 'space') { hum(55, 0.025); hum(82.5, 0.015); }
+  // Things now and then: [every so many seconds, the chance in each, the sound]
+  const every = { birds: [1.6, 0.55, { s: 'tweet', m: 'happy' }], crickets: [0.9, 0.8, null], underwater: [1.3, 0.5, { s: 'bubble' }],
+    city: [4.5, 0.4, { s: 'whoosh' }], space: [5, 0.3, { s: 'twinkle' }], waves: [6, 0.3, null] }[kind];
+  const fx = ctx.createGain();
+  fx.gain.value = kind === 'birds' ? 0.18 : 0.12;
+  fx.connect(out);
+  const chance = (k) => { let h = (k * 2654435761) >>> 0; h ^= h >>> 15; return (h % 1000) / 1000; };
+  return {
+    events(from, to) {
+      if (!every) return;
+      const [gap, p, cue] = every;
+      for (let k = Math.max(0, Math.ceil((from - start) / gap)); start + k * gap < to; k++) {
+        const at = start + 0.8 + k * gap + chance(k + 99) * gap * 0.5;
+        if (chance(k) > p || at < from) continue;
+        if (cue) pgSound(ctx, fx, { ...cue, p: 0.85 + chance(k + 7) * 0.35 }, at, null);
+        else for (let j = 0; j < 3; j++) {
+          // a cricket's chirp: three quick high pulses
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.frequency.value = 4600 + chance(k + j) * 300;
+          g.gain.setValueAtTime(0.0001, at + j * 0.06);
+          g.gain.linearRampToValueAtTime(0.16, at + j * 0.06 + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.0001, at + j * 0.06 + 0.04);
+          o.connect(g); g.connect(fx);
+          o.start(at + j * 0.06); o.stop(at + j * 0.06 + 0.05);
+        }
+      }
+    },
+    stop(at) {
+      out.gain.setTargetAtTime(0.0001, at, 0.25);
+      for (const n of sources) n.stop(at + 1.2);
     },
   };
 }

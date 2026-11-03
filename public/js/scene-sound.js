@@ -4,11 +4,14 @@
 // from the synthesizer (src/sound-synth.js, served at /js/sound-synth.js). Renders both for video
 // export. Sound and music are on by default, each with its own switch (remembered in this browser).
 
-import { pgSound, pgSoundTrack, pgBank, pgVoiced, pgMusicTrack, pgMusicRender } from './sound-synth.js';
+import { pgSound, pgSoundTrack, pgBank, pgVoiced, pgMusicTrack, pgMusicRender, pgAmbience, pgCleanSet } from './sound-synth.js';
 
 const remembered = (key) => { try { return localStorage.getItem(key) !== 'off'; } catch { return true; } };
 const remember = (key, on) => { try { localStorage.setItem(key, on ? 'on' : 'off'); } catch { /* not remembered */ } };
 let enabled = remembered('pictogen.sound.v1');
+// The sound set: 'auto' (clean for explainer styles and clips of the clean kinds), 'playful', 'clean'
+let soundSet = (() => { try { return ['playful', 'clean'].includes(localStorage.getItem('pictogen.soundset.v1')) ? localStorage.getItem('pictogen.soundset.v1') : 'auto'; } catch { return 'auto'; } })();
+let clipKind = null; // (the clip playing: its genre, for 'auto')
 let musicOn = remembered('pictogen.music.v1');
 
 let ctx = null, master = null, track = null, music = null, bank = null;
@@ -78,12 +81,21 @@ export function stop() {
 export function play(svg, from = 0) {
   stop();
   const sound = soundOf(svg);
-  if (!enabled || !sound?.cues?.length || !allowed()) return false;
+  if (!enabled || !(sound?.cues?.length || sound?.amb) || !allowed()) return false;
   const ac = context();
   if (!ac) return false;
-  track = pgSoundTrack(ac, master, sound, from, { bank, onVoice: (at, s) => music?.duck(at, s) });
+  track = pgSoundTrack(ac, master, sound, from, { bank, onVoice: (at, s) => music?.duck(at, s), set: soundSet, genre: clipKind });
   return true;
 }
+
+/** The sound set ('auto' | 'playful' | 'clean'), remembered in this browser */
+export function setSoundSet(set) {
+  soundSet = ['playful', 'clean'].includes(set) ? set : 'auto';
+  try { localStorage.setItem('pictogen.soundset.v1', soundSet); } catch { /* not remembered */ }
+}
+export const getSoundSet = () => soundSet;
+/** The kind of clip playing (its genre), or null for a single scene: decides the 'auto' set */
+export function setClipKind(genre) { clipKind = genre || null; }
 
 /** Plays on from where the scene's animation is now (after a pause or a seek) */
 export function resume(svg) {
@@ -147,10 +159,10 @@ export function setMusic(on) {
  * an AudioBuffer of `total` seconds (looping scenes repeat for as long as they are shown), with
  * the genre's music under it all when `music` is given ({ genre }).
  */
-export async function renderClipSound(parts, total, { music: withMusic = null } = {}) {
+export async function renderClipSound(parts, total, { music: withMusic = null, genre = clipKind } = {}) {
   await packReady;
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-  if (!OAC || (!withMusic && !parts.some((p) => p.sound?.cues?.length))) return null;
+  if (!OAC || (!withMusic && !parts.some((p) => p.sound?.cues?.length || p.sound?.amb))) return null;
   const rate = 44100;
   const oc = new OAC(2, Math.max(1, Math.ceil(total * rate)), rate);
   const comp = oc.createDynamicsCompressor();
@@ -161,13 +173,21 @@ export async function renderClipSound(parts, total, { music: withMusic = null } 
   comp.connect(oc.destination);
   const duck = withMusic ? pgMusicRender(oc, bus, withMusic.genre, await withTune(withMusic.genre), 0, total) : null;
   for (const { sound, at, duration } of parts) {
-    if (!sound?.cues?.length) continue;
+    if (!sound) continue;
+    const clean = pgCleanSet(soundSet, sound, genre);
+    // (the place's sound for as long as the scene is shown)
+    if (sound.amb) {
+      const amb = pgAmbience(oc, bus, sound.amb, at, { clean });
+      amb.events(at, at + duration);
+      amb.stop(at + duration - 0.3);
+    }
+    if (!sound.cues?.length) continue;
     const loop = sound.loop > 0.5 ? sound.loop : null;
     for (let k = 0; k === 0 || (loop && k * loop < duration); k++) {
       for (const c of sound.cues) {
         const t = (loop ? k * loop : 0) + c.t;
         if (t >= duration - 0.05) continue;
-        pgSound(oc, bus, c, at + t, bank);
+        pgSound(oc, bus, clean ? { ...c, k: 'clean' } : c, at + t, bank);
         if (duck && pgVoiced(c)) duck(at + t, pgVoiced(c));
       }
     }
@@ -175,4 +195,4 @@ export async function renderClipSound(parts, total, { music: withMusic = null } 
   return oc.startRendering();
 }
 
-window.pictogenSound = { play, resume, stop, startMusic, stopMusic, isEnabled, isMusicOn, isMusicPlaying, setEnabled, setMusic, soundOf, renderClipSound, packSize, packReady };
+window.pictogenSound = { setSoundSet, getSoundSet, setClipKind, play, resume, stop, startMusic, stopMusic, isEnabled, isMusicOn, isMusicPlaying, setEnabled, setMusic, soundOf, renderClipSound, packSize, packReady };

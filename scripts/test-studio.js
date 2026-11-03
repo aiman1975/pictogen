@@ -39,6 +39,8 @@ try {
   page.on('request', (r) => { if (r.url().includes('/audio/pack/music/')) musicFetched.push(r.url()); });
   await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
   check(musicFetched.length === 0, `opening the studio downloads no music (${musicFetched.length} tunes)`);
+  check(await page.evaluate(() => { const pick = document.getElementById('sound-set'); pick.value = 'clean'; pick.dispatchEvent(new Event('change')); const ok = window.pictogenSound.getSoundSet() === 'clean'; pick.value = 'auto'; pick.dispatchEvent(new Event('change')); return ok && window.pictogenSound.getSoundSet() === 'auto'; }),
+    'the sound set can be picked: auto, playful or clean');
 
   const draw = async (prompt) => {
     const input = await page.$('textarea, input[type=text]');

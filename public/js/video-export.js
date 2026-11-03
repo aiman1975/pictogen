@@ -261,7 +261,7 @@ export async function exportGif(shots, { fps = 15, title, genre, onProgress } = 
  * The shots' sound as one AudioBuffer, each scene's from where it starts in the video (after the
  * title card), or null when there is nothing to hear.
  */
-export async function clipSound(shots, { fps = 30, title, music = null } = {}) {
+export async function clipSound(shots, { fps = 30, title, music = null, genre } = {}) {
   let at = title ? Math.round(1.5 * fps) / fps : 0;
   const parts = shots.map((sh) => {
     const duration = Math.max(1, Math.round(sh.duration * fps)) / fps;
@@ -269,7 +269,7 @@ export async function clipSound(shots, { fps = 30, title, music = null } = {}) {
     at += duration;
     return part;
   });
-  return renderClipSound(parts, at + 0.1, { music });
+  return renderClipSound(parts, at + 0.1, { music, ...(genre ? { genre } : {}) });
 }
 
 /**
@@ -280,7 +280,7 @@ export async function clipSound(shots, { fps = 30, title, music = null } = {}) {
 export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, tune, sound = true, music = false, onProgress } = {}) {
   const { frames, width, height } = await renderShots(shots, { fps, scale, format: 'video', title, genre, onProgress: (p) => onProgress && onProgress(p * 0.6) });
   const audio = sound || music
-    ? await clipSound(sound ? shots : shots.map((sh) => ({ ...sh, svg: null })), { fps, title, music: music ? { genre: tune || genre || 'kids' } : null }).catch(() => null)
+    ? await clipSound(sound ? shots : shots.map((sh) => ({ ...sh, svg: null })), { fps, title, genre, music: music ? { genre: tune || genre || 'kids' } : null }).catch(() => null)
     : null;
   const n = frames.length;
   let shown = 0;

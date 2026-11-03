@@ -184,6 +184,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] **Sound pack**: recorded or AI-generated files replace sounds one by one (voices, babble
       syllables, animals, effects, music), each on record with its source and license
       (`npm run sound-pack`, `docs/SOUND_PACK.md`); whatever is missing stays synthesized
+- [x] **Scene sounds**: footsteps by the walker's size, things that sound (phone, clock, laptop, school
+      bell, magic, applause), a quiet sound per place (birds, crickets, waves, bubbles, wind, rain, city,
+      space), and two sound sets (playful, clean) with an automatic choice by style and kind of clip
+- [x] **Voice reactions** (Gemini TTS): ooh, a-ha, hmm, hmph, aww, giggle, yay, hey; child, woman, man
 - [x] **Music pack**: ten tunes made with Lyria 3 (kids, news, documentary, how-to; calm, adventure,
       mystery, under the sea, bedtime, celebration), a mood picked per clip, loaded only when played
 - [ ] Fill the rest of the sound pack (voices, animals); a volume per figure; music for single scenes

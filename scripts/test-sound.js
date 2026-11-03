@@ -75,6 +75,23 @@ check(repoPack.files.filter((e) => /CC0/.test(e.license) && /Kenney/.test(e.sour
   'the shipped pack has Kenney\'s CC0 interface sounds, with their license text');
 check(!repoPack.problems.length, `the shipped sound pack is clean: every file listed with a source and a license${repoPack.problems.length ? ': ' + repoPack.problems.join('; ') : ''}`);
 check(CATALOGUE.length === 76 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') && CATALOGUE.some((c) => c.slot === 'music/documentary'), `the catalogue lists ${CATALOGUE.length} slots (voices, syllables, animals, effects, music)`);
+// Footsteps by size, things that sound, places' sounds, the sound set of a clip
+{
+  const snd = (t, o) => soundOf(generate(t, o).svg) || {};
+  const steps = (t) => snd(t).cues?.find((c) => c.s === 'steps');
+  check(steps('a crab walks across the beach')?.z < 0.5 && steps('an elephant walks')?.z > 1.1 && steps('a boy walks in, then waves')?.z < steps('a man walks in, then waves')?.z,
+    'footsteps know the walker\'s size: a crab patters, a boy is lighter than a man, an elephant thuds');
+  const amb = (t) => snd(t).amb ?? null;
+  check(amb('a girl on the beach') === 'waves' && amb('a fish under the sea') === 'underwater' && amb('a boy in the park at night') === 'crickets' && amb('a teacher in the classroom') === null && amb('a cat in the park') === 'birds' && amb('an astronaut in space') === 'space',
+    'each place has its sound: waves, bubbles, crickets at night, birds by day, a hum in space, none indoors');
+  const has = (t, s) => (snd(t).cues ?? []).some((c) => c.s === s);
+  check(has('a woman with a phone', 'ring') && has('a teacher in the classroom', 'schoolbell') && has('a wizard waves', 'magic') && has('three kids cheer', 'applause') && has('a surprised girl jumps', 'boing'),
+    'things make their sounds: a phone rings, the school bell, a wizard\'s magic, applause, a jump\'s boing');
+  check(snd('a boy waves', { style: 'whiteboard' }).clean === true && !snd('a boy waves').clean, 'explainer styles (whiteboard, stickman...) ask for the clean set');
+  const html = generateStoryHtml(composeStory('a boy walks in the park | Hi', { sounds: 'clean' }));
+  check(html.includes("soundSet = 'clean'") && html.includes('function pgAmbience') && generateStoryHtml(composeStory('a boy | Hi')).includes("soundSet = 'auto'"), 'an exported clip plays in the set it was made with');
+}
+
 // The music pack: a tune for each clip genre and each mood (made with Lyria), a mood picked for a clip
 {
   const { TUNES, packForClip, readPack } = await import('../src/sound-pack.js');
@@ -187,6 +204,31 @@ if (!chromium) {
     }, cues);
     const silent = rendered.filter((r) => r.rms < 0.002 || r.peak < 0.03);
     check(!silent.length, `all ${rendered.length} sounds are audible${silent.length ? ': not ' + silent.map((r) => r.name).join(', ') : ''}`);
+    // The places' sounds are heard (quietly), and the clean set swaps a boing for a soft thud
+    const extra = await page.evaluate(async () => {
+      const { pgSound, pgAmbience } = await import('/js/sound-synth.js');
+      const level = async (fn) => {
+        const ctx = new OfflineAudioContext(1, 44100 * 4, 44100);
+        fn(ctx);
+        const d = (await ctx.startRendering()).getChannelData(0);
+        let sum = 0; for (const v of d) sum += v * v;
+        return Math.sqrt(sum / d.length);
+      };
+      const out = {};
+      for (const kind of ['birds', 'crickets', 'waves', 'underwater', 'wind', 'rain', 'city', 'space']) {
+        out[kind] = await level((ctx) => { const a = pgAmbience(ctx, ctx.destination, kind, 0); a.events(0, 4); a.stop(3.6); });
+      }
+      out.boing = await level((ctx) => pgSound(ctx, ctx.destination, { t: 0, s: 'boing' }, 0, null));
+      out.thud = await level((ctx) => pgSound(ctx, ctx.destination, { t: 0, s: 'boing', k: 'clean' }, 0, null));
+      out.babbleClean = await level((ctx) => pgSound(ctx, ctx.destination, { t: 0, s: 'babble', v: 'kid', n: [[0, 0.2, 'a'], [0.3, 0.2, 'o']], k: 'clean' }, 0, null));
+      out.smallSteps = await level((ctx) => pgSound(ctx, ctx.destination, { t: 0, s: 'steps', d: 3, z: 0.3 }, 0, null));
+      out.bigSteps = await level((ctx) => pgSound(ctx, ctx.destination, { t: 0, s: 'steps', d: 3, z: 1.4 }, 0, null));
+      return out;
+    });
+    const quiet = Object.entries(extra).filter(([k, v]) => !['boing', 'thud', 'babbleClean', 'smallSteps', 'bigSteps'].includes(k) && !(v > 0.0005 && v < 0.08));
+    check(!quiet.length, `each place's sound is heard, quietly (${Object.entries(extra).slice(0, 8).map(([k, v]) => `${k} ${v.toFixed(4)}`).join(', ')})`);
+    check(extra.thud > 0.001 && Math.abs(extra.thud - extra.boing) > 0.001 && extra.babbleClean === 0, `the clean set: a soft thud for a boing, no babble (${extra.boing.toFixed(4)} -> ${extra.thud.toFixed(4)})`);
+    check(extra.smallSteps > 0.001 && extra.bigSteps > 0.001 && extra.smallSteps !== extra.bigSteps, `small feet and big feet sound different (${extra.smallSteps.toFixed(4)} / ${extra.bigSteps.toFixed(4)})`);
     check(rendered.every((r) => !r.bad && r.peak < 1), 'no sound clips or breaks (finite, below full scale)');
     check(rendered.every((r) => r.last < 2.6), 'every sound is over within the render');
     const hum = (v) => rendered.find((r) => r.name === `hmm/${v}`).zc;

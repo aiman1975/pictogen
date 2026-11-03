@@ -6,7 +6,7 @@ import { lipKeys, lipCss } from './speech.js';
 import { layoutBubbles } from './bubble.js';
 import { emote } from './emotes.js';
 import { HEIGHTS, mergeFeatures } from './looks.js';
-import { actionCues, stillCues, soundTrack, voiceOf } from './sound.js';
+import { actionCues, stillCues, soundTrack, voiceOf, thingCues, ambienceOf } from './sound.js';
 import { getConcept } from './concepts/index.js';
 import { createKit } from './core/kit.js';
 import { createRng } from './core/rng.js';
@@ -465,6 +465,12 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
   extras(d, env, rng, W, H, hY);
   return d.shapes;
 }
+
+// How big a walker's feet sound: its size, a child's lighter (src/sound-synth.js 'steps')
+const footSize = (it) => it.c.scale * (HEIGHTS[it.look?.features?.height] ?? 1) * (voiceOf(it.c.id)?.v === 'kid' ? 0.7 : 1);
+
+// Styles that suit the clean sound set (subtle, for explainers and presentations), when it is 'auto'
+const CLEAN_SOUND_STYLES = new Set(['stickman', 'whiteboard', 'editorial', 'blueprint', 'geometric']);
 
 // Styles whose background() is a flat studio backdrop (no horizon) and that draw their own ground shadow.
 const FLAT_BACKDROP_STYLES = ['editorial', 'stickman', 'cute2d', 'whiteboard', 'doodle', 'papercut', 'geometric'];
@@ -1194,7 +1200,9 @@ export function composeScene(matches, opts = {}) {
       soundLoop = Math.max(soundLoop ?? 0, loop);
     }
     // Its mood said out loud (one after another), its words babbled in time with its lips
-    if (it.m.expression || words) cues.push(...stillCues({ expression: it.m.expression, words, at: 0.3 + cues.length * 0.45 }, voiceOf(it.c.id, it.voice)));
+    if (it.m.expression || words || it.m.animation) cues.push(...stillCues({ expression: it.m.expression, words, animation: it.m.animation, at: 0.3 + cues.length * 0.45 }, voiceOf(it.c.id, it.voice)));
+    // (walking or running on the spot, or across: its footsteps, by its size)
+    if (['walk', 'run', 'walk-across', 'jog'].includes(it.m.animation)) cues.push({ t: 0.1, s: 'steps', d: 4, ...(it.m.animation === 'run' ? { g: 'run' } : {}), z: r2(footSize(it)) });
     if (!animation) {
       if (it.c.category === 'people') animation = 'blink';
       else if (it.c.id === 'sun') animation = 'pulse';
@@ -1460,7 +1468,7 @@ export function composeScene(matches, opts = {}) {
     timeline.beatTimes = beatTimes;
     for (const { key, t0, act } of doings) {
       const { it } = actorSlots.get(key);
-      cues.push(...actionCues(act, t0, voiceOf(it.c.id, it.voice)));
+      cues.push(...actionCues({ ...act, z: footSize(it) }, t0, voiceOf(it.c.id, it.voice)));
     }
     soundLoop = r2(T); // (the animation's loop)
     for (const [key, slot] of actorSlots) {
@@ -1515,8 +1523,11 @@ export function composeScene(matches, opts = {}) {
   if (st.wholeFilter && filterRef) content = `<g filter="${filterRef}">${content}</g>`;
   if (st.overlay) content += `<g class="pg-style-overlay" pointer-events="none">${st.overlay(uid, W, H)}</g>`;
   // The sound goes with the picture, for the studio, the clip player and video export to play
-  if (cues.length) {
-    opts.sound = soundTrack(cues, soundLoop);
+  // ... with the sounds of its things and its place, under it all
+  cues.push(...thingCues(items.flatMap((it) => [it.c.id, ...(it.holding ? [it.holding.c.id] : [])]), { classroom: env.roomKind === 'classroom', cheering: items.filter((it) => it.m.animation === 'cheer').reduce((n, it) => n + (it.m.count ?? 1), 0) }));
+  const amb = ambienceOf(env);
+  if (cues.length || amb) {
+    opts.sound = soundTrack(cues, soundLoop, { amb, clean: CLEAN_SOUND_STYLES.has(style) });
     content += `<metadata class="pg-sound">${esc(JSON.stringify(opts.sound))}</metadata>`;
   }
   const motionDefs = motionCss.length ? `<style><![CDATA[${motionCss.join('\n')}]]></style>` : '';
