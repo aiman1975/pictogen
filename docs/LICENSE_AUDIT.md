@@ -14,6 +14,7 @@ font, data file or dependency is added.
 | Kenney Interface Sounds 1.0 (23 effects: pop, jingle, ding, twinkle, blip, whoosh, whirl, plop, boing, bubble, blub) | `public/audio/pack/effects/` | CC0 1.0 (`public/audio/pack/licenses/kenney-interface-sounds.txt`) | Yes | None (credited in `THIRD_PARTY_NOTICES.md` as a courtesy) | ✅ |
 | Sound pack (recorded / generated audio) | `public/audio/pack/` | Per file, recorded in `manifest.json` (source, license, date) | Only files whose license allows it | Keep the generator's terms and the prompt for each file | ✅ checked by `npm run sound-pack -- check` and `npm test`; ten tunes made with Lyria 3 (see 8) |
 | Sea animals (octopus, sea turtle, seahorse, crab, whale, starfish) | `src/concepts/sea.js` | MIT (`LICENSE`): drawn in code | Yes | none beyond PictoGen's own | ✅ see below (7) |
+| Fantasy friends (unicorn, monster, ghost; knight, mermaid, genie costumes) | `src/concepts/fantasy.js`, `src/concepts/characters.js` | MIT (`LICENSE`): drawn in code | Yes | none beyond PictoGen's own | ✅ see below (7) |
 | Showcase narration audio | `public/audio/showcase-*.wav` | Recorded with the Windows "Microsoft Zira" desktop voice | **Unclear** | See below | ⚠️ decide before release |
 
 ## Findings and what was done
@@ -56,7 +57,9 @@ font, data file or dependency is added.
    prompts: "a cute sea turtle / seahorse / red crab / blue whale / orange starfish / cartoon
    octopus ... flat vector style, plain white background"). The pictures themselves are not part
    of the product or the repository. Keep a copy of the Gemini API terms of that day with the
-   product's records.
+   product's records. The same was done for the fantasy friends (unicorn, friendly monster, ghost,
+   knight, mermaid, genie; 2026-11-03). Where a reference looked like a well-known film character
+   (a red-haired mermaid in a purple top, a blue genie), the drawing was given colours of its own.
 8. **Music made with Lyria 3.** The ten tunes in `public/audio/pack/music/` were generated with
    `lyria-3-clip-preview` through the Gemini API on its paid tier (2026-11-03), from the prompts
    in `docs/SOUND_PACK.md`, instrumental only, no artist or song named. Each file is on record in

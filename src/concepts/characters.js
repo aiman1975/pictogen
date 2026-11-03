@@ -309,6 +309,102 @@ const flask = (d, p, g) => {
   d.circle(x + 1, y + 3.5, 0.8, { fill: '#ffffff', opacity: 0.8, kind: 'highlight' });
 };
 
+// A knight's things: armour over the body, a helmet with its visor up and a plume, a shield and
+// a wooden sword (drawn after reference pictures made once with Gemini, docs/LICENSE_AUDIT.md)
+const armour = (d, p, g) => {
+  const [x0, y0, x1, y1] = g.torso, m = torsoMid(g), steel = p.c('main'), dark = darken(steel, 0.25);
+  d.path(`M${x0} ${y0} L${x1} ${y0} L${x1 - 1} ${y1} L${x0 + 1} ${y1} Z`, { fill: steel, kind: 'body' });
+  if (!g.back && !g.side) {
+    d.path(`M${r1(m - 7)} ${y0 + 3} Q${m} ${y0 + 1} ${r1(m + 7)} ${y0 + 3} L${r1(m + 6)} ${y0 + 15} Q${m} ${y0 + 19} ${r1(m - 6)} ${y0 + 15} Z`, { fill: lighten(steel, 0.35), kind: 'accent' });
+    d.path(`M${m} ${y0 + 6} L${m} ${y0 + 14} M${r1(m - 3.5)} ${y0 + 9} L${r1(m + 3.5)} ${y0 + 9}`, line(p.c('crest', '#c62828'), 2));
+  }
+  for (const y of [y1 - 9, y1 - 5]) d.line(x0 + 1, y, x1 - 1, y, line(dark, 1));
+  // (round shoulder plates)
+  if (!g.side) for (const [sx, sy] of g.shoulders) d.circle(sx, sy - 1, 5.5, { fill: lighten(steel, 0.15), kind: 'body' });
+};
+const knightHelmet = (d, p, g) => {
+  const [cx, cy, r] = g.head, steel = p.c('main'), x = g.side ? cx - r * 0.1 : cx;
+  // the helmet round the head, open in front (the face shows), a plume on top
+  d.path(`M${r1(x - r * 0.62)} ${r1(cy - r * 1.25)} Q${r1(x - r * 0.1)} ${r1(cy - r * 2.1)} ${r1(x + r * 0.5)} ${r1(cy - r * 1.6)} Q${r1(x + r * 0.05)} ${r1(cy - r * 1.55)} ${r1(x - r * 0.05)} ${r1(cy - r * 1.15)} Z`, { fill: p.c('plume', '#42a5f5'), kind: 'accent' });
+  if (g.back) { d.path(`M${r1(cx - r * 1.12)} ${r1(cy + r * 0.4)} Q${r1(cx - r * 1.2)} ${r1(cy - r * 1.3)} ${cx} ${r1(cy - r * 1.3)} Q${r1(cx + r * 1.2)} ${r1(cy - r * 1.3)} ${r1(cx + r * 1.12)} ${r1(cy + r * 0.4)} Z`, { fill: steel, kind: 'body' }); return; }
+  const open = `M${r1(x - r * 1.12)} ${r1(cy + r * 0.55)} Q${r1(x - r * 1.22)} ${r1(cy - r * 1.3)} ${x} ${r1(cy - r * 1.3)} Q${r1(x + r * 1.22)} ${r1(cy - r * 1.3)} ${r1(x + r * 1.12)} ${r1(cy + r * 0.55)} L${r1(x + r * 0.78)} ${r1(cy + r * 0.55)} Q${r1(x + r * 0.82)} ${r1(cy - r * 0.55)} ${x} ${r1(cy - r * 0.62)} Q${r1(x - r * 0.82)} ${r1(cy - r * 0.55)} ${r1(x - r * 0.78)} ${r1(cy + r * 0.55)} Z`;
+  d.path(open, { fill: steel, kind: 'body' });
+  // the visor, pushed up over the brow
+  d.path(`M${r1(x - r * 0.85)} ${r1(cy - r * 0.62)} Q${x} ${r1(cy - r * 1.05)} ${r1(x + r * 0.85)} ${r1(cy - r * 0.62)} L${r1(x + r * 0.8)} ${r1(cy - r * 0.9)} Q${x} ${r1(cy - r * 1.32)} ${r1(x - r * 0.8)} ${r1(cy - r * 0.9)} Z`, { fill: darken(steel, 0.18), kind: 'body' });
+  for (const k of [-0.4, 0, 0.4]) d.line(x + k * r, cy - r * 0.86 - Math.abs(k) * 0.1, x + k * r, cy - r * 1.02, line(darken(steel, 0.45), 0.9));
+};
+const shield = (d, p, g) => {
+  if (g.back) return;
+  const [x0, y0] = g.torso, x = g.side ? x0 + 6 : x0 - 4, y = y0 + 12, c = p.c('crest', '#c62828');
+  const shape = `M${x - 9} ${y - 10} L${x + 9} ${y - 10} L${x + 9} ${y} Q${x + 8} ${y + 9} ${x} ${y + 13} Q${x - 8} ${y + 9} ${x - 9} ${y} Z`;
+  d.path(shape, { fill: '#ffca28', kind: 'body' });
+  d.path(`M${x - 6.5} ${y - 7.5} L${x + 6.5} ${y - 7.5} L${x + 6.5} ${y - 0.5} Q${x + 5.8} ${y + 6.5} ${x} ${y + 9.6} Q${x - 5.8} ${y + 6.5} ${x - 6.5} ${y - 0.5} Z`, { fill: c, kind: 'accent' });
+  d.path(`M${x} ${y - 6} L${x} ${y + 6} M${x - 4.5} ${y - 1.5} L${x + 4.5} ${y - 1.5}`, line('#ffca28', 2));
+  d.path(shape, line(darken('#ffca28', 0.45), 1.1));
+};
+const woodenSword = (d, p, g) => {
+  if (g.side || g.back) return;
+  const [hx, hy] = g.hand, wood = '#a1887f';
+  d.path(`M${hx - 1.6} ${hy - 4} L${hx - 1.6} ${hy - 26} L${hx} ${hy - 30} L${hx + 1.6} ${hy - 26} L${hx + 1.6} ${hy - 4} Z`, { fill: wood, kind: 'body' });
+  d.rect(hx - 5, hy - 5, 10, 2.6, { fill: darken(wood, 0.3), kind: 'body', rx: 1 });
+  d.rect(hx - 1.4, hy - 2.6, 2.8, 5, { fill: darken(wood, 0.45), kind: 'body' });
+};
+
+// A mermaid's tail over the legs, with scales and a fin (the drawn legs walk on beneath it)
+const mermaidTail = (d, p, g) => {
+  const [x0, y0, x1, y1] = g.torso, m = torsoMid(g), tail = p.c('tail'), dark = darken(tail, 0.2), hip = y0 + (y1 - y0) * 0.5, foot = g.foot;
+  const w = (x1 - x0) / 2 + 1, side = g.side ? 0.6 : 1;
+  d.path(`M${r1(m - w * side)} ${r1(hip)} Q${r1(m - w * side - 1)} ${r1(foot - 18)} ${r1(m - 5)} ${r1(foot - 6)} L${r1(m + 5)} ${r1(foot - 6)} Q${r1(m + w * side + 1)} ${r1(foot - 18)} ${r1(m + w * side)} ${r1(hip)} Z`, { fill: tail, kind: 'body' });
+  for (let y = hip + 6; y < foot - 10; y += 5) for (let x = m - w * side + 5 + ((y / 5) % 2) * 2.5; x < m + w * side - 4; x += 5) d.path(`M${r1(x - 2)} ${r1(y)} Q${r1(x)} ${r1(y + 2.6)} ${r1(x + 2)} ${r1(y)}`, line(dark, 0.9));
+  // the fin, fanned out at the bottom
+  d.path(`M${r1(m - 4)} ${r1(foot - 8)} Q${r1(m - 16)} ${r1(foot - 4)} ${r1(m - 17)} ${r1(foot + 3)} Q${r1(m - 8)} ${r1(foot + 1)} ${m} ${r1(foot - 3)} Q${r1(m + 8)} ${r1(foot + 1)} ${r1(m + 17)} ${r1(foot + 3)} Q${r1(m + 16)} ${r1(foot - 4)} ${r1(m + 4)} ${r1(foot - 8)} Z`, { fill: lighten(tail, 0.2), kind: 'body' });
+  d.path(`M${m} ${r1(foot - 4)} L${r1(m - 10)} ${r1(foot + 1)} M${m} ${r1(foot - 4)} L${r1(m + 10)} ${r1(foot + 1)}`, line(dark, 0.9));
+};
+// A shell top
+const shellTop = (d, p, g) => {
+  if (g.back || g.side) return;
+  const [x0, y0, x1] = g.torso, m = torsoMid(g), y = y0 + 4, c = p.c('main');
+  for (const sx of [-1, 1]) {
+    const cx = m + sx * 5.2;
+    d.path(`M${r1(cx - 5)} ${y + 4} Q${r1(cx - 5)} ${y - 3} ${cx} ${y - 3} Q${r1(cx + 5)} ${y - 3} ${r1(cx + 5)} ${y + 4} Z`, { fill: c, kind: 'body' });
+    for (const k of [-2.5, 0, 2.5]) d.line(cx, y + 3.5, cx + k, y - 1.5, line(darken(c, 0.2), 0.8));
+  }
+};
+const starClip = (d, p, g) => {
+  if (g.back) return;
+  const [cx, cy, r] = g.head, x = cx + (g.side ? -r * 0.3 : -r * 0.75), y = cy - r * 0.7;
+  const pts = Array.from({ length: 10 }, (_, k) => { const a = -Math.PI / 2 + (k * Math.PI) / 5, rr = k % 2 ? 1.5 : 3.6; return `${r1(x + Math.cos(a) * rr)} ${r1(y + Math.sin(a) * rr)}`; });
+  d.path(`M${pts.join(' L')} Z`, { fill: '#ffd54f', kind: 'accent' });
+};
+
+// A genie's things: a turban with a jewel, a little vest, a smoky swirl instead of legs rising
+// from a golden lamp on the ground
+const turban = (d, p, g) => {
+  const [cx, cy, r] = g.head, c = p.c('turban', '#ec407a'), x = g.side ? cx - r * 0.1 : cx;
+  d.path(`M${r1(x - r * 1.02)} ${r1(cy - r * 0.35)} Q${r1(x - r * 1.1)} ${r1(cy - r * 1.55)} ${x} ${r1(cy - r * 1.5)} Q${r1(x + r * 1.1)} ${r1(cy - r * 1.55)} ${r1(x + r * 1.02)} ${r1(cy - r * 0.35)} Q${x} ${r1(cy - r * 0.7)} ${r1(x - r * 1.02)} ${r1(cy - r * 0.35)} Z`, { fill: c, kind: 'body' });
+  d.path(`M${r1(x - r * 0.9)} ${r1(cy - r * 0.6)} Q${x} ${r1(cy - r * 1.1)} ${r1(x + r * 0.9)} ${r1(cy - r * 0.6)}`, line(darken(c, 0.25), 1.2));
+  if (!g.back) {
+    d.circle(g.side ? x + r * 0.5 : x, cy - r * 0.92, r * 0.18, { fill: '#ffca28', kind: 'accent' });
+    d.circle(g.side ? x + r * 0.5 : x, cy - r * 0.92, r * 0.09, { fill: '#26c6da', kind: 'detail' });
+  }
+};
+const vest = (color) => (d, p, g) => {
+  const [x0, y0, x1, y1] = g.torso, m = torsoMid(g);
+  if (g.back || g.side) { d.path(`M${x0} ${y0} L${x1} ${y0} L${x1} ${y1} L${x0} ${y1} Z`, { fill: color, kind: 'body' }); return; }
+  for (const sx of [-1, 1]) d.path(`M${m + sx * 4} ${y0} L${sx < 0 ? x0 - 0.5 : x1 + 0.5} ${y0} L${sx < 0 ? x0 : x1} ${y1} L${m + sx * 7} ${y1} Q${m + sx * 3} ${(y0 + y1) / 2} ${m + sx * 4} ${y0} Z`, { fill: color, kind: 'body' });
+  d.rect(x0, y1 - 5, x1 - x0, 4, { fill: '#ffca28', kind: 'accent' });
+};
+const smokeTail = (d, p, g) => {
+  const [x0, , x1, y1] = g.torso, m = torsoMid(g), smoke = lighten(p.c('skin'), 0.35), foot = g.foot;
+  d.path(`M${r1(x0 + 1)} ${r1(y1 - 3)} Q${r1(x0 - 1)} ${r1(y1 + 10)} ${r1(m - 2)} ${r1(foot - 12)} Q${r1(m + 9)} ${r1(foot - 7)} ${r1(m + 2)} ${r1(foot - 3)} Q${r1(m - 6)} ${r1(foot - 2)} ${r1(m - 3)} ${r1(foot - 7)} Q${r1(m + 14)} ${r1(y1 + 14)} ${r1(x1 - 1)} ${r1(y1 - 3)} Z`, { fill: smoke, kind: 'body' });
+  d.path(`M${r1(m - 6)} ${r1(y1 + 6)} Q${r1(m + 2)} ${r1(y1 + 10)} ${r1(m + 4)} ${r1(y1 + 4)}`, line(lighten(smoke, 0.4), 1.4));
+  // the lamp it came out of
+  const lx = m + 1, ly = foot - 1;
+  d.path(`M${lx - 9} ${ly - 4} Q${lx - 8} ${ly + 1} ${lx} ${ly + 1} Q${lx + 7} ${ly + 1} ${lx + 8} ${ly - 3} L${lx + 15} ${ly - 7} L${lx + 9} ${ly - 5} Q${lx} ${ly - 7} ${lx - 9} ${ly - 4} Z`, { fill: '#ffca28', kind: 'body' });
+  d.path(`M${lx - 9} ${ly - 4} Q${lx - 14} ${ly - 5} ${lx - 13} ${ly - 1} Q${lx - 12} ${ly + 1} ${lx - 9} ${ly - 1}`, line('#f9a825', 1.6));
+  d.ellipse(lx, ly + 2, 6, 1.4, { fill: '#f9a825', kind: 'body' });
+};
+
 // Several parts on one layer
 const all = (...fns) => (d, p, g) => fns.forEach((f) => f(d, p, g));
 
@@ -388,6 +484,15 @@ const CHARACTERS = [
     { body: all(coat('#ffffff', true), pocketPens), head: goggles(), front: flask }),
   character('girl', { id: 'fairy', aliases: ['fairies', 'pixie', 'tooth fairy'], colors: { main: '#80deea', hair: '#e6b94f', shoe: '#26c6da', wing: '#b3e5fc' }, palettes: { hair: HAIR_COLORS } },
     { behind: wings }),
+  character('boy', { id: 'knight', aliases: ['knights', 'little knight', 'brave knight', 'young knight', 'knight in armour', 'knight in armor'],
+    tags: ['fantasy', 'castle', 'fairy tale', 'story', 'history'], colors: { main: '#b0bec5', pants: '#90a4ae', shoe: '#78909c', crest: '#c62828', plume: '#42a5f5' }, palettes: { hair: HAIR_COLORS } },
+    { body: armour, head: knightHelmet, front: all(shield, woodenSword) }),
+  character('girl', { id: 'mermaid', aliases: ['mermaids', 'little mermaid', 'mermaid girl', 'sea princess'], placement: 'underwater',
+    tags: ['fantasy', 'sea', 'ocean', 'underwater', 'fairy tale', 'story'], colors: { main: '#ff8a65', hair: '#4e342e', tail: '#26a69a', shoe: '#26a69a' }, palettes: { hair: HAIR_COLORS, tail: ['#26a69a', '#7e57c2', '#42a5f5', '#ec407a'] } },
+    { body: all(mermaidTail, shellTop), head: starClip }),
+  character('man', { id: 'genie', aliases: ['genies', 'genie of the lamp', 'lamp genie', 'djinn', 'jinn'],
+    tags: ['fantasy', 'magic', 'lamp', 'wish', 'fairy tale', 'story'], colors: { skin: '#80cbc4', main: '#80cbc4', hair: '#263238', turban: '#ec407a', pants: '#80cbc4', shoe: '#80cbc4' }, palettes: { skin: ['#80cbc4', '#9fa8da', '#a5d6a7', '#ce93d8'] } },
+    { body: all(vest('#ff9800'), smokeTail), head: turban }),
 ];
 
 // ---------------------------------------------------------------------------------------------

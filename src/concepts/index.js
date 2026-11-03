@@ -7,6 +7,7 @@ import people from './people.js';
 import characters from './characters.js';
 import friends from './friends.js';
 import seaAnimals from './sea.js';
+import fantasy from './fantasy.js';
 import animals from './animals.js';
 import wildlife from './wildlife.js';
 import vehicles from './vehicles.js';
@@ -40,7 +41,7 @@ export function registerConcept(def) {
 }
 
 // 1. Primary core concepts (custom handcrafted parametric SVG)
-for (const list of [sky, nature, people, characters, friends, seaAnimals, animals, wildlife, vehicles, food, objects, alphabet]) {
+for (const list of [sky, nature, people, characters, friends, seaAnimals, fantasy, animals, wildlife, vehicles, food, objects, alphabet]) {
   for (const def of list) registerConcept(def);
 }
 

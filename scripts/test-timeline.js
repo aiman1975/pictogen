@@ -505,6 +505,23 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check(true, 'well-formed in other styles');
 }
 
+// 2i-l. Fantasy friends (src/concepts/fantasy.js; the knight, mermaid and genie: costumes)
+{
+  const ids = (t) => parseText(t).matches.map((m) => m.id).join();
+  check(ids('a unicorn, a monster, a ghost, a knight, a mermaid and a genie') === 'unicorn,friendly_monster,friendly_ghost,knight,mermaid,genie', 'six fantasy friends by name');
+  const all = ['unicorn', 'friendly_monster', 'friendly_ghost', 'knight', 'mermaid', 'genie'];
+  check(all.every((id) => { const a = shapesToSvg(drawConcept(id, { seed: 1 }), 'flat'), b = shapesToSvg(drawConcept(id, { seed: 1, expression: 'sad' }), 'flat'); return a !== b && a.includes('pg-face-eyes'); }), 'they show feelings and blink');
+  check(['friendly_monster', 'friendly_ghost'].every((id) => shapesToSvg(drawConcept(id, { seed: 1, animation: 'wave' }), 'flat') !== shapesToSvg(drawConcept(id, { seed: 1 }), 'flat')), 'the monster and the ghost raise an arm to wave');
+  const ride = generate('a knight rides a unicorn');
+  check(/class="pg-rider" data-id="knight"/.test(ride.svg) && !wellFormedError(ride.svg), 'a knight rides a unicorn (sitting on its back)');
+  check(/pg-place-underwater/.test(generate('a mermaid swims under the sea').svg) && /data-id="mermaid"/.test(generate('a mermaid').svg), 'a mermaid belongs under the sea');
+  for (const style of ['cartoon', 'pixel', 'neon', 'sketch', 'stickman']) {
+    const err = wellFormedError(generate('a unicorn, a monster and a ghost, then the knight waves at the genie', { style }).svg);
+    if (err) check(false, `[${style}]: ${err}`);
+  }
+  check(true, 'well-formed in other styles');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

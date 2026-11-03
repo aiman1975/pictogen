@@ -147,6 +147,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] Story reader: a "How I read your story" panel (change a scene, keep a character), the captions
       read aloud with the browser's voice
 - [ ] Story reader: a larger evaluation set of real children's stories; narration in exported videos
+- [x] **Fantasy friends**: a unicorn with a rainbow mane (it can be ridden), a friendly furry
+      monster, a little ghost that floats (`src/concepts/fantasy.js`), and a knight (armour, helmet,
+      shield, wooden sword), a mermaid (a tail over the legs, under the sea) and a genie (a smoky
+      tail from a golden lamp) as costumes; from Gemini reference pictures, drawn in code
 - [x] **Sea animals** (`src/concepts/sea.js`): an octopus (tentacles curl), a sea turtle (flippers
       paddle), a seahorse (tail beats), a crab (claws snap, legs scuttle), a whale (its spout puffs)
       and a starfish (it wiggles), drawn in code from Gemini reference pictures; every feeling and

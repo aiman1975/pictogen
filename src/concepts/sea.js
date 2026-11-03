@@ -37,7 +37,7 @@ function limb(d, [a, b, c, e], w0, w1, o) {
 }
 
 /** A face seen from the side (one eye, a mouth in front of it), with the feeling it shows */
-function sideFace(d, p, x, y, s = 1) {
+export function sideFace(d, p, x, y, s = 1) {
   const expr = p.opts.expression || 'happy';
   d.group({ class: 'pg-face-eyes' }, () => {
     if (['laugh', 'laughing', 'wink', 'winking'].includes(expr)) {
