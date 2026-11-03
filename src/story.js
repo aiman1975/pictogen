@@ -472,6 +472,8 @@ export function composeStory(storyInput, opts = {}) {
       ...(Array.isArray(sc.beats) ? { beats: sc.beats } : {}),
       // Named individuals ("pgc1" -> one particular boy), the same in every scene
       ...(individuals ? { individuals } : {}),
+      // "Your places" ("pgp1" -> a place made in the studio), carried like any place
+      ...(Array.isArray(opts.places) ? { places: opts.places } : {}),
       carry: { ...carry },
       // A caption of its own (not the prompt repeated) is what a talking figure says, lip-synced
       ...(sc.caption && sc.caption.toLowerCase().replace(/[.!?\s]+$/, '') !== sc.prompt.toLowerCase().replace(/[.!?\s]+$/, '') ? { caption: sc.caption } : {}),

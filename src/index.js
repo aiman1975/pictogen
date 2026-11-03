@@ -18,6 +18,7 @@ import { parseTimeline, extractCamera, editTimeline, lookRelations, speechRelati
 import { takeQuotes } from './speech.js';
 import { findDiagram, renderDiagram, renderLabelledPictures, DIAGRAMS } from './diagrams.js';
 import { conceptOf, individualNames, individualLooks } from './individuals.js';
+import { placeKeys, takePlace } from './places.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
 export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
@@ -54,6 +55,10 @@ export function generate(text, opts = {}) {
   const dim = (v, d) => (Number.isFinite(+v) && +v > 0 ? +v : d);
   const width = dim(opts.width, 640), height = dim(opts.height, 360);
   text = String(text ?? '');
+  // One of "your places" (opts.places: [{ key: 'pgp1', place, time, weather, extras }], made in the
+  // studio): its key in the prompt sets the scene's backdrop ("Tom waves in pgp1"), src/places.js
+  const taken = takePlace(text, placeKeys(opts.places));
+  text = taken.text;
   // Named individuals (opts.individuals: [{ key: 'pgc1', base: 'boy', look? }], see src/individuals.js):
   // in a scene or a comic strip each is its own figure ("boy~pgc1") with its own look, the same
   // every time; elsewhere (icons, diagrams...) simply its kind
@@ -171,7 +176,7 @@ export function generate(text, opts = {}) {
     if (timeline) timeline.caption = caption;
     // Colours carried over from earlier scenes of a clip (composeStory): figure id -> colour
     const carry = opts.carry && typeof opts.carry === 'object' ? opts.carry : undefined;
-    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption, carry };
+    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption, carry, ...(taken.setting ? { setting: taken.setting } : {}) };
     svg = composeScene(matches, sceneOpts);
     if (sceneOpts.speechDuration) common.duration = Math.max(common.duration ?? 0, sceneOpts.speechDuration);
     if (camera?.duration) common.duration = Math.max(common.duration ?? 0, camera.duration);

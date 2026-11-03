@@ -22,7 +22,134 @@ export const PLACE_ENV_WORDS = {
   jungle: ['jungle', 'rainforest'],
   castle: ['castle', 'kingdom', 'palace', 'fairytale', 'fairy-tale'],
   autumn: ['autumn', 'autumnal'],
+  fireflies: ['fireflies', 'firefly'],
 };
+
+// ---------------------------------------------------------------------------------------------
+// "Your places" (scene maker, step 2): a place made in the studio - where, when, the weather and
+// what moves - kept under a name. The studio sends it with a neutral key ("pgp1"), never the name:
+//   opts.places: [{ key: 'pgp1', place: 'farm', time: 'sunset', weather: 'snow', extras: ['mountains', 'fireflies'] }]
+// and the key in a prompt ("Tom waves in pgp1") sets the scene's backdrop.
+
+/** What can be picked: the place, the time of day, the weather, and things in it (some moving) */
+export const PLACE_CHOICES = {
+  place: ['meadow', 'park', 'forest', 'city', 'beach', 'sea', 'desert', 'mountains', 'space', 'underwater', 'farm', 'jungle', 'castle', 'classroom', 'office', 'kitchen', 'bedroom', 'room'],
+  time: ['day', 'sunset', 'night'],
+  weather: ['clear', 'rain', 'snow', 'autumn'],
+  extras: ['mountains', 'castle', 'stars', 'shooting', 'clouds', 'fireflies', 'bubbles', 'leaves', 'butterflies'],
+};
+const ROOMS = new Set(['classroom', 'office', 'kitchen', 'bedroom', 'room']);
+// (place flags that pick the backdrop; a setting turns all of them off first)
+const PLACE_FLAGS = ['room', 'water', 'beach', 'woods', 'park', 'city', 'space', 'underwater', 'desert', 'farm', 'jungle', 'mountains', 'castle'];
+
+/** A place as sent, checked: anything unknown left out ({ place, time, weather, extras }) or null */
+export function cleanPlace(p) {
+  if (!p || typeof p !== 'object') return null;
+  const one = (k, d) => (PLACE_CHOICES[k].includes(p[k]) ? p[k] : d);
+  const extras = Array.isArray(p.extras) ? [...new Set(p.extras.filter((x) => PLACE_CHOICES.extras.includes(x)))] : [];
+  return { place: one('place', 'meadow'), time: one('time', 'day'), weather: one('weather', 'clear'), extras };
+}
+
+/** opts.places -> Map key -> place (keys "pgp1".."pgp99", at most 24) */
+export function placeKeys(list) {
+  const out = new Map();
+  if (!Array.isArray(list)) return out;
+  for (const p of list.slice(0, 24)) {
+    const key = typeof p?.key === 'string' ? p.key.toLowerCase() : '';
+    const clean = /^pgp\d{1,2}$/.test(key) && cleanPlace(p);
+    if (clean) out.set(key, clean);
+  }
+  return out;
+}
+
+/**
+ * Takes a place's key out of a prompt ("Tom waves in pgp1" -> "Tom waves"): the first one known
+ * is the scene's setting. Keys not known are taken out too (nothing to draw for them).
+ */
+export function takePlace(text, places) {
+  let setting = null;
+  const out = String(text ?? '').replace(/(?:\b(?:in|at|on|inside|into|to|near|by|from|around|through|across)\s+(?:the\s+)?)?\bpgp\d{1,2}\b/gi, (m) => {
+    const key = m.match(/pgp\d+/i)[0].toLowerCase();
+    if (!setting && places?.has(key)) setting = places.get(key);
+    return ' ';
+  }).replace(/\s+([,.!?;:])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+  return { text: out, setting };
+}
+
+/**
+ * A scene's surroundings (scene.js detectEnv) set by one of "your places": its place, and its time
+ * and weather unless the prompt says its own ("pgp1 at night")
+ */
+export function applySetting(env, setting) {
+  const s = cleanPlace(setting);
+  if (!s) return env;
+  const out = { ...env };
+  for (const f of PLACE_FLAGS) out[f] = false;
+  out.roomKind = null;
+  const p = s.place;
+  if (ROOMS.has(p)) { out.room = true; out.roomKind = p; }
+  else if (p === 'forest') out.woods = true;
+  else if (p === 'beach') { out.water = true; out.beach = true; }
+  else if (p === 'sea') out.water = true;
+  else if (p !== 'meadow') out[p] = true;
+  // (a room has no sky: its time shows in the window, its weather not at all)
+  if (!env.night && !env.sunset) { out.night = s.time === 'night'; out.sunset = s.time === 'sunset'; }
+  if (!env.rain && !env.snow && !env.autumn && !out.room) {
+    out.rain = s.weather === 'rain'; out.snow = s.weather === 'snow'; out.autumn = s.weather === 'autumn';
+  }
+  const x = new Set(s.extras);
+  if (!out.room && !out.space && !out.underwater) {
+    if (x.has('mountains')) out.mountains = true;
+    if (x.has('castle')) out.castle = true;
+  }
+  out.extras = x;
+  out.parallax = env.parallax && !out.room;
+  return out;
+}
+
+/** Things that move in a place made in the studio (and "clouds drifting", "fireflies" said in words) */
+export function extras(d, env, rng, W, H, hY) {
+  const x = env.extras ?? new Set();
+  if (x.has('clouds') && !env.underwater && !env.space) {
+    for (let i = 0; i < 3; i++) {
+      d.group({ class: 'pg-env-cloud', style: delay(rng, 30) }, () => {
+        const cx = W * (0.12 + i * 0.32 + rng() * 0.08), cy = H * (0.08 + rng() * 0.12), s = 16 + rng() * 10;
+        const c = env.night ? '#5c6b8a' : env.rain ? '#cfd8dc' : '#ffffff';
+        for (const [dx, dy, r] of [[-1.1, 0.25, 0.75], [0, 0, 1], [1.1, 0.2, 0.8], [0.5, 0.45, 0.7], [-0.5, 0.45, 0.7]]) d.circle(cx + dx * s, cy + dy * s, r * s, { ...bg, fill: c });
+      });
+    }
+  }
+  if (x.has('fireflies')) {
+    for (let i = 0; i < 14; i++) {
+      d.group({ class: 'pg-env-firefly', style: delay(rng, 4) }, () => {
+        const fx = rng() * W, fy = hY - H * 0.15 + rng() * H * 0.3;
+        d.circle(fx, fy, 4, { ...bg, fill: '#fff59d', opacity: 0.35 });
+        d.circle(fx, fy, 1.6, { ...bg, fill: '#ffee58' });
+      });
+    }
+  }
+  if (x.has('bubbles') && !env.underwater) {
+    for (let i = 0; i < 10; i++) {
+      d.group({ class: 'pg-env-bubble', style: delay(rng, 6) }, () => {
+        const bx = rng() * W, by = H * (0.7 + rng() * 0.25), r = 4 + rng() * 6;
+        d.circle(bx, by, r, { kind: 'line', stroke: '#b3e5fc', sw: 1.4, fill: 'none', opacity: 0.9 });
+        d.circle(bx - r * 0.35, by - r * 0.35, r * 0.22, { ...bg, fill: '#ffffff', opacity: 0.9 });
+      });
+    }
+  }
+  if (x.has('butterflies') && !env.underwater && !env.space) {
+    for (let i = 0; i < 4; i++) {
+      d.group({ class: 'pg-env-butterfly', style: delay(rng, 6) }, () => {
+        const bx = W * (0.1 + rng() * 0.8), by = hY - H * (0.05 + rng() * 0.2), c = ['#f06292', '#ffb300', '#7e57c2', '#29b6f6'][i % 4];
+        d.ellipse(bx - 6, by - 2, 6.5, 5, { ...bg, fill: c });
+        d.ellipse(bx + 6, by - 2, 6.5, 5, { ...bg, fill: c });
+        d.ellipse(bx - 4.5, by + 4, 4, 3, { ...bg, fill: darken(c, 0.15) });
+        d.ellipse(bx + 4.5, by + 4, 4, 3, { ...bg, fill: darken(c, 0.15) });
+        d.ellipse(bx, by, 1.6, 6, { ...bg, fill: '#3e2723' });
+      });
+    }
+  }
+}
 
 /** Sky colours for the places that have their own */
 export function placeSky(env, sky) {
@@ -218,6 +345,12 @@ export const PLACE_CSS = `
 .pg-env-rays { animation: pgRays 5s ease-in-out infinite; }
 @keyframes pgPlanetFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 .pg-env-planet { animation: pgPlanetFloat 6s ease-in-out infinite; }
+@keyframes pgCloudSail { 0% { transform: translateX(0); } 50% { transform: translateX(46px); } 100% { transform: translateX(0); } }
+.pg-env-cloud { animation: pgCloudSail 30s ease-in-out infinite; }
+@keyframes pgFirefly { 0%, 100% { transform: translate(0, 0); opacity: 0.2; } 25% { transform: translate(9px, -6px); opacity: 1; } 50% { transform: translate(3px, -12px); opacity: 0.4; } 75% { transform: translate(-7px, -4px); opacity: 1; } }
+.pg-env-firefly { animation: pgFirefly 4s ease-in-out infinite; }
+@keyframes pgFlutter { 0%, 100% { transform: translate(0, 0) scaleX(1); } 25% { transform: translate(14px, -8px) scaleX(0.3); } 50% { transform: translate(26px, 2px) scaleX(1); } 75% { transform: translate(12px, 8px) scaleX(0.3); } }
+.pg-env-butterfly { transform-box: fill-box; transform-origin: center; animation: pgFlutter 6s ease-in-out infinite; }
 @keyframes pgShoot { 0%, 80% { transform: translate(0, 0); opacity: 0; } 83% { opacity: 1; } 100% { transform: translate(280px, 110px); opacity: 0; } }
 .pg-env-shooting { animation: pgShoot 7s ease-in infinite; }
 `;

@@ -450,6 +450,22 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check(true, 'the new places are well-formed in cartoon, pixel, neon, chalkboard and watercolor');
 }
 
+// 2i-i. Your places (scene maker, step 2): a place made in the studio, called by its key
+{
+  const drawn = (svg, c) => new RegExp(`class="[^"]*\\b${c}\\b`).test(svg);
+  const places = [{ key: 'pgp1', place: 'farm', time: 'sunset', weather: 'clear', extras: ['mountains', 'fireflies'] },
+    { key: 'pgp2', place: 'classroom', time: 'night', extras: ['bubbles'] }, { key: 'pgp3', place: 'nowhere', time: 'noon', extras: ['dragons', 'clouds'] }];
+  const farm = generate('a girl waves at pgp1', { places });
+  check(drawn(farm.svg, 'pg-place-farm') && drawn(farm.svg, 'pg-place-mountains') && drawn(farm.svg, 'pg-env-firefly') && farm.matches.map((m) => m.id).join() === 'girl' && !farm.unknown.length,
+    '"a girl waves at pgp1": the farm made in the studio, mountains behind, fireflies; the key is not a word to draw');
+  check(/#ff8a65/i.test(farm.svg) && /#101a40/i.test(generate('a girl in pgp1 at night', { places }).svg), 'its own time (sunset), unless the prompt says another ("at night")');
+  check(drawn(generate('a teacher in pgp2', { places }).svg, 'pg-place-classroom') && drawn(generate('pgp3', { places }).svg, 'pg-env-cloud'), 'a room made as a place; anything unknown in a place is left out (a meadow with clouds)');
+  check(!drawn(generate('a girl in pgp9', { places }).svg, 'pg-place-farm') && !generate('a girl in pgp9', { places }).unknown.length, 'a key not known draws the plain scene');
+  const clip = composeStory('Tom went to pgp1.\nHe saw a cow.\nAt night he slept.', { places });
+  check(clip.scenes.length === 3 && clip.scenes.every((sc) => drawn(sc.svg, 'pg-place-farm')) && /#101a40/i.test(clip.scenes[2].svg), 'in a story the place carries on from scene to scene (and night comes)');
+  check([farm.svg, clip.scenes[0].svg].every((x) => !wellFormedError(x)), 'well-formed');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

@@ -462,6 +462,33 @@ try {
   await page.click('#characters-panel [data-remove="1"]');
   await page.click('#characters-panel [data-remove="0"]');
 
+  // 6c. Your places: a place made here (a farm at sunset, mountains behind, fireflies), called by its
+  // name in prompts; the name never reaches the engine
+  await page.click('#places-panel [data-do="new"]');
+  await page.waitForSelector('.face-modal .place-preview svg');
+  await page.fill('.face-name', 'forest');
+  await page.click('.char-chip[data-key="place"][data-value="farm"]');
+  await page.click('.char-chip[data-key="time"][data-value="sunset"]');
+  await page.click('.char-chip[data-key="extras"][data-value="mountains"]');
+  await page.click('.char-chip[data-key="extras"][data-value="fireflies"]');
+  await page.waitForFunction(() => document.querySelector('.place-preview svg .pg-place-farm') && document.querySelector('.place-preview svg .pg-env-firefly'));
+  await page.click('.face-modal [data-do="save"]');
+  check(/plain place word/.test(await page.textContent('.face-modal .face-error')), 'a place can\'t be called just "forest"');
+  await page.fill('.face-name', "Grandma's farm");
+  await page.click('.face-modal [data-do="save"]');
+  await page.waitForSelector('.face-modal', { state: 'detached' });
+  await page.waitForSelector('#places-panel .place-pic svg');
+  const sentPlace = sent.length;
+  await draw("a girl waves at Grandma's farm");
+  const farm = await page.evaluate(() => {
+    const svg = document.querySelector('#svg-viewport svg');
+    return { farm: !!svg.querySelector('.pg-place-farm'), hills: !!svg.querySelector('.pg-place-mountains'), flies: svg.querySelectorAll('.pg-env-firefly').length, girl: !!svg.querySelector('.movable-item[data-id="girl"]') };
+  });
+  check(farm.farm && farm.hills && farm.flies > 5 && farm.girl, `"a girl waves at Grandma's farm": the girl at the farm made here, mountains behind, fireflies (${JSON.stringify(farm)})`);
+  check(sent.slice(sentPlace).every((body) => !body.includes('Grandma')) && sent.slice(sentPlace).some((body) => body.includes('pgp1')), 'the place\'s name never reaches the engine (only "pgp1")');
+  await page.click('#places-panel [data-remove="0"]');
+  check(!(await page.evaluate(() => window.pictogenPlaces.list().length)), 'a place can be removed');
+
   check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
 
   // A labelled diagram: rename a label by clicking it, blank them for a quiz; then a worksheet PDF

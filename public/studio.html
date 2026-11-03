@@ -404,6 +404,13 @@
     .char-chips span { width: 4.2rem; font-weight: 700; font-size: 0.8rem; color: var(--text-muted); }
     .char-chip { font: inherit; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
     .char-chip.on { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+    .place-pic { width: 64px; height: 36px; border-radius: 8px; overflow: hidden; background: var(--surface); flex: none; }
+    .place-pic svg { width: 64px; height: 36px; display: block; }
+    .place-row { border-radius: 12px; }
+    .place-preview { align-self: stretch; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: var(--surface-subtle); }
+    .place-preview svg { width: 100%; height: 100%; display: block; }
+    .place-card { width: min(460px, 100%); }
+    .place-card .char-chips span { width: 5rem; }
     .face-modal { position: fixed; inset: 0; z-index: 100; background: rgb(15 23 42 / 0.55); display: grid; place-items: center; padding: 16px; overflow: auto; }
     .face-card { background: var(--surface); color: var(--text); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 1.1rem 1.25rem; width: min(360px, 100%); display: flex; flex-direction: column; gap: 0.6rem; }
     .face-card h3 { font-size: 1.05rem; font-weight: 800; }
@@ -1247,6 +1254,8 @@
         <div class="timeline-panel story-review" id="story-review" hidden></div>
         <!-- Your characters: face photos on figures, called by name (public/js/characters.js) -->
         <div class="timeline-panel characters-panel" id="characters-panel" hidden></div>
+        <!-- Your places: a place, a time, the weather and things that move, called by name (public/js/places.js) -->
+        <div class="timeline-panel places-panel" id="places-panel" hidden></div>
 
         <!-- Animated Clip Player & Lower-Third Bar (active when mode === 'story') -->
         <div id="story-player-bar" style="display: none; background: #0f172a; color: #fff; border-top: 1px solid var(--border);">
@@ -1565,7 +1574,13 @@
     }
     // Your characters: their names become neutral keys ("pgc1", a boy) for the server, and their photos
     // go on the drawings here (names and photos never leave the browser)
-    const named = (text) => window.pictogenCharacters?.rewrite(text) ?? { text, named: [] };
+    // and "your places" become keys too ("Grandma's farm" -> "pgp1", public/js/places.js)
+    const named = (text) => {
+      const r = window.pictogenCharacters?.rewrite(text) ?? { text, named: [] };
+      return { ...r, text: window.pictogenPlaces?.rewrite(r.text) ?? r.text };
+    };
+    // (and back: keys in what the engine says become the names again)
+    const sayNames = (t) => { const c = window.pictogenCharacters?.restore(t) ?? t; return window.pictogenPlaces?.restore(c) ?? c; };
     const usePrompt = () => { state.clipActive = false; };
     // The clip player (HTML export) gets the photo faces here, in the browser: its scenes sit between
     // /*pg-scenes*/ markers (src/story.js), each scene's figures marked with their character's key
@@ -1576,7 +1591,7 @@
       if (!chars?.list().length || i < 0 || j < i) return html;
       const clipScenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
       const scenes = JSON.parse(html.slice(i + start.length, j)).map((sc, k) => ({
-        ...sc, prompt: chars.restore(sc.prompt), caption: chars.restore(sc.caption),
+        ...sc, prompt: sayNames(sc.prompt), caption: sayNames(sc.caption),
         svg: chars.withFaces(sc.svg, named(clipScenes?.[k]?.prompt ?? state.prompt).named),
       }));
       return html.slice(0, i + start.length) + JSON.stringify(scenes).replace(/</g, '\\u003c') + html.slice(j);
@@ -1668,6 +1683,7 @@
       if (state.mode !== 'scene') window.pictogenTimeline?.update(null);
       window.pictogenClip?.refresh();
       window.pictogenCharacters?.refresh();
+      window.pictogenPlaces?.refresh();
       window.pictogenStoryReview?.refresh();
       syncUrl();
 
@@ -1696,6 +1712,7 @@
             body: JSON.stringify({
               text: named(state.prompt).text,
               individuals: window.pictogenCharacters?.individuals() ?? [],
+              places: window.pictogenPlaces?.places() ?? [],
               // what the writer changed in "How I read your story" (names as keys, like the story)
               edits: Object.fromEntries(Object.entries(state.storyEdits || {}).map(([k, v]) => [named(k).text, named(v).text])),
               ...clipRequest(),
@@ -1710,7 +1727,7 @@
           // Faces of named characters go into each scene's markup (so a clip's video export has them)
           const clipScenes = state.clipActive ? window.pictogenClip?.getScenes() : null;
           // (and the captions say their names again where the engine got keys)
-          const said = (t) => window.pictogenCharacters?.restore(t) ?? t;
+          const said = sayNames;
           storyState.cast = data.cast || null; // (a story read in the writer's words: its cast)
           storyState.scenes = data.scenes.map((sc, i) => ({
             ...sc,
@@ -1775,6 +1792,7 @@
           body: JSON.stringify({
             text: cast.text,
             individuals: window.pictogenCharacters?.individuals() ?? [],
+              places: window.pictogenPlaces?.places() ?? [],
             style: state.style,
             mode: state.mode,
             vary: state.vary,
@@ -2537,6 +2555,7 @@
           body: JSON.stringify({
             text: named(state.prompt).text,
             individuals: window.pictogenCharacters?.individuals() ?? [],
+              places: window.pictogenPlaces?.places() ?? [],
             ...clipRequest(),
             style: state.style,
             genre: state.genre,
@@ -2925,6 +2944,7 @@
   <script type="module" src="/js/timeline-view.js"></script>
   <script type="module" src="/js/clip-tray.js"></script>
   <script type="module" src="/js/characters.js"></script>
+  <script type="module" src="/js/places.js"></script>
   <script type="module" src="/js/worksheet.js"></script>
   <script type="module" src="/js/book.js"></script>
   <script type="module" src="/js/story-review.js"></script>

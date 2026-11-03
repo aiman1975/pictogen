@@ -28,6 +28,7 @@ const storyOpts = (payload) => ({
   vary: Boolean(payload.vary),
   title: payload.title,
   individuals: Array.isArray(payload.individuals) ? payload.individuals : undefined,
+  places: Array.isArray(payload.places) ? payload.places : undefined,
   // a story's scenes as the writer changed them: sentence -> what to draw
   edits: payload.edits && typeof payload.edits === 'object' && !Array.isArray(payload.edits)
     ? Object.fromEntries(Object.entries(payload.edits).filter(([k, v]) => typeof k === 'string' && typeof v === 'string').slice(0, 80))
@@ -78,6 +79,8 @@ export function handleApi(method, url, payload = {}) {
       ...(typeof payload.title === 'string' ? { title: payload.title.slice(0, 80) } : {}),
       // Named individuals: neutral keys and their kind only (src/individuals.js)
       ...(Array.isArray(payload.individuals) ? { individuals: payload.individuals } : {}),
+      // "Your places": neutral keys and what they are (src/places.js)
+      ...(Array.isArray(payload.places) ? { places: payload.places } : {}),
     }));
   }
 
@@ -177,6 +180,8 @@ export function handleApi(method, url, payload = {}) {
         ? { labels: Object.fromEntries(Object.entries(payload.labels).filter(([, v]) => typeof v === 'string').slice(0, 40).map(([k, v]) => [String(k).slice(0, 40), v.slice(0, 40)])) }
         : {}),
       ...(Array.isArray(payload.individuals) ? { individuals: payload.individuals } : {}),
+      // "Your places": neutral keys and what they are (src/places.js)
+      ...(Array.isArray(payload.places) ? { places: payload.places } : {}),
     }));
   }
 

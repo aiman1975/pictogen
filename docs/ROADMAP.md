@@ -113,8 +113,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       stars), underwater (light rays, seaweed swaying, bubbles rising), a farm (barn, silo, fence,
       crop rows), a jungle (vines swaying), a castle on a hill (flags waving), autumn (orange trees,
       leaves falling), a shooting star on clear nights; carried from scene to scene by the story reader
-- [ ] Scene maker step 2: "Your places" - pick a place, a time, the weather and moving things in the
-      studio, name it and use the name in prompts
+- [x] **Your places** (scene maker step 2, `public/js/places.js`): pick a place, the time of day, the
+      weather and things in it (mountains or a castle behind, clouds drifting, twinkling stars, a
+      shooting star, fireflies, butterflies, bubbles, falling leaves), name it ("Grandma's farm") and
+      use the name in prompts and stories; the engine gets a key ("pgp1") and what it is made of
 - [ ] Time-of-day and weather changes inside a clip (sunset falls, rain starts)
 - [ ] Props that react: trees sway in wind, water ripples around a swimmer
 

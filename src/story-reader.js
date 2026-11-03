@@ -61,6 +61,8 @@ const SAY_VERBS = 'said|says|asked|asks|shouted|shouts|cried|called|calls|whispe
 
 // Where and when: carried from scene to scene until the story says otherwise
 const PLACES = [
+  // (one of "your places", made in the studio: its key, "pgp1")
+  ['yours', /\b(pgp\d{1,2})\b/, (w) => `in ${w}`],
   ['space', /\b(outer space|in space|into space|galaxy|on the moon)\b/, 'in space'],
   ['underwater', /\b(underwater|under the (sea|ocean|water)|seabed|sea bed|coral reef|ocean floor)\b/, 'under the sea'],
   ['desert', /\b(desert|dunes|sahara|oasis)\b/, 'in the desert'],

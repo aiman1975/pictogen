@@ -41,6 +41,7 @@ function request() {
   return {
     text: cast.text,
     individuals: window.pictogenCharacters?.individuals() ?? [],
+    places: window.pictogenPlaces?.places() ?? [],
     style: st.style,
     mode: st.mode === 'story' ? 'scene' : st.mode,
     seed: st.seed,

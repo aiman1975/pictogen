@@ -77,7 +77,7 @@ const INSTRUCTIONS = {
 export function renderWorksheet(prompt, opts = {}) {
   const { style = 'flat', seed = 1, vary = false } = opts;
   const mode = opts.mode && opts.mode !== 'story' ? opts.mode : 'scene';
-  const base = { style, seed, vary, mode, ...(opts.individuals ? { individuals: opts.individuals } : {}), ...(opts.labels ? { labels: opts.labels } : {}) };
+  const base = { style, seed, vary, mode, ...(opts.individuals ? { individuals: opts.individuals } : {}), ...(opts.places ? { places: opts.places } : {}), ...(opts.labels ? { labels: opts.labels } : {}) };
   // The picture as it is in the studio, to tell which kind fits
   const seen = generate(prompt, { ...base, width: 640, height: 360 });
   const kind = WORKSHEET_KINDS.includes(opts.kind) ? opts.kind : worksheetKind(seen, mode);

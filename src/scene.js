@@ -13,7 +13,7 @@ import { createRng } from './core/rng.js';
 import { drawConcept, shapesToSvg, svgDoc, newUid, styleWrap, esc } from './core/render.js';
 import { getStyle } from './core/styles.js';
 import { darken, lighten, mix } from './core/color.js';
-import { PLACE_ENV_WORDS, placeSky, shootingStar, space, underwater, desert, mountains, farm, jungle, castle, autumnLeaves } from './places.js';
+import { PLACE_ENV_WORDS, applySetting, extras, placeSky, shootingStar, space, underwater, desert, mountains, farm, jungle, castle, autumnLeaves } from './places.js';
 
 export const ENV_WORDS = {
   night: ['night', 'midnight', 'nighttime', 'dark', 'bedtime', 'sleep', 'sleeping', 'asleep', 'moon', 'stars'],
@@ -78,6 +78,8 @@ function detectEnv(items, words) {
     castle: !places.space && !places.underwater && places.castle && !ids.has('castle'),
     autumn: !places.space && !places.underwater && places.autumn,
     sun: ids.has('sun'),
+    // (moving things said in words: "fireflies", "a shooting star")
+    extras: new Set([...(any('fireflies') ? ['fireflies'] : []), ...(/\bshooting stars?\b/.test(words.join(' ')) ? ['shooting'] : [])]),
   };
 }
 
@@ -374,6 +376,7 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
 
   if (env.underwater) {
     d.group({ class: 'pg-place pg-place-underwater' }, () => underwater(d, env, pal, rng, W, H, hY));
+    extras(d, env, rng, W, H, hY);
     return d.shapes;
   }
   const skyColors = placeSky(env, pal.sky);
@@ -384,10 +387,11 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
   if (env.space) {
     d.group({ class: 'pg-place pg-place-space' }, () => space(d, env, pal, rng, W, H, hY));
     shootingStar(d, rng, W, H);
+    extras(d, env, rng, W, H, hY);
     return d.shapes;
   }
-  if (env.night && !env.rain) shootingStar(d, rng, W, H);
-  if (env.night) {
+  if ((env.night && !env.rain) || env.extras?.has('shooting')) shootingStar(d, rng, W, H);
+  if (env.night || env.extras?.has('stars')) {
     for (let i = 0; i < 22; i++) {
       const delay = (rng() * 2).toFixed(2);
       d.group({ class: 'pg-env-star', style: `animation-delay: ${delay}s;` }, () => {
@@ -431,7 +435,7 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
     }
     if (env.farm) d.group({ class: 'pg-place pg-place-farm' }, () => farm(d, env, pal, rng, W, H, hY));
   }
-  if (env.autumn) autumnLeaves(d, env, rng, W, H);
+  if (env.autumn || env.extras?.has('leaves')) autumnLeaves(d, env, rng, W, H);
 
   if (env.parallax) {
     // Conveyor-belt cartoon ground treadmill
@@ -458,6 +462,7 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
       }
     });
   }
+  extras(d, env, rng, W, H, hY);
   return d.shapes;
 }
 
@@ -989,7 +994,8 @@ export function composeScene(matches, opts = {}) {
     }
   }
 
-  const env = detectEnv(items, words);
+  // (one of "your places", made in the studio: opts.setting, src/places.js)
+  const env = opts.setting ? applySetting(detectEnv(items, words), opts.setting) : detectEnv(items, words);
   // A figure walking toward or away from the camera, or a timeline where actors walk and stop:
   // the ground must not scroll sideways under them.
   if (timeline || items.some((it) => ['approach', 'recede'].includes(it.m.animation))) env.parallax = false;
