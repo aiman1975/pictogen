@@ -5,6 +5,7 @@ import { getStyle, INK } from './styles.js';
 import { createRng } from './rng.js';
 import { resolveColor, lighten } from './color.js';
 import { seatPose, reachPose } from '../poses.js';
+import { withFeatures } from '../looks.js';
 import { EMOTE_CSS } from '../emotes.js';
 import { getConcept } from '../concepts/index.js';
 import { heldShape } from '../held.js';
@@ -103,6 +104,8 @@ export function drawConcept(conceptOrId, opts = {}) {
   // Poses made from the drawing (src/poses.js): sitting (on opts.seat: 'seat', 'ground', 'ride'; a
   // person sitting with nothing under them sits on the ground) and a hand reaching out (opts.reach)
   let shapes = kit.shapes;
+  // A person's own face and hair (src/looks.js)
+  if (opts.features && /^people/.test(c.category ?? '')) shapes = withFeatures(shapes, opts.features, { hairColor: p.colors.hair, skin: p.colors.skin, view: opts.view });
   if (/^people/.test(c.category ?? '')) {
     const seat = opts.seat ?? (opts.animation === 'sit' || opts.animation === 'sitting' ? 'ground' : null);
     if (seat) shapes = seatPose(shapes, { mode: seat, view: opts.view });

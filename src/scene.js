@@ -890,7 +890,8 @@ export function composeScene(matches, opts = {}) {
     // A figure's clothes and hair from an earlier scene of the same clip ("a girl in a purple dress",
     // then "the girl waves"): opts.carry, figure id -> { color, hair }
     const was = opts.carry?.[m.id];
-    const mc = was && ((!m.color && was.color) || (!m.hair && was.hair)) ? { ...m, color: m.color ?? was.color, hair: m.hair ?? was.hair } : m;
+    const mc = was && ((!m.color && was.color) || (!m.hair && was.hair) || was.features)
+      ? { ...m, color: m.color ?? was.color, hair: m.hair ?? was.hair, ...(was.features || m.features ? { features: { ...was.features, ...m.features } } : {}) } : m;
     for (let k = 0; k < n; k++) items.push({ c, m: mc, k, aid: m.id, alt: before + k });
   }
   // How each figure is drawn the same way every time: a recurring character by its own look
@@ -899,6 +900,8 @@ export function composeScene(matches, opts = {}) {
   for (const it of items) {
     it.look = lookOf(it.aid, { seed, k: it.k, alt: it.alt, vary, looks: opts.identities });
     if (it.m.hair) it.look = { ...it.look, colors: { ...it.look.colors, hair: it.m.hair } };
+    // (a face and hair said in the prompt: "with big eyes and curly hair")
+    if (it.m.features && Object.keys(it.m.features).length) it.look = { ...it.look, features: { ...it.look.features, ...it.m.features } };
     it.voice = opts.identities?.has(it.aid) ? Number(whoOf(it.aid).slice(3)) - 1 : it.alt;
   }
   items.splice(maxItems);
@@ -1037,7 +1040,7 @@ export function composeScene(matches, opts = {}) {
   const out = [];
   // A named individual's key and id, and a dressed-differently figure, for the studio (its photo,
   // and redrawing it the same way)
-  const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''} data-seed="${it.look.seed}"${it.look.vary ? ' data-vary="1"' : ''}${it.look.colors ? ` data-colors="${Object.entries(it.look.colors).map(([r, c]) => `${r}:${c}`).join(' ')}"` : ''}${it.holding ? ` data-held="${it.holding.c.id}"${it.holding.m.color ? ` data-held-color="${it.holding.m.color}"` : ''}` : ''}`;
+  const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''} data-seed="${it.look.seed}"${it.look.vary ? ' data-vary="1"' : ''}${it.look.colors ? ` data-colors="${Object.entries(it.look.colors).map(([r, c]) => `${r}:${c}`).join(' ')}"` : ''}${it.look.features ? ` data-features="${Object.entries(it.look.features).map(([k, v]) => `${k}:${v}`).join(' ')}"` : ''}${it.holding ? ` data-held="${it.holding.c.id}"${it.holding.m.color ? ` data-held-color="${it.holding.m.color}"` : ''}` : ''}`;
   // A thought bubble over a thinker's head, up to its right (whichever way it faces), in its own
   // units: a cloud with what it thinks of drawn small inside, and two little puffs leading to it
   const thoughtBubble = (it, flip) => {

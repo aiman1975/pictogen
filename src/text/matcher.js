@@ -312,6 +312,56 @@ const HAIR_SHADES = {
 };
 // Hair words that say nothing but the hair ("a blonde girl")
 const HAIR_ONLY = new Set(['blonde', 'blond', 'ginger', 'brunette', 'auburn']);
+// A face and hair described ("with big eyes", "curly red hair", "a round face", "freckles"): the
+// person's own features (src/looks.js)
+const FEATURE_PARTS = new Set(['eyes', 'eye', 'eyelashes', 'lashes', 'eyebrows', 'brows', 'nose', 'mouth', 'face', 'cheeks', 'freckles',
+  'glasses', 'spectacles', 'hair', 'ponytail', 'pigtails', 'bunches', 'braids', 'plaits', 'bun', 'afro']);
+const HAIR_STYLE_WORDS = { curly: 'curly', wavy: 'curly', frizzy: 'curly', spiky: 'spiky', short: 'short', long: 'long', straight: 'long', afro: 'afro', bob: 'bob' };
+const BIG = new Set(['big', 'large', 'huge', 'giant', 'wide', 'round']), SMALL_WORDS = new Set(['small', 'tiny', 'little', 'thin', 'narrow']);
+function featureWords(adj, part) {
+  const has = (set) => adj.some((w) => set.has(w));
+  const f = {};
+  let hair = null;
+  if (part === 'eyes' || part === 'eye') { if (has(BIG)) f.eyes = 'big'; else if (has(SMALL_WORDS)) f.eyes = 'small'; else return null; }
+  else if (part === 'eyelashes' || part === 'lashes') f.lashes = true;
+  else if (part === 'eyebrows' || part === 'brows') f.brows = adj.some((w) => ['thin', 'fine', 'light'].includes(w)) ? 'thin' : 'thick';
+  else if (part === 'nose') f.nose = adj.some((w) => ['long', 'pointy', 'pointed', 'sharp'].includes(w)) ? 'pointy' : has(SMALL_WORDS) ? 'dot' : 'button';
+  else if (part === 'mouth') { if (has(BIG)) f.mouth = 'big'; else if (has(SMALL_WORDS)) f.mouth = 'small'; else return null; }
+  else if (part === 'face') {
+    const shape = adj.find((w) => ['round', 'oval', 'square', 'wide', 'long', 'chubby', 'thin'].includes(w));
+    if (!shape) return null;
+    f.face = { long: 'oval', thin: 'oval', chubby: 'wide' }[shape] ?? shape;
+  } else if (part === 'cheeks') f.cheeks = 'big';
+  else if (part === 'freckles') f.freckles = true;
+  else if (part === 'glasses' || part === 'spectacles') f.glasses = true;
+  else if (part === 'ponytail') f.hair = 'ponytail';
+  else if (['pigtails', 'bunches', 'braids', 'plaits'].includes(part)) f.hair = 'pigtails';
+  else if (part === 'bun') f.hair = 'bun';
+  else if (part === 'afro') f.hair = 'afro';
+  else if (part === 'hair') {
+    const style = ['afro', 'curly', 'wavy', 'frizzy', 'spiky', 'bob', 'long', 'straight', 'short'].find((w) => adj.includes(w));
+    if (style) f.hair = HAIR_STYLE_WORDS[style];
+    const shade = adj.find((w) => HAIR_SHADES[w]);
+    if (shade) hair = HAIR_SHADES[shade];
+    if (!style && !shade) return null;
+  }
+  return { features: f, hair };
+}
+/** At toks[i]: "with big eyes", "and curly red hair", "has freckles", "wearing glasses" -> { features, hair?, len } */
+function featurePhrase(toks, i) {
+  if (!['with', 'has', 'have', 'and', 'wearing', 'wears'].includes(toks[i])) return null;
+  let j = i + 1;
+  if (['a', 'an', 'the', 'some', 'two'].includes(toks[j]) || POSSESSIVES.has(toks[j])) j++;
+  const adj = [];
+  while (j < toks.length && j < i + 7 && !FEATURE_PARTS.has(toks[j])) {
+    if (!/^[a-z]+$/.test(toks[j]) || ['and', 'with', 'then', 'in', 'on', 'at'].includes(toks[j])) return null;
+    adj.push(toks[j++]);
+  }
+  if (!FEATURE_PARTS.has(toks[j])) return null;
+  const got = featureWords(adj, toks[j]);
+  return got ? { ...got, len: j + 1 - i } : null;
+}
+
 const LOOK_FILLERS = new Set(['long', 'short', 'curly', 'straight', 'wavy', 'messy', 'spiky', 'pretty', 'new', 'big', 'little',
   'favourite', 'favorite', 'bright', 'light', 'fluffy', 'cosy', 'cozy', 'warm', 'nice', 'lovely', 'sparkly', 'shiny', 'smart', 'fancy']);
 
@@ -502,6 +552,7 @@ function mergeMatches(found) {
       target.count = Math.max(target.count, m.count);
       target.color = target.color ?? m.color;
       target.hair = target.hair ?? m.hair;
+      if (m.features) target.features = { ...m.features, ...target.features };
       target.size = target.size ?? m.size;
       target.expression = target.expression ?? m.expression;
       target.animation = target.animation ?? m.animation;
@@ -535,6 +586,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
   const excluded = [];
   let pend = {};
   let tokAt = 0; // (where the word being read is: each thing found remembers it, for relations())
+  let lookEnd = -9; // (where a description of someone ended: "with big eyes and curly hair" goes on)
   let lastConceptIndex = -99;
   let list = []; // indices into `found` of the current "x and y" list
   let lastPerson = -1; // the last person named (who holds what follows a word for holding)
@@ -556,6 +608,7 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     found.push({
       id: hit.id, word: hit.word, color: pend.color, size: pend.size, ...(pend.count != null ? { countGiven: true } : {}),
       ...(pend.hair ? { hair: pend.hair } : {}),
+      ...(pend.features ? { features: pend.features } : {}),
       at: tokAt,
       count: pend.count != null ? Math.max(1, Math.min(pend.count, MAX_COUNT)) : hit.plural ? 3 : 1,
       expression: pend.expression ?? hit.expression,
@@ -606,6 +659,18 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
     // ("waves at a dog", "flies over the city": nothing in the hands)
     else if (['then', 'while', 'when', 'but', ...NOT_HELD_AFTER].includes(t)) holding = null;
     // What the person just named wears, and their hair ("a girl in a purple dress")
+    // ... and their face and hair ("with big eyes and curly red hair")
+    const feat = lastPerson >= 0 && lastPerson === found.length - 1 && (justNamed || lookEnd === i - 1) ? featurePhrase(toks, i) : null;
+    if (feat) {
+      const who = found[lastPerson];
+      who.features = { ...who.features, ...feat.features };
+      if (feat.hair) who.hair = feat.hair;
+      holding = null;
+      lastConceptIndex = i + feat.len - 1;
+      lookEnd = lastConceptIndex;
+      i += feat.len;
+      continue;
+    }
     const looks = lastPerson >= 0 && lastPerson === found.length - 1 && justNamed
       ? lookPhrase(toks, i, (j) => j < toks.length && !!at(toks, j)) : null;
     if (looks) {
@@ -614,7 +679,14 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
       if (looks.hair) who.hair = looks.hair;
       holding = null;
       lastConceptIndex = i + looks.len - 1;
+      lookEnd = lastConceptIndex;
       i += looks.len;
+      continue;
+    }
+    // ... or said before them ("a bald man", "a freckled girl", "a curly-haired boy")
+    if ((t === 'bald' || t === 'freckled' || (HAIR_STYLE_WORDS[t] && next === 'haired')) && toks[i + 1] && (at(toks, i + 1) || next === 'haired')) {
+      pend.features = { ...pend.features, ...(t === 'bald' ? { hair: 'bald' } : t === 'freckled' ? { freckles: true } : { hair: HAIR_STYLE_WORDS[t] }) };
+      i += next === 'haired' ? 2 : 1;
       continue;
     }
     // ... or said before them ("a blonde girl", "a red-haired boy")

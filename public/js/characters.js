@@ -20,6 +20,19 @@ const SWATCHES = {
   skin: ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524'],
   fur: ['#bcaaa4', '#8d6e63', '#5d4037', '#fb8c00', '#ffe0b2', '#212121', '#9e9e9e', '#fafafa'],
 };
+// Face and hair to pick from (src/looks.js), and what each one is when nothing is picked
+const FEATURES = [
+  ['hair', 'Hair', [['own', 'As drawn'], ['short', 'Short'], ['spiky', 'Spiky'], ['curly', 'Curly'], ['afro', 'Afro'], ['pigtails', 'Pigtails'], ['bun', 'Bun'], ['ponytail', 'Ponytail'], ['long', 'Long'], ['bob', 'Bob'], ['bald', 'Bald']]],
+  ['face', 'Face', [['round', 'Round'], ['oval', 'Oval'], ['square', 'Square'], ['wide', 'Wide']]],
+  ['eyes', 'Eyes', [['small', 'Small'], ['normal', 'Normal'], ['big', 'Big']]],
+  ['brows', 'Brows', [['none', 'None'], ['thin', 'Thin'], ['thick', 'Thick']]],
+  ['nose', 'Nose', [['none', 'None'], ['dot', 'Dot'], ['button', 'Button'], ['pointy', 'Pointy']]],
+  ['mouth', 'Mouth', [['small', 'Small'], ['normal', 'Normal'], ['big', 'Big']]],
+  ['cheeks', 'Cheeks', [['none', 'None'], ['normal', 'Rosy'], ['big', 'Very rosy']]],
+];
+const DEFAULT = { hair: 'own', face: 'round', eyes: 'normal', brows: 'none', nose: 'none', mouth: 'normal', cheeks: 'normal' };
+const FLAGS = [['freckles', 'Freckles'], ['lashes', 'Eyelashes'], ['glasses', 'Glasses']];
+
 /** What can be coloured on a kind of character: [role, label, swatches] */
 const rolesOf = (base) => (PETS.has(base) ? [['main', 'Fur', SWATCHES.fur]]
   : base === 'baby' ? [['main', 'Clothes', SWATCHES.main], ['skin', 'Skin', SWATCHES.skin]]
@@ -195,12 +208,13 @@ const labelOf = (base) => BASES.find(([b]) => b === base)?.[1] ?? base;
 const drawn = new Map();
 async function drawing(base, look, style = studio.getState().style) {
   const colors = Object.fromEntries(rolesOf(base).map(([role]) => [role, look?.[role]]).filter(([, v]) => v));
-  const key = JSON.stringify([base, colors, look?.seed, style]);
+  const features = PETS.has(base) ? undefined : look?.features;
+  const key = JSON.stringify([base, colors, look?.seed, style, features]);
   if (!drawn.has(key)) {
     drawn.set(key, fetch('/api/render-concept', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: base, style, colors, seed: `who:${look?.seed ?? 'a'}`, expression: 'happy' }),
+      body: JSON.stringify({ id: base, style, colors, features, seed: `who:${look?.seed ?? 'a'}`, expression: 'happy' }),
     }).then((r) => r.json()).then((d) => d.markup || ''));
   }
   return drawn.get(key);
@@ -234,6 +248,7 @@ function openEditor(existing = null) {
         <label>Is a <select class="face-base">${kinds.map(([b, l]) => `<option value="${b}"${b === draft.base ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
       </div>
       <div class="char-colours"></div>
+      <details class="char-more"><summary>🙂 Face &amp; hair</summary><div class="char-features"></div></details>
       <p class="face-note">They look like this in every scene, clip and comic strip.</p>
       <p class="face-error" role="alert"></p>
       <div class="face-actions"><button class="tl-btn" data-do="cancel">Cancel</button><button class="tl-btn primary" data-do="save">${existing ? 'Save' : 'Make this character'}</button></div>
@@ -249,9 +264,16 @@ function openEditor(existing = null) {
     preview.innerHTML = `<svg viewBox="0 0 100 100">${markup}</svg>`;
     if (draft.photo) preview.querySelectorAll('[data-face]').forEach((head) => putFace(head, draft.photo));
   };
+  const featureBox = modal.querySelector('.char-features');
   const paint = () => {
     colours.innerHTML = rolesOf(draft.base).map(([role, label, list]) => `
       <div class="char-swatches" role="radiogroup" aria-label="${label}"><span>${label}</span>${list.map((c) => `<button type="button" class="char-swatch${draft.look[role] === c ? ' on' : ''}" role="radio" aria-checked="${draft.look[role] === c}" data-role="${role}" data-colour="${c}" style="--c:${c}" title="${label}"></button>`).join('')}</div>`).join('');
+    // Face and hair, for people (src/looks.js): the drawn hair and face unless one is picked
+    modal.querySelector('.char-more').hidden = PETS.has(draft.base);
+    const f = draft.look.features ?? {};
+    featureBox.innerHTML = FEATURES.map(([key, label, list]) => `
+      <div class="char-chips" role="radiogroup" aria-label="${label}"><span>${label}</span>${list.map(([v, l]) => `<button type="button" class="char-chip${(f[key] ?? DEFAULT[key]) === v ? ' on' : ''}" data-feature="${key}" data-value="${v}">${l}</button>`).join('')}</div>`).join('')
+      + `<div class="char-chips"><span>Extras</span>${FLAGS.map(([k, l]) => `<button type="button" class="char-chip${f[k] ? ' on' : ''}" data-flag="${k}" aria-pressed="${!!f[k]}">${l}</button>`).join('')}</div>`;
     redraw();
   };
   paint();
@@ -267,13 +289,24 @@ function openEditor(existing = null) {
   modal.addEventListener('click', (e) => {
     const sw = e.target.closest('.char-swatch');
     if (sw) { draft.look[sw.dataset.role] = sw.dataset.colour; paint(); return; }
+    const chip = e.target.closest('.char-chip');
+    if (chip) {
+      const f = { ...draft.look.features };
+      if (chip.dataset.flag) { if (f[chip.dataset.flag]) delete f[chip.dataset.flag]; else f[chip.dataset.flag] = true; }
+      else if (chip.dataset.value === DEFAULT[chip.dataset.feature]) delete f[chip.dataset.feature];
+      else f[chip.dataset.feature] = chip.dataset.value;
+      draft.look.features = Object.keys(f).length ? f : undefined;
+      paint();
+      return;
+    }
     const act = e.target.closest('[data-do]')?.dataset.do;
     if (act === 'cancel') return close();
     if (act !== 'save') return;
     const name = modal.querySelector('.face-name').value.trim().replace(/\s+/g, ' ');
     const why = nameError(name, existing);
     if (why) return error(why);
-    const look = { seed: draft.look.seed, ...Object.fromEntries(rolesOf(draft.base).map(([role]) => [role, draft.look[role]])) };
+    const look = { seed: draft.look.seed, ...Object.fromEntries(rolesOf(draft.base).map(([role]) => [role, draft.look[role]])),
+      ...(draft.look.features && !PETS.has(draft.base) ? { features: draft.look.features } : {}) };
     if (existing) Object.assign(existing, { name, base: draft.base, look });
     else characters.push({ name, base: draft.base, look });
     save();

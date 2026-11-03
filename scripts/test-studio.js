@@ -365,6 +365,11 @@ try {
   await page.fill('.face-name', 'Mia');
   await page.click('.char-swatch[data-role="main"][data-colour="#fdd835"]');
   await page.click('.char-swatch[data-role="hair"][data-colour="#c8662b"]');
+  // Her face and hair: curly hair, big eyes, freckles
+  await page.click('.char-more summary');
+  await page.click('.char-chip[data-feature="hair"][data-value="curly"]');
+  await page.click('.char-chip[data-feature="eyes"][data-value="big"]');
+  await page.click('.char-chip[data-flag="freckles"]');
   await page.click('.face-modal [data-do="save"]');
   await page.waitForSelector('.face-modal', { state: 'detached' });
   await page.click('#characters-panel [data-do="new"]');
@@ -381,6 +386,7 @@ try {
     return { colors: el?.dataset.colors, yellow: !!el?.innerHTML.toLowerCase().includes('#fdd835'), rex: rex?.dataset.id, black: !!rex?.innerHTML.includes('#212121') };
   });
   check(/main:#fdd835 hair:#c8662b/.test(mia.colors ?? '') && mia.yellow && mia.rex === 'dog' && mia.black, `Mia wears her yellow dress and Rex is a black dog (${JSON.stringify(mia)})`);
+  check((await page.evaluate(() => document.querySelector('#svg-viewport [data-character="Mia"]').dataset.features)) === 'eyes:big hair:curly freckles:true', 'Mia has the curly hair, big eyes and freckles picked for her');
   check(sent.slice(sentBefore).every((body) => !body.includes('Mia') && !body.includes('Rex')), 'their names never reach the engine');
   await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="comic"]').click());
   await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'comic' && !document.getElementById('characters-panel').hidden);

@@ -387,6 +387,29 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check(thought('a boy eats a cake') === '' && thought('a bright idea') === '', 'no bubble without thinking ("eats a cake", "a bright idea" is the idea buddy)');
 }
 
+// 2i-f. A person's own face and hair (src/looks.js): chosen, or said in words
+{
+  const feats = (t) => parseText(t).matches.map((m) => `${m.id}:${JSON.stringify(m.features ?? {})}${m.hair ? ':' + m.hair : ''}`).join(' ');
+  check(feats('a girl with big eyes and curly red hair') === 'girl:{"eyes":"big","hair":"curly"}:#c8662b', `"with big eyes and curly red hair" (${feats('a girl with big eyes and curly red hair')})`);
+  check(feats('a bald man') === 'man:{"hair":"bald"}' && feats('a freckled boy with spiky hair') === 'boy:{"freckles":true,"hair":"spiky"}' && feats('a curly-haired girl') === 'girl:{"hair":"curly"}',
+    '"a bald man", "a freckled boy with spiky hair", "a curly-haired girl"');
+  check(feats('a man with a big nose and glasses') === 'man:{"nose":"button","glasses":true}' && feats('a boy with a round face and small eyes') === 'boy:{"face":"round","eyes":"small"}'
+    && feats('a woman with a ponytail and long eyelashes') === 'woman:{"hair":"ponytail","lashes":true}', 'noses, glasses, faces, eyes, ponytails, eyelashes');
+  check(feats('a girl with a red ball').startsWith('girl:{} ball') , 'a ball is still a ball');
+  const head = (o) => shapesToSvg(drawConcept('girl', { seed: 1, ...o }), 'flat');
+  const plain = head({}), styles = ['short', 'spiky', 'curly', 'afro', 'pigtails', 'bun', 'ponytail', 'long', 'bob', 'bald'].map((h) => head({ features: { hair: h } }));
+  check(new Set([plain, ...styles]).size === 11 && styles.every((x) => !wellFormedError(`<svg xmlns="http://www.w3.org/2000/svg">${x}</svg>`)), 'ten hair styles, each its own, all well-formed');
+  check(['back', 'side', 'three-quarter'].every((view) => head({ view, features: { hair: 'ponytail' } }) !== head({ view })), 'hair styles in every view');
+  const face = head({ features: { face: 'square', eyes: 'big', nose: 'button', freckles: true, glasses: true, lashes: true, brows: 'thick', mouth: 'big', cheeks: 'none' } });
+  check(face !== plain && /pg-face-eyes/.test(face) && /pg-face-mouth/.test(face) && /<rect[^>]+rx=/.test(face), 'a face of its own (square, big eyes, a nose, freckles, glasses...), still blinking and talking');
+  const grandpa = drawConcept('old_man', { seed: 1, features: { hair: 'curly' } });
+  check(grandpa.filter((x) => x.fill === '#e0e0e0').length > 3, 'costumes keep their beards and glasses under new hair');
+  const named = generate('pgc1 walks in, then waves', { individuals: [{ key: 'pgc1', base: 'girl', look: { seed: 'a', features: { hair: 'afro', eyes: 'big', bogus: 'x' } } }] }).svg;
+  check(/data-features="eyes:big hair:afro"/.test(named), 'a named character wears her own face and hair in every pose (only known features kept)');
+  const story = composeStory('A little girl called Mia lived in a village. She had big eyes and curly red hair.\nOne day Mia found a kitten.');
+  check(story.scenes.every((sc) => /data-features="eyes:big hair:curly"/.test(sc.svg)), 'a story\'s description of Mia is her look in every scene');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

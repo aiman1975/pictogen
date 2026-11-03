@@ -66,7 +66,7 @@ const PLACES = [
   ['garden', /\b(garden|yard|backyard)\b/, 'in the garden'],
   ['beach', /\b(beach|seaside|shore|sand)\b/, 'on the beach'],
   ['sea', /\b(sea|ocean|lake|river|pond)\b/, (w) => `by the ${w}`],
-  ['city', /\b(city|town|street|village)\b/, 'in the city'],
+  ['city', /\b(city|town|street)\b/, 'in the city'],
   ['classroom', /\b(school|classroom)\b/, 'in the classroom'],
   ['kitchen', /\bkitchen\b/, 'in the kitchen'],
   ['bedroom', /\b(bedroom|bed)\b/, 'in the bedroom'],
@@ -195,6 +195,17 @@ export function readStory(text, { individuals = [] } = {}) {
     if (weather && !new RegExp(`\\b${weather}\\b`).test(prompt)) prompt += ` in the ${weather}`;
     if (!inScene.size && !lastScene.length && n < all.length - 1) { opening = `${caption} `; continue; }
     opening = '';
+    // What the story says a named character looks like ("Mia, a girl with curly red hair") is their
+    // look from then on, in every scene
+    const keyed = new Map(cast.filter((m) => m.key).map((m) => [m.key, `${m.id}~${m.key}`]));
+    for (const mt of parseText(prompt, { names: keyed }).matches) {
+      const member = cast.find((m) => m.key && mt.id === `${m.id}~${m.key}` && !m.saved);
+      if (!member) continue;
+      member.look ??= { seed: hash(member.name.toLowerCase()) };
+      if (mt.features && Object.keys(mt.features).length) member.look.features = { ...member.look.features, ...mt.features };
+      if (mt.hair) member.look.hair = mt.hair;
+      if (mt.color && COLOR_WORDS[mt.color]) member.look.main = COLOR_WORDS[mt.color];
+    }
     scenes.push({ prompt: restore(prompt.replace(/\s+/g, ' ').replace(/\s+([,.!?])/g, '$1').trim(), quotes), caption });
     prevScene = lastScene;
     lastScene = [...inScene];

@@ -478,7 +478,9 @@ export function composeStory(storyInput, opts = {}) {
     });
 
     for (const m of result.matches) {
-      if (m.color || m.hair) carry[m.id] = { color: m.color ?? carry[m.id]?.color, hair: m.hair ?? carry[m.id]?.hair };
+      if (m.color || m.hair || m.features) {
+        carry[m.id] = { color: m.color ?? carry[m.id]?.color, hair: m.hair ?? carry[m.id]?.hair, ...(m.features || carry[m.id]?.features ? { features: { ...carry[m.id]?.features, ...m.features } } : {}) };
+      }
     }
 
     return {

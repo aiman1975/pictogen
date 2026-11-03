@@ -3,6 +3,8 @@
 // the browser, and sends { key, base } pairs; the engine reads the key as a word for its figure and
 // gives that figure its own id, `${base}~${key}` ("boy~pgc1"). Names and photos never reach it.
 
+import { cleanFeatures } from './looks.js';
+
 /** The concept an id draws: "boy~pgc1" -> "boy", "dog" -> "dog" */
 export const conceptOf = (id) => String(id).split('~')[0];
 /** The individual's key, or null for an ordinary concept id: "boy~pgc1" -> "pgc1" */
@@ -36,7 +38,7 @@ export function individualLooks(list, known) {
     const colors = {};
     for (const role of ROLES) if (typeof look?.[role] === 'string' && /^#[0-9a-f]{6}$/i.test(look[role])) colors[role] = look[role].toLowerCase();
     const seed = typeof look?.seed === 'string' && /^[a-z0-9]{1,16}$/i.test(look.seed) ? look.seed : key;
-    looks.set(id, { seed: `who:${seed}`, colors: Object.keys(colors).length ? colors : null });
+    looks.set(id, { seed: `who:${seed}`, colors: Object.keys(colors).length ? colors : null, features: cleanFeatures(look?.features) });
   }
   return looks;
 }
@@ -48,6 +50,8 @@ export function individualLooks(list, known) {
  */
 export function lookOf(id, { seed = 1, k = 0, alt = 0, vary = false, looks } = {}) {
   const own = looks?.get(id);
-  if (own) return own.colors ? { seed: own.seed, vary: false, colors: own.colors } : { seed: own.seed, vary: true };
+  // (its own face and hair too, src/looks.js)
+  const features = own?.features ? { features: own.features } : {};
+  if (own) return own.colors ? { seed: own.seed, vary: false, colors: own.colors, ...features } : { seed: own.seed, vary: true, ...features };
   return { seed: `${seed}:${id}:${k}`, vary: vary || alt > 0 };
 }
