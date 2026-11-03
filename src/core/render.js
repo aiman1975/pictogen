@@ -127,6 +127,9 @@ export const ANIMATION_CSS = `
   50% { transform: translateY(-0.5px) scaleY(1.012); }
 }
 .pg-rig-person .pg-body-torso { transform-origin: 50% 100%; animation: pgBreathe 3.6s ease-in-out var(--pg-idle, 0s) infinite; }
+/* An idea buddy's glow pulses */
+@keyframes pgGlow { 0%, 100% { opacity: 0.75; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1.04); } }
+.pg-glow { transform-box: fill-box; transform-origin: center; animation: pgGlow 2.2s ease-in-out infinite; }
 ${EMOTE_CSS}
 /* Eye Blinking */
 @keyframes pgBlink {

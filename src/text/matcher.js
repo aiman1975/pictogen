@@ -344,6 +344,10 @@ function lookPhrase(toks, i, isThing) {
 // Doing things together: sitting on something, riding it, holding hands, hugging
 const SIT_VERBS = new Set(['sit', 'sits', 'sitting', 'sat', 'seated']);
 const RIDE_VERBS = new Set(['ride', 'rides', 'riding', 'rode', 'cycle', 'cycles', 'cycling', 'pedal', 'pedals', 'pedalling', 'pedaling']);
+// Thinking of something: it is drawn in a thought bubble over their head
+const THINK_VERBS = new Set(['think', 'thinks', 'thinking', 'thought', 'dream', 'dreams', 'dreaming', 'dreamed', 'dreamt', 'imagine', 'imagines',
+  'imagining', 'imagined', 'wonder', 'wonders', 'wondering', 'wondered', 'remember', 'remembers', 'remembering', 'remembered', 'wish', 'wishes',
+  'wishing', 'wished', 'misses', 'missed', 'miss', 'missing']);
 const HUG_VERBS = new Set(['hug', 'hugs', 'hugging', 'hugged', 'cuddle', 'cuddles', 'cuddling', 'embrace', 'embraces', 'embracing']);
 const HAND_HOLD = new Set(['hold', 'holds', 'holding', 'held', 'join', 'joins', 'joining']);
 const CLAUSE_BREAKS = new Set(['then', 'while', 'when', 'but', 'after', 'before', 'because', 'so']);
@@ -397,6 +401,27 @@ function relations(toks, found) {
     if (HAND_HOLD.has(t) && toks[j + 1] === 'hands' || (t === 'hand' && toks[j + 1] === 'in' && toks[j + 2] === 'hand')) {
       // ("a boy holds hands with his grandpa": both sides of the words)
       pairUp([...subjects(), ...people(j, to)].filter((m, k, all) => all.indexOf(m) === k), 'hands');
+      continue;
+    }
+    // "a boy thinks about a cake", "she dreams of a castle", "a girl has an idea"
+    if (THINK_VERBS.has(t)) {
+      // (anyone can think: a girl, a dog, a dragon)
+      const beings = found.filter((m) => m.at > from && m.at < j && !m.heldBy && /^(people|animals|wildlife)/.test(getConcept(m.id.split('~')[0])?.category ?? ''));
+      const who = beings.length ? beings : subjects();
+      const thinker = who[who.length - 1];
+      const about = found.filter((m) => m.at > j && m.at < to && m.id !== thinker?.id && !m.heldBy && !m.carries);
+      if (thinker && about.length) {
+        for (const m of about.slice(0, 3)) m.thoughtOf = thinker.id;
+        thinker.animation ??= 'think';
+      }
+      continue;
+    }
+    if (t === 'idea' && toks.slice(Math.max(0, j - 4), j).some((w) => ['has', 'had', 'gets', 'got', 'have', 'having'].includes(w))) {
+      const thinker = found.filter((m) => m.at > from && m.at < j && /^(people|animals|wildlife)/.test(getConcept(m.id.split('~')[0])?.category ?? '')).pop() ?? subjects().pop();
+      if (thinker && getConcept('light_bulb') && !found.some((m) => m.thoughtOf === thinker.id)) {
+        found.push({ id: 'light_bulb', word: 'idea', count: 1, at: j, thoughtOf: thinker.id });
+        thinker.animation ??= 'think';
+      }
       continue;
     }
     if (HUG_VERBS.has(t)) {

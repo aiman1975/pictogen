@@ -274,6 +274,41 @@ const cane = (d, p, g) => {
   d.path(`M${hx + 1} ${hy - 2} Q${hx - 1} ${hy - 7} ${hx - 5} ${hy - 4}`, line('#6d4c41', 2.6));
 };
 
+// A scientist's things: goggles pushed up on the head, pens in the coat's pocket, a flask in hand
+const goggles = (color = '#4dd0e1') => (d, p, g) => {
+  const [cx, cy, r] = g.head, y = cy - r * 0.6, strap = line('#455a64', 2.2);
+  if (g.back) { d.path(`M${r1(cx - r * 0.98)} ${r1(y + 2)} Q${cx} ${r1(y + 4.5)} ${r1(cx + r * 0.98)} ${r1(y + 2)}`, strap); return; }
+  if (g.side) {
+    d.line(cx - r * 0.95, y + 1.5, cx + r * 0.5, y, strap);
+    d.circle(cx + r * 0.62, y - 0.5, r * 0.3, { fill: color, opacity: 0.85, kind: 'accent' });
+    d.circle(cx + r * 0.62, y - 0.5, r * 0.3, line('#37474f', 1.5));
+    return;
+  }
+  d.path(`M${r1(cx - r * 0.98)} ${r1(y + 2)} Q${cx} ${r1(y - 1.5)} ${r1(cx + r * 0.98)} ${r1(y + 2)}`, strap);
+  for (const sx of [-1, 1]) {
+    const x = g.fx + sx * r * 0.36;
+    d.circle(x, y, r * 0.3, { fill: color, opacity: 0.85, kind: 'accent' });
+    d.circle(x, y, r * 0.3, line('#37474f', 1.5));
+    d.circle(x - r * 0.1, y - r * 0.1, r * 0.08, { kind: 'highlight', opacity: 0.9 });
+  }
+};
+const pocketPens = (d, p, g) => {
+  if (g.back || g.side) return;
+  const [, y0, x1] = g.torso, x = x1 - 9, y = y0 + 12;
+  d.rect(x + 0.8, y - 3, 1.3, 4, { fill: '#e53935', kind: 'accent' });
+  d.rect(x + 3, y - 2.4, 1.3, 3.4, { fill: '#1e88e5', kind: 'accent' });
+  d.rect(x, y, 6, 5.5, { fill: '#ffffff', kind: 'body' });
+  d.rect(x, y, 6, 5.5, line('#b0bec5', 1));
+};
+const flask = (d, p, g) => {
+  if (g.side || g.back) return;
+  const [hx, hy] = g.hand, x = hx + 1, y = hy - 3;
+  d.path(`M${x - 1.6} ${y - 7} L${x + 1.6} ${y - 7} L${x + 1.6} ${y - 3} L${x + 5} ${y + 4} Q${x + 5.5} ${y + 6} ${x + 3.5} ${y + 6} L${x - 3.5} ${y + 6} Q${x - 5.5} ${y + 6} ${x - 5} ${y + 4} L${x - 1.6} ${y - 3} Z`, { fill: '#e0f7fa', opacity: 0.9, kind: 'body' });
+  d.path(`M${x - 3.6} ${y + 1.5} L${x + 3.6} ${y + 1.5} L${x + 5} ${y + 4} Q${x + 5.5} ${y + 6} ${x + 3.5} ${y + 6} L${x - 3.5} ${y + 6} Q${x - 5.5} ${y + 6} ${x - 5} ${y + 4} Z`, { fill: '#66bb6a', kind: 'accent' });
+  d.path(`M${x - 1.6} ${y - 7} L${x + 1.6} ${y - 7} L${x + 1.6} ${y - 3} L${x + 5} ${y + 4} Q${x + 5.5} ${y + 6} ${x + 3.5} ${y + 6} L${x - 3.5} ${y + 6} Q${x - 5.5} ${y + 6} ${x - 5} ${y + 4} L${x - 1.6} ${y - 3} Z`, line('#607d8b', 1));
+  d.circle(x + 1, y + 3.5, 0.8, { fill: '#ffffff', opacity: 0.8, kind: 'highlight' });
+};
+
 // Several parts on one layer
 const all = (...fns) => (d, p, g) => fns.forEach((f) => f(d, p, g));
 
@@ -348,6 +383,9 @@ const CHARACTERS = [
     { body: gown('#5e35b1', 0.5), head: all(beard('#f5f5f5', true), pointyHat('#4527a0')) }),
   character('woman', { id: 'witch', aliases: ['witches', 'sorceress'], colors: { main: '#4a148c', hair: '#212121', pants: '#311b92' }, palettes: { hair: HAIR_COLORS } },
     { body: gown('#4a148c', 0.5), head: pointyHat('#212121', false) }),
+  character('girl', { id: 'scientist', aliases: ['scientists', 'girl scientist', 'kid scientist', 'little scientist', 'inventor', 'chemist', 'researcher', 'science girl'],
+    tags: ['science', 'school', 'education', 'experiment'], colors: { main: '#26a69a', hair: '#5d4037', shoe: '#5c6bc0' }, palettes: { hair: HAIR_COLORS } },
+    { body: all(coat('#ffffff', true), pocketPens), head: goggles(), front: flask }),
   character('girl', { id: 'fairy', aliases: ['fairies', 'pixie', 'tooth fairy'], colors: { main: '#80deea', hair: '#e6b94f', shoe: '#26c6da', wing: '#b3e5fc' }, palettes: { hair: HAIR_COLORS } },
     { behind: wings }),
 ];

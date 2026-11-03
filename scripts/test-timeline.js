@@ -367,6 +367,26 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check(!wellFormedError(changes.svg), 'well-formed XML');
 }
 
+// 2i-e. Story friends (a scientist, an owl teacher, a little dragon, an idea buddy) and thought bubbles
+{
+  const ids = (t) => parseText(t).matches.map((m) => m.id).join();
+  check(ids('a scientist') === 'scientist' && ids('a wise owl') === 'owl_teacher' && ids('a little dragon') === 'baby_dragon' && ids('a dragon') === 'baby_dragon' && ids('an idea buddy') === 'idea_buddy',
+    'the story friends by their words: a scientist, a wise owl, a dragon, an idea buddy');
+  for (const id of ['scientist', 'owl_teacher', 'baby_dragon', 'idea_buddy']) {
+    const faces = ['happy', 'sad', 'surprised', 'sleepy', 'love'].map((e) => shapesToSvg(drawConcept(id, { seed: 1, expression: e }), 'cartoon'));
+    const rigged = /pg-rig-person/.test(faces[0]) && /pg-face-eyes/.test(faces[0]) && /pg-arm-right/.test(faces[0]);
+    check(rigged && new Set(faces).size === 5 && faces.every((f) => !wellFormedError(`<svg xmlns="http://www.w3.org/2000/svg">${f}</svg>`)), `${id}: on the skeleton (it moves, blinks, talks), a face for each feeling`);
+  }
+  const owl = generate('an owl teacher reads a book to the children in the classroom').svg;
+  check(/data-id="owl_teacher"[^>]*data-held="book"/.test(owl), 'the owl teacher holds the book she reads');
+  const thought = (t) => [...generate(t).svg.matchAll(/class="pg-thought" data-thinks="([^"]+)"/g)].map((m) => m[1]).join(' | ');
+  check(thought('a boy thinks about a cake and an ice cream') === 'cake ice_cream' && thought('a girl has an idea') === 'light_bulb' && thought('a dragon thinks about a pizza') === 'pizza',
+    `thought bubbles: "thinks about a cake and an ice cream", "has an idea" (a light bulb), a dragon thinking of pizza (${thought('a boy thinks about a cake and an ice cream')})`);
+  check(thought('a girl misses her grandma') === 'old_woman' && thought('a girl sits on a bench and thinks about her dog') === 'dog' && !/data-id="cake"/.test(generate('a boy thinks about a cake').svg.replace(/<g class="pg-thought"[\s\S]*$/, '')),
+    'missing someone is thinking of them; a seated thinker keeps the bubble; what is thought of is not also in the scene');
+  check(thought('a boy eats a cake') === '' && thought('a bright idea') === '', 'no bubble without thinking ("eats a cake", "a bright idea" is the idea buddy)');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

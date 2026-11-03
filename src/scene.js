@@ -911,6 +911,16 @@ export function composeScene(matches, opts = {}) {
   }
   for (let i = items.length - 1; i >= 0; i--) if (items[i].inHand) items.splice(i, 1);
   const { timeline } = opts;
+  // What someone thinks of ("a boy thinks about a cake", "she has an idea"): in a thought bubble
+  // over their head, not in the scene
+  if (!timeline) {
+    for (const it of items) {
+      if (!it.m.thoughtOf) continue;
+      const thinker = items.find((h) => h.aid === it.m.thoughtOf && !h.m.thoughtOf);
+      if (thinker && (thinker.thoughts?.length ?? 0) < 3) { (thinker.thoughts ??= []).push(it); it.inThought = true; }
+    }
+    for (let i = items.length - 1; i >= 0; i--) if (items[i].inThought) items.splice(i, 1);
+  }
   // Doing things together in a still scene (src/text/matcher.js relations): sitters and riders go
   // on their seat or bike (drawn with it, see carried()), partners stand side by side
   const isPerson = (it) => /^people/.test(it.c.category ?? '');
@@ -950,7 +960,9 @@ export function composeScene(matches, opts = {}) {
   // When focusing on characters or in stylized modes, make characters prominent heroes!
   let unit = H * 0.3;
   if (isOnlyPeople || (isStylizedFigure && !hasLandscape) || (!hasLandscape && items.length <= 3 && items.some(it => it.c.category === 'people'))) {
-    unit = items.length === 1 ? H * 0.65 : items.length === 2 ? H * 0.52 : H * 0.46;
+    // (a thought bubble needs room over its thinker's head)
+    const crowd = items.length + (items.some((it) => it.thoughts) ? 1 : 0);
+    unit = crowd === 1 ? H * 0.65 : crowd === 2 ? H * 0.52 : H * 0.46;
   }
 
   const groups = { background: [], sky: [], air: [], back: [], water: [], underwater: [], front: [] };
@@ -972,6 +984,10 @@ export function composeScene(matches, opts = {}) {
     for (const o of it.carried) {
       o.pose = drawConcept(o.c, { ...o.look, style, seat: it.c.saddle ? 'ride' : 'seat', view: it.c.saddle ? 'side' : o.m.view });
     }
+    // (a figure without legs to bend - an owl, a dragon - stands by the seat instead)
+    for (const o of it.carried.filter((x) => (x.pose.seatAt ?? 99) > 86)) o.onSeat = null;
+    it.carried = it.carried.filter((x) => x.onSeat);
+    if (!it.carried.length) continue;
     if (it.c.seatTop) {
       const hips = Math.max(...it.carried.map((o) => ((o.c.baseline ?? 96) - o.pose.seatAt) * (o.h / 100)));
       it.h = hips / (((it.c.baseline ?? 96) - it.c.seatTop) / 100);
@@ -1022,6 +1038,30 @@ export function composeScene(matches, opts = {}) {
   // A named individual's key and id, and a dressed-differently figure, for the studio (its photo,
   // and redrawing it the same way)
   const who = (it) => `${it.aid !== it.c.id ? ` data-who="${whoOf(it.aid)}" data-aid="${it.aid}"` : ''} data-seed="${it.look.seed}"${it.look.vary ? ' data-vary="1"' : ''}${it.look.colors ? ` data-colors="${Object.entries(it.look.colors).map(([r, c]) => `${r}:${c}`).join(' ')}"` : ''}${it.holding ? ` data-held="${it.holding.c.id}"${it.holding.m.color ? ` data-held-color="${it.holding.m.color}"` : ''}` : ''}`;
+  // A thought bubble over a thinker's head, up to its right (whichever way it faces), in its own
+  // units: a cloud with what it thinks of drawn small inside, and two little puffs leading to it
+  const thoughtBubble = (it, flip) => {
+    if (!it.thoughts?.length) return '';
+    const n = it.thoughts.length, w = 30 + n * 18, h = 36, cx = 66 + w / 2, cy = -16;
+    const puffs = [];
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * Math.PI * 2;
+      puffs.push([cx + Math.cos(a) * w * 0.44, cy + Math.sin(a) * h * 0.4, 9 + (k % 3) * 1.5]);
+    }
+    const ring = puffs.map(([x, y, r]) => `<circle cx="${r2(x)}" cy="${r2(y)}" r="${r2(r)}"/>`).join('');
+    let inside = '';
+    const cell = (w - 8) / n, k = Math.min(cell, h - 2) / 100;
+    it.thoughts.forEach((t, i) => {
+      const x = cx - (w - 8) / 2 + cell * (i + 0.5) - 50 * k, y = cy - 50 * k + 2;
+      const shapes = drawConcept(t.c, { ...t.look, color: t.m.color, style, expression: t.m.expression || 'happy' });
+      inside += `<g transform="translate(${r2(x)} ${r2(y)}) scale(${r2(k * 1000) / 1000})">${shapesToSvg(shapes, style, { olk: 1.4 })}</g>`;
+    });
+    const body = `<g class="pg-thought" data-thinks="${it.thoughts.map((t) => t.c.id).join(' ')}"><g class="pg-emote-move">`
+      + `<circle cx="62" cy="8" r="2.6" fill="#ffffff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="68.5" cy="-0.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.4"/>`
+      + `<g fill="#ffffff" stroke="#94a3b8" stroke-width="2.6">${ring}</g><g fill="#ffffff">${ring}<ellipse cx="${r2(cx)}" cy="${r2(cy)}" rx="${r2(w * 0.44)}" ry="${r2(h * 0.4)}"/></g>`
+      + `${inside}</g></g>`;
+    return flip ? `<g transform="translate(100 0) scale(-1 1)">${body}</g>` : body;
+  };
   // Where a sign over a figure's head goes, in its own units (a person's head is near the top)
   const headOf = (it) => (/^people/.test(it.c.category ?? '') ? [62, 6] : [68, 16]);
   // What a figure holds, for drawConcept
@@ -1040,7 +1080,7 @@ export function composeScene(matches, opts = {}) {
       : span[0] + ((i + 0.5) * (span[1] - span[0])) / all.length - 50 * k;
     const y = (ride ? it.c.saddle[1] : it.c.seatTop) - (shapes.seatAt ?? 70) * k;
     const svg = shapesToSvg(shapes, style, { olk: clamp(W / 280 / (2.4 * s * k), 0.35, 4) });
-    return `<g class="pg-${ride ? 'rider' : 'sitter'}" data-id="${o.c.id}"${who(o)} transform="translate(${r2(x)} ${r2(y)}) scale(${r2(k * 1000) / 1000})">${svg}</g>`;
+    return `<g class="pg-${ride ? 'rider' : 'sitter'}" data-id="${o.c.id}"${who(o)} transform="translate(${r2(x)} ${r2(y)}) scale(${r2(k * 1000) / 1000})">${svg}${thoughtBubble(o, false)}</g>`;
   }).join('');
   // Who says what in a still scene ("Tom says “Hello!”"): figure id -> words
   const said = new Map((opts.speech || []).map((sp) => [sp.who, sp.text]));
@@ -1139,7 +1179,7 @@ export function composeScene(matches, opts = {}) {
     const drawing = shapesToSvg(shapes, style, { olk });
     // (how it feels, as a sign over its head: "!", "?", a heart, "Zzz"...)
     const sign = emote(animation === 'sleep' ? 'sleepy' : expression, { head: headOf(it), mirrored: flip });
-    let wrappedContent = `<g class="pg-figure">${drawing}${sign}</g>${carried(it, s)}`;
+    let wrappedContent = `<g class="pg-figure">${drawing}${sign}</g>${carried(it, s)}${thoughtBubble(it, flip)}`;
     if (limbs && limbs !== 'blink' && !drawing.includes(`pg-anim-${limbs}`)) {
       wrappedContent = `<g class="pg-anim-${limbs}">${wrappedContent}</g>`;
     }

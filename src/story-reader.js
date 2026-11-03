@@ -22,7 +22,9 @@ const MALE = new Set(['boy', 'man', 'old_man', 'prince', 'king', 'man_teacher', 
 const BEINGS = new Set(['alien', 'alien_monster', 'ghost', 'snowman']);
 const isCreature = (id) => /^(people|animals|wildlife)/.test(getConcept(id)?.category ?? '') || BEINGS.has(id);
 const isAnimal = (id) => /^(animals|wildlife)/.test(getConcept(id)?.category ?? '');
-const genderOf = (id) => (FEMALE.has(id) ? 'f' : MALE.has(id) ? 'm' : isAnimal(id) ? 'a' : 'n');
+// (story friends and robots are "he", "she" or "it" as the story says, like animals)
+const ANY = new Set(['owl_teacher', 'baby_dragon', 'idea_buddy', 'robot']);
+const genderOf = (id) => (FEMALE.has(id) ? 'f' : MALE.has(id) ? 'm' : isAnimal(id) || ANY.has(id) ? 'a' : 'n');
 
 // First names, to tell a girl from a boy when the story only says the name
 const GIRL_NAMES = new Set(`mia emma olivia ava sophia lily ella grace chloe ruby isla amelia emily lucy anna sara sarah zoe hannah
