@@ -147,6 +147,11 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] Story reader: a "How I read your story" panel (change a scene, keep a character), the captions
       read aloud with the browser's voice
 - [ ] Story reader: a larger evaluation set of real children's stories; narration in exported videos
+- [x] **The first animals redrawn** after Gemini reference pictures (dog, cat, bird, fish, duck, rabbit,
+      lion, elephant, penguin): rounder shapes, paws, stripes, muzzles, a fluffy mane; eyes and mouths
+      with every feeling (`src/concepts/animal-face.js`), front and back views too; joints kept; the
+      elephant can be ridden
+- [ ] Refresh the people on the same skeleton (before/after for approval)
 - [x] **Fantasy friends**: a unicorn with a rainbow mane (it can be ridden), a friendly furry
       monster, a little ghost that floats (`src/concepts/fantasy.js`), and a knight (armour, helmet,
       shield, wooden sword), a mermaid (a tail over the legs, under the sea) and a genie (a smoky

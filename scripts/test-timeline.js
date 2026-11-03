@@ -522,6 +522,25 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check(true, 'well-formed in other styles');
 }
 
+// 2i-m. The first animals, redrawn (dog, cat, bird, fish, duck, rabbit, lion, elephant, penguin)
+{
+  const all = ['dog', 'cat', 'bird', 'fish', 'duck', 'rabbit', 'lion', 'elephant', 'penguin'];
+  const svg = (id, o = {}) => shapesToSvg(drawConcept(id, { seed: 1, ...o }), 'flat');
+  check(all.every((id) => svg(id) !== svg(id, { expression: 'sad' }) && svg(id) !== svg(id, { expression: 'laugh' })), 'every one shows feelings now (sad, laughing)');
+  check(['dog', 'cat', 'rabbit', 'lion'].every((id) => ['front', 'back'].every((view) => svg(id, { view }) !== svg(id))) && ['dog', 'cat', 'rabbit', 'lion', 'penguin'].every((id) => svg(id, { view: 'front' }) !== svg(id, { view: 'front', expression: 'surprised' })),
+    'front and back views kept, the front ones with feelings too');
+  const joints = { dog: ['pg-leg-front', 'pg-leg-hind', 'pg-tail', 'pg-ear', 'pg-head'], cat: ['pg-leg-front', 'pg-tail', 'pg-ear'], bird: ['pg-arm-left', 'pg-arm-right', 'pg-leg-left', 'pg-tail'], fish: ['pg-tail', 'pg-arm-right'],
+    elephant: ['pg-arm-right', 'pg-ear', 'pg-leg-hind'], penguin: ['pg-arm-left', 'pg-leg-right'], lion: ['pg-tail', 'pg-ear'], rabbit: ['pg-ear', 'pg-tail'], duck: ['pg-arm-right', 'pg-tail'] };
+  check(Object.entries(joints).every(([id, list]) => list.every((j) => svg(id).includes(j))), 'their joints are all still there (they walk, wag, flap, swim and wave as before)');
+  const ride = generate('a girl rides an elephant');
+  check(/class="pg-rider" data-id="girl"/.test(ride.svg) && !wellFormedError(ride.svg), 'a girl rides an elephant');
+  for (const style of ['cartoon', 'whiteboard', 'stickman', 'pixel', 'neon']) {
+    const err = wellFormedError(generate('a dog, a cat, a lion and an elephant in the park, then the dog runs to the cat', { style }).svg);
+    if (err) check(false, `[${style}]: ${err}`);
+  }
+  check(true, 'well-formed in other styles');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

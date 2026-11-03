@@ -18,7 +18,7 @@ const fromBehind = (p) => p.opts.view === 'back';
  * A limb drawn as one filled shape along a curve (a cubic from a through b and c to e), wide w0 at
  * its root and w1 at its tip, with a round tip: tentacles, a seahorse's tail.
  */
-function limb(d, [a, b, c, e], w0, w1, o) {
+export function limb(d, [a, b, c, e], w0, w1, o) {
   const pt = (t) => {
     const u = 1 - t;
     return [0, 1].map((k) => u * u * u * a[k] + 3 * u * u * t * b[k] + 3 * u * t * t * c[k] + t * t * t * e[k]);

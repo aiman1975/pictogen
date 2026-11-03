@@ -2,6 +2,8 @@
 import { INK } from '../core/styles.js';
 import { darken, mix } from '../core/color.js';
 import { rigged } from './rig.js';
+import { limb } from './sea.js';
+import { eyes, mouth, cheek } from './animal-face.js';
 
 /**
  * Front and back views of the four-legged animals (opts.view 'front' | 'back'; side is the default
@@ -56,13 +58,9 @@ function drawDogView(d, p, view) {
       d.joint('pg-ear', [62, 32], () => d.path('M64 30 Q74 42 69 54 Q62 50 60 36 Z', { fill: ear, kind: 'body' }));
       d.ellipse(50, 47, 8, 6, { fill: mix(fur, '#ffffff', 0.35), kind: 'body' });
       d.ellipse(50, 44, 3.2, 2.4, { fill: p.c('nose'), kind: 'detail' });
-      d.group({ class: 'pg-face-mouth' }, () => d.path('M46 49 Q50 52.5 54 49', { kind: 'line', stroke: INK, sw: 1.4 }));
-      d.group({ class: 'pg-face-eyes' }, () => {
-        d.circle(44, 37, 2.2, { fill: INK, kind: 'detail' });
-        d.circle(56, 37, 2.2, { fill: INK, kind: 'detail' });
-        d.circle(44.6, 36.3, 0.7, { kind: 'highlight', opacity: 0.9 });
-        d.circle(56.6, 36.3, 0.7, { kind: 'highlight', opacity: 0.9 });
-      });
+      mouth(d, p, 50, 50, 0.8);
+      eyes(d, p, [[44, 37], [56, 37]], 0.85, fur);
+      cheek(d, p, 41, 43, 0.9); cheek(d, p, 59, 43, 0.9);
     });
   }), { headOn: true });
 }
@@ -96,12 +94,9 @@ function drawCatView(d, p, view) {
       // The inner ears overlap the head's rim: drawn after it, turning with their ears
       d.joint('pg-ear', [41, 38], () => d.poly([[39, 39], [38.5, 29], [45, 35]], { fill: p.c('innerEar'), kind: 'accent' }));
       d.joint('pg-ear', [59, 38], () => d.poly([[61, 39], [61.5, 29], [55, 35]], { fill: p.c('innerEar'), kind: 'accent' }));
-      d.group({ class: 'pg-face-eyes' }, () => {
-        d.ellipse(44, 45, 2, 2.6, { fill: INK, kind: 'detail' });
-        d.ellipse(56, 45, 2, 2.6, { fill: INK, kind: 'detail' });
-      });
+      eyes(d, p, [[44, 45], [56, 45]], 0.8, fur);
       d.poly([[48, 50], [52, 50], [50, 52.5]], { fill: p.c('innerEar'), kind: 'detail' });
-      d.group({ class: 'pg-face-mouth' }, () => d.path('M47 54 Q50 56 50 53 Q50 56 53 54', { kind: 'line', stroke: INK, sw: 1.2 }));
+      mouth(d, p, 50, 54.5, 0.7);
       for (const [y0, y1] of [[51, 48], [53, 54], [55, 59]]) {
         d.line(44, y0, 31, y1, { stroke: INK, sw: 1, kind: 'line' });
         d.line(56, y0, 69, y1, { stroke: INK, sw: 1, kind: 'line' });
@@ -138,12 +133,9 @@ function drawRabbitView(d, p, view) {
     d.joint('pg-head', [50, 60], () => {
       ears(true);
       d.circle(50, 46, 14, { fill: fur, kind: 'body' });
-      d.group({ class: 'pg-face-eyes' }, () => {
-        d.circle(45, 44, 2, { fill: INK, kind: 'detail' });
-        d.circle(55, 44, 2, { fill: INK, kind: 'detail' });
-      });
+      eyes(d, p, [[45, 44], [55, 44]], 0.75, fur);
       d.circle(50, 50, 2, { fill: p.c('nose'), kind: 'detail' });
-      d.group({ class: 'pg-face-mouth' }, () => d.path('M47 53 Q50 56 53 53', { kind: 'line', stroke: INK, sw: 1.2 }));
+      mouth(d, p, 50, 53.5, 0.7);
     });
     d.ellipse(50, 75, 9, 10, { fill: light, kind: 'accent' });
   }), { headOn: true });
@@ -159,37 +151,37 @@ export default [
     scale: 0.55,
     baseline: 94,
     width: 0.8,
-    colors: { main: '#bcaaa4', spot: '#795548', ear: '#5d4037', collar: '#e53935', nose: '#212121' },
-    palettes: { main: ['#bcaaa4', '#d7ccc8', '#ffcc80', '#8d6e63', '#424242', '#ffffff'] },
+    colors: { main: '#d4a373', spot: '#8d5a3b', ear: '#8d5a3b', collar: '#e53935', nose: '#3e2723' },
+    palettes: { main: ['#d4a373', '#bcaaa4', '#f5deb3', '#8d6e63', '#424242', '#ffffff'] },
     draw(d, p) {
       if (animalView(p)) return drawDogView(d, p, animalView(p));
-      const fur = p.c('main'), earColor = p.c('ear'), far = darken(fur, 0.12);
+      const fur = p.c('main'), far = darken(fur, 0.14), light = mix(fur, '#ffffff', 0.45);
+      // A leg with its paw; the far pair a shade darker; each swings from its hip in a trot
+      const leg = (x, fill) => () => { d.rect(x, 64, 9, 26, { rx: 4, fill, kind: 'body' }); d.ellipse(x + 5, 91, 6, 3, { fill: darken(fill, 0.08), kind: 'body' }); };
       rigged(d, p, 'quadruped', () => {
-        // Legs: the far pair a shade darker; each swings from its hip in a trot
-        d.joint(FAR_HIND, null, () => d.rect(26, 68, 8, 24, { rx: 3, fill: far, kind: 'body' }));
-        d.joint(NEAR_HIND, null, () => d.rect(38, 68, 8, 24, { rx: 3, fill: fur, kind: 'body' }));
-        d.joint(NEAR_FRONT, null, () => d.rect(58, 68, 8, 24, { rx: 3, fill: fur, kind: 'body' }));
-        d.joint(FAR_FRONT, null, () => d.rect(70, 68, 8, 24, { rx: 3, fill: far, kind: 'body' }));
+        d.joint(FAR_HIND, null, leg(27, far));
+        d.joint(FAR_FRONT, null, leg(68, far));
+        d.joint(NEAR_HIND, null, leg(36, fur));
+        d.joint(NEAR_FRONT, null, leg(59, fur));
         d.group({ class: 'pg-body-torso' }, () => {
-          d.joint('pg-tail', [25, 57], () => d.path('M22 60 Q12 45 18 36 Q22 45 28 56 Z', { fill: fur, kind: 'body' }));
-          // Body (oval-ish)
-          d.ellipse(48, 62, 26, 17, { fill: fur, kind: 'body' });
-          d.ellipse(44, 58, 10, 8, { fill: p.c('spot'), kind: 'accent' });
-          // Neck & collar
-          d.path('M62 55 L74 38 L82 46 L72 65 Z', { fill: fur, kind: 'body' });
-          d.rect(68, 48, 12, 4, { rx: 1.5, fill: p.c('collar'), kind: 'body' });
-          d.joint('pg-head', [74, 47], () => {
-            d.circle(75, 34, 15, { fill: fur, kind: 'body' });
-            // Snout
-            d.ellipse(85, 38, 8, 6, { fill: fur, kind: 'body' });
-            d.circle(91, 36, 2.5, { fill: p.c('nose'), kind: 'detail' });
-            // Floppy ear
-            d.joint('pg-ear', [69, 29], () => d.path('M67 26 Q60 38 64 48 Q70 46 72 34 Z', { fill: earColor, kind: 'body' }));
-            d.group({ class: 'pg-face-eyes' }, () => {
-              d.circle(77, 30, 2.2, { fill: INK, kind: 'detail' });
-              d.circle(77.6, 29.3, 0.7, { kind: 'highlight', opacity: 0.9 });
-            });
-            d.group({ class: 'pg-face-mouth' }, () => d.path('M85 41 Q88 44 91 40', { kind: 'line', stroke: INK, sw: 1.5 }));
+          // The tail, curving up, wagging from its base
+          d.joint('pg-tail', [28, 56], () => limb(d, [[30, 56], [20, 50], [16, 40], [20, 30]], 6.5, 3.4, { fill: fur, kind: 'body' }));
+          d.path('M26 60 Q26 45 42 45 L64 45 Q77 45 77 59 Q77 73 62 73 L40 73 Q26 73 26 60 Z', { fill: fur, kind: 'body' });
+          d.ellipse(52, 68, 16, 4.5, { fill: light, kind: 'accent' });
+          d.ellipse(40, 54, 9, 6.5, { fill: p.c('spot'), kind: 'accent' });
+          d.path('M62 50 L71 33 L85 40 L75 64 Z', { fill: fur, kind: 'body' });
+          // The collar and its tag
+          d.path('M67 45 L82 50 L80 54.5 L65.5 49.5 Z', { fill: p.c('collar'), kind: 'body' });
+          d.circle(73, 54, 2.2, { fill: '#ffca28', kind: 'detail' });
+          d.joint('pg-head', [72, 46], () => {
+            d.circle(77, 31, 13.5, { fill: fur, kind: 'body' });
+            d.ellipse(88, 37.5, 9.5, 6.8, { fill: light, kind: 'body' });
+            d.ellipse(95.5, 34.5, 2.8, 2.2, { fill: p.c('nose'), kind: 'detail' });
+            eyes(d, p, [[81, 28]], 0.95, fur);
+            cheek(d, p, 84, 35);
+            mouth(d, p, 90, 41, 0.75);
+            // The floppy ear, flapping from where it meets the head
+            d.joint('pg-ear', [72, 24], () => d.path('M74 20 Q61 22 63 40 Q69 44 74 33 Z', { fill: p.c('ear'), kind: 'body' }));
           });
         });
       });
@@ -204,37 +196,43 @@ export default [
     scale: 0.45,
     baseline: 94,
     width: 0.75,
-    colors: { main: '#fb8c00', stripe: '#e65100', innerEar: '#ffab91', collar: '#00acc1' },
-    palettes: { main: ['#fb8c00', '#757575', '#212121', '#ffffff', '#ffe082'] },
+    colors: { main: '#f4a259', stripe: '#d9772b', innerEar: '#ffab91', collar: '#00acc1', chest: '#fff3e0' },
+    palettes: { main: ['#f4a259', '#9e9e9e', '#424242', '#ffffff', '#ffe082'] },
     draw(d, p) {
       if (animalView(p)) return drawCatView(d, p, animalView(p));
-      const fur = p.c('main'), far = darken(fur, 0.12);
+      const fur = p.c('main'), far = darken(fur, 0.14), stripe = p.c('stripe'), chest = p.c('chest');
+      const leg = (x, fill) => () => { d.rect(x, 71, 7, 20, { rx: 3.5, fill, kind: 'body' }); d.ellipse(x + 3.6, 91.8, 4.6, 2.6, { fill: chest, kind: 'body' }); };
       rigged(d, p, 'quadruped', () => {
-        d.joint(FAR_HIND, null, () => d.rect(34, 76, 7, 18, { rx: 3, fill: far, kind: 'body' }));
-        d.joint(NEAR_HIND, null, () => d.rect(44, 76, 7, 18, { rx: 3, fill: fur, kind: 'body' }));
-        d.joint(NEAR_FRONT, null, () => d.rect(58, 76, 7, 18, { rx: 3, fill: fur, kind: 'body' }));
-        d.joint(FAR_FRONT, null, () => d.rect(68, 76, 7, 18, { rx: 3, fill: far, kind: 'body' }));
+        d.joint(FAR_HIND, null, leg(31, far));
+        d.joint(FAR_FRONT, null, leg(64, far));
+        d.joint(NEAR_HIND, null, leg(39, fur));
+        d.joint(NEAR_FRONT, null, leg(57, fur));
         d.group({ class: 'pg-body-torso' }, () => {
-          // Tail (curled)
-          d.joint('pg-tail', [26, 68], () => d.path('M24 72 Q10 70 12 50 Q14 36 22 40 Q18 52 26 64 Z', { fill: fur, kind: 'body' }));
-          d.ellipse(50, 68, 22, 15, { fill: fur, kind: 'body' });
-          d.joint('pg-head', [62, 56], () => {
-            d.circle(68, 44, 14, { fill: fur, kind: 'body' });
-            // Pointy ears
-            d.joint('pg-ear', [62, 35], () => {
-              d.poly([[58, 38], [57, 22], [67, 32]], { fill: fur, kind: 'body' });
-              d.poly([[60, 36], [59, 25], [66, 32]], { fill: p.c('innerEar'), kind: 'accent' });
+          // A long tail curling at its tip
+          d.joint('pg-tail', [29, 64], () => {
+            const [tx, ty] = limb(d, [[30, 64], [14, 64], [10, 46], [18, 40]], 5.6, 4.6, { fill: fur, kind: 'body' });
+            d.path(`M${tx} ${ty} Q24 36 23 44 Q22 48 19 46`, { kind: 'line', stroke: fur, sw: 4.4, fill: 'none' });
+            for (const [x, y] of [[16, 60], [12, 52]]) d.line(x - 2.5, y, x + 2.5, y + 1, { kind: 'line', stroke: stripe, sw: 1.8 });
+          });
+          d.ellipse(48, 65, 21, 12, { fill: fur, kind: 'body' });
+          d.ellipse(62, 69, 6, 7, { fill: chest, kind: 'accent' });
+          for (const x of [38, 45, 52]) d.path(`M${x} 54 Q${x + 2} 59 ${x} 64`, { kind: 'line', stroke: stripe, sw: 2, fill: 'none' });
+          d.joint('pg-head', [61, 57], () => {
+            // Pointy ears, the far one behind the head
+            d.joint('pg-ear', [62, 35], () => { d.poly([[59, 38], [58, 22], [68, 31]], { fill: far, kind: 'body' }); });
+            d.circle(68, 45, 13, { fill: fur, kind: 'body' });
+            d.joint('pg-ear', [75, 35], () => {
+              d.poly([[71, 33], [79, 21], [81, 37]], { fill: fur, kind: 'body' });
+              d.poly([[73, 32.5], [78.5, 25], [79.5, 35.5]], { fill: p.c('innerEar'), kind: 'accent' });
             });
-            d.joint('pg-ear', [76, 35], () => {
-              d.poly([[72, 32], [79, 22], [80, 38]], { fill: fur, kind: 'body' });
-              d.poly([[73, 32], [78, 25], [78, 36]], { fill: p.c('innerEar'), kind: 'accent' });
-            });
-            d.group({ class: 'pg-face-eyes' }, () => d.circle(73, 42, 2, { fill: INK, kind: 'detail' }));
-            d.poly([[78, 45], [82, 45], [80, 48]], { fill: p.c('innerEar'), kind: 'detail' });
+            d.path('M64 34 L65 39 M68 33 L68 38', { kind: 'line', stroke: stripe, sw: 1.6, fill: 'none' });
+            d.ellipse(77, 51, 6, 4.2, { fill: chest, kind: 'body' });
+            d.poly([[79, 47.5], [82.5, 47.5], [80.8, 50]], { fill: p.c('innerEar'), kind: 'detail' });
+            eyes(d, p, [[73, 43]], 0.85, fur);
+            cheek(d, p, 74, 49, 0.8);
+            mouth(d, p, 80, 52.5, 0.6);
             // Whiskers
-            d.line(82, 45, 94, 42, { stroke: INK, sw: 1.2, kind: 'line' });
-            d.line(82, 47, 94, 48, { stroke: INK, sw: 1.2, kind: 'line' });
-            d.line(82, 49, 93, 54, { stroke: INK, sw: 1.2, kind: 'line' });
+            for (const [x2, y2] of [[94, 46], [94, 51], [92, 56]]) d.line(81, 50, x2, y2, { stroke: INK, sw: 0.8, kind: 'line' });
           });
         });
       });
@@ -242,36 +240,37 @@ export default [
   },
   {
     id: 'bird',
-    aliases: ['sparrow', 'avian', 'robin'],
+    aliases: ['sparrow', 'avian', 'robin', 'songbird', 'bluebird'],
     tags: ['animal', 'bird', 'air', 'fly'],
     category: 'animals',
     placement: 'air',
     scale: 0.3,
-    baseline: 75,
+    baseline: 78,
     width: 0.7,
-    colors: { main: '#42a5f5', belly: '#e3f2fd', beak: '#ffa726', wing: '#1976d2' },
-    palettes: { main: ['#42a5f5', '#ef5350', '#66bb6a', '#ffa726', '#ab47bc'] },
+    colors: { main: '#64a6e8', belly: '#dcecfb', beak: '#ffa726', wing: '#3d7cc9' },
+    palettes: { main: ['#64a6e8', '#ef5350', '#66bb6a', '#ffa726', '#ab47bc'] },
     draw(d, p) {
-      const color = p.c('main'), wing = p.c('wing');
+      const color = p.c('main'), wing = p.c('wing'), beak = p.c('beak');
+      const wingShape = 'M30 54 Q40 38 58 48 Q52 64 30 54 Z';
+      const feathers = () => { for (const y of [50, 54]) d.path(`M38 ${y} Q46 ${y - 3} 54 ${y + 1}`, { kind: 'line', stroke: darken(wing, 0.25), sw: 1, fill: 'none' }); };
       rigged(d, p, 'bird', () => {
-        // Feet hang from the belly; the wings turn at the shoulder, the far one behind the body
-        d.joint('pg-leg-left', null, () => d.line(42, 69, 40, 78, { stroke: p.c('beak'), sw: 1.8, kind: 'line' }));
-        d.joint('pg-leg-right', null, () => d.line(50, 69, 48, 78, { stroke: p.c('beak'), sw: 1.8, kind: 'line' }));
+        // Thin legs with little feet; the wings turn at the shoulder, the far one behind the body
+        d.joint('pg-leg-left', null, () => { d.line(44, 70, 43, 78, { stroke: beak, sw: 1.8, kind: 'line' }); d.path('M39 78.5 L47 78.5', { kind: 'line', stroke: beak, sw: 1.8, fill: 'none' }); });
+        d.joint('pg-leg-right', null, () => { d.line(51, 70, 51, 78, { stroke: beak, sw: 1.8, kind: 'line' }); d.path('M47.5 78.5 L55.5 78.5', { kind: 'line', stroke: beak, sw: 1.8, fill: 'none' }); });
         d.group({ class: 'pg-body-torso' }, () => {
-          d.joint('pg-arm-left', [56, 49], () => d.path('M32 50 Q46 36 60 52 Q44 64 32 50 Z', { fill: darken(wing, 0.15), kind: 'body' }));
-          // Tail feathers
-          d.joint('pg-tail', [22, 57], () => d.poly([[16, 55], [8, 48], [10, 62], [24, 62]], { fill: wing, kind: 'body' }));
-          d.ellipse(45, 54, 24, 16, { fill: color, kind: 'body' });
-          d.ellipse(48, 59, 16, 10, { fill: p.c('belly'), kind: 'accent' });
+          d.joint('pg-arm-left', [54, 48], () => d.path(wingShape, { fill: darken(wing, 0.15), kind: 'body' }));
+          d.joint('pg-tail', [24, 58], () => d.path('M26 56 L10 50 Q12 58 8 64 L26 62 Z', { fill: wing, kind: 'body' }));
+          d.ellipse(46, 57, 22, 16, { fill: color, kind: 'body' });
+          d.ellipse(52, 63, 14, 9, { fill: p.c('belly'), kind: 'accent' });
           d.joint('pg-head', [58, 50], () => {
-            d.circle(64, 42, 12, { fill: color, kind: 'body' });
-            d.poly([[74, 40], [86, 44], [74, 48]], { fill: p.c('beak'), kind: 'body' });
-            d.group({ class: 'pg-face-eyes' }, () => {
-              d.circle(68, 39, 2.2, { fill: INK, kind: 'detail' });
-              d.circle(68.6, 38.3, 0.7, { kind: 'highlight', opacity: 0.9 });
-            });
+            d.circle(62, 42, 13, { fill: color, kind: 'body' });
+            d.path('M73 40 L83 44 L73 48 Z', { fill: beak, kind: 'body' });
+            d.line(73, 44, 80, 44, { kind: 'line', stroke: darken(beak, 0.3), sw: 0.8 });
+            eyes(d, p, [[66, 39]], 0.85, color);
+            cheek(d, p, 68, 45, 0.8);
+            d.group({ class: 'pg-face-mouth' }, () => {});
           });
-          d.joint('pg-arm-right', [56, 49], () => d.path('M32 50 Q46 36 60 52 Q44 64 32 50 Z', { fill: wing, kind: 'body' }));
+          d.joint('pg-arm-right', [54, 48], () => { d.path(wingShape, { fill: wing, kind: 'body' }); feathers(); });
         });
       });
     },
@@ -285,27 +284,30 @@ export default [
     scale: 0.35,
     baseline: 60,
     width: 0.85,
-    colors: { main: '#ff7043', stripe: '#ffffff', fin: '#f4511e' },
-    palettes: { main: ['#ff7043', '#29b6f6', '#ffd54f', '#ab47bc', '#26a69a'] },
+    colors: { main: '#ff7a3d', stripe: '#ffffff', fin: '#ff9b5e', edge: '#263238' },
+    palettes: { main: ['#ff7a3d', '#29b6f6', '#ffd54f', '#ab47bc', '#26a69a'] },
     draw(d, p) {
-      const fishColor = p.c('main');
-      const finColor = p.c('fin');
-      const stripe = p.c('stripe');
+      const body = p.c('main'), fin = p.c('fin'), stripe = p.c('stripe'), edge = p.c('edge');
       rigged(d, p, 'fish', () => d.group({ class: 'pg-body-torso' }, () => {
-        // The tail fin beats from where it meets the body
-        d.joint('pg-tail', [29, 50], () => d.path('M28 50 L10 32 Q18 50 10 68 Z', { fill: finColor, kind: 'body' }));
-        // Dorsal and pelvic fins
-        d.path('M44 34 Q54 20 64 34 Z', { fill: finColor, kind: 'body' });
-        d.path('M46 66 Q52 78 60 66 Z', { fill: finColor, kind: 'body' });
-        d.ellipse(50, 50, 28, 18, { fill: fishColor, kind: 'body' });
-        // Clownfish / Nemo white stripes
-        d.path('M40 33 Q43 50 40 67 L46 66 Q49 50 46 34 Z', { fill: stripe, kind: 'accent' });
-        d.path('M56 32 Q59 50 56 68 L62 67 Q65 50 62 33 Z', { fill: stripe, kind: 'accent' });
-        // Eye
-        d.circle(68, 46, 3, { fill: '#ffffff', kind: 'body' });
-        d.circle(69, 46, 1.8, { fill: INK, kind: 'detail' });
+        // The tail fin beats from where it meets the body; its tip and the fins' edges dark
+        d.joint('pg-tail', [28, 50], () => {
+          d.path('M30 50 Q18 32 9 36 Q14 50 9 64 Q18 68 30 50 Z', { fill: fin, kind: 'body' });
+          d.path('M9 36 Q14 50 9 64', { kind: 'line', stroke: edge, sw: 2, fill: 'none' });
+        });
+        d.path('M40 35 Q50 20 64 33 Z', { fill: fin, kind: 'body' });
+        d.path('M44 65 Q50 79 60 66 Z', { fill: fin, kind: 'body' });
+        d.ellipse(50, 50, 27, 17, { fill: body, kind: 'body' });
+        // White stripes with dark edges
+        for (const [x, w] of [[42, 6], [59, 6.5]]) {
+          const dd = `M${x} 33.5 Q${x + 3} 50 ${x} 66.5 L${x + w} 66 Q${x + w + 3} 50 ${x + w} 34 Z`;
+          d.path(dd, { fill: stripe, kind: 'accent' });
+          d.path(dd, { kind: 'line', stroke: edge, sw: 1, fill: 'none' });
+        }
+        eyes(d, p, [[69, 46]], 1, body);
+        cheek(d, p, 70, 52, 0.8);
+        mouth(d, p, 75, 53.5, 0.6);
         // Pectoral fin: the fish's "arm"
-        d.joint('pg-arm-right', [54, 50], () => d.ellipse(48, 52, 7, 4, { fill: finColor, kind: 'body', transform: 'rotate(-20 48 52)' }));
+        d.joint('pg-arm-right', [54, 52], () => d.ellipse(49, 55, 7, 4, { fill: fin, kind: 'body', transform: 'rotate(-20 49 55)' }));
       }));
     },
   },
@@ -318,23 +320,27 @@ export default [
     scale: 0.4,
     baseline: 84,
     width: 0.8,
-    colors: { main: '#fdd835', beak: '#fb8c00', wing: '#fbc02d' },
-    palettes: { main: ['#fdd835', '#ffffff', '#43a047'] },
+    colors: { main: '#ffe14d', beak: '#fb8c00', wing: '#f5c518' },
+    palettes: { main: ['#ffe14d', '#ffffff', '#43a047'] },
     draw(d, p) {
-      const yellow = p.c('main');
+      const yellow = p.c('main'), wing = p.c('wing');
       rigged(d, p, 'bird', () => d.group({ class: 'pg-body-torso' }, () => {
-        d.ellipse(45, 62, 26, 16, { fill: yellow, kind: 'body' });
-        // Tail pointed up
-        d.joint('pg-tail', [24, 56], () => d.poly([[20, 60], [12, 50], [25, 52]], { fill: yellow, kind: 'body' }));
-        d.joint('pg-head', [60, 54], () => {
-          d.circle(66, 42, 14, { fill: yellow, kind: 'body' });
-          d.path('M76 43 Q88 43 92 46 Q88 51 76 50 Z', { fill: p.c('beak'), kind: 'body' });
-          d.group({ class: 'pg-face-eyes' }, () => {
-            d.circle(70, 38, 2.2, { fill: INK, kind: 'detail' });
-            d.circle(70.7, 37.3, 0.7, { kind: 'highlight', opacity: 0.9 });
-          });
+        // A little tuft of a tail, pointing up
+        d.joint('pg-tail', [24, 58], () => d.path('M27 60 Q16 58 13 48 Q20 52 28 54 Z', { fill: yellow, kind: 'body' }));
+        d.ellipse(45, 64, 23, 15, { fill: yellow, kind: 'body' });
+        d.joint('pg-head', [58, 54], () => {
+          d.circle(64, 42, 14, { fill: yellow, kind: 'body' });
+          d.path('M62 28 Q64 22 67 27 Q69 22 70 28', { kind: 'line', stroke: darken(yellow, 0.1), sw: 2, fill: 'none' });
+          d.path('M75 43 Q86 41 91 45 Q87 50 76 50 Z', { fill: p.c('beak'), kind: 'body' });
+          d.line(77, 46.5, 88, 46, { kind: 'line', stroke: darken(p.c('beak'), 0.3), sw: 0.8 });
+          eyes(d, p, [[68, 39]], 0.9, yellow);
+          cheek(d, p, 69, 45, 0.85);
+          d.group({ class: 'pg-face-mouth' }, () => {});
         });
-        d.joint('pg-arm-right', [56, 58], () => d.ellipse(44, 60, 14, 8, { fill: p.c('wing'), kind: 'body', transform: 'rotate(-10 44 60)' }));
+        d.joint('pg-arm-right', [54, 58], () => {
+          d.path('M30 60 Q38 50 56 56 Q50 70 30 60 Z', { fill: wing, kind: 'body' });
+          for (const y of [58, 62]) d.path(`M36 ${y} Q44 ${y - 2} 52 ${y + 1}`, { kind: 'line', stroke: darken(wing, 0.2), sw: 1, fill: 'none' });
+        });
       }));
     },
   },
@@ -351,26 +357,30 @@ export default [
     palettes: { main: ['#f5f5f5', '#d7ccc8', '#bcaaa4', '#bdbdbd'] },
     draw(d, p) {
       if (animalView(p)) return drawRabbitView(d, p, animalView(p));
-      const fur = p.c('main');
+      const fur = p.c('main'), edge = { stroke: '#cfd8dc', sw: 1 }, shade = darken(fur, 0.03);
       rigged(d, p, 'quadruped', () => {
-        // Big hind paw and small front paw, tucked under the body
-        d.joint(NEAR_HIND, null, () => d.ellipse(36, 86, 12, 6, { fill: fur, kind: 'body' }));
-        d.joint(NEAR_FRONT, null, () => d.ellipse(58, 86, 10, 5, { fill: fur, kind: 'body' }));
+        // A big hind paw and a small front leg, under the body
+        d.joint(NEAR_HIND, null, () => d.ellipse(36, 88, 13, 5.5, { fill: fur, kind: 'body', ...edge }));
+        d.joint(NEAR_FRONT, null, () => { d.rect(56, 74, 7, 15, { rx: 3.5, fill: fur, kind: 'body', ...edge }); d.ellipse(60, 89.5, 6, 3, { fill: fur, kind: 'body', ...edge }); });
         d.group({ class: 'pg-body-torso' }, () => {
-          d.joint('pg-tail', [28, 72], () => d.circle(24, 72, 6, { fill: fur, kind: 'body' })); // fluffy tail
-          d.ellipse(46, 70, 20, 18, { fill: fur, kind: 'body' });
-          d.joint('pg-head', [54, 62], () => {
+          d.joint('pg-tail', [28, 70], () => d.circle(24, 70, 6.5, { fill: '#ffffff', kind: 'body', ...edge }));
+          d.ellipse(45, 72, 20, 16, { fill: fur, kind: 'body', ...edge });
+          d.path('M28 80 Q30 66 42 68 Q48 74 44 84', { kind: 'line', stroke: '#cfd8dc', sw: 1, fill: 'none' });
+          d.joint('pg-head', [55, 62], () => {
             // Long ears, each turning where it meets the head
-            for (const [x, r] of [[52, -10], [64, 10]]) {
-              d.joint('pg-ear', [x, 37], () => {
-                d.ellipse(x, 22, 5, 16, { fill: fur, kind: 'body', transform: `rotate(${r} ${x} 22)` });
-                d.ellipse(x, 22, 2.5, 11, { fill: p.c('ear'), kind: 'accent', transform: `rotate(${r} ${x} 22)` });
+            for (const [x, r] of [[53, -14], [62, -3]]) {
+              d.joint('pg-ear', [x, 40], () => {
+                d.ellipse(x, 24, 5.5, 16, { fill: fur, kind: 'body', ...edge, transform: `rotate(${r} ${x} 24)` });
+                d.ellipse(x, 24, 2.8, 11, { fill: p.c('ear'), kind: 'accent', transform: `rotate(${r} ${x} 24)` });
               });
             }
-            d.circle(58, 50, 14, { fill: fur, kind: 'body' });
-            d.group({ class: 'pg-face-eyes' }, () => d.circle(64, 48, 2, { fill: INK, kind: 'detail' }));
-            d.circle(70, 53, 2, { fill: p.c('nose'), kind: 'detail' });
-            d.group({ class: 'pg-face-mouth' }, () => d.path('M67 56 Q70 59 73 56', { kind: 'line', stroke: INK, sw: 1.2 }));
+            d.circle(60, 50, 13.5, { fill: fur, kind: 'body', ...edge });
+            d.ellipse(70, 54, 5, 4, { fill: '#ffffff', kind: 'body' });
+            d.circle(72.5, 52, 1.8, { fill: p.c('nose'), kind: 'detail' });
+            eyes(d, p, [[65, 46]], 0.85, fur);
+            cheek(d, p, 66, 52, 0.85);
+            mouth(d, p, 71, 56, 0.55);
+            for (const [x2, y2] of [[84, 49], [84, 54]]) d.line(73, 53, x2, y2, { stroke: '#90a4ae', sw: 0.7, kind: 'line' });
           });
         });
       });

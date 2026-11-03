@@ -425,7 +425,7 @@ const HAND_HOLD = new Set(['hold', 'holds', 'holding', 'held', 'join', 'joins', 
 const CLAUSE_BREAKS = new Set(['then', 'while', 'when', 'but', 'after', 'before', 'because', 'so']);
 // What can be sat on (with the seat's height in its drawing, see the concepts) and ridden
 const SEATS = new Set(['chair', 'bench', 'sofa']);
-const RIDES = new Set(['bike', 'unicorn']);
+const RIDES = new Set(['bike', 'unicorn', 'elephant']);
 const isPerson = (m) => /^people/.test(getConcept(m.id.split('~')[0])?.category ?? '');
 
 /**
