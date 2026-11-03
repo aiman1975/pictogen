@@ -61,7 +61,7 @@ font, data file or dependency is added.
    product's records. The same was done for the fantasy friends (unicorn, friendly monster, ghost,
    knight, mermaid, genie; 2026-11-03). Where a reference looked like a well-known film character
    (a red-haired mermaid in a purple top, a blue genie), the drawing was given colours of its own.
-   The first nine animals were redrawn the same way (2026-11-03).
+   The first nine animals were redrawn the same way, and the people refreshed (2026-11-03).
 8. **Music made with Lyria 3.** The ten tunes in `public/audio/pack/music/` were generated with
    `lyria-3-clip-preview` through the Gemini API on its paid tier (2026-11-03), from the prompts
    in `docs/SOUND_PACK.md`, instrumental only, no artist or song named. Each file is on record in

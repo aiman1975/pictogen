@@ -151,7 +151,9 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       lion, elephant, penguin): rounder shapes, paws, stripes, muzzles, a fluffy mane; eyes and mouths
       with every feeling (`src/concepts/animal-face.js`), front and back views too; joints kept; the
       elephant can be ridden
-- [ ] Refresh the people on the same skeleton (before/after for approval)
+- [x] **The people refreshed** on the same skeleton (approved): eyes with whites and an iris, a nose,
+      ears, a shine in the hair, collars, sleeves, a belt, soles, soft shading
+- [ ] The people's side view and the explainer styles' own figures in the refreshed look
 - [x] **Fantasy friends**: a unicorn with a rainbow mane (it can be ridden), a friendly furry
       monster, a little ghost that floats (`src/concepts/fantasy.js`), and a knight (armour, helmet,
       shield, wooden sword), a mermaid (a tail over the legs, under the sea) and a genie (a smoky

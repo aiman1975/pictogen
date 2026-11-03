@@ -40,8 +40,8 @@ const personRoot = (p) => `pg-rig pg-rig-person pg-anim-${p.opts.animation || 'b
 // The refreshed look (drawn after reference pictures made once with Gemini): eyes with whites and
 // a coloured iris, a small nose, ears, collars, sleeves, a belt, soles, a shine in the hair, soft
 // shading. Everything stays where it was (costumes, faces and hair, things worn, poses all fit as
-// before); opts.refresh turns it on or off for one drawing.
-export const REFRESH = false;
+// before); on for everyone, opts.refresh: false draws the earlier, plainer look for one drawing.
+export const REFRESH = true;
 export const fresh = (p) => p.opts.refresh ?? REFRESH;
 // Open eyes, by feeling: which eyes are open and how big ([dx, dy, r] from the face's middle)
 const OPEN_EYES = { surprised: 3.7, shocked: 3.7, sad: 3.2, crying: 3.2, angry: 3.2, mad: 3.2, confused: 3.3, puzzled: 3.3, shy: 3.3 };
