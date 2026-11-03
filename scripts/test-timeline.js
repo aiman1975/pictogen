@@ -410,6 +410,24 @@ check(closest > 40, `walking up to a group, nobody ends on top of someone (${tri
   check(story.scenes.every((sc) => /data-features="eyes:big hair:curly"/.test(sc.svg)), 'a story\'s description of Mia is her look in every scene');
 }
 
+// 2i-g. Body shapes and beards (character maker, step 2)
+{
+  const feats = (t) => parseText(t).matches.map((m) => `${m.id}:${JSON.stringify(m.features ?? {})}`).join(' ');
+  check(feats('a man with a big belly and a long beard') === 'man:{"build":"big","beard":"long"}' && feats('a chubby boy') === 'boy:{"build":"round"}'
+    && feats('a skinny girl with long legs') === 'girl:{"build":"slim","legs":"long"}' && feats('a bald bearded man') === 'man:{"hair":"bald","beard":"short"}',
+    '"a big belly and a long beard", "a chubby boy", "a skinny girl with long legs", "a bald bearded man"');
+  check(feats('a fat cat') === 'cat:{}' && feats('a thin book') === 'book:{}' && feats('a grandpa with a moustache') === 'old_man:{"beard":"moustache"}', 'build words are for people ("a fat cat", "a thin book" stay as they were)');
+  const svg = (o) => shapesToSvg(drawConcept('man', { seed: 1, ...o }), 'flat');
+  const plain = svg({});
+  const shapes = ['slim', 'round', 'big'].map((b) => svg({ features: { build: b } })).concat(['short', 'long'].flatMap((l) => [svg({ features: { legs: l } }), svg({ features: { arms: l } })]));
+  check(new Set([plain, ...shapes]).size === 8 && shapes.every((x) => !wellFormedError(`<svg xmlns="http://www.w3.org/2000/svg">${x}</svg>`)), 'builds, legs and arms each change the figure, well-formed');
+  check(['stubble', 'short', 'long', 'moustache'].map((b) => svg({ features: { beard: b } })).every((x, i, all) => x !== plain && all.indexOf(x) === i), 'four beards');
+  const tall = generate('pgc1 and a man', { individuals: [{ key: 'pgc1', base: 'man', look: { seed: 'x', features: { height: 'tall' } } }] }).svg;
+  const scaleOf = (who) => +(new RegExp(`data-id="man"${who}[^>]*transform="translate\\([^)]*\\) scale\\(([\\d.]+)\\)`).exec(tall)?.[1] ?? 0);
+  check(scaleOf(' data-k="0" data-label="man" data-who="pgc1"') > scaleOf(' data-k="0" data-label="man" data-seed') * 1.08, 'a tall character is drawn taller than the man beside him');
+  check(!wellFormedError(generate('a man with a big belly and a long beard sits on a bench in the park').svg) && !wellFormedError(generate('a man with a big belly walks in, then waves').svg), 'they sit and walk, well-formed');
+}
+
 // 2j. Speech and lip-sync: quoted words, "says to", captions
 const said = (t) => parseTimeline(t)?.beats.map((b) => b.actions.map((a) => `${a.actor}:${a.type}${a.anim ? '/' + a.anim : ''}${a.lookAt ? '@' + a.lookAt : ''}${a.speech ? ` "${a.speech}"` : ''}`).join('+')).join(' | ');
 for (const [t, want] of [

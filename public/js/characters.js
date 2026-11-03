@@ -29,8 +29,13 @@ const FEATURES = [
   ['nose', 'Nose', [['none', 'None'], ['dot', 'Dot'], ['button', 'Button'], ['pointy', 'Pointy']]],
   ['mouth', 'Mouth', [['small', 'Small'], ['normal', 'Normal'], ['big', 'Big']]],
   ['cheeks', 'Cheeks', [['none', 'None'], ['normal', 'Rosy'], ['big', 'Very rosy']]],
+  ['beard', 'Beard', [['none', 'None'], ['stubble', 'Stubble'], ['short', 'Short'], ['long', 'Long'], ['moustache', 'Moustache']]],
+  ['build', 'Body', [['slim', 'Slim'], ['normal', 'Normal'], ['round', 'Round'], ['big', 'Big belly']]],
+  ['height', 'Height', [['short', 'Short'], ['normal', 'Normal'], ['tall', 'Tall']]],
+  ['legs', 'Legs', [['short', 'Short'], ['normal', 'Normal'], ['long', 'Long']]],
+  ['arms', 'Arms', [['short', 'Short'], ['normal', 'Normal'], ['long', 'Long']]],
 ];
-const DEFAULT = { hair: 'own', face: 'round', eyes: 'normal', brows: 'none', nose: 'none', mouth: 'normal', cheeks: 'normal' };
+const DEFAULT = { hair: 'own', face: 'round', eyes: 'normal', brows: 'none', nose: 'none', mouth: 'normal', cheeks: 'normal', beard: 'none', build: 'normal', height: 'normal', legs: 'normal', arms: 'normal' };
 const FLAGS = [['freckles', 'Freckles'], ['lashes', 'Eyelashes'], ['glasses', 'Glasses']];
 
 /** What can be coloured on a kind of character: [role, label, swatches] */
@@ -248,7 +253,7 @@ function openEditor(existing = null) {
         <label>Is a <select class="face-base">${kinds.map(([b, l]) => `<option value="${b}"${b === draft.base ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
       </div>
       <div class="char-colours"></div>
-      <details class="char-more"><summary>🙂 Face &amp; hair</summary><div class="char-features"></div></details>
+      <details class="char-more"><summary>🙂 Face, hair &amp; body</summary><div class="char-features"></div></details>
       <p class="face-note">They look like this in every scene, clip and comic strip.</p>
       <p class="face-error" role="alert"></p>
       <div class="face-actions"><button class="tl-btn" data-do="cancel">Cancel</button><button class="tl-btn primary" data-do="save">${existing ? 'Save' : 'Make this character'}</button></div>

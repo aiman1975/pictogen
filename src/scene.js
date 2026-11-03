@@ -5,6 +5,7 @@ import { conceptOf, whoOf, lookOf } from './individuals.js';
 import { lipKeys, lipCss } from './speech.js';
 import { layoutBubbles } from './bubble.js';
 import { emote } from './emotes.js';
+import { HEIGHTS } from './looks.js';
 import { actionCues, stillCues, soundTrack, voiceOf } from './sound.js';
 import { getConcept } from './concepts/index.js';
 import { createKit } from './core/kit.js';
@@ -970,7 +971,8 @@ export function composeScene(matches, opts = {}) {
 
   const groups = { background: [], sky: [], air: [], back: [], water: [], underwater: [], front: [] };
 
-  for (const it of items) it.h = it.c.scale * unit * (it.m.size || 1);
+  // (a tall or short character is drawn bigger or smaller: src/looks.js)
+  for (const it of items) it.h = it.c.scale * unit * (it.m.size || 1) * (HEIGHTS[it.look?.features?.height] ?? 1);
   // With no tree/house/mountain to give a sense of real size, small subjects (a cat, apples)
   // would be specks on the grass: zoom everything in together so the tallest grounded one
   // stands about 40% of the frame, keeping their sizes relative to each other.

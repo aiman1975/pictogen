@@ -6,7 +6,10 @@
 //   features: { face: 'round'|'oval'|'square'|'wide', eyes: 'small'|'big', lashes: true,
 //               brows: 'thin'|'thick', nose: 'dot'|'button'|'pointy', mouth: 'small'|'big',
 //               cheeks: 'none'|'big', freckles: true, glasses: true,
-//               hair: 'short'|'spiky'|'curly'|'afro'|'pigtails'|'bun'|'ponytail'|'long'|'bob'|'bald' }
+//               hair: 'short'|'spiky'|'curly'|'afro'|'pigtails'|'bun'|'ponytail'|'long'|'bob'|'bald',
+//               beard: 'stubble'|'short'|'long'|'moustache',
+//               build: 'slim'|'round'|'big', legs: 'short'|'long', arms: 'short'|'long', height: 'short'|'tall' }
+// (height is how big the figure is drawn in a scene, src/scene.js: HEIGHTS)
 
 import { darken } from './core/color.js';
 
@@ -18,7 +21,14 @@ export const FEATURE_CHOICES = {
   mouth: ['small', 'normal', 'big'],
   cheeks: ['none', 'normal', 'big'],
   hair: ['short', 'spiky', 'curly', 'afro', 'pigtails', 'bun', 'ponytail', 'long', 'bob', 'bald'],
+  beard: ['none', 'stubble', 'short', 'long', 'moustache'],
+  build: ['slim', 'normal', 'round', 'big'],
+  height: ['short', 'normal', 'tall'],
+  legs: ['short', 'normal', 'long'],
+  arms: ['short', 'normal', 'long'],
 };
+/** How much bigger or smaller a short or tall character is drawn */
+export const HEIGHTS = { short: 0.86, tall: 1.14 };
 const FLAGS = ['lashes', 'freckles', 'glasses'];
 
 /** A features object with only what is allowed in it (from a request, a saved character, words) */
@@ -106,6 +116,106 @@ function hairShapes(style, { cx, cy, rx, ry, view, fill }) {
   return { back, front };
 }
 
+// ---------------------------------------------------------------------------------------------
+// The body: built slimmer or rounder (a belly), longer or shorter legs and arms
+
+const bboxOf = (s) => {
+  const a = s.attrs ?? {};
+  if (s.type === 'rect') return [a.x, a.y, a.x + a.width, a.y + a.height];
+  const nums = (s.type === 'polygon' ? String(a.points) : String(a.d ?? '')).match(/-?[\d.]+/g)?.map(Number) ?? [];
+  const xs = nums.filter((_, i) => i % 2 === 0), ys = nums.filter((_, i) => i % 2 === 1);
+  return xs.length ? [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] : null;
+};
+const lowestOf = (list) => Math.max(...list.map((s) => {
+  const a = s.attrs ?? {};
+  if (s.type === 'rect') return a.y + a.height;
+  if (s.type === 'ellipse') return a.cy + a.ry;
+  if (s.type === 'circle') return a.cy + a.r;
+  return bboxOf(s)?.[3] ?? -Infinity;
+}));
+function childrenOf(shapes, [a, b]) {
+  const out = [];
+  for (let i = a + 1; i < b; i++) { const j = shapes[i].type === 'g-start' ? endOf(shapes, i) : i; out.push([i, j]); i = j; }
+  return out;
+}
+
+/** A person's body as built: features.build, legs, arms (main: the clothes' colour, for a belly) */
+export function withBody(shapes, features, { main } = {}) {
+  const f = cleanFeatures(features);
+  const kx = { slim: 0.86, round: 1.14, big: 1.3 }[f?.build], kl = { short: 0.72, long: 1.28 }[f?.legs], ka = { short: 0.8, long: 1.22 }[f?.arms];
+  if (!kx && !kl && !ka) return shapes;
+  const root = groupAt(shapes, 'pg-rig-person');
+  if (!root) return shapes;
+  const box = groupAt(shapes, 'pg-profile', root[0], root[1]) ?? root;
+  const kids = childrenOf(shapes, box);
+  const isLeg = ([a]) => shapes[a].type === 'g-start' && /pg-leg-(left|right)/.test(shapes[a].class ?? '');
+  const isArm = ([a]) => shapes[a].type === 'g-start' && /pg-arm-(left|right)/.test(shapes[a].class ?? '');
+  const legs = kids.filter(isLeg), arms = kids.filter(isArm);
+  const edits = [];
+  const replaced = new Map(); // shapes drawn anew (a shirt with a belly)
+  const wrap = (a, b, transform) => edits.push([a, [{ type: 'g-start', transform }]], [b + 1, [{ type: 'g-end' }]]);
+  // Legs: longer or shorter (the feet stay on the ground, everything above them moves)
+  let lift = 0;
+  if (kl && legs.length) {
+    const legShapes = legs.flatMap(([a, b]) => shapes.slice(a, b + 1).filter((s) => s.attrs));
+    const foot = lowestOf(legShapes), hip = Math.min(...legShapes.filter((s) => s.type === 'rect').map((s) => s.attrs.y));
+    const shoeTop = Math.min(...legShapes.filter((s) => s.type === 'ellipse').map((s) => s.attrs.cy - s.attrs.ry), foot);
+    lift = (shoeTop - hip) * (kl - 1);
+    for (const [a, b] of legs) {
+      const inner = childrenOf(shapes, [a, b]);
+      // (seen from the front, only the leg stretches, not the shoe)
+      const flat = inner.every(([i, j]) => i === j);
+      if (flat) for (const [i] of inner.filter(([i]) => shapes[i].type === 'rect')) wrap(i, i, `translate(0 ${r2(shoeTop)}) scale(1 ${kl}) translate(0 ${r2(-shoeTop)})`);
+      else wrap(a + 1, b - 1, `translate(0 ${r2(foot)}) scale(1 ${kl}) translate(0 ${r2(-foot)})`);
+    }
+  }
+  // The body: wider or slimmer about its middle, a round belly; the arms move out with it
+  const torso = kids.find(([a]) => shapes[a].type === 'g-start' && /pg-body-torso/.test(shapes[a].class ?? ''));
+  let dx = 0;
+  if (kx && torso) {
+    const inner = childrenOf(shapes, torso);
+    const headAt = inner.findIndex(([a]) => shapes[a].type === 'g-start' && /pg-head/.test(shapes[a].class ?? ''));
+    const body = (headAt < 0 ? inner : inner.slice(0, headAt)).filter(([i, j]) => i === j);
+    const main1 = body.map(([i]) => [i, bboxOf(shapes[i])]).filter(([, bb]) => bb).sort((p, q) => (q[1][2] - q[1][0]) * (q[1][3] - q[1][1]) - (p[1][2] - p[1][0]) * (p[1][3] - p[1][1]))[0];
+    if (main1) {
+      const [x0, y0, x1, y1] = main1[1], cx = (x0 + x1) / 2;
+      const first = (headAt < 0 ? inner : inner.slice(0, headAt))[0][0], last = (headAt < 0 ? inner : inner.slice(0, headAt)).slice(-1)[0][1];
+      wrap(first, last, `translate(${r2(cx)} ${r2(y0)}) scale(${kx} 1) translate(${r2(-cx)} ${r2(-y0)})`);
+      dx = ((x1 - x0) / 2) * (kx - 1);
+      // (a round belly: the shirt itself drawn round, from the shoulders out over the belt; in the
+      // body's own units, before it is widened)
+      if (kx > 1) {
+        const h = y1 - y0, hw = (x1 - x0) / 2, sw = hw * 0.92, bw = hw * (kx > 1.2 ? 1.04 : 1), drop = h * (kx > 1.2 ? 0.16 : 0.1);
+        const d = `M${r2(cx - sw)} ${r2(y0)} L${r2(cx + sw)} ${r2(y0)} C${r2(cx + sw + 1)} ${r2(y0 + h * 0.3)} ${r2(cx + bw)} ${r2(y0 + h * 0.45)} ${r2(cx + bw)} ${r2(y0 + h * 0.72)}`
+          + ` C${r2(cx + bw)} ${r2(y1 + drop * 0.6)} ${r2(cx + bw * 0.45)} ${r2(y1 + drop)} ${r2(cx)} ${r2(y1 + drop)} C${r2(cx - bw * 0.45)} ${r2(y1 + drop)} ${r2(cx - bw)} ${r2(y1 + drop * 0.6)} ${r2(cx - bw)} ${r2(y0 + h * 0.72)}`
+          + ` C${r2(cx - bw)} ${r2(y0 + h * 0.45)} ${r2(cx - sw - 1)} ${r2(y0 + h * 0.3)} ${r2(cx - sw)} ${r2(y0)} Z`;
+        replaced.set(main1[0], { ...shapes[main1[0]], type: 'path', attrs: { d } });
+      }
+    }
+  }
+  for (const [a, b] of arms) {
+    const left = /pg-arm-left/.test(shapes[a].class ?? '');
+    const limb = shapes.slice(a, b + 1).filter((s) => s.type === 'rect' && s.attrs).sort((p, q) => q.attrs.height - p.attrs.height)[0];
+    const sh = limb ? [limb.attrs.x + limb.attrs.width / 2, limb.attrs.y] : null;
+    const parts = [];
+    if (dx && box === root) parts.push(`translate(${r2(left ? -dx : dx)} 0)`);
+    if (ka && sh) parts.push(`translate(${r2(sh[0])} ${r2(sh[1])}) scale(1 ${ka}) translate(${r2(-sh[0])} ${r2(-sh[1])})`);
+    if (parts.length) wrap(a + 1, b - 1, parts.join(' '));
+  }
+  // Everything above the legs moves with them
+  if (lift) for (const [a, b] of kids) if (!isLeg([a])) wrap(a, b, `translate(0 ${r2(-lift)})`);
+  const byIndex = new Map();
+  for (const [i, list] of edits) byIndex.set(i, [...(byIndex.get(i) ?? []), ...list]);
+  const out = shapes.map((sh, i) => replaced.get(i) ?? sh);
+  for (const i of [...byIndex.keys()].sort((x, y) => y - x)) out.splice(i, 0, ...byIndex.get(i));
+  // (what the hands hold goes up with them)
+  if (lift) {
+    const held = groupAt(out, 'pg-held');
+    if (held) { out.splice(held[1] + 1, 0, { type: 'g-end' }); out.splice(held[0], 0, { type: 'g-start', transform: `translate(0 ${r2(-lift)})` }); }
+  }
+  return out;
+}
+
 /**
  * The drawing of a person with their own face and hair. hairColor and skin: the drawing's colours
  * (the hair it drew is found by its colour, and replaced when a style is chosen).
@@ -179,6 +289,24 @@ export function withFeatures(shapes, features, { hairColor, skin, view } = {}) {
   }
   // The mouth's size
   const mouth = groupAt(out, 'pg-face-mouth');
+  // A beard or a moustache, in the hair's colour, round the mouth (which stays on top, to talk)
+  if (f.beard && f.beard !== 'none' && hairColor) {
+    const P = (d, extra = {}) => ({ type: 'path', attrs: { d }, kind: 'body', fill: hairColor, ...extra });
+    const w = es + 4.5, top = ey + 2.2, low = { stubble: ey + 11, short: ey + 12.5, long: ey + 19 }[f.beard];
+    const beard = [];
+    if (low) {
+      // the jaw outside, an opening for the mouth inside (a long beard ends in a point)
+      const outer = f.beard === 'long'
+        ? `M${r2(fx - w)} ${r2(top)} C${r2(fx - w)} ${r2(low - 6)} ${r2(fx - w * 0.3)} ${r2(low - 2)} ${r2(fx)} ${r2(low)} C${r2(fx + w * 0.3)} ${r2(low - 2)} ${r2(fx + w)} ${r2(low - 6)} ${r2(fx + w)} ${r2(top)}`
+        : `M${r2(fx - w)} ${r2(top)} C${r2(fx - w)} ${r2(low - 2)} ${r2(fx - w * 0.5)} ${r2(low)} ${r2(fx)} ${r2(low)} C${r2(fx + w * 0.5)} ${r2(low)} ${r2(fx + w)} ${r2(low - 2)} ${r2(fx + w)} ${r2(top)}`;
+      const inner = `L${r2(fx + w * 0.6)} ${r2(top + 0.5)} Q${r2(fx + w * 0.6)} ${r2(ey + 9.8)} ${r2(fx)} ${r2(ey + 9.8)} Q${r2(fx - w * 0.6)} ${r2(ey + 9.8)} ${r2(fx - w * 0.6)} ${r2(top + 0.5)} Z`;
+      beard.push(P(`${outer} ${inner}`, f.beard === 'stubble' ? { opacity: 0.35 } : {}));
+    }
+    if (f.beard !== 'stubble') {
+      beard.push(P(`M${r2(fx - 5.2)} ${r2(ey + 5.6)} Q${r2(fx - 2.6)} ${r2(ey + 3.2)} ${r2(fx)} ${r2(ey + 4.6)} Q${r2(fx + 2.6)} ${r2(ey + 3.2)} ${r2(fx + 5.2)} ${r2(ey + 5.6)} Q${r2(fx)} ${r2(ey + 4.9)} ${r2(fx - 5.2)} ${r2(ey + 5.6)} Z`));
+    }
+    if (mouth) edits.push([mouth[0], beard]);
+  }
   const km = { small: 0.72, big: 1.4 }[f.mouth];
   if (mouth && km) edits.push([mouth[0] + 1, [{ type: 'g-start', transform: scaleAbout(fx, ey + 6.5, km) }]], [mouth[1], [{ type: 'g-end' }]]);
   // A nose, freckles, glasses: after the face (over it)

@@ -315,7 +315,10 @@ const HAIR_ONLY = new Set(['blonde', 'blond', 'ginger', 'brunette', 'auburn']);
 // A face and hair described ("with big eyes", "curly red hair", "a round face", "freckles"): the
 // person's own features (src/looks.js)
 const FEATURE_PARTS = new Set(['eyes', 'eye', 'eyelashes', 'lashes', 'eyebrows', 'brows', 'nose', 'mouth', 'face', 'cheeks', 'freckles',
-  'glasses', 'spectacles', 'hair', 'ponytail', 'pigtails', 'bunches', 'braids', 'plaits', 'bun', 'afro']);
+  'glasses', 'spectacles', 'hair', 'ponytail', 'pigtails', 'bunches', 'braids', 'plaits', 'bun', 'afro',
+  'belly', 'tummy', 'stomach', 'legs', 'arms', 'beard', 'moustache', 'mustache', 'stubble']);
+// Said before someone: their build or beard ("a chubby boy", "a skinny girl", "a bearded man")
+const BUILD_WORDS = { chubby: 'round', plump: 'round', tubby: 'round', fat: 'big', stout: 'big', thin: 'slim', slim: 'slim', skinny: 'slim', slender: 'slim', lanky: 'slim' };
 const HAIR_STYLE_WORDS = { curly: 'curly', wavy: 'curly', frizzy: 'curly', spiky: 'spiky', short: 'short', long: 'long', straight: 'long', afro: 'afro', bob: 'bob' };
 const BIG = new Set(['big', 'large', 'huge', 'giant', 'wide', 'round']), SMALL_WORDS = new Set(['small', 'tiny', 'little', 'thin', 'narrow']);
 function featureWords(adj, part) {
@@ -332,6 +335,11 @@ function featureWords(adj, part) {
     if (!shape) return null;
     f.face = { long: 'oval', thin: 'oval', chubby: 'wide' }[shape] ?? shape;
   } else if (part === 'cheeks') f.cheeks = 'big';
+  else if (['belly', 'tummy', 'stomach'].includes(part)) f.build = adj.some((w) => ['little', 'small', 'round', 'chubby'].includes(w)) ? 'round' : 'big';
+  else if (part === 'legs' || part === 'arms') { if (adj.includes('long')) f[part] = 'long'; else if (adj.includes('short') || has(SMALL_WORDS)) f[part] = 'short'; else return null; }
+  else if (part === 'beard') f.beard = adj.includes('long') || adj.includes('big') ? 'long' : adj.some((w) => ['stubbly', 'little'].includes(w)) ? 'stubble' : 'short';
+  else if (part === 'moustache' || part === 'mustache') f.beard = 'moustache';
+  else if (part === 'stubble') f.beard = 'stubble';
   else if (part === 'freckles') f.freckles = true;
   else if (part === 'glasses' || part === 'spectacles') f.glasses = true;
   else if (part === 'ponytail') f.hair = 'ponytail';
@@ -684,8 +692,11 @@ export function parseText(text, { fuzzy = false, names = null } = {}) {
       continue;
     }
     // ... or said before them ("a bald man", "a freckled girl", "a curly-haired boy")
-    if ((t === 'bald' || t === 'freckled' || (HAIR_STYLE_WORDS[t] && next === 'haired')) && toks[i + 1] && (at(toks, i + 1) || next === 'haired')) {
-      pend.features = { ...pend.features, ...(t === 'bald' ? { hair: 'bald' } : t === 'freckled' ? { freckles: true } : { hair: HAIR_STYLE_WORDS[t] }) };
+    const personNext = () => { const h = at(toks, i + 1); return h && /^people/.test(getConcept(h.id.split('~')[0])?.category ?? ''); };
+    if ((t === 'bald' || t === 'freckled' || t === 'bearded' || BUILD_WORDS[t] || (HAIR_STYLE_WORDS[t] && next === 'haired')) && toks[i + 1]
+      && (next === 'haired' || ['bald', 'bearded', 'freckled'].includes(next) || BUILD_WORDS[next] || (BUILD_WORDS[t] ? personNext() : at(toks, i + 1)))) {
+      pend.features = { ...pend.features, ...(t === 'bald' ? { hair: 'bald' } : t === 'freckled' ? { freckles: true } : t === 'bearded' ? { beard: 'short' }
+        : BUILD_WORDS[t] ? { build: BUILD_WORDS[t] } : { hair: HAIR_STYLE_WORDS[t] }) };
       i += next === 'haired' ? 2 : 1;
       continue;
     }
