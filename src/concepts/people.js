@@ -1,7 +1,7 @@
 // People concepts with procedural facial mimics (expressions) and rigged animatable limbs.
 import { idleStyle } from './rig.js';
 import { INK } from '../core/styles.js';
-import { darken, mix } from '../core/color.js';
+import { darken, lighten, mix } from '../core/color.js';
 
 export const SKIN_TONES = ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524'];
 export const HAIR_COLORS = ['#4e342e', '#212121', '#795548', '#e6b94f', '#a1662f'];
@@ -37,11 +37,32 @@ const gazeShift = (p) => {
 const faceArea = (p, cx, cy, r) => (fromBehind(p) ? undefined : { face: `${cx} ${cy} ${r}`, mood: p.opts.expression || p.expression || 'happy', view: viewOf(p) });
 const personRoot = (p) => `pg-rig pg-rig-person pg-anim-${p.opts.animation || 'blink'}`;
 
+// The refreshed look (drawn after reference pictures made once with Gemini): eyes with whites and
+// a coloured iris, a small nose, ears, collars, sleeves, a belt, soles, a shine in the hair, soft
+// shading. Everything stays where it was (costumes, faces and hair, things worn, poses all fit as
+// before); opts.refresh turns it on or off for one drawing.
+export const REFRESH = false;
+export const fresh = (p) => p.opts.refresh ?? REFRESH;
+// Open eyes, by feeling: which eyes are open and how big ([dx, dy, r] from the face's middle)
+const OPEN_EYES = { surprised: 3.7, shocked: 3.7, sad: 3.2, crying: 3.2, angry: 3.2, mad: 3.2, confused: 3.3, puzzled: 3.3, shy: 3.3 };
+const CLOSED_EYES = new Set(['laugh', 'laughing', 'sleepy', 'love', 'excited', 'scared', 'skeptical', 'suspicious']);
+const freshLine = (stroke, sw = 1.1) => ({ kind: 'line', stroke, sw, fill: 'none' });
+// Soft shading on the side away from the light
+const shading = (d, path) => d.path(path, { fill: '#000000', opacity: 0.08, kind: 'shadow' });
+// A shoe's lighter sole
+const sole = (d, cx, cy, rx, ry, shoe) => d.path(`M${cx - rx * 0.92} ${cy + ry * 0.3} Q${cx} ${cy + ry * 1.35} ${cx + rx * 0.92} ${cy + ry * 0.3}`, freshLine(lighten(shoe, 0.42), 1.2));
+// A shine in the hair (taken away with the hair when a hair style is chosen, src/looks.js)
+const hairShine = (d, p, path) => d.group({ class: 'pg-hair-shine' }, () => d.path(path, freshLine(lighten(p.c('hair'), 0.4), 1.6)));
+// An ear's inner curve
+const earCurve = (d, p, x, y, sx) => d.path(`M${x - sx * 0.6} ${y - 1.6} Q${x - sx * 1.6} ${y} ${x - sx * 0.4} ${y + 1.6}`, freshLine(darken(p.c('skin'), 0.25), 0.9));
+
 /**
  * The face, turned when the figure is seen three-quarters (opts.view 'three-quarter', facing right):
  * features slide toward the facing side and squeeze together, as the far half of the face turns away.
  */
 function drawFace(d, p, cx, cy) {
+  // (refreshed: a small nose, under the face's own features; src/looks.js puts a chosen one instead)
+  if (fresh(p) && !turned(p)) d.group({ class: 'pg-face-nose' }, () => d.path(`M${cx - 1.3} ${cy + 3.6} Q${cx} ${cy + 4.7} ${cx + 1.3} ${cy + 3.6}`, { kind: 'line', stroke: darken(p.c('skin'), 0.3), sw: 1.1, fill: 'none' }));
   if (!turned(p)) return drawFacialExpression(d, p, cx, cy);
   d.group(`translate(${cx + 5} 0) scale(0.78 1) translate(${-cx} 0)`, () => drawFacialExpression(d, p, cx, cy));
   // A nose on the turned side makes the turn read at a glance
@@ -67,6 +88,14 @@ export function drawFacialExpression(d, p, cx = 50, cy = 28) {
   const animeEyes = p.opts.style === 'anime' && !['laugh', 'laughing', 'wink', 'winking', 'sleepy', 'love', 'shy'].includes(expr);
   d.group(gazeShift(p), () => d.group({ class: 'pg-face-eyes' }, () => {
     if (animeEyes) return drawAnimeEyes(d, cx, cy, expr, p);
+    // (refreshed: whites and a coloured iris behind the pupils the feeling draws)
+    if (fresh(p) && !CLOSED_EYES.has(expr)) {
+      const r = OPEN_EYES[expr] ?? 3.3, dy = ['sad', 'crying', 'angry', 'mad'].includes(expr) ? 0.4 : 0;
+      for (const sx of ['wink', 'winking'].includes(expr) ? [-1] : [-1, 1]) {
+        d.ellipse(cx + sx * 5.5, cy + dy, r * 0.95, r, { fill: '#ffffff', kind: 'detail', stroke: INK, sw: 0.6 });
+        d.circle(cx + sx * 5.5, cy + dy + 0.15, r * 0.74, { fill: p.c('eye', '#7b5a43'), kind: 'accent' });
+      }
+    }
     switch (expr) {
       case 'laugh':
       case 'laughing':
@@ -1149,11 +1178,15 @@ export default [
         // Legs rigged with joint pivots
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(40, 66, 9, 25, { fill: p.c('pants'), rx: 3 });
+          if (fresh(p)) d.line(40.5, 87.5, 48.5, 87.5, freshLine(darken(p.c('pants'), 0.3), 1));
           d.ellipse(44, 92, 7.5, 4, { fill: p.c('shoe') });
+          if (fresh(p)) sole(d, 44, 92, 7.5, 4, p.c('shoe'));
         });
         d.group({ class: 'pg-leg-right' }, () => {
           d.rect(51, 66, 9, 25, { fill: p.c('pants'), rx: 3 });
+          if (fresh(p)) d.line(51.5, 87.5, 59.5, 87.5, freshLine(darken(p.c('pants'), 0.3), 1));
           d.ellipse(56, 92, 7.5, 4, { fill: p.c('shoe') });
+          if (fresh(p)) sole(d, 56, 92, 7.5, 4, p.c('shoe'));
         });
 
         // Left arm (with action gesture support)
@@ -1188,12 +1221,19 @@ export default [
         d.group({ class: 'pg-body-torso' }, () => {
           d.rect(46, 37, 8, 8, { fill: skin });
           d.path('M36 50 Q36 43 43 43 L57 43 Q64 43 64 50 L64 70 Q64 72 62 72 L38 72 Q36 72 36 70 Z', { fill: shirt });
+          if (fresh(p)) {
+            // a round collar, a hem, shading on the far side
+            if (!fromBehind(p)) d.path('M44 43.4 Q50 47.5 56 43.4', freshLine(darken(shirt, 0.28), 1.5));
+            d.line(36.5, 69.5, 63.5, 69.5, freshLine(darken(shirt, 0.18), 0.9));
+            shading(d, 'M58 43 Q64 43 64 50 L64 70 Q64 72 62 72 L59 72 Z');
+          }
           dress(p, 'body', d, g);
 
           // The head turns at the neck: glances, nods, tilts
           d.joint('pg-head', [50, 41], () => {
             d.circle(turned(p) ? 37 : 35.5, 28, 3.5, { fill: skin });
             if (!turned(p)) d.circle(64.5, 28, 3.5, { fill: skin });
+            if (fresh(p) && !fromBehind(p)) { earCurve(d, p, turned(p) ? 37 : 35.5, 28, -1); if (!turned(p)) earCurve(d, p, 64.5, 28, 1); }
             d.circle(50, 27, 15, { fill: skin });
             if (fromBehind(p)) {
               // Back of the head: hair down to the nape, a crown swirl
@@ -1202,6 +1242,7 @@ export default [
               if (isAnime(p)) drawAnimeHair(d, p, 'boy', 50, 27, 15, 'back');
             } else {
               d.path('M35 26 C35 13 44 10 51 10 C59 10 66 14 65.5 25 C62 21 57 19 52 21 C48 18 41 19 35 26 Z', { fill: p.c('hair') });
+              if (fresh(p)) hairShine(d, p, 'M42 15.5 Q47 12.4 53 12.8');
               if (isAnime(p)) drawAnimeHair(d, p, 'boy', 50, 27, 15);
               drawFace(d, p, 50, 28);
             }
@@ -1237,10 +1278,12 @@ export default [
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(42, 74, 6, 17, { fill: skin, rx: 2 });
           d.ellipse(44, 92, 6, 3.5, { fill: p.c('shoe') });
+          if (fresh(p)) { sole(d, 44, 92, 6, 3.5, p.c('shoe')); d.line(41, 90, 47, 90, freshLine(darken(p.c('shoe'), 0.3), 1)); }
         });
         d.group({ class: 'pg-leg-right' }, () => {
           d.rect(52, 74, 6, 17, { fill: skin, rx: 2 });
           d.ellipse(56, 92, 6, 3.5, { fill: p.c('shoe') });
+          if (fresh(p)) { sole(d, 56, 92, 6, 3.5, p.c('shoe')); d.line(53, 90, 59, 90, freshLine(darken(p.c('shoe'), 0.3), 1)); }
         });
 
         d.group({ class: 'pg-arm-left' }, () => {
@@ -1267,12 +1310,21 @@ export default [
         d.group({ class: 'pg-body-torso' }, () => {
           d.poly([[42, 45], [58, 45], [68, 76], [32, 76]], { fill: frock, kind: 'body' });
           d.rect(47, 37, 6, 8, { fill: skin });
+          if (fresh(p)) {
+            // a white collar, a sash at the waist, a hem, shading
+            shading(d, 'M54 45 L58 45 L68 76 L60 76 Z');
+            d.rect(38.6, 55, 22.8, 2.6, { fill: darken(frock, 0.15), kind: 'accent' });
+            d.line(33, 73.5, 67, 73.5, freshLine(lighten(frock, 0.35), 1.2));
+            if (!fromBehind(p)) d.path('M44 45 Q46.5 49.5 50 46.2 Q53.5 49.5 56 45 Z', { fill: '#ffffff', kind: 'detail', stroke: darken(frock, 0.25), sw: 0.6 });
+          }
           dress(p, 'body', d, g);
           d.joint('pg-head', [50, 40], () => {
             d.circle(50, 27, 14, { fill: skin });
 
             d.circle(32, 22, 7, { fill: p.c('hair'), kind: 'body' });
             d.circle(68, 22, 7, { fill: p.c('hair'), kind: 'body' });
+            // (refreshed: hair ties where the bunches meet the head)
+            if (fresh(p)) d.group({ class: 'pg-hair-shine' }, () => { for (const x of [37.5, 62.5]) d.circle(x, 23.5, 1.9, { fill: lighten(p.c('main'), 0.1), kind: 'accent' }); });
             if (fromBehind(p)) {
               // Back of the head: hair covers it, with a centre parting
               d.path('M36 27 C36 12 44 12 50 12 C56 12 64 12 64 27 C64 34 59 38 50 38 C41 38 36 34 36 27 Z', { fill: p.c('hair'), kind: 'body' });
@@ -1280,6 +1332,7 @@ export default [
               if (isAnime(p)) drawAnimeHair(d, p, 'girl', 50, 27, 14, 'back');
             } else {
               d.path('M36 28 C36 12 44 11 50 11 C56 11 64 12 64 28 C60 22 56 20 50 20 C44 20 40 22 36 28 Z', { fill: p.c('hair'), kind: 'body' });
+              if (fresh(p)) hairShine(d, p, 'M42 15.5 Q47 13 53 13.4');
               if (isAnime(p)) drawAnimeHair(d, p, 'girl', 50, 27, 14);
               drawFace(d, p, 50, 28);
             }
@@ -1314,11 +1367,15 @@ export default [
         dress(p, 'behind', d, g);
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(39, 64, 10, 28, { fill: p.c('pants'), rx: 2 });
+          if (fresh(p)) d.line(44, 67, 44, 90, freshLine(darken(p.c('pants'), 0.3), 0.8));
           d.ellipse(43, 93, 8, 4, { fill: p.c('shoe') });
+          if (fresh(p)) sole(d, 43, 93, 8, 4, p.c('shoe'));
         });
         d.group({ class: 'pg-leg-right' }, () => {
           d.rect(51, 64, 10, 28, { fill: p.c('pants'), rx: 2 });
+          if (fresh(p)) d.line(56, 67, 56, 90, freshLine(darken(p.c('pants'), 0.3), 0.8));
           d.ellipse(57, 93, 8, 4, { fill: p.c('shoe') });
+          if (fresh(p)) sole(d, 57, 93, 8, 4, p.c('shoe'));
         });
 
         d.group({ class: 'pg-arm-left' }, () => {
@@ -1330,22 +1387,42 @@ export default [
             d.rect(22, 28, 8, 18, { fill: skin, rx: 4 });
           } else {
             d.rect(26, 42, 8, 24, { fill: skin, rx: 4 });
+            if (fresh(p)) d.rect(25.5, 41.5, 9, 11, { fill: shirt, rx: 3 }); // (a short sleeve)
           }
         });
         d.group({ class: 'pg-arm-right' }, () => {
           if (!holding) {
             d.rect(66, 42, 8, 24, { fill: skin, rx: 4 });
+            if (fresh(p)) d.rect(65.5, 41.5, 9, 11, { fill: shirt, rx: 3 });
           }
         });
 
         d.group({ class: 'pg-body-torso' }, () => {
           d.rect(46, 34, 8, 8, { fill: skin });
           d.path('M34 42 L66 42 L64 66 L36 66 Z', { fill: shirt });
+          if (fresh(p)) {
+            // a collar, buttons down the front, a belt, shading
+            shading(d, 'M59 42 L66 42 L64 66 L58 66 Z');
+            if (!fromBehind(p)) {
+              d.line(50, 45, 50, 62, freshLine(darken(shirt, 0.25), 0.9));
+              for (const y of [49, 54, 59]) d.circle(50.9, y, 0.7, { fill: lighten(shirt, 0.5), kind: 'detail' });
+              d.poly([[44.5, 41.6], [50, 45.4], [46.6, 47.6]], { fill: darken(shirt, 0.12), kind: 'accent' });
+              d.poly([[55.5, 41.6], [50, 45.4], [53.4, 47.6]], { fill: darken(shirt, 0.12), kind: 'accent' });
+            }
+            d.rect(36.3, 62.6, 27.4, 3.2, { fill: '#3e2723', kind: 'accent' });
+            if (!fromBehind(p)) d.rect(48.3, 62.6, 3.4, 3.2, { fill: '#f2c14e', kind: 'detail' });
+          }
           dress(p, 'body', d, g);
           d.joint('pg-head', [50, 37], () => {
             if (fromBehind(p)) {
               d.circle(37, 25, 3, { fill: skin });
               d.circle(63, 25, 3, { fill: skin });
+            }
+            // (refreshed: ears from the front too)
+            if (fresh(p) && !fromBehind(p)) {
+              d.circle(turned(p) ? 38.5 : 37.2, 25, 2.8, { fill: skin });
+              earCurve(d, p, turned(p) ? 38.5 : 37.2, 25, -1);
+              if (!turned(p)) { d.circle(62.8, 25, 2.8, { fill: skin }); earCurve(d, p, 62.8, 25, 1); }
             }
             d.circle(50, 24, 13, { fill: skin });
             if (fromBehind(p)) {
@@ -1354,6 +1431,7 @@ export default [
               if (isAnime(p)) drawAnimeHair(d, p, 'man', 50, 24, 13, 'back');
             } else {
               d.path('M37 22 C37 11 44 9 50 9 C56 9 63 11 63 22 C59 18 55 16 50 16 C45 16 41 18 37 22 Z', { fill: p.c('hair') });
+              if (fresh(p)) hairShine(d, p, 'M42.5 12.6 Q47 10.4 52.5 10.8');
               if (isAnime(p)) drawAnimeHair(d, p, 'man', 50, 24, 13);
               drawFace(d, p, 50, 24);
             }
@@ -1361,7 +1439,7 @@ export default [
           }, faceArea(p, 50, 24, 13));
         });
         dress(p, 'front', d, g);
-        if (holding) holdArms(d, p, { left: [30, 44], right: [70, 44], y: 56, w: 8, skin });
+        if (holding) holdArms(d, p, { left: [30, 44], right: [70, 44], y: 56, w: 8, skin, ...(fresh(p) ? { sleeve: shirt } : {}) });
       });
     },
   },
@@ -1388,11 +1466,15 @@ export default [
         dress(p, 'behind', d, g);
         d.group({ class: 'pg-leg-left' }, () => {
           d.rect(40, 66, 9, 26, { fill: p.c('pants'), rx: 2 });
+          if (fresh(p)) d.line(44.5, 69, 44.5, 90, freshLine(darken(p.c('pants'), 0.3), 0.8));
           d.ellipse(43, 93, 7, 3.5, { fill: p.c('shoe') });
+          if (fresh(p)) sole(d, 43, 93, 7, 3.5, p.c('shoe'));
         });
         d.group({ class: 'pg-leg-right' }, () => {
           d.rect(51, 66, 9, 26, { fill: p.c('pants'), rx: 2 });
+          if (fresh(p)) d.line(55.5, 69, 55.5, 90, freshLine(darken(p.c('pants'), 0.3), 0.8));
           d.ellipse(57, 93, 7, 3.5, { fill: p.c('shoe') });
+          if (fresh(p)) sole(d, 57, 93, 7, 3.5, p.c('shoe'));
         });
 
         d.group({ class: 'pg-arm-left' }, () => {
@@ -1404,17 +1486,28 @@ export default [
             d.rect(24, 28, 7, 18, { fill: skin, rx: 3.5 });
           } else {
             d.rect(28, 42, 7, 22, { fill: skin, rx: 3.5 });
+            if (fresh(p)) d.rect(27.5, 41.5, 8, 9, { fill: top, rx: 3 }); // (a short sleeve)
           }
         });
         d.group({ class: 'pg-arm-right' }, () => {
           if (!holding) {
             d.rect(65, 42, 7, 22, { fill: skin, rx: 3.5 });
+            if (fresh(p)) d.rect(64.5, 41.5, 8, 9, { fill: top, rx: 3 });
           }
         });
 
         d.group({ class: 'pg-body-torso' }, () => {
           d.rect(47, 34, 6, 8, { fill: skin });
           d.path('M36 42 L64 42 L62 67 L38 67 Z', { fill: top });
+          if (fresh(p)) {
+            // a scooped neckline, a hem, shading
+            shading(d, 'M58 42 L64 42 L62 67 L57 67 Z');
+            if (!fromBehind(p)) {
+              d.path('M44.5 42 Q50 47.5 55.5 42 Z', { fill: skin, kind: 'body' });
+              d.path('M44.5 42 Q50 47.5 55.5 42', freshLine(darken(top, 0.25), 1));
+            }
+            d.line(38.2, 64.5, 61.8, 64.5, freshLine(darken(top, 0.18), 0.9));
+          }
           dress(p, 'body', d, g);
           d.joint('pg-head', [50, 37], () => {
             d.circle(50, 24, 13, { fill: skin });
@@ -1427,6 +1520,7 @@ export default [
               d.path(turned(p)
                 ? 'M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 C61 19 56 17 52 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z'
                 : 'M35 25 C35 10 44 8 50 8 C56 8 65 10 65 25 L67 46 C67 48 63 48 62 43 L62 26 C57 18 53 18 50 18 C47 18 43 18 38 26 L38 43 C37 48 33 48 33 46 Z', { fill: p.c('hair') });
+              if (fresh(p)) hairShine(d, p, 'M41.5 11.8 Q46.5 9.6 52.5 10');
               if (isAnime(p)) drawAnimeHair(d, p, 'woman', 50, 24, 13);
               drawFace(d, p, 50, 24);
             }
@@ -1434,7 +1528,7 @@ export default [
           }, faceArea(p, 50, 24, 13));
         });
         dress(p, 'front', d, g);
-        if (holding) holdArms(d, p, { left: [31.5, 44], right: [68.5, 44], y: 56, w: 7, skin });
+        if (holding) holdArms(d, p, { left: [31.5, 44], right: [68.5, 44], y: 56, w: 7, skin, ...(fresh(p) ? { sleeve: top } : {}) });
       });
     },
   },

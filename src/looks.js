@@ -239,6 +239,11 @@ export function withFeatures(shapes, features, { hairColor, skin, view } = {}) {
   if (!head) return shapes;
   let out = shapes.slice(head[0] + 1, head[1]);
   const before = shapes.slice(0, head[0] + 1), after = shapes.slice(head[1]);
+  // (the refreshed look's small nose and hair shine go when a nose or a hair style is chosen)
+  const drop = (cls) => { const g = groupAt(out, cls); if (g) out.splice(g[0], g[1] - g[0] + 1); };
+  if (f.nose) drop('pg-face-nose');
+  if (f.hair) drop('pg-hair-shine');
+  if (f.hair) drop('pg-hair-shine');
   // The head itself: the largest circle in the head joint
   const circles = out.map((s, i) => [s, i]).filter(([s]) => s.type === 'circle' && s.attrs);
   if (!circles.length) return shapes;
