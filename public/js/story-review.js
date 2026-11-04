@@ -110,7 +110,7 @@ function messageEditor(sc, i) {
     </div>
   </div>`;
 }
-const LIVING = /^(people|animals|wildlife|fantasy|sea)/;
+const LIVING = /^(people|animals|wildlife|fantasy|sea|alphabet)/;
 const NUMBERS = ['', 'a', 'two', 'three', 'four', 'five'];
 const plural = (w) => (/(s|x|z|ch|sh)$/.test(w) ? `${w}es` : /[^aeiou]y$/.test(w) ? `${w.slice(0, -1)}ies` : `${w}s`);
 /** The names a figure can be: your characters and the story's named ones */

@@ -247,6 +247,18 @@ export function parseTimeline(text, { force = false, names = null } = {}) {
   let follow = null;
 
   const remember = (m) => { if (!mentioned.has(m.id)) mentioned.set(m.id, m); };
+  // Two of a kind in different colours ("a red letter E ... a green letter E") are two figures: the
+  // second gets an id of its own ("letter_e~v2", drawn as the kind before the "~"); said again by
+  // its colour ("the green letter E") it is that one, said without one, the first
+  const own = (m) => {
+    const first = mentioned.get(m.id);
+    if (!first || !m.color || !first.color || first.color === m.color || /~/.test(m.id)) return m;
+    for (const [id, o] of mentioned) if (id.startsWith(`${m.id}~v`) && o.color === m.color) return { ...m, id };
+    const n = [...mentioned.keys()].filter((id) => id.startsWith(`${m.id}~v`)).length + 2;
+    const variant = { ...m, id: `${m.id}~v${n}` };
+    mentioned.set(variant.id, variant);
+    return variant;
+  };
   // The words after "at": someone named, a pronoun, "each other", or the viewer ("at us")
   const lookTarget = (words) => {
     const w = words.filter((t) => !['the', 'a', 'an'].includes(t));
@@ -341,7 +353,9 @@ export function parseTimeline(text, { force = false, names = null } = {}) {
     const gaze = gazeWords && lookTarget(gazeWords);
 
     // Subjects: concepts before the verb, else a pronoun, else whoever acted last
-    let subjects = parse(before.join(' ')).matches;
+    let subjects = parse(before.join(' ')).matches.map((m) => (mentioned.has(m.id) ? own(m) : m));
+    // (the same kind twice in one clause, in two colours: two figures)
+    for (let i = 1; i < subjects.length; i++) if (subjects.slice(0, i).some((x) => x.id === subjects[i].id)) { remember(subjects.slice(0, i).find((x) => x.id === subjects[i].id)); subjects[i] = own(subjects[i]); }
     // ("she" or "he" alone is someone already there, not a new woman or man)
     if (subjects.length === 1 && ['she', 'he'].includes(subjects[0].word) && resolvePronoun(subjects[0].word)) subjects = [];
     subjects.forEach(remember);

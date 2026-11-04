@@ -10,7 +10,7 @@
 import { getConcept } from './concepts/index.js';
 import { conceptOf, whoOf } from './individuals.js';
 
-const LIVING = /^(people|animals|wildlife|fantasy|sea)/;
+const LIVING = /^(people|animals|wildlife|fantasy|sea|alphabet)/;
 const isLiving = (id) => LIVING.test(getConcept(conceptOf(id))?.category ?? '');
 const label = (id) => (getConcept(conceptOf(id))?.label ?? conceptOf(id)).replace(/_/g, ' ');
 // (the story's own word for a thing: "the email", not "the e mail")

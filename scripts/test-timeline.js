@@ -754,5 +754,19 @@ Remember: stop, look and check before you click.`, { style: 'stickman', genre: '
   check(/interest<\/tspan>|of interest</.test(svg) && !/interest,<\/tspan>/.test(svg), '"..., " says Ana: the bubble has no trailing comma');
 }
 
+// Two of a kind in different colours, in a sequence: two figures, in their places
+{
+  const t = 'A yellow letter S, a red letter E, a blue letter V, a green letter E and a purple letter N wave, then the letter S says “We spell SEVEN!”, then the green letter E jumps';
+  const tl = parseTimeline(t);
+  check(tl.actors.map((a) => `${a.id}:${a.match.color}`).join() === 'letter_s:yellow,letter_e:red,letter_v:blue,letter_e~v2:green,letter_n:purple',
+    `two letter Es in two colours are two figures in a sequence (${tl.actors.map((a) => a.id)})`);
+  check(tl.beats[2].actions.map((a) => a.actor).join() === 'letter_e~v2', '"the green letter E jumps": that one, by its colour');
+  const svg = generate(t, { style: 'flat' }).svg;
+  const order = [...svg.matchAll(/data-id="letter_(\w)"[^>]*transform="translate\(([\d.]+)/g)].map((m) => [m[1], +m[2]]).sort((a, b) => a[1] - b[1]).map((m) => m[0]).join('');
+  check(order === 'seven' && !/data-who="v2"/.test(svg), `they keep their places (${order}) and are no one in particular`);
+  const st = composeStory('A red number 7 says "Hi!"\nA yellow letter S, a red letter E, a blue letter V, a green letter E and a purple letter N wave. "We spell SEVEN!" says the letter S.', { style: 'flat' });
+  check(st.scenes[1].card.figures.length === 5 && st.scenes[1].card.cast.some((c) => c.id === 'letter_e~v2'), 'in a story too, on the scene card: five letters, each its own');
+}
+
 console.log(fails ? `\n${fails} timeline check(s) failed` : '\nTimeline test suite: ALL PASSED!');
 process.exit(fails ? 1 : 0);

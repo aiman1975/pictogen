@@ -8,7 +8,8 @@ import { cleanFeatures } from './looks.js';
 /** The concept an id draws: "boy~pgc1" -> "boy", "dog" -> "dog" */
 export const conceptOf = (id) => String(id).split('~')[0];
 /** The individual's key, or null for an ordinary concept id: "boy~pgc1" -> "pgc1" */
-export const whoOf = (id) => String(id).split('~')[1] ?? null;
+// (only a character's key: "letter_e~v2", a second figure of a kind in a sequence, is no one in particular)
+export const whoOf = (id) => { const k = String(id).split('~')[1]; return k && /^pgc\d+$/.test(k) ? k : null; };
 
 /**
  * Checks { key, base } pairs from a request: keys like "pgc1", bases that are concepts (looked up
