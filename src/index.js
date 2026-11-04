@@ -22,7 +22,7 @@ import { parseTimeline, extractCamera, editTimeline, lookRelations, speechRelati
 import { takeQuotes } from './speech.js';
 import { findDiagram, renderDiagram, renderLabelledPictures, DIAGRAMS } from './diagrams.js';
 import { conceptOf, individualNames, individualLooks } from './individuals.js';
-import { placeKeys, takePlace } from './places.js';
+import { placeKeys, takePlace, cleanPlace } from './places.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
 export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
@@ -62,6 +62,15 @@ export function generate(text, opts = {}) {
   // One of "your places" (opts.places: [{ key: 'pgp1', place, time, weather, extras }], made in the
   // studio): its key in the prompt sets the scene's backdrop ("Tom waves in pgp1"), src/places.js
   const taken = takePlace(text, placeKeys(opts.places));
+  // A place chosen for the scene on the studio's scene card: its place, time and weather, whatever
+  // the words say ({ place, time, weather }, or { key: 'pgp1', time?, weather? } for one of "your places")
+  const chosenPlace = (() => {
+    const p = opts.scenePlace;
+    if (!p || typeof p !== 'object') return null;
+    const base = typeof p.key === 'string' ? placeKeys(opts.places).get(p.key.toLowerCase()) : null;
+    if (p.key && !base) return null;
+    return cleanPlace({ ...(base ?? {}), ...(base ? {} : { place: p.place }), ...(p.time ? { time: p.time } : {}), ...(p.weather ? { weather: p.weather } : {}) });
+  })();
   text = taken.text;
   // Words on the board are written there, not said by anyone (the quote leaves the prompt)
   let boardText = null;
@@ -195,7 +204,7 @@ export function generate(text, opts = {}) {
     if (timeline) timeline.caption = caption;
     // Colours carried over from earlier scenes of a clip (composeStory): figure id -> colour
     const carry = opts.carry && typeof opts.carry === 'object' ? opts.carry : undefined;
-    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption, carry, ...(taken.setting ? { setting: taken.setting } : {}), ...(boardText ? { boardText } : {}), ...(opts.minDuration > 0 ? { minDuration: Math.min(+opts.minDuration, 30) } : {}), ...(opts.mood ? { mood: opts.mood } : {}) };
+    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption, carry, ...(chosenPlace ? { setting: chosenPlace, settingForce: true } : taken.setting ? { setting: taken.setting } : {}), ...(boardText ? { boardText } : {}), ...(opts.minDuration > 0 ? { minDuration: Math.min(+opts.minDuration, 30) } : {}), ...(opts.mood ? { mood: opts.mood } : {}) };
     svg = composeScene(matches, sceneOpts);
     mood = sceneOpts.moodUsed ?? null;
     card = sceneOpts.card ?? null;

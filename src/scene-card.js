@@ -54,6 +54,15 @@ export function placeLabel(env) {
   return [where, when, weather].filter(Boolean).join(' · ');
 }
 
+/** Where and when as the studio's pickers say it: { place, time, weather } (src/places.js PLACE_CHOICES) */
+export function placeChoice(env) {
+  if (!env) return { place: 'meadow', time: 'day', weather: 'clear' };
+  const place = env.room ? (env.roomKind || 'room') : env.space ? 'space' : env.underwater ? 'underwater' : env.desert ? 'desert'
+    : env.farm ? 'farm' : env.jungle ? 'jungle' : env.castle ? 'castle' : env.mountains ? 'mountains' : env.beach ? 'beach'
+      : env.water ? 'sea' : env.city ? 'city' : env.park ? 'park' : env.woods ? 'forest' : 'meadow';
+  return { place, time: env.night ? 'night' : env.sunset ? 'sunset' : 'day', weather: env.rain ? 'rain' : env.snow ? 'snow' : env.autumn ? 'autumn' : 'clear' };
+}
+
 /**
  * The card of a composed scene. matches: what was drawn ({ id, word, count, expression, animation });
  * timeline: its steps, if any; env: its place (src/scene.js detectEnv); mood: its mood; chosen: the
@@ -80,12 +89,29 @@ export function sceneCard({ matches = [], timeline = null, env = null, mood = nu
     }
   }
   const action = timeline?.beats?.length
-    ? timeline.beats.flatMap((b) => b.actions.map(stepText)).filter(Boolean)
+    // (what happens at the same time, with "&")
+    ? timeline.beats.map((b) => b.actions.map(stepText).filter(Boolean).join(' & ')).filter(Boolean)
     : matches.filter((m) => m.animation && isLiving(m.id)).map((m) => `${nameOf(m.id)} ${doing(m.animation)}`);
+  // What happens as steps the studio can change (src/timeline.js editTimeline): one row per action,
+  // "with" when it happens together with the one before; a still scene's gestures are its first steps
+  const steps = [];
+  if (timeline?.beats?.length) {
+    for (const b of timeline.beats) {
+      b.actions.filter((a) => a.type !== 'appear').forEach((a, k) => steps.push({ ...a, ...(k > 0 ? { with: true } : {}), ...(b.duration ? { duration: b.duration } : {}) }));
+    }
+  } else {
+    for (const m of matches) if (m.animation && isLiving(m.id) && m.animation !== 'blink') steps.push({ actor: m.id, type: 'pose', anim: m.animation, ...(m.expression ? { expression: m.expression } : {}), ...(steps.length ? { with: true } : {}) });
+  }
+  // (who or what can be in a step: the figures first, then the things)
+  const cast = matches.filter((m) => m?.id).map((m) => ({ id: m.id, name: nameOf(m.id), living: isLiving(m.id) }))
+    .sort((a, b) => Number(b.living) - Number(a.living));
   return {
     figures,
     objects,
     place: placeLabel(env),
+    where: placeChoice(env),
+    steps: steps.slice(0, 24),
+    cast: cast.filter((c, i) => cast.findIndex((x) => x.id === c.id) === i),
     feeling: { mood: mood ?? null, chosen: Boolean(chosen) },
     action: [...new Set(action)].slice(0, 8),
     message: {

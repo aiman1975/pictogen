@@ -89,9 +89,10 @@ export function takePlace(text, places) {
 
 /**
  * A scene's surroundings (scene.js detectEnv) set by one of "your places": its place, and its time
- * and weather unless the prompt says its own ("pgp1 at night")
+ * and weather unless the prompt says its own ("pgp1 at night"). force: the time and weather as
+ * given, whatever the prompt says (a place chosen on the studio's scene card).
  */
-export function applySetting(env, setting) {
+export function applySetting(env, setting, { force = false } = {}) {
   const s = cleanPlace(setting);
   if (!s) return env;
   const out = { ...env };
@@ -108,8 +109,9 @@ export function applySetting(env, setting) {
   else if (p === 'sea') out.water = true;
   else if (p !== 'meadow') out[p] = true;
   // (a room has no sky: its time shows in the window, its weather not at all)
-  if (!env.night && !env.sunset) { out.night = s.time === 'night'; out.sunset = s.time === 'sunset'; }
-  if (!env.rain && !env.snow && !env.autumn && !out.room) {
+  if (force || (!env.night && !env.sunset)) { out.night = s.time === 'night'; out.sunset = s.time === 'sunset'; }
+  if (force && out.room) { out.rain = false; out.snow = false; out.autumn = false; }
+  if ((force || (!env.rain && !env.snow && !env.autumn)) && !out.room) {
     out.rain = s.weather === 'rain'; out.snow = s.weather === 'snow'; out.autumn = s.weather === 'autumn';
   }
   const x = new Set(s.extras);
@@ -117,7 +119,8 @@ export function applySetting(env, setting) {
     if (x.has('mountains')) out.mountains = true;
     if (x.has('castle')) out.castle = true;
   }
-  out.extras = x;
+  // (with what the words set moving: "a shooting star", "fireflies")
+  out.extras = new Set([...(env.extras ?? []), ...x]);
   out.parallax = env.parallax && !out.room;
   return out;
 }

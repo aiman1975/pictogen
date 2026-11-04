@@ -474,6 +474,23 @@ try {
   check(sent.at(-1).includes('"moods"') && sent.at(-1).includes('mystery'), 'a mood picked for a scene makes the clip again with it (sent with the story)');
   await page.selectOption('.sc-mood[data-mood="0"]', '');
   await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.moodChosen);
+  // The card's place and steps: the beach at night for scene 1; its steps changed and used
+  await page.selectOption('.sc-pick[data-place="0"][data-kind="place"]', 'beach');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[0]?.placeChosen && /beach/.test(window.pictogenStudio.getStory().scenes[0].card.place));
+  check(sent.at(-1).includes('"scenePlaces"') && sent.at(-1).includes('beach'), 'a place picked on a scene\'s card makes the clip again with it');
+  await page.click('button[data-unplace="0"]');
+  await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.placeChosen);
+  await page.click('button[data-edit="1"]');
+  await page.waitForSelector('.sc-steps');
+  await page.click('.sc-steps button[data-add="1"]');
+  const last = await page.$$eval('.sc-steps .sc-step', (rows) => rows.length - 1);
+  await page.selectOption(`.sc-pick[data-step="${last}"][data-field="does"]`, 'pose:jump');
+  await page.click('.sc-steps button[data-apply="1"]');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[1]?.stepsChosen && window.pictogenStudio.getStory().scenes[1].card.action.some((a) => /jumps/.test(a)));
+  check(sent.at(-1).includes('"sceneBeats"'), 'steps changed on a scene\'s card make the clip again with them');
+  await page.click('button[data-edit="1"]');
+  await page.click('.sc-steps button[data-unsteps="1"]');
+  await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[1]?.stepsChosen);
   const sentKeep = sent.length;
   await page.click('.sr-who button[data-keep="Lily"]');
   await page.waitForFunction(() => window.pictogenCharacters.list().some((c) => c.name === 'Lily') && !document.querySelector('.sr-who button[data-keep="Lily"]'));

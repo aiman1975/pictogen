@@ -17,6 +17,74 @@ const nm = (text) => String(text ?? '').replace(/\bpgc\d+\b/g, (k) => window.pic
 const MOODS = [['tense', '😬 Tense'], ['joyful', '🎉 Joyful'], ['sad', '😢 Sad'], ['calm', '😌 Calm'], ['mystery', '🔮 Mystery'], ['none', 'No mood']];
 const moodName = (m) => MOODS.find(([k]) => k === m)?.[1] ?? 'none';
 
+// What a step can be (src/timeline.js editTimeline): a value for each, said plainly
+const DOES = [
+  ['enter', 'walks in'], ['enter:run', 'runs in'], ['moveTo', 'goes to…'], ['moveTo:run', 'runs to…'], ['moveTo:hug', 'hugs…'],
+  ['approach', 'comes closer'], ['recede', 'walks away'], ['exit', 'leaves'], ['look', 'looks at…'],
+  ['pose:wave', 'waves'], ['pose:point', 'points'], ['pose:talk', 'talks'], ['pose:jump', 'jumps'], ['pose:cheer', 'cheers'],
+  ['pose:dance', 'dances'], ['pose:thumbsup', 'thumbs up'], ['pose:think', 'thinks'], ['pose:hold', 'holds on'], ['pose:sit', 'sits'],
+  ['pose:sleep', 'sleeps'], ['pose:swim', 'swims'], ['pose:fly', 'flies'], ['pose:spin', 'spins'],
+  ...['happy', 'sad', 'surprised', 'scared', 'angry', 'excited', 'confused', 'sleepy', 'laugh', 'love', 'shy'].map((f) => [`expr:${f}`, `looks ${f === 'laugh' ? 'amused' : f === 'love' ? 'in love' : f}`]),
+];
+const NEEDS_TARGET = new Set(['moveTo', 'moveTo:run', 'moveTo:hug', 'look']);
+const doesOf = (st) => (st.type === 'pose' ? `pose:${st.anim}` : st.type === 'expr' ? `expr:${st.expression}` : st.type === 'moveTo' ? (st.hug ? 'moveTo:hug' : st.gait === 'run' ? 'moveTo:run' : 'moveTo') : st.type === 'enter' && st.gait === 'run' ? 'enter:run' : st.type);
+/** A step as chosen in the editor (what it does, keeping its words and its feeling) */
+function stepOf(old, does, actor, target) {
+  const [type, how] = does.split(':');
+  const st = { actor, type, gait: how === 'run' ? 'run' : 'walk' };
+  if (type === 'pose') st.anim = how;
+  if (type === 'expr') st.expression = how;
+  if (type === 'moveTo' && how === 'hug') st.hug = true;
+  if (NEEDS_TARGET.has(does)) st.target = target;
+  if (type === 'pose' && how === 'talk' && old?.speech) st.speech = old.speech;
+  if (old?.expression && type !== 'expr') st.expression = old.expression;
+  if (old?.with) st.with = true;
+  return st;
+}
+// The step editor's draft: { caption, steps } while one scene's steps are being changed
+let draft = null;
+
+function placePickers(sc, i) {
+  const c = sc.card, chosen = studio.getState().storyPlaces[sc.caption];
+  const ch = window.pictogenPlaces?.choices;
+  if (!ch) return esc(c.place);
+  const at = chosen?.key ?? chosen?.place ?? c.where.place;
+  const mine = window.pictogenPlaces.named();
+  const sel = (kind, list, value, label) => `<select class="sc-pick" data-place="${i}" data-kind="${kind}" aria-label="${label} of scene ${i + 1}">${list.map(([k, l]) => `<option value="${esc(k)}"${k === value ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+  return `${sel('place', [...ch.places, ...mine.map((p) => [p.key, `⭐ ${p.name}`])], at, 'The place')}
+    ${sel('time', ch.times, chosen?.time ?? c.where.time, 'The time')}
+    ${sel('weather', ch.weather, chosen?.weather ?? c.where.weather, 'The weather')}
+    ${chosen ? `<button class="tl-btn" data-unplace="${i}" title="Back to the place your words say">↺</button>` : ''}`;
+}
+
+function stepEditor(sc, i) {
+  const cast = sc.card.cast, living = cast.filter((c) => c.living);
+  const who = (value, k) => `<select class="sc-pick" data-step="${k}" data-field="actor" aria-label="Who, step ${k + 1}">${(living.length ? living : cast).map((c) => `<option value="${esc(c.id)}"${c.id === value ? ' selected' : ''}>${esc(nm(c.name))}</option>`).join('')}</select>`;
+  const rows = draft.steps.map((st, k) => {
+    const does = doesOf(st);
+    const target = NEEDS_TARGET.has(does)
+      ? `<select class="sc-pick" data-step="${k}" data-field="target" aria-label="To whom, step ${k + 1}">${does === 'look' ? `<option value="camera"${st.target === 'camera' ? ' selected' : ''}>us</option>` : ''}${cast.filter((c) => c.id !== st.actor).map((c) => `<option value="${esc(c.id)}"${c.id === st.target ? ' selected' : ''}>${esc(nm(c.name))}</option>`).join('')}</select>` : '';
+    return `<li class="sc-step">
+      ${k ? `<button class="sc-with${st.with ? ' on' : ''}" data-with="${k}" title="${st.with ? 'At the same time as the step before (press: after it)' : 'After the step before (press: at the same time)'}">${st.with ? '⇉ with' : '→ then'}</button>` : '<span class="sc-with first">first</span>'}
+      ${who(st.actor, k)}
+      <select class="sc-pick" data-step="${k}" data-field="does" aria-label="What happens, step ${k + 1}">${DOES.map(([v, l]) => `<option value="${v}"${v === does ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>
+      ${target}
+      <button class="tl-btn" data-up="${k}" title="Earlier"${k ? '' : ' disabled'}>↑</button>
+      <button class="tl-btn" data-down="${k}" title="Later"${k < draft.steps.length - 1 ? '' : ' disabled'}>↓</button>
+      <button class="tl-btn" data-del="${k}" title="Remove this step">×</button>
+    </li>`;
+  }).join('');
+  return `<div class="sc-steps" data-scene="${i}">
+    <ol>${rows || '<li class="sc-none">No steps: everyone just stands there.</li>'}</ol>
+    <div class="sc-steps-btns">
+      <button class="tl-btn" data-add="1">＋ Add a step</button>
+      <button class="tl-btn sc-apply" data-apply="${i}">✓ Use these steps</button>
+      <button class="tl-btn" data-cancel="1">Cancel</button>
+      ${sc.stepsChosen ? `<button class="tl-btn" data-unsteps="${i}" title="Back to what your words say">↺ As the words say</button>` : ''}
+    </div>
+  </div>`;
+}
+
 // The scene's card: what it is made of (src/scene-card.js), each part changeable where it can be
 function card(sc, i, chosenMood) {
   const c = sc.card;
@@ -34,17 +102,19 @@ function card(sc, i, chosenMood) {
   return `<div class="sc-card">
     ${slot('👤', 'Figures', figures)}
     ${slot('📦', 'Objects', objects)}
-    ${slot('🏞️', 'Place', c.place ? esc(c.place) : '')}
+    ${slot('🏞️', 'Place', c.where ? placePickers(sc, i) : c.place ? esc(c.place) : '')}
     ${slot('💭', 'Feeling', mood)}
-    ${slot('🎬', 'Action', c.action.map((a) => esc(nm(a))).join(' → '))}
+    ${slot('🎬', 'Action', `${c.action.map((a) => esc(nm(a))).join(' → ')}${c.steps && !(draft?.caption === sc.caption) ? ` <button class="tl-btn" data-edit="${i}" title="Change what happens, step by step">✎ Steps</button>` : ''}`)}
     ${slot('💬', 'Message', said + board)}
-  </div>`;
+  </div>${draft?.caption === sc.caption ? stepEditor(sc, i) : ''}`;
 }
 
 function render() {
   const st = studio.getState(), story = studio.getStory();
   st.storyEdits ??= {};
   st.storyMoods ??= {};
+  st.storyPlaces ??= {};
+  st.storyBeats ??= {};
   panel.hidden = st.mode !== 'story' || !story.cast || !story.scenes?.length;
   if (panel.hidden) return;
   const mine = new Set((window.pictogenCharacters?.list() ?? []).map((c) => c.name.toLowerCase()));
@@ -88,6 +158,36 @@ panel.addEventListener('click', (e) => {
   else if (el.dataset.reset !== undefined) {
     delete st.storyEdits[story.scenes[+el.dataset.reset].caption];
     redo();
+  } else if (el.dataset.unplace !== undefined) {
+    delete st.storyPlaces[story.scenes[+el.dataset.unplace].caption];
+    redo();
+  } else if (el.dataset.edit !== undefined) {
+    const sc = story.scenes[+el.dataset.edit];
+    draft = { caption: sc.caption, steps: sc.card.steps.map((x) => ({ ...x })) };
+    render();
+  } else if (draft && (el.dataset.add || el.dataset.cancel || el.dataset.up !== undefined || el.dataset.down !== undefined || el.dataset.del !== undefined || el.dataset.with !== undefined)) {
+    const s = draft.steps;
+    if (el.dataset.add) {
+      const sc = story.scenes.find((x) => x.caption === draft.caption);
+      const first = sc.card.cast.find((c) => c.living) ?? sc.card.cast[0];
+      if (first) s.push({ actor: first.id, type: 'pose', anim: 'wave' });
+    } else if (el.dataset.cancel) draft = null;
+    else if (el.dataset.del !== undefined) s.splice(+el.dataset.del, 1);
+    else if (el.dataset.with !== undefined) s[+el.dataset.with].with = !s[+el.dataset.with].with;
+    else {
+      const k = +(el.dataset.up ?? el.dataset.down), j = el.dataset.up !== undefined ? k - 1 : k + 1;
+      if (j >= 0 && j < s.length) [s[k], s[j]] = [s[j], s[k]];
+    }
+    if (s[0]) delete s[0].with;
+    render();
+  } else if (el.dataset.apply !== undefined) {
+    st.storyBeats[draft.caption] = draft.steps.map((x) => ({ ...x }));
+    draft = null;
+    redo();
+  } else if (el.dataset.unsteps !== undefined) {
+    delete st.storyBeats[story.scenes[+el.dataset.unsteps].caption];
+    draft = null;
+    redo();
   } else if (el.dataset.drop !== undefined) {
     // Leaving a thing out: what to draw without its word ("with his laptop and a coffee" -> "with his laptop")
     const sc = story.scenes[+el.dataset.drop];
@@ -110,8 +210,35 @@ panel.addEventListener('click', (e) => {
   }
 });
 panel.addEventListener('change', (e) => {
+  const st = studio.getState(), story = studio.getStory();
+  // A place, a time, a weather chosen for a scene: all three kept (the place may be one of yours)
+  if (e.target.dataset.place !== undefined) {
+    const sc = story.scenes[+e.target.dataset.place];
+    const now = st.storyPlaces[sc.caption] ?? { place: sc.card.where.place, time: sc.card.where.time, weather: sc.card.where.weather };
+    const next = { ...now };
+    if (e.target.dataset.kind === 'place') {
+      delete next.key; delete next.place;
+      if (/^pgp\d+$/.test(e.target.value)) next.key = e.target.value; else next.place = e.target.value;
+    } else next[e.target.dataset.kind] = e.target.value;
+    st.storyPlaces[sc.caption] = next;
+    redo();
+    return;
+  }
+  // A step changed in the editor: who, what, to whom
+  if (draft && e.target.dataset.step !== undefined) {
+    const k = +e.target.dataset.step, old = draft.steps[k];
+    const sc = story.scenes.find((x) => x.caption === draft.caption);
+    const actor = e.target.dataset.field === 'actor' ? e.target.value : old.actor;
+    const does = e.target.dataset.field === 'does' ? e.target.value : doesOf(old);
+    const others = sc.card.cast.filter((c) => c.id !== actor);
+    let target = e.target.dataset.field === 'target' ? e.target.value : old.target;
+    if (NEEDS_TARGET.has(does) && (!target || target === actor || (target === 'camera' && does !== 'look'))) target = does === 'look' ? 'camera' : others[0]?.id;
+    draft.steps[k] = stepOf(old, does, actor, target);
+    render();
+    return;
+  }
   if (!e.target.matches('.sc-mood')) return;
-  const st = studio.getState(), sc = studio.getStory().scenes[+e.target.dataset.mood];
+  const sc = story.scenes[+e.target.dataset.mood];
   if (e.target.value) st.storyMoods[sc.caption] = e.target.value;
   else delete st.storyMoods[sc.caption];
   redo();

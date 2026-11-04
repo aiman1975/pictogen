@@ -20,6 +20,9 @@ const clipScenes = (payload) => (Array.isArray(payload.scenes)
     }))
   : []);
 
+// (sentence -> value maps from the studio, the values that fit kept)
+const byCaption = (map, ok) => (map && typeof map === 'object' && !Array.isArray(map)
+  ? Object.fromEntries(Object.entries(map).filter(([k, v]) => typeof k === 'string' && ok(v)).slice(0, 80)) : undefined);
 const storyOpts = (payload) => ({
   style: payload.style || 'flat',
   genre: payload.genre || 'kids',
@@ -36,6 +39,10 @@ const storyOpts = (payload) => ({
   moods: payload.moods && typeof payload.moods === 'object' && !Array.isArray(payload.moods)
     ? Object.fromEntries(Object.entries(payload.moods).filter(([k, v]) => typeof k === 'string' && /^(tense|joyful|sad|calm|mystery|none)$/.test(v)).slice(0, 80))
     : undefined,
+  // a scene's place chosen on its card: sentence -> { place, time, weather } or { key, time, weather }
+  scenePlaces: byCaption(payload.scenePlaces, (v) => v && typeof v === 'object' && !Array.isArray(v)),
+  // a scene's steps changed on its card: sentence -> [{ actor, type, anim?, target?, with? }]
+  sceneBeats: byCaption(payload.sceneBeats, (v) => Array.isArray(v)),
   // a story's scenes as the writer changed them: sentence -> what to draw
   edits: payload.edits && typeof payload.edits === 'object' && !Array.isArray(payload.edits)
     ? Object.fromEntries(Object.entries(payload.edits).filter(([k, v]) => typeof k === 'string' && typeof v === 'string').slice(0, 80))

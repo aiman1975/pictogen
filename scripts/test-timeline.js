@@ -677,5 +677,27 @@ Remember: stop, look and check before you click.`, { style: 'stickman', genre: '
   check(c2.message.said[0]?.text === 'Click this link now!' && c2.feeling.mood === 'tense' && c2.action.includes('the email arrives'), 'the card\'s message and feeling');
 }
 
+// The scene card's place and steps, changed in the studio
+{
+  const t = 'Mia and her dog played in the park.\nMia waved at the dog.';
+  const before = composeStory(t, { style: 'cartoon' }).scenes[1].card;
+  check(JSON.stringify(before.where) === '{"place":"park","time":"day","weather":"clear"}' && before.steps[0]?.type === 'pose' && before.steps[0].anim === 'wave'
+    && before.cast.map((c) => c.name).join() === 'Mia,the dog', 'the card gives its place as the pickers say it, its steps, and who can be in them');
+  const [mia, dog] = before.cast.map((c) => c.id);
+  const st = composeStory(t, {
+    style: 'cartoon',
+    scenePlaces: { 'Mia waved at the dog.': { place: 'beach', time: 'night', weather: 'clear' } },
+    sceneBeats: { 'Mia waved at the dog.': [{ actor: dog, type: 'enter', gait: 'run' }, { actor: mia, type: 'pose', anim: 'jump', with: true }, { actor: dog, type: 'moveTo', target: mia }] },
+  });
+  const sc = st.scenes[1];
+  check(sc.placeChosen && sc.card.place === 'the beach · night' && st.scenes[0].card.place === 'the park · day',
+    'a place chosen for one scene (the beach at night), whatever its words say; the other scene keeps its own');
+  check(sc.stepsChosen && sc.card.action.join(' | ') === 'the dog runs in & Mia jumps | the dog goes to Mia', `steps chosen for a scene, together and one after another (${sc.card.action.join(' | ')})`);
+  const office = composeStory('Sam waved.', { style: 'cartoon', genre: 'howto', scenePlaces: { 'Sam waved.': { place: 'office', time: 'night', weather: 'rain' } } }).scenes[0].card;
+  check(office.where.place === 'office' && office.where.weather === 'clear', 'a room chosen: no rain indoors');
+  const mine = composeStory('Sam waved.', { style: 'cartoon', places: [{ key: 'pgp1', place: 'desert', time: 'day', weather: 'clear' }], scenePlaces: { 'Sam waved.': { key: 'pgp1', time: 'sunset' } } }).scenes[0].card;
+  check(mine.where.place === 'desert' && mine.where.time === 'sunset', 'one of your places chosen, at another time');
+}
+
 console.log(fails ? `\n${fails} timeline check(s) failed` : '\nTimeline test suite: ALL PASSED!');
 process.exit(fails ? 1 : 0);

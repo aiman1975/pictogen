@@ -219,5 +219,8 @@ panel.addEventListener('click', (e) => {
   }
 });
 
-window.pictogenPlaces = { rewrite, restore, places: list, list: () => places, refresh: render };
+// (the pickers' choices, and your places by key and name, for the scene card: public/js/story-review.js)
+const choices = { places: PLACES, times: TIMES, weather: WEATHER };
+const named = () => places.map((p) => ({ key: keyOf(p), name: p.name }));
+window.pictogenPlaces = { rewrite, restore, places: list, list: () => places, refresh: render, choices, named };
 render();

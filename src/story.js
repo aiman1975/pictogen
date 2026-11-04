@@ -414,6 +414,21 @@ export function parseStoryText(text) {
 }
 
 /**
+ * A scene card's steps (one row per action, "with" for together with the one before: src/scene-card.js)
+ * as timeline beats (src/timeline.js editTimeline)
+ */
+export function stepsToBeats(steps) {
+  const beats = [];
+  for (const st of steps.slice(0, 24)) {
+    if (!st || typeof st !== 'object') continue;
+    const { with: together, duration, ...action } = st;
+    if (together && beats.length && !beats.at(-1).actions.some((a) => a.actor === action.actor)) beats.at(-1).actions.push(action);
+    else beats.push({ actions: [action], ...(Number.isFinite(+duration) && duration ? { duration: +duration } : {}) });
+  }
+  return beats;
+}
+
+/**
  * Composes a full multi-scene animated clip with custom genre, aspect ratio, style, and seed.
  * storyInput: story text (one scene per line, "prompt | caption"), a template id, or the scenes
  * themselves: [{ prompt, caption?, tag?, headline?, duration?, beats? }] (beats: edited steps).
@@ -471,7 +486,9 @@ export function composeStory(storyInput, opts = {}) {
       seed,
       vary,
       // Steps edited in the studio's timeline view travel with a saved scene
-      ...(Array.isArray(sc.beats) ? { beats: sc.beats } : {}),
+      // (or as changed on the studio's scene card: its steps, its place)
+      ...(Array.isArray(opts.sceneBeats?.[sc.caption]) ? { beats: stepsToBeats(opts.sceneBeats[sc.caption]) } : Array.isArray(sc.beats) ? { beats: sc.beats } : {}),
+      ...(opts.scenePlaces?.[sc.caption] ? { scenePlace: opts.scenePlaces[sc.caption] } : {}),
       // Named individuals ("pgc1" -> one particular boy), the same in every scene
       ...(individuals ? { individuals } : {}),
       // "Your places" ("pgp1" -> a place made in the studio), carried like any place
@@ -507,7 +524,10 @@ export function composeStory(storyInput, opts = {}) {
       // (how it feels, and whether that was chosen)
       mood: result.mood ?? null,
       // (what it is made of: figures, objects, place, feeling, action, message - src/scene-card.js)
-      ...(result.card ? { card: named(result.card) } : {}),
+      // (names said where the card is read; the steps and who can be in them keep their ids)
+      ...(result.card ? { card: { ...named({ ...result.card, steps: undefined, cast: undefined }), steps: result.card.steps, cast: result.card.cast.map((c) => ({ ...c, name: shown(c.name) })) } } : {}),
+      ...(opts.sceneBeats?.[sc.caption] ? { stepsChosen: true } : {}),
+      ...(opts.scenePlaces?.[sc.caption] ? { placeChosen: true } : {}),
       ...((opts.moods?.[sc.caption] ?? sc.mood) ? { moodChosen: true } : {}),
       // (what could not be drawn, and whether the writer changed what to draw)
       ...(read ? { unknown: result.unknown, ...(sc.edited ? { edited: true } : {}) } : {}),

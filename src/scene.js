@@ -1183,7 +1183,7 @@ export function composeScene(matches, opts = {}) {
   }
 
   // (one of "your places", made in the studio: opts.setting, src/places.js)
-  const env = opts.setting ? applySetting(detectEnv(items, words), opts.setting) : detectEnv(items, words);
+  const env = opts.setting ? applySetting(detectEnv(items, words), opts.setting, { force: Boolean(opts.settingForce) }) : detectEnv(items, words);
   // (words on the board: from the prompt, else from the place made in the studio)
   if (opts.boardText || env.roomCustom?.boardText) env.boardText = opts.boardText || env.roomCustom.boardText;
   // A figure walking toward or away from the camera, or a timeline where actors walk and stop:
