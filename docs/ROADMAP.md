@@ -264,7 +264,8 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       clip's music turning to the mood's tune while it lasts (`src/mood.js`)
 - [x] **Scene card** in "How I read your story": figures, objects (＋ adds, × leaves out), place,
       feeling (the mood list), action, message (`src/scene-card.js`); the place (place, time,
-      weather, your places) and the steps (who, what, to whom, order, together) editable per scene
+      weather, your places), the steps (who, what, to whom, order, together) and the message (who says
+      what, lines added or removed, the board's words) editable per scene
 
 ## Known issues to fix along the way
 - The bicycle drawing loses its wheels at small sizes

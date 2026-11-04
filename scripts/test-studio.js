@@ -474,6 +474,25 @@ try {
   check(sent.at(-1).includes('"moods"') && sent.at(-1).includes('mystery'), 'a mood picked for a scene makes the clip again with it (sent with the story)');
   await page.selectOption('.sc-mood[data-mood="0"]', '');
   await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.moodChosen);
+  // ✎ Words on a card: a line added to scene 1, then said by someone else in other words
+  await page.click('button[data-say="0"]');
+  await page.click('.sc-message button[data-newline="1"]');
+  await page.fill('.sc-line[data-line="0"]', 'What a lovely forest!');
+  await page.press('.sc-line[data-line="0"]', 'Enter');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[0]?.card?.message.said[0]?.text === 'What a lovely forest!');
+  check(/says “What a lovely forest!”/.test(await page.evaluate(() => window.pictogenStudio.getStory().scenes[0].prompt)), 'a line added on a scene\'s card is said in it');
+  await page.click('button[data-say="0"]');
+  await page.fill('.sc-line[data-line="0"]', 'I love the trees!');
+  await page.click('.sc-message button[data-sayok="0"]');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[0]?.card?.message.said[0]?.text === 'I love the trees!' && window.pictogenStudio.getStory().scenes[0].card.message.said.length === 1);
+  check(true, 'a line changed on the card replaces the old one');
+  await page.click('button[data-say="0"]');
+  await page.click('.sc-message button[data-unline="0"]');
+  await page.click('.sc-message button[data-sayok="0"]');
+  await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.card?.message.said.length);
+  check(true, '...and a line removed is no longer said');
+  await page.click('.sr-row:nth-child(1) button[data-reset="0"]');
+  await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.edited);
   // ＋ on a card: a dog added to scene 1 (with suggestions while typing), then left out again (×)
   await page.click('.sc-add[data-add-kind="figure"][data-i="0"]');
   check(await page.$eval('#sc-figures', (d) => d.options.length > 20) && await page.$eval('#sc-objects', (d) => d.options.length > 500), 'adding to a scene suggests figures (with your names) and things while typing');
@@ -505,6 +524,14 @@ try {
   await page.click('.sc-steps button[data-apply="1"]');
   await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[1]?.stepsChosen && window.pictogenStudio.getStory().scenes[1].card.action.some((a) => /jumps/.test(a)));
   check(sent.at(-1).includes('"sceneBeats"'), 'steps changed on a scene\'s card make the clip again with them');
+  // ✎ Words with chosen steps: a line added becomes a talking step
+  await page.click('button[data-say="1"]');
+  await page.click('.sc-message button[data-newline="1"]');
+  await page.fill('.sc-line[data-line="0"]', 'What a cute puppy!');
+  await page.click('.sc-message button[data-sayok="1"]');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[1]?.card?.message.said.some((l) => l.text === 'What a cute puppy!'));
+  check(await page.evaluate(() => Object.values(window.pictogenStudio.getState().storyBeats).some((st) => st.some((x) => x.anim === 'talk' && x.speech === 'What a cute puppy!'))),
+    'a line added to a scene whose steps were chosen is a talking step');
   await page.click('button[data-edit="1"]');
   await page.click('.sc-steps button[data-unsteps="1"]');
   await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[1]?.stepsChosen);

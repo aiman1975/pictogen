@@ -45,6 +45,68 @@ function stepOf(old, does, actor, target) {
 let draft = null;
 // Adding to a scene: { caption, kind: 'figure' | 'object' } while its ＋ is open
 let adding = null;
+// The message editor's draft: { caption, lines: [{ id, text, from }], board } (from: the line it was, or -1)
+let saying = null;
+const reEsc = (t) => String(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// (who says a line, in front of its words: "Mia says", "the email says", "she says")
+const SPEAKER = '(?:(?:[A-Z][a-z]+(?: [A-Z][a-z]+)?|the [a-z]+|he|she|they|it)\\s+says\\s+)?';
+/** A prompt tidied after words came out of it: no empty "then"s, no dangling "and" */
+const tidy = (p) => p.replace(/,\s*then\s*(?=,|$)/g, '').replace(/^\s*,?\s*then\s+/i, '').replace(/\s+and\s*(?=,|$)/g, '')
+  .replace(/\s+,/g, ',').replace(/\s{2,}/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+
+/** The scene's message as changed: what its words become (or its steps, when they were chosen) */
+function applyMessage(sc) {
+  const st = studio.getState(), old = sc.card.message, castName = (id) => nm(sc.card.cast.find((c) => c.id === id)?.name ?? id);
+  const said = (line) => `${castName(line.id)} says “${line.text.trim().replace(/[“”"]/g, '')}”`;
+  const steps = st.storyBeats[sc.caption];
+  if (steps) {
+    // Steps chosen on the card: the lines are their talking steps
+    const out = steps.map((x) => ({ ...x }));
+    old.said.forEach((o, k) => {
+      const now = saying.lines.find((l) => l.from === k), at = out.findIndex((x) => x.type === 'pose' && x.anim === 'talk' && x.speech === o.text);
+      if (at < 0) return;
+      if (!now || !now.text.trim()) out.splice(at, 1);
+      else Object.assign(out[at], { actor: now.id, speech: now.text.trim() });
+    });
+    for (const l of saying.lines.filter((x) => x.from < 0 && x.text.trim())) out.push({ actor: l.id, type: 'pose', anim: 'talk', speech: l.text.trim() });
+    st.storyBeats[sc.caption] = out;
+  }
+  let p = sc.prompt;
+  old.said.forEach((o, k) => {
+    const now = saying.lines.find((l) => l.from === k), re = new RegExp(`${SPEAKER}“${reEsc(o.text)}”`);
+    p = p.replace(re, now && now.text.trim() ? said(now) : '');
+  });
+  for (const l of saying.lines.filter((x) => x.from < 0 && x.text.trim())) p = `${p}, then ${said(l)}`;
+  // The board's words: changed, cleared, or written on it
+  const board = (saying.board ?? '').trim().replace(/[“”"]/g, '');
+  if (old.board && board !== old.board) {
+    p = board ? p.replace(`“${old.board}”`, `“${board}”`)
+      : p.replace(new RegExp(`(?:\\s+and)?\\s+the board says\\s+“${reEsc(old.board)}”|\\s+(?:that|which)\\s+says\\s+“${reEsc(old.board)}”`), '');
+  } else if (!old.board && board) p = `${p} and the board says “${board}”`;
+  p = tidy(p);
+  if (p && p !== sc.prompt) st.storyEdits[sc.caption] = p;
+}
+
+function messageEditor(sc, i) {
+  const cast = sc.card.cast;
+  const rows = saying.lines.map((l, k) => `<li class="sc-step">
+      <select class="sc-pick" data-line="${k}" data-field="who" aria-label="Who says line ${k + 1}">${cast.map((c) => `<option value="${esc(c.id)}"${c.id === l.id ? ' selected' : ''}>${esc(nm(c.name))}</option>`).join('')}</select>
+      <span>says</span>
+      <input class="sr-input sc-line" data-line="${k}" maxlength="160" value="${esc(l.text)}" aria-label="The words of line ${k + 1}">
+      <button class="tl-btn" data-unline="${k}" title="Remove this line">×</button>
+    </li>`).join('');
+  const boardRow = sc.card.message.board || sc.card.where?.place === 'classroom'
+    ? `<label class="sc-step"><span class="sc-name">🧑‍🏫 Board says</span><input class="sr-input sc-board" maxlength="60" value="${esc(saying.board ?? '')}" placeholder="Save our reef!" aria-label="What the board says"></label>` : '';
+  return `<div class="sc-steps sc-message" data-scene="${i}">
+    <ol>${rows || '<li class="sc-none">Nobody says anything.</li>'}</ol>
+    ${boardRow}
+    <div class="sc-steps-btns">
+      ${cast.length ? '<button class="tl-btn" data-newline="1">＋ Add a line</button>' : ''}
+      <button class="tl-btn sc-apply" data-sayok="${i}">✓ Use these words</button>
+      <button class="tl-btn" data-saycancel="1">Cancel</button>
+    </div>
+  </div>`;
+}
 const LIVING = /^(people|animals|wildlife|fantasy|sea)/;
 const NUMBERS = ['', 'a', 'two', 'three', 'four', 'five'];
 const plural = (w) => (/(s|x|z|ch|sh)$/.test(w) ? `${w}es` : /[^aeiou]y$/.test(w) ? `${w.slice(0, -1)}ies` : `${w}s`);
@@ -149,8 +211,8 @@ function card(sc, i, chosenMood) {
     ${slot('🏞️', 'Place', c.where ? placePickers(sc, i) : c.place ? esc(c.place) : '')}
     ${slot('💭', 'Feeling', mood)}
     ${slot('🎬', 'Action', `${c.action.map((a) => esc(nm(a))).join(' → ')}${c.steps && !(draft?.caption === sc.caption) ? ` <button class="tl-btn" data-edit="${i}" title="Change what happens, step by step">✎ Steps</button>` : ''}`)}
-    ${slot('💬', 'Message', said + board)}
-  </div>${adding?.caption === sc.caption ? adder(i) : ''}${draft?.caption === sc.caption ? stepEditor(sc, i) : ''}`;
+    ${slot('💬', 'Message', `${said}${board}${saying?.caption === sc.caption ? '' : ` <button class="tl-btn" data-say="${i}" title="Change who says what, add a line, or what the board says">✎ Words</button>`}`)}
+  </div>${adding?.caption === sc.caption ? adder(i) : ''}${saying?.caption === sc.caption ? messageEditor(sc, i) : ''}${draft?.caption === sc.caption ? stepEditor(sc, i) : ''}`;
 }
 
 function render() {
@@ -213,6 +275,25 @@ panel.addEventListener('click', (e) => {
   if (el.dataset.go !== undefined) window.goToStoryScene?.(+el.dataset.go);
   else if (el.dataset.reset !== undefined) {
     delete st.storyEdits[story.scenes[+el.dataset.reset].caption];
+    redo();
+  } else if (el.dataset.say !== undefined) {
+    const sc = story.scenes[+el.dataset.say], c = sc.card;
+    // (each line's speaker as one the scene has: by name, else the first figure)
+    const idOf = (who) => c.cast.find((x) => x.name === who || nm(x.name) === who)?.id ?? c.cast.find((x) => x.living)?.id ?? c.cast[0]?.id;
+    saying = { caption: sc.caption, lines: c.message.said.map((l, k) => ({ id: idOf(l.who), text: l.text, from: k })), board: c.message.board ?? '' };
+    render();
+  } else if (saying && (el.dataset.newline || el.dataset.unline !== undefined || el.dataset.saycancel)) {
+    if (el.dataset.saycancel) saying = null;
+    else if (el.dataset.unline !== undefined) saying.lines.splice(+el.dataset.unline, 1);
+    else {
+      const sc = story.scenes.find((x) => x.caption === saying.caption);
+      saying.lines.push({ id: (sc.card.cast.find((c) => c.living) ?? sc.card.cast[0]).id, text: '', from: -1 });
+    }
+    render();
+    if (el.dataset.newline) panel.querySelector('.sc-line:last-of-type, .sc-message li:last-child .sc-line')?.focus();
+  } else if (el.dataset.sayok !== undefined) {
+    applyMessage(story.scenes[+el.dataset.sayok]);
+    saying = null;
     redo();
   } else if (el.dataset.addKind) {
     adding = { caption: story.scenes[+el.dataset.i].caption, kind: el.dataset.addKind };
@@ -290,6 +371,11 @@ panel.addEventListener('change', (e) => {
     redo();
     return;
   }
+  // A line's speaker changed in the message editor
+  if (saying && e.target.dataset.line !== undefined && e.target.dataset.field === 'who') {
+    saying.lines[+e.target.dataset.line].id = e.target.value;
+    return;
+  }
   // A step changed in the editor: who, what, to whom
   if (draft && e.target.dataset.step !== undefined) {
     const k = +e.target.dataset.step, old = draft.steps[k];
@@ -309,10 +395,22 @@ panel.addEventListener('change', (e) => {
   else delete st.storyMoods[sc.caption];
   redo();
 });
+panel.addEventListener('input', (e) => {
+  if (!saying) return;
+  if (e.target.matches('.sc-line')) saying.lines[+e.target.dataset.line].text = e.target.value;
+  if (e.target.matches('.sc-board')) saying.board = e.target.value;
+});
 panel.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.matches('.sc-new')) { e.preventDefault(); addTo(+e.target.closest('.sc-adder').dataset.scene); return; }
   if (e.key === 'Escape' && e.target.matches('.sc-new')) { adding = null; render(); return; }
-  if (e.key !== 'Enter' || !e.target.matches('.sr-input')) return;
+  if (e.key === 'Enter' && saying && e.target.matches('.sc-line, .sc-board')) {
+    e.preventDefault();
+    applyMessage(studio.getStory().scenes.find((x) => x.caption === saying.caption));
+    saying = null;
+    redo();
+    return;
+  }
+  if (e.key !== 'Enter' || !e.target.matches('.sr-input[data-i]')) return;
   e.preventDefault();
   const st = studio.getState(), sc = studio.getStory().scenes[+e.target.dataset.i];
   const value = e.target.value.trim();
