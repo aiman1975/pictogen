@@ -1835,7 +1835,8 @@ export function composeScene(matches, opts = {}) {
     for (const it of items) if (it.at) drawnAt.set(it.aid, { x: it.at.x0 + 50 * it.at.s, y: it.at.y0 + ((it.c.baseline ?? 96) * 0.35) * it.at.s, h: it.h });
     const where = (id, t) => (timelineTracks ? focusAt(timelineTracks)(id, t) : null) ?? drawnAt.get(id) ?? null;
     // (the main figure: the first person; one at a desk is drawn with the desk)
-    const main = items.find((it) => isPerson(it))?.aid ?? items.find((it) => it.desk)?.aid ?? (timeline?.actors?.[0]?.id ?? null);
+    const main = items.find((it) => isPerson(it))?.aid ?? items.find((it) => it.desk)?.aid ?? (timeline?.actors?.[0]?.id ?? null)
+      ?? items.find((it) => /^(animals|wildlife)/.test(it.c.category ?? ''))?.aid ?? null;
     const said = timeline
       ? (opts.timelineSpeechTimes ?? [])
       : talkers.filter((tk) => tk.who).map((tk) => ({ who: tk.who, start: 0.5, end: 0.5 + lipKeys(tk.text).duration, text: tk.text }));
