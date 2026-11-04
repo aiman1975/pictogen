@@ -51,20 +51,22 @@ export function shotChoice(value) {
 export function directShots({ T, W, H, where, main = null, speeches = [], mood = null, text = '', context = {}, shot = null }) {
   const wide = { z: 1, fx: W / 2, fy: H / 2 };
   const key = (t, s, ease = 'ease-in-out') => ({ t: r2(clamp(t, 0, T)), z: r2(s.z), fx: r2(s.fx), fy: r2(s.fy), ease });
-  // Close on someone, their bubble (above their head) and most of them in the frame
-  const close = (id, t, zMax = MAX_Z) => {
+  // Close on someone, their bubble (above their head, as tall as its lines) and most of them in the frame
+  const bubble = (text) => (text ? H * (0.06 + 0.075 * Math.min(4, Math.ceil(String(text).length / 24))) : H * 0.05);
+  const close = (id, t, zMax = MAX_Z, text = null) => {
     const f = id && where(id, t);
     if (!f) return null;
-    const top = f.y - f.h * 0.45 - H * 0.17, bottom = f.y + f.h * 0.55;
+    const top = f.y - f.h * 0.5 - bubble(text) - H * 0.05, bottom = f.y + f.h * 0.55;
     const z = clamp(H / Math.max(1, bottom - top), 1.15, zMax);
     return { z, fx: f.x, fy: (top + bottom) / 2 };
   };
   // Several at once: all of them in the frame
+  const longest = speeches.reduce((a, sp) => (String(sp.text ?? '').length > String(a ?? '').length ? sp.text : a), null);
   const together = (ids, t) => {
     const fs = ids.map((id) => where(id, t)).filter(Boolean);
     if (fs.length < 2) return close(ids[0], t);
     const left = Math.min(...fs.map((f) => f.x - f.h * 0.4)), right = Math.max(...fs.map((f) => f.x + f.h * 0.4));
-    const top = Math.min(...fs.map((f) => f.y - f.h * 0.45)) - H * 0.17, bottom = Math.max(...fs.map((f) => f.y + f.h * 0.55));
+    const top = Math.min(...fs.map((f) => f.y - f.h * 0.5)) - bubble(longest) - H * 0.05, bottom = Math.max(...fs.map((f) => f.y + f.h * 0.55));
     const z = clamp(Math.min(W / Math.max(1, right - left), H / Math.max(1, bottom - top)), 1, 1.4);
     return { z, fx: (left + right) / 2, fy: (top + bottom) / 2 };
   };
@@ -108,7 +110,7 @@ export function directShots({ T, W, H, where, main = null, speeches = [], mood =
     const keys = [key(0, wide)];
     let last = 0;
     for (const s of said) {
-      const t0 = Math.max(settle, s.start - 0.5, last), at = close(s.who, s.start + 0.2);
+      const t0 = Math.max(settle, s.start - 0.5, last), at = close(s.who, s.start + 0.2, MAX_Z, s.text);
       if (!at || t0 >= T - 0.6) continue;
       keys.push(key(t0, keys.at(-1)), key(Math.min(T, t0 + 0.8), at));
       const t1 = Math.min(T, s.end + 0.5);

@@ -1768,7 +1768,7 @@ export function composeScene(matches, opts = {}) {
     opts.timelineSpeeches = speeches.filter((sp) => sp.quoted).map((sp) => ({ who: sp.key.split('#')[0], text: sp.text }));
     // (for the camera director: where everyone is when, and who speaks when)
     opts.timelineTracks = tracks;
-    opts.timelineSpeechTimes = speeches.filter((sp) => sp.quoted).map((sp) => ({ who: sp.key.split('#')[0], start: sp.start, end: sp.start + lipKeys(sp.text).duration }));
+    opts.timelineSpeechTimes = speeches.filter((sp) => sp.quoted).map((sp) => ({ who: sp.key.split('#')[0], start: sp.start, end: sp.start + lipKeys(sp.text).duration, text: sp.text }));
     timeline.duration = r2(T);
     timeline.beatTimes = beatTimes;
     for (const { key, t0, act } of doings) {
@@ -1838,7 +1838,7 @@ export function composeScene(matches, opts = {}) {
     const main = items.find((it) => isPerson(it))?.aid ?? items.find((it) => it.desk)?.aid ?? (timeline?.actors?.[0]?.id ?? null);
     const said = timeline
       ? (opts.timelineSpeechTimes ?? [])
-      : talkers.filter((tk) => tk.who).map((tk) => ({ who: tk.who, start: 0.5, end: 0.5 + lipKeys(tk.text).duration }));
+      : talkers.filter((tk) => tk.who).map((tk) => ({ who: tk.who, start: 0.5, end: 0.5 + lipKeys(tk.text).duration, text: tk.text }));
     const ctx = opts.shotContext ?? {};
     const here = placeLabel(env).split(' · ')[0];
     shots = directShots({
