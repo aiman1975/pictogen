@@ -359,6 +359,31 @@
     .sc-adder { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 4px; padding: 6px 8px; border-radius: 8px; border: 1px solid #f59e0b; background: var(--surface); font-size: 0.78rem; }
     .sc-adder .sc-new { flex: 1 1 12rem; }
     .sc-message .sc-line, .sc-message .sc-board { flex: 1 1 14rem; }
+    /* Your figures: the dot-puppet editor */
+    .puppet-thumb { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; background: #fff; }
+    .face-card.puppet-card { width: min(820px, 100%); }
+    .puppet-steps { display: flex; flex-wrap: wrap; gap: 6px; }
+    .puppet-main { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+    .puppet-stage { position: relative; width: min(360px, 100%); aspect-ratio: 1; flex: none; border-radius: 10px; border: 1px solid var(--border);
+      background: repeating-conic-gradient(#f1f5f9 0 25%, #ffffff 0 50%) 0 0 / 20px 20px; touch-action: none; }
+    .puppet-canvas, .puppet-overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .puppet-overlay { cursor: crosshair; }
+    .pp-loop { fill: rgb(59 130 246 / 0.16); stroke: #3b82f6; stroke-width: 0.6; stroke-dasharray: 1.5 1; }
+    .pp-loop.on { fill: rgb(245 158 11 / 0.2); stroke: #f59e0b; }
+    .pp-lasso { fill: none; stroke: #f59e0b; stroke-width: 0.7; }
+    .pp-dot { fill: #ef4444; stroke: #fff; stroke-width: 0.6; cursor: grab; }
+    .pp-dot.on { fill: #f59e0b; }
+    .pp-arrow { stroke: #f59e0b; stroke-width: 1; }
+    .puppet-side { flex: 1 1 240px; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; }
+    .pp-parts { list-style: none; display: flex; flex-wrap: wrap; gap: 4px; padding: 0; margin: 0; }
+    .pp-parts li { display: inline-flex; gap: 2px; }
+    .pp-parts li.on .tl-btn:first-child { border-color: #f59e0b; font-weight: 800; }
+    .pp-upload { cursor: pointer; align-self: flex-start; }
+    .puppet-try { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; font-size: 0.82rem; font-weight: 700; }
+    /* (the try-out's room kept from the start, and the dialog held at the top: the picture never moves while drawing) */
+    .puppet-preview { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); aspect-ratio: 16 / 9; display: grid; place-items: center; }
+    .face-modal:has(.puppet-card) { place-items: start center; }
+    .puppet-preview svg { width: 100%; height: auto; display: block; }
     .tl-title { font-weight: 800; color: var(--text); margin-right: auto; }
     .tl-time { font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-size: 0.75rem; min-width: 7.5em; }
     .tl-btn {
@@ -1284,6 +1309,8 @@
         <div class="timeline-panel characters-panel" id="characters-panel" hidden></div>
         <!-- Your places: a place, a time, the weather and things that move, called by name (public/js/places.js) -->
         <div class="timeline-panel places-panel" id="places-panel" hidden></div>
+        <!-- Your figures: a drawing cut into parts with dots where they bend, moving by name (public/js/puppets.js) -->
+        <div class="timeline-panel places-panel" id="puppets-panel" hidden></div>
 
         <!-- Animated Clip Player & Lower-Third Bar (active when mode === 'story') -->
         <div id="story-player-bar" style="display: none; background: #0f172a; color: #fff; border-top: 1px solid var(--border);">
@@ -1719,6 +1746,7 @@
       window.pictogenClip?.refresh();
       window.pictogenCharacters?.refresh();
       window.pictogenPlaces?.refresh();
+      window.pictogenPuppets?.refresh();
       window.pictogenStoryReview?.refresh();
       syncUrl();
 
@@ -3010,6 +3038,7 @@
   <script type="module" src="/js/clip-tray.js"></script>
   <script type="module" src="/js/characters.js"></script>
   <script type="module" src="/js/places.js"></script>
+  <script type="module" src="/js/puppets.js"></script>
   <script type="module" src="/js/worksheet.js"></script>
   <script type="module" src="/js/book.js"></script>
   <script type="module" src="/js/story-review.js"></script>

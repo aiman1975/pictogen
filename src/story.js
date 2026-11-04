@@ -4,6 +4,7 @@ import { readStory } from './story-reader.js';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
 import { isStyle } from './core/styles.js';
+import { withPuppets } from './puppets.js';
 import { pgSound, pgSoundTrack, pgVoiced, pgBank, pgMusicBars, pgMusicTrack, pgMusicLoop, pgAmbience, pgCleanSet } from './sound-synth.js';
 import { soundOf } from './sound.js';
 import { embeddedFontCss } from './fonts.js';
@@ -435,6 +436,8 @@ export function stepsToBeats(steps) {
  * themselves: [{ prompt, caption?, tag?, headline?, duration?, beats? }] (beats: edited steps).
  */
 export function composeStory(storyInput, opts = {}) {
+  // (your figures among your characters: each made a concept of its own, src/puppets.js)
+  if (Array.isArray(opts.individuals) && opts.individuals.some((c) => c?.puppet)) opts = { ...opts, individuals: withPuppets(opts.individuals) };
   const { style = 'flat', seed = 1, vary = false, genre = 'kids', aspect = '16:9' } = opts;
   const dims = ASPECT_RATIOS[aspect] || ASPECT_RATIOS['16:9'];
   // A story in the writer's own words (lines or sentences, no "prompt | caption" parts): read as a

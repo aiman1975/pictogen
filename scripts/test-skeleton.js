@@ -4,7 +4,8 @@
 import { execSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import { drawConcept, shapesToSvg, generate, STYLE_NAMES } from '../src/index.js';
+import { drawConcept, shapesToSvg, generate, STYLE_NAMES, composeStory } from '../src/index.js';
+import { cleanPuppet, puppetConcept, puppetKind } from '../src/puppets.js';
 import { ANIMATION_CSS } from '../src/core/render.js';
 import { wellFormedError } from './xml-check.js';
 
@@ -150,6 +151,31 @@ if (!chromium) {
   } finally {
     await browser.close();
   }
+}
+
+// Your figures (dot puppets, src/puppets.js): a picture cut into parts, each turning at its dot
+{
+  const pic = `data:image/svg+xml;base64,${Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="14" y="40" width="72" height="12" fill="#c8915a"/><rect x="20" y="52" width="6" height="40" fill="#a1683a"/><rect x="34" y="52" width="6" height="40" fill="#a1683a"/><rect x="62" y="52" width="6" height="40" fill="#a1683a"/><rect x="76" y="52" width="6" height="40" fill="#a1683a"/></svg>').toString('base64')}`;
+  const leg = (x) => ({ role: 'leg', points: [[x - 2, 51], [x + 8, 51], [x + 8, 94], [x - 2, 94]], pivot: [x + 3, 53] });
+  const table = { image: pic, parts: [leg(20), leg(34), leg(62), leg(76)], size: 'small', baseline: 93, width: 0.75 };
+  check(cleanPuppet({ image: 'http://example.com/x.png', parts: [] }) === null && cleanPuppet({ image: pic, parts: [{ role: 'wing', points: [[0, 0], [1, 1], [2, 0]] }] }).parts.length === 0,
+    'a figure is only a picture of its own (no links), and only parts it knows');
+  check(cleanPuppet({ image: pic, parts: [{ role: 'arm', points: [[10, 10], [20, 10], [20, 30]] }] }).parts[0].pivot.join() === '15,10', 'a part without a dot turns at the middle of its top');
+  check(puppetKind(cleanPuppet(table)) === 'quadruped' && puppetKind(cleanPuppet({ ...table, parts: table.parts.slice(0, 2) })) === 'person' && puppetKind(cleanPuppet({ ...table, parts: [] })) === 'none',
+    'four legs walk like a dog, two like a person, none move as a whole');
+  const id = puppetConcept(table);
+  check(id && puppetConcept(table) === id && puppetConcept({ ...table, size: 'big' }) !== id, 'one concept for each picture and its parts');
+  const ind = [{ key: 'pgc501', puppet: table }];
+  const walk = generate('pgc501 walks to the tree in the park', { style: 'flat', individuals: ind });
+  check(walk.matches[0]?.id === `${id}~pgc501` && /pg-rig-quadruped/.test(walk.svg) && (walk.svg.match(/class="pg-leg-(left|right) pg-leg-(front|hind)"/g) ?? []).length >= 4 && /<mask id=/.test(walk.svg) && /clip-path="url\(#/.test(walk.svg),
+    'a figure by its key walks: its legs are joints of a four-legged rig, cut from the picture (body masked, parts clipped)');
+  check(/transform-origin: 23px 53px/.test(walk.svg), 'each leg turns at its dot');
+  check(!wellFormedError(walk.svg), 'a scene with a figure is well-formed SVG');
+  const swing = { ...table, parts: [{ role: 'part', points: [[40, 10], [60, 10], [60, 40], [40, 40]], pivot: [50, 10], move: { type: 'swing', dx: 20, dy: 0, speed: 'slow' } }] };
+  const sw = generate('pgc501 in the kitchen', { individuals: [{ key: 'pgc501', puppet: swing }] }).svg;
+  check(/@keyframes \w+mv0 \{ 0% \{ transform: rotate\(-28deg\)/.test(sw) && /1\.6s ease-in-out infinite alternate/.test(sw), 'a part\'s own move (an arrow): a pendulum swinging slowly, all the time');
+  const st = composeStory('pgc501 walks in the park.\nThen pgc501 dances.', { style: 'flat', individuals: ind });
+  check(st.scenes.length === 2 && st.scenes.every((sc) => /data-who="pgc501"/.test(sc.svg)) && st.scenes[0].card.figures[0]?.who === 'pgc501', 'in a story, scene by scene, on the scene card');
 }
 
 console.log(fails ? `\n${fails} skeleton check(s) failed` : '\nSkeleton test suite: ALL PASSED!');

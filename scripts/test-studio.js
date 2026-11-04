@@ -607,6 +607,38 @@ try {
   await page.click('#places-panel [data-remove="0"]');
   check(!(await page.evaluate(() => window.pictogenPlaces.list().length)), 'a place can be removed');
 
+  // Your figures (dot puppets): a table drawn here, its four legs looped, named, kept and used by name
+  await page.click('#puppets-panel [data-do="new"]');
+  await page.waitForSelector('.puppet-card');
+  const pstroke = async (pts) => {
+    const b = await (await page.$('.puppet-overlay')).boundingBox();
+    const P = (x, y) => [b.x + (x / 100) * b.width, b.y + (y / 100) * b.height];
+    await page.mouse.move(...P(...pts[0])); await page.mouse.down();
+    for (const q of pts.slice(1)) await page.mouse.move(...P(...q), { steps: 5 });
+    await page.mouse.up();
+  };
+  await page.click('.puppet-card [data-width="22"]');
+  await pstroke([[16, 44], [84, 44]]);
+  await page.click('.puppet-card [data-width="12"]');
+  for (const x of [22, 36, 64, 78]) await pstroke([[x, 52], [x, 92]]);
+  await page.click('.puppet-card [data-step="2"]');
+  for (const x of [22, 36, 64, 78]) await pstroke([[x - 4, 51], [x + 4, 51], [x + 4, 95], [x - 4, 95], [x - 4, 52]]);
+  check((await page.textContent('.puppet-kind')).includes('4 legs'), 'a figure: four legs looped, it walks like a dog');
+  await page.click('.puppet-card [data-step="4"]');
+  await page.fill('.puppet-card .face-name', 'Mr Table');
+  await page.click('.puppet-card [data-try="walks"]');
+  await page.waitForFunction(() => /pg-rig-quadruped/.test(document.querySelector('.puppet-preview')?.innerHTML ?? ''));
+  check(true, 'the figure tries its moves in the editor (walking)');
+  await page.click('.face-modal [data-do="save"]');
+  await page.waitForSelector('.face-modal', { state: 'detached' });
+  const sentPuppet = sent.length;
+  await draw('Mr Table walks to the tree in the park');
+  check(await page.evaluate(() => /pg-rig-quadruped/.test(document.querySelector('#svg-viewport svg')?.innerHTML ?? '') && /data-who="pgc501"/.test(document.querySelector('#svg-viewport').innerHTML)),
+    'a figure is used by its name in a prompt: it walks');
+  check(sent.slice(sentPuppet).every((body) => !body.includes('Mr Table')) && sent.slice(sentPuppet).some((body) => body.includes('"puppet"')), 'its picture goes to the engine, its name never does');
+  await page.click('#puppets-panel [data-remove="0"]');
+  check(!(await page.evaluate(() => window.pictogenPuppets.list().length)), 'a figure can be removed');
+
   check(!errors.length, `no page errors${errors.length ? ': ' + errors.join('; ') : ''}`);
 
   // A labelled diagram: rename a label by clicking it, blank them for a quiz; then a worksheet PDF

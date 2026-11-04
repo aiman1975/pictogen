@@ -95,7 +95,8 @@ const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** The neutral key a character's name becomes in a prompt ("Tom" -> "pgc1"): no name leaves the page */
 const keyOf = (c) => `pgc${characters.indexOf(c) + 1}`;
 /** All characters as the engine knows them: { key, base, look } (kind and colours), never names or photos */
-const individuals = () => characters.map((c) => ({ key: keyOf(c), base: c.base, look: c.look }));
+// (and your figures, public/js/puppets.js: each with its picture and parts)
+const individuals = () => [...characters.map((c) => ({ key: keyOf(c), base: c.base, look: c.look })), ...(window.pictogenPuppets?.individuals() ?? [])];
 
 /**
  * "Tom walks in, then Max waves at him" -> { text: "pgc1 walks in, then pgc2 waves at him",
@@ -104,7 +105,9 @@ const individuals = () => characters.map((c) => ({ key: keyOf(c), base: c.base, 
 function rewrite(text) {
   let out = String(text || '');
   const hits = [];
-  for (const c of [...characters].sort((a, b) => b.name.length - a.name.length)) {
+  // (your figures' names become their keys too: "Mr Table dances" -> "pgc501 dances")
+  const figures = (window.pictogenPuppets?.named() ?? []).map((f) => ({ name: f.name, figureKey: f.key }));
+  for (const c of [...characters, ...figures].sort((a, b) => b.name.length - a.name.length)) {
     const re = new RegExp(`(\\b(?:the|a|an)\\s+)?\\b${reEsc(c.name)}\\b`, 'gi');
     let first = -1;
     // (not inside quoted speech: "Tom says “Hi Mia!”" says Mia's name as written)
@@ -116,15 +119,15 @@ function rewrite(text) {
       const word = m.slice(det ? det.length : 0);
       if (det && word[0] === word[0].toLowerCase()) return m;
       if (first < 0) first = offset;
-      return keyOf(c);
+      return c.figureKey ?? keyOf(c);
     });
-    if (first >= 0) hits.push({ c, first });
+    if (first >= 0 && !c.figureKey) hits.push({ c, first });
   }
   return { text: out, named: hits.sort((a, b) => a.first - b.first).map((h) => h.c) };
 }
 
 /** A character's name from the key the engine knows it by ("pgc1" -> "Tom") */
-const nameOfKey = (key) => characters.find((c) => keyOf(c) === key)?.name ?? null;
+const nameOfKey = (key) => characters.find((c) => keyOf(c) === key)?.name ?? window.pictogenPuppets?.named().find((f) => f.key === key)?.name ?? null;
 /** Text from the engine with the names put back ("Pgc1 walks in." -> "Tom walks in.") */
 const restore = (text) => (typeof text === 'string' ? text.replace(/\bpgc\d+\b/gi, (k) => nameOfKey(k.toLowerCase()) ?? k) : text);
 

@@ -23,6 +23,7 @@ import { takeQuotes } from './speech.js';
 import { findDiagram, renderDiagram, renderLabelledPictures, DIAGRAMS } from './diagrams.js';
 import { conceptOf, individualNames, individualLooks } from './individuals.js';
 import { placeKeys, takePlace, cleanPlace } from './places.js';
+import { withPuppets } from './puppets.js';
 import { renderCallout, renderKnolling, renderSplit, renderIsometric, renderWaffle, renderColoringBook, renderStickman, renderComicStrip, renderAlphabet } from './presentations.js';
 
 export { STYLES, STYLE_NAMES, isStyle } from './core/styles.js';
@@ -83,6 +84,8 @@ export function generate(text, opts = {}) {
   // in a scene or a comic strip each is its own figure ("boy~pgc1") with its own look, the same
   // every time; elsewhere (icons, diagrams...) simply its kind
   const known = (id) => !!getConcept(id);
+  // (your figures among them: each made a concept of its own, src/puppets.js)
+  opts = { ...opts, individuals: withPuppets(opts.individuals) };
   const individuals = individualNames(opts.individuals, known);
   const own = mode === 'scene' || mode === 'comic';
   const names = own ? individuals : new Map([...individuals].map(([k, id]) => [k, conceptOf(id)]));

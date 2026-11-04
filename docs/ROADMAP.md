@@ -265,6 +265,9 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] **In bed**: someone sleeping in a bedroom (or with a bed) lies in a bed under a blanket, any
       style; awake too ("lies in bed", "reads a book in bed", "looks at her phone in bed", "still
       awake in her bedroom"), eyes open, holding up the phone or the book; a scene's own look (🎨 on its card) in a clip of another style
+- [x] **Your figures (dot puppets)**: a drawing or picture, parts looped with a dot where each bends,
+      own moves by arrows; walks, runs, dances, jumps, waves like the engine's figures, by name
+      (`src/puppets.js`, `public/js/puppets.js`)
 - [x] **Camera director** (`src/director.js`): its own shots from the scene (who speaks when, the mood,
       a new place, the clip's end, a crash) or a shot picked on the card (📷: steady, wide, close on,
       follow, push, pull, pan, low and high angles that redraw the horizon, shake)
