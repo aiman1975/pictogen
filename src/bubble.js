@@ -77,7 +77,10 @@ function bubblePath({ x, y, w, h }, tip, side) {
  */
 export function layoutBubbles(list, { W, H, margin = 6, size = Math.max(10, Math.min(20, W / 34)), maxLines = 3, maxWidth = 0.44, avoid = [] } = {}) {
   const placed = [...avoid];
-  return list.map(({ x, top, text, shout = /!/.test(text) && /[A-Z]{2}/.test(text) && text === text.toUpperCase(), room = 40 }) => {
+  return list.map(({ x, top, text: said, shout: loud, room = 40 }) => {
+    // (a line quoted before "says Ana" ends in a comma in the story: not in the bubble)
+    const text = String(said ?? '').replace(/\s*[,;:]\s*$/, '');
+    const shout = loud ?? (/!/.test(text) && /[A-Z]{2}/.test(text) && text === text.toUpperCase());
     const padX = size * 0.75, padY = size * 0.5;
     const maxW = Math.min(W * maxWidth, W - 2 * margin - 2 * padX);
     const fit = fitText(text, { maxW, maxLines, size, minSize: Math.max(8, size * 0.7) });
@@ -91,21 +94,33 @@ export function layoutBubbles(list, { W, H, margin = 6, size = Math.max(10, Math
       for (const lean of [0, 0.35, -0.35, 0.7, -0.7]) tries.push({ x: clampX(x - w / 2 + lean * w), y: top - tail - h - lift * (h + 6), side: 'bottom' });
     }
     const beside = Math.max(top, margin);
-    tries.push({ x: x + room / 2 + tail, y: beside, side: 'left' }, { x: x - room / 2 - tail - w, y: beside, side: 'right' });
+    // (beside the head, then a little lower: by the shoulders, when something must stay clear above)
+    // (on the outer side first - away from the middle, where the others usually stand)
+    const outer = x < W / 2;
+    // (and when the outer side is narrow, a narrower bubble there, in more lines)
+    const space = outer ? x - room / 2 - tail - margin : W - margin - (x + room / 2 + tail);
+    const slim = space >= W * 0.17 && space < w ? fitText(text, { maxW: space - 2 * padX, maxLines: 6, size, minSize: Math.max(8, size * 0.7) }) : null;
+    const sw = slim ? slim.w + 2 * padX : 0, sh = slim ? slim.h + 2 * padY : 0;
+    for (const down of [0, 0.5, 1, 1.5]) {
+      const right = { x: x + room / 2 + tail, y: beside + down * h, side: 'left' }, left = { x: x - room / 2 - tail - w, y: beside + down * h, side: 'right' };
+      if (slim) tries.push(outer ? { x: x - room / 2 - tail - sw, y: beside + down * h, side: 'right', w: sw, h: sh, fit: slim } : { x: x + room / 2 + tail, y: beside + down * h, side: 'left', w: sw, h: sh, fit: slim });
+      tries.push(...(outer ? [left, right] : [right, left]));
+    }
     const fits = (b) => b.x >= margin - 0.5 && b.x + b.w <= W - margin + 0.5 && b.y >= margin - 0.5 && b.y + b.h <= H - margin + 0.5;
-    let best = tries.map((b) => ({ ...b, w, h })).find((b) => fits(b) && !placed.some((o) => overlaps(b, o)));
+    let best = tries.map((b) => ({ w, h, fit, ...b })).find((b) => fits(b) && !placed.some((o) => overlaps(b, o)));
     // Nowhere free: above the head as near as the picture allows
-    if (!best) best = { x: clampX(x - w / 2), y: clampY(top - tail - h), w, h, side: 'bottom' };
+    if (!best) best = { x: clampX(x - w / 2), y: clampY(top - tail - h), w, h, fit, side: 'bottom' };
     placed.push(best);
+    const { w: bw, h: bh, fit: bf } = best;
     let side = best.side, tip;
     if (side === 'bottom') {
-      tip = { x: Math.min(best.x + w - 6, Math.max(best.x + 6, x)), y: Math.min(top - 2, best.y + h + tail) };
-      if (tip.y < best.y + h + 3) side = null; // (squeezed onto the head: no room for a tail)
-    } else tip = { x: side === 'left' ? best.x - tail : best.x + w + tail, y: best.y + Math.min(h - 6, tail + 4) };
+      tip = { x: Math.min(best.x + bw - 6, Math.max(best.x + 6, x)), y: Math.min(top - 2, best.y + bh + tail) };
+      if (tip.y < best.y + bh + 3) side = null; // (squeezed onto the head: no room for a tail)
+    } else tip = { x: side === 'left' ? best.x - tail : best.x + bw + tail, y: best.y + Math.min(bh - 6, tail + 4) };
     const fill = shout ? '#fff59d' : '#ffffff';
-    const lines = fit.lines.map((l, i) => `<tspan x="${r1(best.x + w / 2)}" y="${r1(best.y + padY + fit.size * (0.95 + i * 1.2))}">${esc(l)}</tspan>`).join('');
+    const lines = bf.lines.map((l, i) => `<tspan x="${r1(best.x + bw / 2)}" y="${r1(best.y + padY + bf.size * (0.95 + i * 1.2))}">${esc(l)}</tspan>`).join('');
     const svg = `<g class="pg-bubble"><path d="${bubblePath(best, tip, side)}" fill="${fill}" stroke="#1f2937" stroke-width="${r1(Math.max(1.5, size / 8))}" stroke-linejoin="round"/>`
-      + `<text text-anchor="middle" font-family="${FONT}" font-size="${r1(fit.size)}" font-weight="800" fill="#1f2937">${lines}</text></g>`;
-    return { svg, box: { x: best.x, y: best.y, w, h }, tip, lines: fit.lines };
+      + `<text text-anchor="middle" font-family="${FONT}" font-size="${r1(bf.size)}" font-weight="800" fill="#1f2937">${lines}</text></g>`;
+    return { svg, box: { x: best.x, y: best.y, w: bw, h: bh }, tip, lines: bf.lines };
   });
 }

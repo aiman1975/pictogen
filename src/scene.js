@@ -1020,12 +1020,13 @@ const CAMERA_SECONDS = { zoomIn: 1.6, zoomOut: 1.6, pan: 3, panTo: 2 };
  * Speech bubbles over the picture for whoever speaks (src/bubble.js): always there in a still scene;
  * in a timeline, each while its words last (and laid out clear of the bubbles shown with it).
  */
-function speechBubbles(talkers, W, H, uid, motionCss) {
+function speechBubbles(talkers, W, H, uid, motionCss, keepClear = []) {
   if (!talkers.length) return '';
   const shown = [];
   const svg = talkers.map((tk, i) => {
     const timed = tk.T != null;
-    const avoid = shown.filter((o) => !timed || (o.from < tk.to && tk.from < o.to)).map((o) => o.box);
+    // (and never over what must stay readable: a board's words)
+    const avoid = [...keepClear, ...shown.filter((o) => !timed || (o.from < tk.to && tk.from < o.to)).map((o) => o.box)];
     const [b] = layoutBubbles([tk], { W, H, avoid });
     shown.push({ ...tk, box: b.box });
     if (!timed) return `<g data-for="${tk.of}">${b.svg}</g>`;
@@ -1880,7 +1881,7 @@ export function composeScene(matches, opts = {}) {
   let bgSvg = shapesToSvg(background(W, H, hY, env, pal, rng, hasGround, style), style);
   if (st.bgFilter && filterRef) bgSvg = `<rect width="${W}" height="${H}" fill="${st.background || '#ffffff'}"/><g filter="${filterRef}">${bgSvg}</g>`;
   const decor = st.decor && !(st.outdoorDecor && env.room) ? st.decor(uid, W, H, hY) : '';
-  let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${decor}${fx.g}${speechBubbles(talkers, W, H, uid, motionCss)}`;
+  let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${decor}${fx.g}${speechBubbles(talkers, W, H, uid, motionCss, env.room && (env.roomKind === 'classroom' || env.boardText) ? [{ x: W * 0.22, y: H * 0.03, w: W * 0.56, h: H * 0.39 }] : [])}`;
   if (cam) {
     motionCss.push(`@keyframes ${uid}cam { ${cameraCss(cam.keys, cam.T, W, H)}}`);
     content = `<g class="pg-camera" style="animation: ${uid}cam ${r2(cam.T)}s linear infinite;">${content}</g>`;

@@ -744,5 +744,15 @@ Remember: stop, look and check before you click.`, { style: 'stickman', genre: '
   check(st.scenes[1].card.message.said[0]?.who === 'the number 3', '"says the number 3": the number 3 says it');
 }
 
+// Bubbles by a board with words: never over the words; a trailing comma is not said
+{
+  const st = composeStory('In the training room, Ana points at the whiteboard that says "Year 1: 1,000 + 7% = 1,070".\n"After one year, the bank pays Sam 70 euros of interest," says Ana.', { style: 'stickman', genre: 'documentary' });
+  const svg = st.scenes[1].svg;
+  const W = 640, H = 360;
+  const box = [...svg.matchAll(/<g class="pg-bubble"><path d="M ([\d.]+) ([\d.]+)/g)].map((m) => [+m[1], +m[2]]);
+  check(box.length && box.every(([x, y]) => !(x > W * 0.22 && x < W * 0.78 && y < H * 0.42)), `a speech bubble by a board with words goes beside the speaker, not over the words (${JSON.stringify(box)})`);
+  check(/interest<\/tspan>|of interest</.test(svg) && !/interest,<\/tspan>/.test(svg), '"..., " says Ana: the bubble has no trailing comma');
+}
+
 console.log(fails ? `\n${fails} timeline check(s) failed` : '\nTimeline test suite: ALL PASSED!');
 process.exit(fails ? 1 : 0);
