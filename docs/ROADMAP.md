@@ -265,6 +265,9 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] **In bed**: someone sleeping in a bedroom (or with a bed) lies in a bed under a blanket, any
       style; awake too ("lies in bed", "reads a book in bed", "looks at her phone in bed", "still
       awake in her bedroom"), eyes open, holding up the phone or the book; a scene's own look (🎨 on its card) in a clip of another style
+- [x] **Camera director** (`src/director.js`): its own shots from the scene (who speaks when, the mood,
+      a new place, the clip's end, a crash) or a shot picked on the card (📷: steady, wide, close on,
+      follow, push, pull, pan, low and high angles that redraw the horizon, shake)
 - [x] **Scene card** in "How I read your story": figures, objects (＋ adds, × leaves out), place,
       feeling (the mood list), action, message (`src/scene-card.js`); the place (place, time,
       weather, your places), the steps (who, what, to whom, order, together) and the message (who says

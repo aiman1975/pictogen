@@ -493,6 +493,13 @@ try {
   check(true, '...and a line removed is no longer said');
   await page.click('.sr-row:nth-child(1) button[data-reset="0"]');
   await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.edited);
+  // 📷 Camera: a shot chosen for a scene
+  check((await page.$$eval('.sc-shot[data-shot="0"] option', (o) => o.map((x) => x.textContent))).some((l) => /^Close on Lily/.test(l)), 'the camera list offers close on each figure');
+  await page.selectOption('.sc-shot[data-shot="0"]', 'low');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[0]?.shotChosen && window.pictogenStudio.getStory().scenes[0].card.camera.says === 'low angle');
+  check(sent.at(-1).includes('"sceneShots"'), 'a camera shot picked for a scene makes the clip again with it');
+  await page.selectOption('.sc-shot[data-shot="0"]', '');
+  await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.shotChosen);
   // 🎨 Look: a scene in another style than the clip
   await page.selectOption('.sc-look[data-look="0"]', 'stickman');
   await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[0]?.style === 'stickman' && !window.pictogenStudio.getStory().scenes[1].style);

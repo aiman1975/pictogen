@@ -658,7 +658,7 @@ Remember: stop, look and check before you click.`, { style: 'stickman', genre: '
   check(detectMood('"Do not be afraid," said the whale.') === null, '..."not afraid" is not a scary moment');
   check(detectMood('Lena smiled. "Well done, Sam! That was a scam."') === 'joyful', '..."well done" outweighs a scam that is over');
   const tense = generate('suddenly a monster appears in the forest', { style: 'cartoon' });
-  check(tense.mood === 'tense' && /data-scene-mood="tense"/.test(tense.svg) && /pg-mood-camera/.test(tense.svg) && /"s":"tension"/.test(tense.svg.replace(/&quot;/g, '"')),
+  check(tense.mood === 'tense' && /data-scene-mood="tense"/.test(tense.svg) && /pg-mood-camera|pg-camera/.test(tense.svg) && tense.card.camera.says === 'pushing in (tense)' && /"s":"tension"/.test(tense.svg.replace(/&quot;/g, '"')),
     'a tense scene: dark edges, a slow push in, a low swell as it starts');
   const sad = generate('a sad girl cried in the rain', { style: 'cartoon' });
   check(sad.mood === 'sad' && /feColorMatrix type="saturate"/.test(sad.svg), 'a sad scene: paler colours');

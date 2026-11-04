@@ -9,7 +9,8 @@ import { HEIGHTS, mergeFeatures } from './looks.js';
 import { actionCues, stillCues, soundTrack, voiceOf, thingCues, ambienceOf } from './sound.js';
 import { getConcept } from './concepts/index.js';
 import { detectMood, moodChoice, moodLight, moodCamera, MOOD_STINGS } from './mood.js';
-import { sceneCard } from './scene-card.js';
+import { sceneCard, placeLabel } from './scene-card.js';
+import { directShots, shotChoice, shakeCss, SHOT_ANGLES } from './director.js';
 import { createKit } from './core/kit.js';
 import { createRng } from './core/rng.js';
 import { drawConcept, shapesToSvg, svgDoc, newUid, styleWrap, esc } from './core/render.js';
@@ -1229,7 +1230,9 @@ export function composeScene(matches, opts = {}) {
   // the ground must not scroll sideways under them.
   if (timeline || items.some((it) => ['approach', 'recede'].includes(it.m.animation))) env.parallax = false;
   const pal = palette(env);
-  const hY = H * (env.water ? 0.58 : 0.62);
+  // (a low or high camera chosen for the scene: the horizon drops or rises, figures loom or shrink)
+  const angle = SHOT_ANGLES[shotChoice(opts.shot)?.kind] ?? null;
+  const hY = angle && !env.room ? H * angle.horizon : H * (env.water ? 0.58 : 0.62);
 
   const isOnlyPeople = items.length > 0 && items.every((it) => it.c.category === 'people');
   const hasLandscape = items.some((it) => ['tree', 'mountain', 'house', 'cloud', 'sun', 'car', 'flower'].includes(it.c.id));
@@ -1246,7 +1249,7 @@ export function composeScene(matches, opts = {}) {
   const groups = { background: [], sky: [], air: [], back: [], water: [], underwater: [], front: [] };
 
   // (a tall or short character is drawn bigger or smaller: src/looks.js)
-  for (const it of items) it.h = it.c.scale * unit * (it.m.size || 1) * (HEIGHTS[it.look?.features?.height] ?? 1);
+  for (const it of items) it.h = it.c.scale * unit * (it.m.size || 1) * (HEIGHTS[it.look?.features?.height] ?? 1) * (angle?.scale ?? 1);
   // (in a classroom, the board stays readable: nobody stands taller than the space below it)
   if (env.roomKind === 'classroom') for (const it of items) it.h = Math.min(it.h, H * 0.5);
   // With no tree/house/mountain to give a sense of real size, small subjects (a cat, apples)
@@ -1488,7 +1491,7 @@ export function composeScene(matches, opts = {}) {
       lips = ` data-lips="${name}"`;
       // (a bubble for its own words; a clip's caption is already shown under the picture)
       // (several of a kind saying it together: one bubble)
-      if (said.has(it.aid) && !talkers.some((tk) => tk.text === words)) talkers.push({ x: cx, top: y0 + 2 * s, text: words, room: w, of: `${it.c.id}#${it.k}` });
+      if (said.has(it.aid) && !talkers.some((tk) => tk.text === words)) talkers.push({ x: cx, top: y0 + 2 * s, text: words, room: w, of: `${it.c.id}#${it.k}`, who: it.aid });
       opts.speechDuration = Math.max(opts.speechDuration ?? 0, loop);
       soundLoop = Math.max(soundLoop ?? 0, loop);
     }
@@ -1763,6 +1766,9 @@ export function composeScene(matches, opts = {}) {
   if (timeline && actorSlots.size) {
     const { T, tracks, camera: events, beatTimes, speeches, doings } = playTimeline(timeline, actorSlots, propsAt, W, opts.minDuration ?? 0);
     opts.timelineSpeeches = speeches.filter((sp) => sp.quoted).map((sp) => ({ who: sp.key.split('#')[0], text: sp.text }));
+    // (for the camera director: where everyone is when, and who speaks when)
+    opts.timelineTracks = tracks;
+    opts.timelineSpeechTimes = speeches.filter((sp) => sp.quoted).map((sp) => ({ who: sp.key.split('#')[0], start: sp.start, end: sp.start + lipKeys(sp.text).duration }));
     timeline.duration = r2(T);
     timeline.beatTimes = beatTimes;
     for (const { key, t0, act } of doings) {
@@ -1817,8 +1823,42 @@ export function composeScene(matches, opts = {}) {
     matches, timeline, env, mood, chosen: Boolean(chosen && chosen !== 'none') || chosen === 'none', board: env.boardText ?? null, caption: opts.caption ?? null,
     said: [...(opts.speech ?? []).map((sp) => ({ who: sp.who, text: sp.text })), ...timelineSaid],
   });
+  // The camera director (src/director.js): the shots chosen on the scene card, else its own, when
+  // the scene's words give no camera move
+  const choice = shotChoice(opts.shot);
+  const sceneT = timeline?.duration || opts.minDuration || 6;
+  let shaking = false, shots = null;
+  if (!cam || choice) {
+    const timelineTracks = timeline && actorSlots.size ? opts.timelineTracks : null;
+    // (where someone is: an actor at that moment, else where it was drawn)
+    const drawnAt = new Map();
+    for (const it of items) if (it.at) drawnAt.set(it.aid, { x: it.at.x0 + 50 * it.at.s, y: it.at.y0 + ((it.c.baseline ?? 96) * 0.35) * it.at.s, h: it.h });
+    const where = (id, t) => (timelineTracks ? focusAt(timelineTracks)(id, t) : null) ?? drawnAt.get(id) ?? null;
+    // (the main figure: the first person; one at a desk is drawn with the desk)
+    const main = items.find((it) => isPerson(it))?.aid ?? items.find((it) => it.desk)?.aid ?? (timeline?.actors?.[0]?.id ?? null);
+    const said = timeline
+      ? (opts.timelineSpeechTimes ?? [])
+      : talkers.filter((tk) => tk.who).map((tk) => ({ who: tk.who, start: 0.5, end: 0.5 + lipKeys(tk.text).duration }));
+    const ctx = opts.shotContext ?? {};
+    const here = placeLabel(env).split(' · ')[0];
+    shots = directShots({
+      T: sceneT, W, H, where, main, speeches: said, mood, text: `${opts.caption ?? ''} ${opts.text ?? ''}`, shot: choice,
+      context: { index: ctx.index ?? 0, first: Boolean(ctx.first), last: Boolean(ctx.last), newPlace: ctx.prevPlace == null ? Boolean(ctx.first) : ctx.prevPlace !== here },
+    });
+    if (shots?.follow && timeline && actorSlots.size && timelineTracks) {
+      const followed = timelineTracks.get(`${shots.follow}#0`);
+      cam = { T: sceneT, keys: cameraKeys({ events: [], follow: { id: shots.follow, start: followed?.[0]?.t0 ?? 0 }, T: sceneT, W, H, focusAt: focusAt(timelineTracks) }) };
+    } else if (shots?.keys) cam = { T: sceneT, keys: shots.keys };
+    else if (shots?.follow) {
+      const again = directShots({ T: sceneT, W, H, where, main, shot: { kind: 'close', target: shots.follow } });
+      cam = again?.keys ? { T: sceneT, keys: again.keys } : cam;
+    }
+    if (choice?.kind === 'steady') cam = null;
+    shaking = Boolean(shots?.shake);
+  }
+  opts.card.camera = { shot: choice ? `${choice.kind}${choice.target ? `:${choice.target}` : ''}` : 'auto', says: shots?.says ?? (cam ? 'as the words say' : mood ? 'a slow drift (mood)' : 'still') };
   // (a slow camera of its own, when the scene has no camera move: over the scene's length)
-  const moodCam = mood && !cam ? moodCamera(mood, uid, W, H, opts.minDuration || timeline?.duration || 6) : null;
+  const moodCam = mood && !cam && choice?.kind !== 'steady' ? moodCamera(mood, uid, W, H, opts.minDuration || timeline?.duration || 6) : null;
   if (moodCam) motionCss.push(moodCam.css);
   if (mood && MOOD_STINGS[mood]) cues.push({ t: 0.1, s: MOOD_STINGS[mood] });
 
@@ -1836,6 +1876,10 @@ export function composeScene(matches, opts = {}) {
     content = `<g class="pg-camera" style="animation: ${uid}cam ${r2(cam.T)}s linear infinite;">${content}</g>`;
   }
   if (moodCam) content = `<g class="pg-mood-camera" style="${moodCam.style}">${content}</g>`;
+  if (shaking) {
+    motionCss.push(shakeCss(`${uid}shake`, sceneT));
+    content = `<g class="pg-shake" style="animation: ${uid}shake ${r2(sceneT)}s linear infinite;">${content}</g>`;
+  }
   if (st.wholeFilter && filterRef) content = `<g filter="${filterRef}">${content}</g>`;
   // The mood's light: over everything, still while the camera moves
   const light = mood && moodLight(mood, uid, W, H, { light: LIGHT_CANVAS_STYLES.has(style) });

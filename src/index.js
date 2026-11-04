@@ -216,7 +216,7 @@ export function generate(text, opts = {}) {
     if (timeline) timeline.caption = caption;
     // Colours carried over from earlier scenes of a clip (composeStory): figure id -> colour
     const carry = opts.carry && typeof opts.carry === 'object' ? opts.carry : undefined;
-    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption, carry, ...(chosenPlace ? { setting: chosenPlace, settingForce: true } : taken.setting ? { setting: taken.setting } : {}), ...(boardText ? { boardText } : {}), ...(opts.minDuration > 0 ? { minDuration: Math.min(+opts.minDuration, 30) } : {}), ...(opts.mood ? { mood: opts.mood } : {}) };
+    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption, carry, ...(chosenPlace ? { setting: chosenPlace, settingForce: true } : taken.setting ? { setting: taken.setting } : {}), ...(boardText ? { boardText } : {}), ...(opts.minDuration > 0 ? { minDuration: Math.min(+opts.minDuration, 30) } : {}), ...(opts.mood ? { mood: opts.mood } : {}), ...(typeof opts.shot === 'string' ? { shot: opts.shot.slice(0, 60) } : {}), ...(opts.shotContext && typeof opts.shotContext === 'object' ? { shotContext: opts.shotContext } : {}) };
     svg = composeScene(matches, sceneOpts);
     mood = sceneOpts.moodUsed ?? null;
     card = sceneOpts.card ?? null;

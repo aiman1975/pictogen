@@ -1,5 +1,5 @@
 // Camera moves: zoom in/out, pan, follow a character - as timeline beats or on their own.
-import { cameraAction, extractCamera, generate } from '../src/index.js';
+import { cameraAction, extractCamera, generate, composeStory } from '../src/index.js';
 import { wellFormedError } from './xml-check.js';
 
 let fails = 0;
@@ -77,6 +77,29 @@ for (const style of ['flat', 'cartoon', 'sketch', 'stickman', 'neon']) {
   }
 }
 check(true, 'camera scenes are well-formed in flat, cartoon, sketch, stickman and neon');
+
+
+// The camera director (src/director.js): its own shots, and shots chosen on the scene card
+{
+  const says = (t, o = {}) => generate(t, { style: 'flat', ...o }).card?.camera?.says;
+  check(says('a girl says “Hello there, how are you today?” in the park') === 'close on who speaks', 'director: close on someone while they speak');
+  check(says('a boy waves, then a girl says “Hi!”, then the boy says “Let us play!”') === 'two-shot of who speaks', 'director: a two-shot when two talk');
+  check(says('suddenly a monster appears in the forest and a boy') === 'pushing in (tense)', 'director: pushing in on a tense scene');
+  check(/shake/.test(says('a car crashed into a tree')) && /pg-shake/.test(generate('a car crashed into a tree').svg), 'director: a shake for a crash');
+  check(says('a girl smiles in the park', { shotContext: { last: true, first: false } }) === 'pulling back at the end', 'director: the last scene pulls back');
+  check(says('a boy and a dog in the park', { shotContext: { index: 2, prevPlace: 'the beach' } }) === 'wide, then easing in', 'director: a new place is shown wide first');
+  check(!/pg-camera/.test(generate('a red apple on a table').svg), 'director: nobody there, no camera move');
+  check(says('a girl smiles in the park', { mood: 'calm' }) === 'a slow drift (mood)', 'director: a scene with a mood keeps its mood\'s camera');
+  // Chosen
+  const low = generate('a boy and a dog in the park', { style: 'flat', shot: 'low' }), high = generate('a boy and a dog in the park', { style: 'flat', shot: 'high' });
+  const scaleOf = (svg) => +(svg.match(/data-id="boy"[^>]*scale\(([\d.]+)\)/)?.[1] ?? 0);
+  check(scaleOf(low.svg) > scaleOf(high.svg) * 1.2 && low.card.camera.says === 'low angle', `a low angle: the figures loom; a high one: they look small (${scaleOf(low.svg)} vs ${scaleOf(high.svg)})`);
+  check(generate('a boy and a dog in the park', { shot: 'close:dog' }).card.camera.shot === 'close:dog' && /pg-camera/.test(generate('a boy and a dog in the park', { shot: 'close:dog' }).svg), 'close on someone chosen');
+  check(!/pg-camera|pg-mood-camera/.test(generate('suddenly a monster appears', { shot: 'steady' }).svg), 'steady: no camera move at all');
+  check(generate('a boy walks to the tree', { shot: 'follow:boy' }).card.camera.says === 'following', 'following someone chosen');
+  const st = composeStory('Mia smiled.\nMia waved.', { style: 'flat', sceneShots: { 'Mia waved.': 'pan-right' } });
+  check(st.scenes[1].shotChosen && st.scenes[1].card.camera.says === 'panning right' && !st.scenes[0].shotChosen, 'a story: a shot chosen for one scene');
+}
 
 console.log(fails ? `\n${fails} camera check(s) failed` : '\nCamera test suite: ALL PASSED!');
 process.exit(fails ? 1 : 0);

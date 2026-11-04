@@ -479,6 +479,7 @@ export function composeStory(storyInput, opts = {}) {
   // Recurring characters look the same in every scene: one seed for the whole clip, a named
   // character's own look, and a colour once said kept ("a girl in a purple dress", later "the girl")
   const carry = {};
+  let prevPlace = null; // (the place of the scene before, for the camera director: a new place is shown wide first)
   const scenes = scenesRaw.map((sc, i) => {
     // (a look of its own for this scene, chosen on its card: a stickman moment in a flat clip)
     const sceneStyle = isStyle(opts.sceneStyles?.[sc.caption]) ? opts.sceneStyles[sc.caption] : style;
@@ -502,10 +503,14 @@ export function composeStory(storyInput, opts = {}) {
       ...((opts.moods?.[sc.caption] ?? sc.mood) ? { mood: opts.moods?.[sc.caption] ?? sc.mood } : {}),
       // (a sequence holds its last moment while the scene is on, instead of starting over)
       minDuration: sc.duration || 5.0,
+      // (its shots: chosen on its card, else the director's, knowing where it is in the clip)
+      ...(typeof opts.sceneShots?.[sc.caption] === 'string' ? { shot: opts.sceneShots[sc.caption] } : {}),
+      shotContext: { index: i, first: i === 0, last: i === scenesRaw.length - 1, prevPlace },
       // A caption of its own (not the prompt repeated) is what a talking figure says, lip-synced
       ...(sc.caption && sc.caption.toLowerCase().replace(/[.!?\s]+$/, '') !== sc.prompt.toLowerCase().replace(/[.!?\s]+$/, '') ? { caption: sc.caption } : {}),
     });
 
+    prevPlace = result.card?.place ? result.card.place.split(' · ')[0] : prevPlace;
     for (const m of result.matches) {
       if (m.color || m.hair || m.features) {
         // (what someone wears is said scene by scene: it doesn't carry over)
@@ -532,6 +537,7 @@ export function composeStory(storyInput, opts = {}) {
       ...(result.card ? { card: { ...named({ ...result.card, steps: undefined, cast: undefined }), steps: result.card.steps, cast: result.card.cast.map((c) => ({ ...c, name: shown(c.name) })) } } : {}),
       ...(opts.sceneBeats?.[sc.caption] ? { stepsChosen: true } : {}),
       ...(opts.scenePlaces?.[sc.caption] ? { placeChosen: true } : {}),
+      ...(typeof opts.sceneShots?.[sc.caption] === 'string' ? { shotChosen: true } : {}),
       ...(sceneStyle !== style ? { style: sceneStyle } : {}),
       ...((opts.moods?.[sc.caption] ?? sc.mood) ? { moodChosen: true } : {}),
       // (what could not be drawn, and whether the writer changed what to draw)

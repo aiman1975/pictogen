@@ -190,6 +190,20 @@ function stepEditor(sc, i) {
   </div>`;
 }
 
+// The scene's camera: the director's (what it chose, said plainly), or a shot chosen here
+function cameraPicker(sc, i) {
+  const c = sc.card, chosen = studio.getState().storyShots?.[sc.caption] ?? '';
+  const living = c.cast.filter((x) => x.living);
+  const opts = [
+    ['', `Auto${!chosen && c.camera?.says ? `: ${c.camera.says}` : ''}`], ['steady', 'Steady'], ['wide', 'Wide'],
+    ...c.cast.map((x) => [`close:${x.id}`, `Close on ${nm(x.name)}`]),
+    ...living.map((x) => [`follow:${x.id}`, `Follow ${nm(x.name)}`]),
+    ['push', 'Push in'], ['pull', 'Pull back'], ['pan-right', 'Pan → right'], ['pan-left', 'Pan ← left'],
+    ['low', 'Low angle (looming)'], ['high', 'High angle (small)'], ['shake', 'Shake'],
+  ];
+  return `<select class="sc-pick sc-shot" data-shot="${i}" aria-label="The camera of scene ${i + 1}">${opts.map(([v, l]) => `<option value="${esc(v)}"${v === chosen ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+}
+
 // The scene's card: what it is made of (src/scene-card.js), each part changeable where it can be
 function card(sc, i, chosenMood) {
   const c = sc.card;
@@ -213,6 +227,7 @@ function card(sc, i, chosenMood) {
     ${slot('📦', 'Objects', objects + plus('object'))}
     ${slot('🏞️', 'Place', c.where ? placePickers(sc, i) : c.place ? esc(c.place) : '')}
     ${slot('💭', 'Feeling', mood)}
+    ${slot('📷', 'Camera', cameraPicker(sc, i))}
     ${slot('🎨', 'Look', `<select class="sc-pick sc-look" data-look="${i}" aria-label="The look of scene ${i + 1}">
       <option value="">Like the clip (${esc(LOOKS.find(([k]) => k === studio.getState().style)?.[1] ?? studio.getState().style)})</option>
       ${LOOKS.map(([k, l]) => `<option value="${k}"${studio.getState().storyStyles?.[sc.caption] === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}
@@ -229,6 +244,7 @@ function render() {
   st.storyPlaces ??= {};
   st.storyBeats ??= {};
   st.storyStyles ??= {};
+  st.storyShots ??= {};
   panel.hidden = st.mode !== 'story' || !story.cast || !story.scenes?.length;
   if (panel.hidden) return;
   const mine = new Set((window.pictogenCharacters?.list() ?? []).map((c) => c.name.toLowerCase()));
@@ -376,6 +392,13 @@ panel.addEventListener('change', (e) => {
       if (/^pgp\d+$/.test(e.target.value)) next.key = e.target.value; else next.place = e.target.value;
     } else next[e.target.dataset.kind] = e.target.value;
     st.storyPlaces[sc.caption] = next;
+    redo();
+    return;
+  }
+  // A camera shot for a scene
+  if (e.target.matches('.sc-shot')) {
+    const sc = story.scenes[+e.target.dataset.shot];
+    if (e.target.value) st.storyShots[sc.caption] = e.target.value; else delete st.storyShots[sc.caption];
     redo();
     return;
   }

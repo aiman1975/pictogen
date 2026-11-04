@@ -15,7 +15,7 @@ check(STYLE_NAMES.length === 23 && ['watercolor', 'anime', 'crayon'].every(isSty
 
 // Signatures
 const px = scene('pixel');
-check(/<g filter="url\(#pg\w+-pixelate\)"><g stroke-linecap="round" stroke-linejoin="round"><rect/.test(px) && /<feTile/.test(px) && /<feMorphology operator="dilate"/.test(px),
+check(/<g filter="url\(#pg\w+-pixelate\)">(?:<g class="pg-camera"[^>]*>)?<g stroke-linecap="round" stroke-linejoin="round"><rect/.test(px) && /<feTile/.test(px) && /<feMorphology operator="dilate"/.test(px),
   'Pixel: the whole picture is pixelated (one sample per block, grown back to a square), background included');
 check(!/#8bc34a|#9ccc65/i.test(px), 'Pixel: colors come from a retro palette');
 const comic = scene('comic');
