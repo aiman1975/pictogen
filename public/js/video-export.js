@@ -280,7 +280,7 @@ async function renderShots(shots, { fps, scale, format, title, genre, onProgress
     // (a board with words: its words are what must show, the frame above them may go)
     const top = lift && (shot.svg.querySelector('.pg-board text') || shot.svg.querySelector('.pg-board') || shot.svg.querySelector('.pg-place-office, .pg-place-room, .pg-place-kitchen, .pg-place-bedroom, .pg-place-classroom, .pg-place-sketch'));
     if (top) {
-      try { lift = Math.max(0, Math.min(lift, Math.floor(top.getBBox().y * (H / svgSize(shot.svg).height)) - 4)); } catch { /* not measurable */ }
+      try { lift = Math.max(0, Math.min(lift, Math.floor(top.getBBox().y * (H / svgSize(shot.svg).height)) - Math.round(H * 0.02))); } catch { /* not measurable */ }
     }
     await renderFrames(shot.svg, {
       duration: shot.duration, fps, ctx, box: { x: 0, y: -lift, w: W, h: H },

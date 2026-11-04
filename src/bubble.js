@@ -106,7 +106,8 @@ export function layoutBubbles(list, { W, H, margin = 6, size = Math.max(10, Math
       if (slim) tries.push(outer ? { x: x - room / 2 - tail - sw, y: beside + down * h, side: 'right', w: sw, h: sh, fit: slim } : { x: x + room / 2 + tail, y: beside + down * h, side: 'left', w: sw, h: sh, fit: slim });
       tries.push(...(outer ? [left, right] : [right, left]));
     }
-    const fits = (b) => b.x >= margin - 0.5 && b.x + b.w <= W - margin + 0.5 && b.y >= margin - 0.5 && b.y + b.h <= H - margin + 0.5;
+    // (a bubble beside someone stays above the bottom fifth, where a video's caption goes)
+    const fits = (b) => b.x >= margin - 0.5 && b.x + b.w <= W - margin + 0.5 && b.y >= margin - 0.5 && b.y + b.h <= (b.side === 'bottom' ? H - margin : H * 0.8) + 0.5;
     let best = tries.map((b) => ({ w, h, fit, ...b })).find((b) => fits(b) && !placed.some((o) => overlaps(b, o)));
     // Nowhere free: above the head as near as the picture allows
     if (!best) best = { x: clampX(x - w / 2), y: clampY(top - tail - h), w, h, fit, side: 'bottom' };
