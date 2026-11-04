@@ -719,6 +719,12 @@ Remember: stop, look and check before you click.`, { style: 'stickman', genre: '
   const bed = generate('a woman sleeps peacefully in the bedroom at night', { style: 'flat' }).svg;
   check(/pg-sleeper/.test(bed) && /pg-figure/.test(bed), 'someone asleep in a bedroom lies in bed under a blanket');
   check(/pg-sleeper/.test(generate('a man is asleep in bed', { style: 'stickman' }).svg) && !/pg-sleeper/.test(generate('a man sleeps in the park').svg), '...in any style; asleep in the park is not in bed');
+  const inBed = (t) => { const svg = generate(t, { style: 'flat' }).svg; return [/pg-sleeper/.test(svg), /pg-awake/.test(svg), (svg.match(/pg-in-bed-holds" data-id="(\w+)/) ?? [])[1] ?? null].join(); };
+  check(inBed('a girl reads a book in bed') === 'true,true,book' && inBed("a man can't sleep in his bedroom") === 'true,true,' && inBed('a boy sleeps in his bed') === 'true,false,',
+    'awake in bed too: lying there, eyes open, holding up what they read or look at');
+  check(inBed('a woman stands in the bedroom') === 'false,false,' && inBed('a woman lies on the beach') === 'false,false,', '...but standing in a bedroom, or lying on the beach, is not in bed');
+  const phone = composeStory('Anna smiled.\nShe looks at her phone in bed. The bright screen keeps her awake.', { style: 'flat', genre: 'howto' }).scenes[1].svg;
+  check(/pg-awake/.test(phone) && /pg-in-bed-holds" data-id="mobile_phone"/.test(phone), '"looks at her phone in bed, then...": in bed with the phone (a still scene)');
   const looks = composeStory('Anna waved.\nAnna smiled.', { style: 'flat', genre: 'howto', sceneStyles: { 'Anna smiled.': 'stickman' } }).scenes;
   check(!looks[0].style && looks[1].style === 'stickman' && /pg-place-sketch|stroke-width="3\.6"/.test(looks[1].svg), 'a scene with a look of its own (stickman) in a flat clip');
 }

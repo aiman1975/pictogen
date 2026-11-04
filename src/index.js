@@ -1,7 +1,7 @@
 // PictoGen public API – offline text-to-vector image generator.
 
 import { parseText, suggestWords } from './text/matcher.js';
-import { composeScene, ENV_WORDS, DESK_RE } from './scene.js';
+import { composeScene, ENV_WORDS, DESK_RE, IN_BED_RE } from './scene.js';
 
 // Words that set the scene's backdrop (night, rain, beach...) rather than draw an object.
 const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
@@ -127,8 +127,10 @@ export function generate(text, opts = {}) {
   let timeline = mode === 'scene' ? parseTimeline(text, { names }) : null;
   // (sitting at a desk while only feelings change - "sits at her desk..., then she is very tired" -
   // is a still scene at the desk, with the last feeling each one has)
-  if (timeline && !Array.isArray(opts.beats) && DESK_RE.test(parsed.tokens.join(' '))
-    && timeline.beats.every((b) => b.actions.every((x) => x.type === 'expr' || x.type === 'appear' || (x.type === 'pose' && ['sit', 'think', 'sleep'].includes(x.anim))))) {
+  // (and the same in bed: "looks at her phone in bed, then the screen keeps her awake")
+  const atRest = DESK_RE.test(parsed.tokens.join(' ')) || (/\b(bed|bedroom)\b/.test(parsed.tokens.join(' ')) && IN_BED_RE.test(parsed.tokens.join(' ')));
+  if (timeline && !Array.isArray(opts.beats) && atRest
+    && timeline.beats.every((b) => b.actions.every((x) => x.type === 'expr' || x.type === 'appear' || x.type === 'look' || (x.type === 'pose' && ['sit', 'think', 'sleep', 'talk'].includes(x.anim) && !x.speech)))) {
     for (const b of timeline.beats) for (const x of b.actions) {
       const m = matches.find((mm) => mm.id === x.actor);
       if (m && x.expression) m.expression = x.expression;
