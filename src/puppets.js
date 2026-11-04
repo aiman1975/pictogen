@@ -78,7 +78,8 @@ export const puppetKind = (p) => {
 /** Where a feeling's sign goes, in the figure's box: up and to the right of its eyes, else its head */
 function signAt(p) {
   const f = p.face;
-  if (f?.eyes.length) return [r2(Math.min(92, Math.max(...f.eyes.map((e) => e[0])) + 6 * f.eyeSize)), r2(Math.max(4, Math.min(...f.eyes.map((e) => e[1])) - 9 * f.eyeSize))];
+  // (the sign is drawn 12 to the right of this point, rising from it: level with the eyes, just past them)
+  if (f?.eyes.length) return [r2(Math.min(80, Math.max(...f.eyes.map((e) => e[0])) + 1)), r2(Math.max(4, Math.min(...f.eyes.map((e) => e[1])) - 7 * f.eyeSize))];
   if (f?.mouth) return [r2(Math.min(92, f.mouth[0] + 10)), r2(Math.max(4, f.mouth[1] - 16))];
   const head = p.parts.find((x) => x.role === 'head');
   const ys = (head ? head.points : p.parts.flatMap((x) => x.points)).map((q) => q[1]);

@@ -1535,7 +1535,9 @@ export function composeScene(matches, opts = {}) {
     // rides it comes after, in its motion
     const drawing = shapesToSvg(shapes, style, { olk });
     // (how it feels, as a sign over its head: "!", "?", a heart, "Zzz"...)
-    const sign = it.inBed ? emote(it.inBed.asleep ? 'sleepy' : expression, { head: [22, 30] }) : emote(animation === 'sleep' ? 'sleepy' : expression, { head: headOf(it), mirrored: flip });
+    // (an animal asleep lies down, 13 lower: its "Zzz" goes down with it)
+    const signHead = animation === 'sleep' && /^(animals|wildlife)/.test(it.c.category ?? '') ? [headOf(it)[0], headOf(it)[1] + 13] : headOf(it);
+    const sign = it.inBed ? emote(it.inBed.asleep ? 'sleepy' : expression, { head: [22, 30] }) : emote(animation === 'sleep' ? 'sleepy' : expression, { head: signHead, mirrored: flip });
     const deskParts = atDesk(it, s);
     const drawn = it.desk ? deskDrawing(style, olk) : it.inBed ? bedDrawing(it, style, olk) : drawing;
     let wrappedContent = `${deskParts.before}<g class="pg-figure">${drawn}${sign}</g>${deskParts.after}${carried(it, s)}${thoughtBubble(it, flip)}`;
