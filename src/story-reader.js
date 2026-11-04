@@ -43,6 +43,8 @@ const TITLES = {
   nana: 'old_woman', grandpa: 'old_man', grandad: 'old_man', uncle: 'man', aunt: 'woman', auntie: 'woman', king: 'king', queen: 'queen',
   prince: 'prince', princess: 'princess', captain: 'pirate', farmer: 'farmer', teacher: 'teacher', professor: 'man',
 };
+// A titled name, said by whom ("says Dr Lee", "said Grandma Rose")
+const TITLED = `(?:${Object.keys(TITLES).map((t) => t[0].toUpperCase() + t.slice(1)).join('|')})\\s[A-Z][a-z]+`;
 // Words that start sentences and are not names ("Suddenly", "Once")
 const NOT_NAMES = new Set(`once one two three the a an and but then so suddenly finally later soon after before when while every
   next that this there these those at in on by with without into from to of for meanwhile today tomorrow yesterday tonight
@@ -95,13 +97,13 @@ const PLACES = [
   ['sea', /\b(sea|ocean|lake|river|pond)\b(?!\s*(?:turtles?|horses?|stars?|shells?|gulls?|lions?|weeds?|creatures?|animals?)\b)/, (w) => `by the ${w}`],
   ['city', /\b(city|town|street)\b/, 'in the city'],
   ['classroom', /\b(school|classroom|training room|meeting room|lecture hall|whiteboard)\b/, 'in the classroom'],
-  ['office', /\b(office|workplace|desk)\b/, 'in the office'],
+  ['office', /\b(office|workplace|desk|at work)\b/, 'in the office'],
   ['kitchen', /\bkitchen\b/, 'in the kitchen'],
   ['bedroom', /\b(bedroom|bed)\b/, 'in the bedroom'],
   ['home', /(?<!\bway )\b(home|house|living room|inside|indoors)\b/, 'at home'],
 ];
 const TIMES = [
-  ['night', /\b(night|nighttime|midnight|bedtime|dark|moon|stars)\b/],
+  ['night', /\b(night|nighttime|midnight|bedtime|dark|moon|stars)\b|\b(?:one|two|three|four|1|2|3|4)\s+(?:in the morning|a\.?m\b)/],
   ['evening', /\b(evening|sunset|dusk)\b/],
   ['day', /\b(morning|sunrise|dawn|daytime|afternoon|next day|sunny|sun came out|woke up|wakes up)\b/],
 ];
@@ -158,7 +160,8 @@ function splitScenes(text) {
  * characters it names itself (as individuals with keys and looks) and the whole cast.
  */
 export function readStory(text, { individuals = [], adults = false } = {}) {
-  const { text: safe, quotes } = protect(String(text ?? '').replace(/[’]/g, "'"));
+  // (a title's full stop is no sentence's end: "Dr. Lee" is "Dr Lee")
+  const { text: safe, quotes } = protect(String(text ?? '').replace(/[’]/g, "'").replace(/\b(Dr|Mr|Mrs|Ms|Prof|St)\.(?=\s+[A-Z])/g, '$1'));
   const cast = [];
   let tick = 0, nextKey = 21;
   const mention = (m) => { m.last = ++tick; return m; };
@@ -282,7 +285,9 @@ export function readStory(text, { individuals = [], adults = false } = {}) {
     function readSentence(sentence) {
       let s = ` ${sentence} `;
       // Speech: "“Hello!” said Mia." / "Mia said, “Hello!”" -> Mia says “Hello!”
-      s = s.replace(new RegExp(`(⟦\\d+⟧)[,]?\\s+(?:${SAY_VERBS})\\s+((?:the|a|an|her|his)\\s+[a-z]+|[A-Z][a-z]+|he|she|they)\\b[.!]?`, 'g'), ' $2 says $1 ');
+      s = s.replace(new RegExp(`(⟦\\d+⟧)[,]?\\s+(?:${SAY_VERBS})\\s+((?:the|a|an|her|his)\\s+[a-z]+|${TITLED}|[A-Z][a-z]+|he|she|they)\\b[.!]?`, 'g'), ' $2 says $1 ');
+      // ("at work": in the office)
+      s = s.replace(/\bat work\b/gi, 'in the office');
       s = s.replace(new RegExp(`\\b(${SAY_VERBS})\\s*[,:]?\\s*(⟦\\d+⟧)`, 'g'), 'says $2');
       s = s.replace(new RegExp(`(⟦\\d+⟧)[,]?\\s+([A-Z][a-z]+|[Hh]e|[Ss]he|[Tt]hey|the [a-z]+)\\s+(?:${SAY_VERBS})\\b[.!]?`, 'g'), ' $2 says $1 ');
       // (putting things on is said as "with ..." on whoever wears them: the words go)

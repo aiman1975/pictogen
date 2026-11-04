@@ -591,6 +591,7 @@ function mergeMatches(found) {
  *   { matches: [{ id:'apple', word:'apples', count:3, color:'red' }, { id:'boy', ... }], unknown: [...], excluded: [...], tokens: [...] }
  *   excluded: concept words negated in the prompt ("no cats", "without a hat") and left out
  */
+const COUNT_BREAKS = new Set('a an the and or but then so while when as in on at of to by from for into is are was were weeks week days day hours hour minutes minute years year months month times later ago morning afternoon evening night oclock'.split(' '));
 const COLOUR_BREAKS = new Set('a an the and or but then so while when as with without in on at of to by from for into onto is are was were be been this that these those his her their its my your our some'.split(' '));
 
 export function parseText(text, { fuzzy = false, names = null, keep = null } = {}) {
@@ -627,6 +628,13 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
 
   // (a colour is for the thing it is said with: "a blue ball", "a bright red kite"; not for someone
   // later on - "a blue sky and a girl", "the waves were glowing blue, then a girl smiles")
+  // (a number counts the thing it is said with: "three red apples"; not someone named, nor across
+  // "two in the morning, and Anna", "Two weeks later, Anna", "Habit four: Anna")
+  const countFor = (hit) => {
+    if (pend.count == null || String(hit.id).includes('~')) return null;
+    const between = toks.slice((pend.countAt ?? tokAt) + 1, tokAt);
+    return between.some((w) => COUNT_BREAKS.has(w)) ? null : pend.count;
+  };
   const colourFor = () => {
     if (!pend.color) return undefined;
     const between = toks.slice((pend.colorAt ?? tokAt) + 1, tokAt);
@@ -638,12 +646,13 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
       pend = {};
       return;
     }
+    const count = countFor(hit);
     found.push({
-      id: hit.id, word: hit.word, color: colourFor(), size: pend.size, ...(pend.count != null ? { countGiven: true } : {}),
+      id: hit.id, word: hit.word, color: colourFor(), size: pend.size, ...(count != null ? { countGiven: true } : {}),
       ...(pend.hair ? { hair: pend.hair } : {}),
       ...(pend.features ? { features: pend.features } : {}),
       at: tokAt,
-      count: pend.count != null ? Math.max(1, Math.min(pend.count, MAX_COUNT)) : hit.plural ? 3 : 1,
+      count: count != null ? Math.max(1, Math.min(count, MAX_COUNT)) : hit.plural ? 3 : 1,
       expression: pend.expression ?? hit.expression,
       animation: pend.animation ?? hit.animation,
       view: pend.view,
@@ -830,7 +839,8 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
 
     if (NUMBER_WORDS[t] != null) {
       pend.count = MULTIPLIERS.has(t.replace(/s$/, '')) && pend.count != null ? pend.count * NUMBER_WORDS[t] : NUMBER_WORDS[t];
-    } else if (/^\d+$/.test(t)) pend.count = +t;
+      pend.countAt ??= i;
+    } else if (/^\d+$/.test(t)) { pend.count = +t; pend.countAt = i; }
     else if (COLOR_WORDS[t]) { pend.color = t; pend.colorAt = i; }
     else if (SIZE_WORDS[t]) pend.size = SIZE_WORDS[t];
     else if (EXPRESSION_WORDS[t]) {
@@ -885,7 +895,9 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
       else {
         unknown.push(t);
         list = [];
-        delete pend.negate; // "no place like home": the negation was about something we can't draw
+        // "no place like home": the negation was about something we can't draw ("no late coffee":
+        // a word about the thing that comes next keeps it)
+        if (i + 1 >= toks.length || !(at(toks, i + 1) || SYNONYMS[toks[i + 1]]?.some((id) => getConcept(id)))) delete pend.negate;
       }
     }
     i++;

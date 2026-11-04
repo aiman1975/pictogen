@@ -493,6 +493,12 @@ try {
   check(true, '...and a line removed is no longer said');
   await page.click('.sr-row:nth-child(1) button[data-reset="0"]');
   await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.edited);
+  // 🎨 Look: a scene in another style than the clip
+  await page.selectOption('.sc-look[data-look="0"]', 'stickman');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[0]?.style === 'stickman' && !window.pictogenStudio.getStory().scenes[1].style);
+  check(sent.at(-1).includes('"sceneStyles"'), 'a look picked for a scene makes it in that style, the others as the clip');
+  await page.selectOption('.sc-look[data-look="0"]', '');
+  await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.style);
   // ＋ on a card: a dog added to scene 1 (with suggestions while typing), then left out again (×)
   await page.click('.sc-add[data-add-kind="figure"][data-i="0"]');
   check(await page.$eval('#sc-figures', (d) => d.options.length > 20) && await page.$eval('#sc-objects', (d) => d.options.length > 500), 'adding to a scene suggests figures (with your names) and things while typing');

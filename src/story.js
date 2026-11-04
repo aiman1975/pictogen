@@ -3,6 +3,7 @@
 import { readStory } from './story-reader.js';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
+import { isStyle } from './core/styles.js';
 import { pgSound, pgSoundTrack, pgVoiced, pgBank, pgMusicBars, pgMusicTrack, pgMusicLoop, pgAmbience, pgCleanSet } from './sound-synth.js';
 import { soundOf } from './sound.js';
 import { embeddedFontCss } from './fonts.js';
@@ -443,9 +444,10 @@ export function composeStory(storyInput, opts = {}) {
     ? readStory(storyInput, { individuals: opts.individuals ?? [], adults: genre !== 'kids' }) : null;
   // What the writer changed in "How I read your story" (opts.edits: their sentence -> what to draw
   // instead, the names as in the story)
-  const toKeys = (prompt) => (read?.cast ?? []).filter((c) => c.key && c.name && c.name !== c.key)
+  // (names in what is said stay names: "You look great, Anna!" is said, not drawn)
+  const toKeys = (prompt) => prompt.split(/(“[^”]*”|"[^"]*")/).map((part, k) => (k % 2 ? part : (read?.cast ?? []).filter((c) => c.key && c.name && c.name !== c.key)
     .sort((a, b) => b.name.length - a.name.length)
-    .reduce((p, c) => p.replace(new RegExp(`\\b${c.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'), c.key), prompt);
+    .reduce((p, c) => p.replace(new RegExp(`\\b${c.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'), c.key), part))).join('');
   const edits = opts.edits && typeof opts.edits === 'object' ? opts.edits : {};
   const scenesRaw = Array.isArray(storyInput) ? storyInput
     : read ? read.scenes.map((sc) => (typeof edits[sc.caption] === 'string' && edits[sc.caption].trim() ? { ...sc, prompt: toKeys(edits[sc.caption].trim().slice(0, 300)), edited: true } : sc))
@@ -478,9 +480,11 @@ export function composeStory(storyInput, opts = {}) {
   // character's own look, and a colour once said kept ("a girl in a purple dress", later "the girl")
   const carry = {};
   const scenes = scenesRaw.map((sc, i) => {
+    // (a look of its own for this scene, chosen on its card: a stickman moment in a flat clip)
+    const sceneStyle = isStyle(opts.sceneStyles?.[sc.caption]) ? opts.sceneStyles[sc.caption] : style;
     const result = generate(sc.prompt, {
       mode: 'scene',
-      style,
+      style: sceneStyle,
       width: dims.width,
       height: dims.height,
       seed,
@@ -528,6 +532,7 @@ export function composeStory(storyInput, opts = {}) {
       ...(result.card ? { card: { ...named({ ...result.card, steps: undefined, cast: undefined }), steps: result.card.steps, cast: result.card.cast.map((c) => ({ ...c, name: shown(c.name) })) } } : {}),
       ...(opts.sceneBeats?.[sc.caption] ? { stepsChosen: true } : {}),
       ...(opts.scenePlaces?.[sc.caption] ? { placeChosen: true } : {}),
+      ...(sceneStyle !== style ? { style: sceneStyle } : {}),
       ...((opts.moods?.[sc.caption] ?? sc.mood) ? { moodChosen: true } : {}),
       // (what could not be drawn, and whether the writer changed what to draw)
       ...(read ? { unknown: result.unknown, ...(sc.edited ? { edited: true } : {}) } : {}),

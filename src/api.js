@@ -41,6 +41,8 @@ const storyOpts = (payload) => ({
     : undefined,
   // a scene's place chosen on its card: sentence -> { place, time, weather } or { key, time, weather }
   scenePlaces: byCaption(payload.scenePlaces, (v) => v && typeof v === 'object' && !Array.isArray(v)),
+  // a scene's own look chosen on its card: sentence -> a style ('stickman', 'flat'...)
+  sceneStyles: byCaption(payload.sceneStyles, (v) => isStyle(v)),
   // a scene's steps changed on its card: sentence -> [{ actor, type, anim?, target?, with? }]
   sceneBeats: byCaption(payload.sceneBeats, (v) => Array.isArray(v)),
   // a story's scenes as the writer changed them: sentence -> what to draw

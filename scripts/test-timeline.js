@@ -699,5 +699,29 @@ Remember: stop, look and check before you click.`, { style: 'stickman', genre: '
   check(mine.where.place === 'desert' && mine.where.time === 'sunset', 'one of your places chosen, at another time');
 }
 
+// What the sleep explainer asked for
+{
+  const names = new Map([['pgc21', 'woman~pgc21']]);
+  const counts = (t) => parseText(t, { names }).matches.map((m) => m.count).join();
+  check(counts('it is two in the morning, and pgc21 is awake') === '1' && counts('Habit four : pgc21 walks') === '1' && counts('Two weeks later, pgc21 sleeps') === '1'
+    && counts('three red apples') === '3' && counts('two big dogs') === '2', 'a number counts the thing it is said with, never someone named, nor across "in the morning", "weeks later"');
+  check(!parseText('no late coffee').matches.length && parseText('no place like home').matches.length === 1, '"no late coffee" draws no coffee; "no place like home" still a home');
+  check(parseText('puts her phone away').matches.map((m) => m.id).join() === 'mobile_phone' && parseText('a thumbs up').matches[0]?.id === 'thumbs_up', '"away", "up" alone draw no icon; a thumbs up still one');
+  const r = composeStory('It is two in the morning, and Anna is awake.\n"Your brain loves a routine," says Dr. Lee.\nAt work, her team cheers.', { style: 'flat', genre: 'howto' });
+  check(r.cast.filter((c) => c.name).map((c) => `${c.name}:${c.id}`).join() === 'Anna:woman,Dr Lee:doctor', `"Dr. Lee" is one person, a doctor (${r.cast.map((c) => c.name)})`);
+  check(/at night/.test(r.scenes[0].prompt) && /Dr Lee says/.test(r.scenes[1].prompt) && r.scenes[2].card.place.startsWith('the office'), '"two in the morning" is night; "says Dr. Lee" is said by Dr Lee; "at work" is the office');
+  const team = generate('the team says “You look great!”', { style: 'flat' }).svg;
+  check((team.match(/You look great!/g) ?? []).length === 1, 'a group saying something together: one bubble');
+  const edited = composeStory('Anna smiled.\nHer team cheers.', { style: 'flat', genre: 'howto', edits: { 'Her team cheers.': 'the team says “You look great, Anna!” and Anna' } }).scenes[1];
+  check(/You look great, Anna!/.test(edited.svg) && !/pgc\d/.test(edited.card.message.said[0].text), 'names in quoted words stay names when a scene is changed');
+  const desk = composeStory('Anna woke up.\nThe next morning, Anna sits at her desk with her laptop. She is very tired.', { style: 'flat', genre: 'howto' }).scenes[1];
+  check(/pg-desk-chair/.test(desk.svg) && desk.card.figures[0].feels === 'sleepy', 'at her desk, then tired: a still scene at the desk with the feeling');
+  const bed = generate('a woman sleeps peacefully in the bedroom at night', { style: 'flat' }).svg;
+  check(/pg-sleeper/.test(bed) && /pg-figure/.test(bed), 'someone asleep in a bedroom lies in bed under a blanket');
+  check(/pg-sleeper/.test(generate('a man is asleep in bed', { style: 'stickman' }).svg) && !/pg-sleeper/.test(generate('a man sleeps in the park').svg), '...in any style; asleep in the park is not in bed');
+  const looks = composeStory('Anna waved.\nAnna smiled.', { style: 'flat', genre: 'howto', sceneStyles: { 'Anna smiled.': 'stickman' } }).scenes;
+  check(!looks[0].style && looks[1].style === 'stickman' && /pg-place-sketch|stroke-width="3\.6"/.test(looks[1].svg), 'a scene with a look of its own (stickman) in a flat clip');
+}
+
 console.log(fails ? `\n${fails} timeline check(s) failed` : '\nTimeline test suite: ALL PASSED!');
 process.exit(fails ? 1 : 0);

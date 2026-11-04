@@ -1756,6 +1756,7 @@
               // and the place and the steps chosen on a scene's card
               scenePlaces: Object.fromEntries(Object.entries(state.storyPlaces || {}).map(([k, v]) => [named(k).text, v])),
               sceneBeats: Object.fromEntries(Object.entries(state.storyBeats || {}).map(([k, v]) => [named(k).text, v])),
+              sceneStyles: Object.fromEntries(Object.entries(state.storyStyles || {}).map(([k, v]) => [named(k).text, v])),
               ...clipRequest(),
               style: state.style,
               genre: state.genre,

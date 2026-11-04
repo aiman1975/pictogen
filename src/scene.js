@@ -35,11 +35,33 @@ export const ENV_WORDS = {
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 // Sitting or working at a desk or a table ("sits at his desk", "works at the table"), and the things
 // that go on it, with their height as a share of a standing person's
-const DESK_RE = /\b(sits?|sat|sitting|works?|worked|working|types?|typed|typing|writes|wrote|writing|studies|studied|studying)\s+(?:[a-z]+\s+){0,3}?at\s+(?:the\s+|his\s+|her\s+|their\s+|a\s+|my\s+|your\s+|our\s+)?(desk|table|workbench)\b/;
+export const DESK_RE = /\b(sits?|sat|sitting|works?|worked|working|types?|typed|typing|writes|wrote|writing|studies|studied|studying)\s+(?:[a-z]+\s+){0,3}?at\s+(?:the\s+|his\s+|her\s+|their\s+|a\s+|my\s+|your\s+|our\s+)?(desk|table|workbench)\b/;
 const DESK_SIZES = { laptop: 0.19, desktop_computer: 0.25, mobile_phone: 0.1, hot_beverage: 0.1, teacup_without_handle: 0.08, book: 0.1, books: 0.12,
   open_book: 0.07, notebook: 0.07, pencil: 0.08, spiral_calendar: 0.1, calendar: 0.1, envelope: 0.06, e_mail: 0.09, memo: 0.08, clipboard: 0.12,
   telephone: 0.09, keyboard: 0.05, computer_mouse: 0.04, potted_plant: 0.14, desk_lamp: 0.18, lamp: 0.18, apple: 0.05, cup: 0.07, mug: 0.07 };
 const DESK_THINGS = new Set(Object.keys(DESK_SIZES));
+// A bed with someone asleep in it (in the sleeper's own units: their standing height is 100): the
+// frame and headboard, the mattress, a pillow, the sleeper lying with their head on it, a blanket
+function bedDrawing(it, style, olk) {
+  const plain = ['stickman', 'whiteboard', 'editorial', 'blueprint', 'doodle', 'sketch', 'outline'].includes(style);
+  const wood = plain ? '#ffffff' : '#a1887f', sheet = plain ? '#ffffff' : '#7986cb';
+  const d = createKit();
+  const line = { stroke: '#37474f', sw: 2.6, kind: 'body' };
+  d.rect(-14, 48, 9, 48, { rx: 3, fill: wood, ...line }); // headboard
+  d.rect(-8, 76, 124, 11, { rx: 2, fill: wood, ...line }); // frame
+  d.line(-4, 87, -4, 96, { ...line, kind: 'line', sw: 3 }); d.line(112, 87, 112, 96, { ...line, kind: 'line', sw: 3 });
+  d.rect(-6, 68, 120, 10, { rx: 4, fill: '#fafafa', ...line }); // mattress
+  d.ellipse(10, 66, 14, 6, { fill: '#ffffff', ...line }); // pillow
+  const back = shapesToSvg(d.shapes, style, { olk });
+  // (lying down: turned a quarter, head on the pillow, eyes shut)
+  const sleeper = shapesToSvg(drawConcept(it.c, { ...it.look, color: it.m.color, expression: 'sleepy', style }), style, { olk });
+  const b = createKit();
+  // (up to the chin, over the arms too)
+  b.path('M 27 46 Q 29 40 36 40 L 110 41 Q 117 41 117 49 L 117 77 Q 117 82 110 82 L 27 82 Q 24 64 27 46 Z', { fill: sheet, ...line }); // blanket
+  b.line(33, 47, 111, 47, { stroke: plain ? '#37474f' : '#5c6bc0', sw: 1.6, kind: 'line', opacity: 0.6 });
+  return `${back}<g class="pg-sleeper" transform="translate(0 12) rotate(-90 50 50)">${sleeper}</g>${shapesToSvg(b.shapes, style, { olk })}`;
+}
+
 // A desk, wider than a table drawing: a top, two legs, a drawer on one side (in a table's units)
 function deskDrawing(style, olk) {
   const d = createKit();
@@ -904,7 +926,9 @@ function playTimeline(timeline, slots, props, W, minDuration = 0) {
         words = a.anim === 'talk' ? a.speech ?? timeline.caption : null;
         if (words) {
           d = Math.max(d, lipKeys(words).duration + 0.4);
-          speeches.push({ key, start: t, text: words, quoted: a.speech != null });
+          // (a group saying the same words at once: one bubble, the others' lips move with it)
+          const echo = speeches.some((sp) => sp.start === t && sp.text === words && sp.quoted);
+          speeches.push({ key, start: t, text: words, quoted: a.speech != null && !echo });
         }
       } else {
         // 'expr' / 'appear'
@@ -1259,6 +1283,21 @@ export function composeScene(matches, opts = {}) {
     desk.h = worker.h * 0.78;
     desk.wf = 1.5;
   }
+  // Asleep in bed ("sleeps in the bedroom", "is asleep in bed"): lying under a blanket, in a bed of
+  // their own (a bed said in the words goes into it)
+  if (!timeline) {
+    const said = (words || []).join(' ');
+    const bedroom = /\b(bed|bedroom|bedtime)\b/.test(said) || items.some((it) => it.c.id === 'bed');
+    for (const it of items) {
+      if (!isPerson(it) || it.onSeat || it.carried || !bedroom) continue;
+      if (it.m.animation !== 'sleep' && !/\b(asleep|sleeps|sleeping|slept|lies in bed|lying in bed|lay in bed)\b/.test(said)) continue;
+      it.inBed = true;
+      it.wf = 1.3;
+      const bed = items.find((b) => b.c.id === 'bed' && !b.onSeat);
+      if (bed) bed.onSeat = it;
+      break;
+    }
+  }
   for (let i = items.length - 1; i >= 0; i--) if (items[i].onSeat) items.splice(i, 1);
   // Partners: holding hands, the gap that makes their hands meet; hugging, close and turned to each other
   for (const it of items) {
@@ -1424,7 +1463,8 @@ export function composeScene(matches, opts = {}) {
       motionCss.push(lipCss(name, [{ start: 0.5, text: words }], loop));
       lips = ` data-lips="${name}"`;
       // (a bubble for its own words; a clip's caption is already shown under the picture)
-      if (said.has(it.aid)) talkers.push({ x: cx, top: y0 + 2 * s, text: words, room: w, of: `${it.c.id}#${it.k}` });
+      // (several of a kind saying it together: one bubble)
+      if (said.has(it.aid) && !talkers.some((tk) => tk.text === words)) talkers.push({ x: cx, top: y0 + 2 * s, text: words, room: w, of: `${it.c.id}#${it.k}` });
       opts.speechDuration = Math.max(opts.speechDuration ?? 0, loop);
       soundLoop = Math.max(soundLoop ?? 0, loop);
     }
@@ -1465,11 +1505,11 @@ export function composeScene(matches, opts = {}) {
     // rides it comes after, in its motion
     const drawing = shapesToSvg(shapes, style, { olk });
     // (how it feels, as a sign over its head: "!", "?", a heart, "Zzz"...)
-    const sign = emote(animation === 'sleep' ? 'sleepy' : expression, { head: headOf(it), mirrored: flip });
+    const sign = it.inBed ? emote('sleepy', { head: [22, 30] }) : emote(animation === 'sleep' ? 'sleepy' : expression, { head: headOf(it), mirrored: flip });
     const deskParts = atDesk(it, s);
-    const drawn = it.desk ? deskDrawing(style, olk) : drawing;
+    const drawn = it.desk ? deskDrawing(style, olk) : it.inBed ? bedDrawing(it, style, olk) : drawing;
     let wrappedContent = `${deskParts.before}<g class="pg-figure">${drawn}${sign}</g>${deskParts.after}${carried(it, s)}${thoughtBubble(it, flip)}`;
-    if (limbs && limbs !== 'blink' && !drawing.includes(`pg-anim-${limbs}`)) {
+    if (limbs && limbs !== 'blink' && !it.inBed && !drawing.includes(`pg-anim-${limbs}`)) {
       wrappedContent = `<g class="pg-anim-${limbs}">${wrappedContent}</g>`;
     }
     if (shadows && anchor === 'bottom' && !['background', 'water'].includes(it.c.placement)) {

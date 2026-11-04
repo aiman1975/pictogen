@@ -14,6 +14,9 @@ const SMALL = new Set(['lives', 'live', 'is', 'are', 'was', 'were', 'has', 'have
 const isKey = (name) => /^pgc\d+$/.test(name ?? '');
 // (your characters' keys in a scene card, said by their names)
 const nm = (text) => String(text ?? '').replace(/\bpgc\d+\b/g, (k) => window.pictogenCharacters?.nameOfKey(k) ?? k);
+// Looks a scene can have of its own (the clip's style otherwise)
+const LOOKS = [['flat', 'Flat'], ['cartoon', 'Cartoon'], ['stickman', 'Stickman'], ['whiteboard', 'Whiteboard'], ['comic', 'Comic'], ['pastel', 'Pastel'],
+  ['anime', 'Anime'], ['watercolor', 'Watercolor'], ['outline', 'Outline'], ['vintage', 'Vintage'], ['doodle', 'Doodle'], ['sketch', 'Sketch']];
 const MOODS = [['tense', '😬 Tense'], ['joyful', '🎉 Joyful'], ['sad', '😢 Sad'], ['calm', '😌 Calm'], ['mystery', '🔮 Mystery'], ['none', 'No mood']];
 const moodName = (m) => MOODS.find(([k]) => k === m)?.[1] ?? 'none';
 
@@ -210,6 +213,10 @@ function card(sc, i, chosenMood) {
     ${slot('📦', 'Objects', objects + plus('object'))}
     ${slot('🏞️', 'Place', c.where ? placePickers(sc, i) : c.place ? esc(c.place) : '')}
     ${slot('💭', 'Feeling', mood)}
+    ${slot('🎨', 'Look', `<select class="sc-pick sc-look" data-look="${i}" aria-label="The look of scene ${i + 1}">
+      <option value="">Like the clip (${esc(LOOKS.find(([k]) => k === studio.getState().style)?.[1] ?? studio.getState().style)})</option>
+      ${LOOKS.map(([k, l]) => `<option value="${k}"${studio.getState().storyStyles?.[sc.caption] === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}
+    </select>`)}
     ${slot('🎬', 'Action', `${c.action.map((a) => esc(nm(a))).join(' → ')}${c.steps && !(draft?.caption === sc.caption) ? ` <button class="tl-btn" data-edit="${i}" title="Change what happens, step by step">✎ Steps</button>` : ''}`)}
     ${slot('💬', 'Message', `${said}${board}${saying?.caption === sc.caption ? '' : ` <button class="tl-btn" data-say="${i}" title="Change who says what, add a line, or what the board says">✎ Words</button>`}`)}
   </div>${adding?.caption === sc.caption ? adder(i) : ''}${saying?.caption === sc.caption ? messageEditor(sc, i) : ''}${draft?.caption === sc.caption ? stepEditor(sc, i) : ''}`;
@@ -221,6 +228,7 @@ function render() {
   st.storyMoods ??= {};
   st.storyPlaces ??= {};
   st.storyBeats ??= {};
+  st.storyStyles ??= {};
   panel.hidden = st.mode !== 'story' || !story.cast || !story.scenes?.length;
   if (panel.hidden) return;
   const mine = new Set((window.pictogenCharacters?.list() ?? []).map((c) => c.name.toLowerCase()));
@@ -368,6 +376,13 @@ panel.addEventListener('change', (e) => {
       if (/^pgp\d+$/.test(e.target.value)) next.key = e.target.value; else next.place = e.target.value;
     } else next[e.target.dataset.kind] = e.target.value;
     st.storyPlaces[sc.caption] = next;
+    redo();
+    return;
+  }
+  // A look of its own for a scene
+  if (e.target.matches('.sc-look')) {
+    const sc = story.scenes[+e.target.dataset.look];
+    if (e.target.value) st.storyStyles[sc.caption] = e.target.value; else delete st.storyStyles[sc.caption];
     redo();
     return;
   }

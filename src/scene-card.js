@@ -116,7 +116,9 @@ export function sceneCard({ matches = [], timeline = null, env = null, mood = nu
     action: [...new Set(action)].slice(0, 8),
     message: {
       ...(caption ? { caption } : {}),
-      said: said.filter((s) => s?.text).map((s) => ({ who: s.who ? nameOf(s.who) : null, text: s.text })),
+      // (a group saying it together: once)
+      said: said.filter((s) => s?.text).map((s) => ({ who: s.who ? nameOf(s.who) : null, text: s.text }))
+        .filter((s, i, all) => all.findIndex((x) => x.who === s.who && x.text === s.text) === i),
       ...(board ? { board } : {}),
     },
   };

@@ -517,7 +517,9 @@ export function lookRelations(text, { names = null } = {}) {
 export function speechRelations(text, { names = null } = {}) {
   const tl = parseTimeline(text, { force: true, names });
   if (!tl) return [];
-  return tl.beats.flatMap((b) => b.actions).filter((a) => a.speech).map((a) => ({ who: a.actor, text: a.speech }));
+  // (a group saying something together: one of them says it, in one bubble)
+  return tl.beats.flatMap((b) => b.actions).filter((a) => a.speech).map((a) => ({ who: a.actor, text: a.speech }))
+    .filter((sp, i, all) => all.findIndex((x) => x.text === sp.text) === i);
 }
 
 // ---------------------------------------------------------------------------------------------

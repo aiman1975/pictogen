@@ -1,7 +1,7 @@
 // PictoGen public API – offline text-to-vector image generator.
 
 import { parseText, suggestWords } from './text/matcher.js';
-import { composeScene, ENV_WORDS } from './scene.js';
+import { composeScene, ENV_WORDS, DESK_RE } from './scene.js';
 
 // Words that set the scene's backdrop (night, rain, beach...) rather than draw an object.
 const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
@@ -125,6 +125,16 @@ export function generate(text, opts = {}) {
   // Several things happening one after another: actors follow a timeline of beats - the prompt's,
   // or the beats as edited in the studio (opts.beats), which can also bring a still scene to life
   let timeline = mode === 'scene' ? parseTimeline(text, { names }) : null;
+  // (sitting at a desk while only feelings change - "sits at her desk..., then she is very tired" -
+  // is a still scene at the desk, with the last feeling each one has)
+  if (timeline && !Array.isArray(opts.beats) && DESK_RE.test(parsed.tokens.join(' '))
+    && timeline.beats.every((b) => b.actions.every((x) => x.type === 'expr' || x.type === 'appear' || (x.type === 'pose' && ['sit', 'think', 'sleep'].includes(x.anim))))) {
+    for (const b of timeline.beats) for (const x of b.actions) {
+      const m = matches.find((mm) => mm.id === x.actor);
+      if (m && x.expression) m.expression = x.expression;
+    }
+    timeline = null;
+  }
   // (a backdrop that moves - "a shooting star flies across the sky" - is the place's, not an actor)
   if (timeline?.actors.some((a) => BACKDROP_WORDS.has(a.match?.word))) {
     const gone = new Set(timeline.actors.filter((a) => BACKDROP_WORDS.has(a.match?.word)).map((a) => a.id));
