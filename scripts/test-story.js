@@ -108,5 +108,32 @@ Mrs Brown was a kind teacher. Their dog Max jumped. Zoe was an astronaut. She sm
   assert(Array.isArray(st.scenes[0].unknown) && st.cast.some((c) => c.name === 'Mia'), 'each scene says what it could not draw; the clip has its cast');
 }
 
+// What a long story taught the reader ("The Glowing Sea", read as one clip)
+{
+  const r = readStory(`One stormy night, a little girl called Mia stood on the beach with her grandpa Leo.
+Grandpa Leo smiled. "Tomorrow we will dive and find out why."
+The next morning, Mia and Grandpa Leo put on their diving masks and flippers.
+A sea turtle and a seahorse swam past them.
+Mia and Grandpa Leo swam back to their boat.
+That night, Mia sat on the beach with Grandpa Leo and looked at the stars.
+A shooting star flew across the sky. Mia thought about the reef for a long time.
+The next day, Mia went to school.
+She pointed at the board that says "Save our reef!"
+The teacher explained to the children why rubbish makes the coral sick.
+On Saturday, the whole class cleaned the beach together.`);
+  const p = r.scenes.map((s) => s.prompt);
+  const named = r.cast.filter((c) => c.name).map((c) => c.name);
+  assert(named.length === 2 && named.includes('Mia') && !named.includes('Saturday'), `"Grandpa Leo" and "her grandpa Leo" are one person; Saturday is no one (${named})`);
+  assert(/in the rain/.test(p[1]) && !/rain/.test(p[2]), 'the rain stops when a new day starts');
+  assert(/pgc21 with a diving mask and flippers/.test(p[2]) && /pgc22 with a diving mask and flippers/.test(p[2]), 'things put on are worn by those who put them on');
+  assert(/with a diving mask/.test(p[3]) && /with a diving mask/.test(p[4]) && !/mask/.test(p[5]), '...until that night');
+  const turtle = readStory('Mia played in the garden. A sea turtle walked past her.').scenes[1].prompt;
+  assert(!/by the sea/.test(turtle), `a sea turtle is not the seaside (${turtle})`);
+  assert(!/reef|under the sea/.test(p[6].replace(/thinks about the reef/, '')), 'a place only thought about is not where they are');
+  assert(/in the classroom/.test(p[8]) && /“Save our reef!”/.test(p[8]), 'the board says what the story says');
+  assert(/the board says “Save our reef!”/.test(p[9]), 'the board keeps its words while the story stays in the classroom');
+  assert(/the children clean the beach/.test(p[10]) && !/board/.test(p[10]), 'the whole class is the children; the board stays at school');
+}
+
 console.log(`\nStory Engine test suite: ${fails === 0 ? 'ALL PASSED!' : `${fails} FAILS`}`);
 process.exit(fails === 0 ? 0 : 1);

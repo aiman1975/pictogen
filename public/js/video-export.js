@@ -94,50 +94,78 @@ export function videoFormat({ audio = false } = {}) {
 }
 
 /**
- * Plays pre-rendered frames into a MediaRecorder at an exact frame rate and returns the video Blob.
- * frames: ImageBitmaps (or canvases) of equal size; audio: an AudioBuffer played alongside, or null.
+ * A MediaRecorder fed frame by frame, in chunks: play(frames) shows a chunk of frames (ImageBitmaps
+ * or canvases of equal size) at an exact frame rate, then pauses the recording - and the sound with
+ * it - until the next chunk is ready; finish() returns the video Blob. So a long clip never needs
+ * all its frames in memory at once (at 1280x720 a frame is ~3.7 MB: three minutes would be ~20 GB).
+ * audio: an AudioBuffer played alongside (paused and resumed with the recording), or null.
  */
-export async function recordFrames(frames, { fps, width, height, bitrate = 8e6, audio = null }) {
+export async function openRecorder({ fps, width, height, bitrate = 8e6, audio = null }) {
   const format = videoFormat({ audio: !!audio });
   if (!format) throw new Error('This browser cannot record video (no MediaRecorder support)');
   const canvas = document.createElement('canvas');
   canvas.width = width; canvas.height = height;
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(frames[0], 0, 0);
   const stream = canvas.captureStream(0);
   const track = stream.getVideoTracks()[0];
-  // The sound goes in as a second track, started with the recording
-  let actx = null, source = null;
+  // The sound goes in as a second track; each chunk plays its own slice of it as its frames play
+  // (the audio never pauses: only the recorder does, between chunks)
+  let actx = null, dest = null;
   if (audio) {
     actx = new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === 'suspended') await actx.resume().catch(() => {});
-    const dest = actx.createMediaStreamDestination();
-    source = actx.createBufferSource();
-    source.buffer = audio;
-    source.connect(dest);
+    dest = actx.createMediaStreamDestination();
     stream.addTrack(dest.stream.getAudioTracks()[0]);
   }
   const recorder = new MediaRecorder(stream, { mimeType: format.type, videoBitsPerSecond: bitrate });
   const chunks = [];
   recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
   const stopped = new Promise((resolve) => { recorder.onstop = resolve; });
-  recorder.start();
-  if (source) source.start();
-  const start = performance.now();
-  for (let i = 0; i < frames.length; i++) {
-    const due = start + (i * 1000) / fps;
-    const wait = due - performance.now();
-    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-    ctx.drawImage(frames[i], 0, 0);
-    track.requestFrame ? track.requestFrame() : null;
-  }
-  // Hold the last frame for one frame time so the video lasts the full clip
-  await new Promise((r) => setTimeout(r, 1000 / fps));
-  recorder.stop();
-  await stopped;
-  stream.getTracks().forEach((t) => t.stop());
-  if (actx) actx.close().catch(() => {});
-  return new Blob(chunks, { type: format.type.split(';')[0] });
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let started = false, played = 0; // (frames recorded so far)
+  return {
+    /** Records `frames` at the frame rate; `last`: the clip's final chunk (no pause after it) */
+    async play(frames, last = false) {
+      if (!frames.length) return;
+      ctx.drawImage(frames[0], 0, 0);
+      if (!started) { recorder.start(); started = true; } else recorder.resume();
+      if (audio) {
+        const src = actx.createBufferSource();
+        src.buffer = audio;
+        src.connect(dest);
+        const from = played / fps;
+        if (from < audio.duration) src.start(actx.currentTime, from, Math.min(frames.length / fps, audio.duration - from));
+      }
+      const t0 = performance.now();
+      for (let i = 0; i < frames.length; i++) {
+        const wait = t0 + (i * 1000) / fps - performance.now();
+        if (wait > 0) await sleep(wait);
+        ctx.drawImage(frames[i], 0, 0);
+        if (track.requestFrame) track.requestFrame();
+      }
+      played += frames.length;
+      // (the chunk's last frame keeps its frame time; then, unless it is the end, all waits for the next)
+      await sleep(Math.max(0, t0 + (frames.length * 1000) / fps - performance.now()));
+      if (!last) recorder.pause();
+    },
+    async finish() {
+      if (started) {
+        if (recorder.state === 'paused') { recorder.resume(); if (track.requestFrame) track.requestFrame(); await sleep(1000 / fps); }
+        recorder.stop();
+        await stopped;
+      }
+      stream.getTracks().forEach((t) => t.stop());
+      if (actx) actx.close().catch(() => {});
+      return new Blob(chunks, { type: format.type.split(';')[0] });
+    },
+  };
+}
+
+/** Plays pre-rendered frames into a MediaRecorder at an exact frame rate and returns the video Blob. */
+export async function recordFrames(frames, { fps, width, height, bitrate = 8e6, audio = null }) {
+  const rec = await openRecorder({ fps, width, height, bitrate, audio });
+  await rec.play(frames, true);
+  return rec.finish();
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -217,19 +245,31 @@ function drawTitleCard(ctx, title, genre, W, H) {
  * scene?: { caption, tag, headline } }; with `title`, a title card comes first.
  * format 'gif' -> ImageData frames at 1x; 'video' -> ImageBitmaps at `scale`.
  */
-async function renderShots(shots, { fps, scale, format, title, genre, onProgress }) {
+async function renderShots(shots, { fps, scale, format, title, genre, onProgress, sink, chunk = 90 }) {
   const { width, height } = svgSize(shots[0].svg);
   const W = Math.round(width * scale), H = Math.round(height * scale);
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   const frames = [];
-  const grab = async () => frames.push(format === 'gif' ? ctx.getImageData(0, 0, W, H).data : await createImageBitmap(canvas));
+  let done = 0;
+  // (with a sink - a video's recorder - frames go to it every `chunk` frames and are let go)
+  const flush = async (last = false) => {
+    if (!sink || !frames.length) return;
+    await sink(frames, last);
+    frames.forEach((f) => f.close && f.close());
+    frames.length = 0;
+  };
+  const grab = async () => {
+    frames.push(format === 'gif' ? ctx.getImageData(0, 0, W, H).data : await createImageBitmap(canvas));
+    done++;
+    if (sink && frames.length >= chunk) await flush();
+  };
   const total = Math.round((title ? 1.5 : 0) * fps) + shots.reduce((s, sh) => s + Math.max(1, Math.round(sh.duration * fps)), 0);
   if (document.fonts && document.fonts.ready) await document.fonts.ready;
   if (title) {
     drawTitleCard(ctx, title, genre, W, H);
-    for (let i = 0; i < Math.round(1.5 * fps); i++) { await grab(); onProgress && onProgress(frames.length / total); }
+    for (let i = 0; i < Math.round(1.5 * fps); i++) { await grab(); onProgress && onProgress(done / total); }
   }
   for (const shot of shots) {
     // With a caption, the picture moves up by most of the caption's height (cropping empty sky),
@@ -241,10 +281,11 @@ async function renderShots(shots, { fps, scale, format, title, genre, onProgress
       onFrame: async () => {
         if (captioned) drawCaption(ctx, shot.scene, genre, W, H);
         await grab();
-        onProgress && onProgress(frames.length / total);
+        onProgress && onProgress(done / total);
       },
     });
   }
+  await flush(true);
   return { frames, width: W, height: H };
 }
 
@@ -278,19 +319,20 @@ export async function clipSound(shots, { fps = 30, title, music = null, genre } 
  * background music under it (default false).
  */
 export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, tune, sound = true, music = false, onProgress } = {}) {
-  const { frames, width, height } = await renderShots(shots, { fps, scale, format: 'video', title, genre, onProgress: (p) => onProgress && onProgress(p * 0.6) });
+  // The sound first (it needs only the scenes and their lengths), then the frames, drawn and
+  // recorded a few seconds at a time
   const audio = sound || music
     ? await clipSound(sound ? shots : shots.map((sh) => ({ ...sh, svg: null })), { fps, title, genre, music: music ? { genre: tune || genre || 'kids' } : null }).catch(() => null)
     : null;
-  const n = frames.length;
-  let shown = 0;
-  const tick = setInterval(() => { shown = Math.min(n, shown + fps / 4); onProgress && onProgress(0.6 + 0.4 * (shown / n)); }, 250);
+  const { width, height } = svgSize(shots[0].svg);
+  const rec = await openRecorder({ fps, width: Math.round(width * scale), height: Math.round(height * scale), audio });
   try {
-    return await recordFrames(frames, { fps, width, height, audio });
-  } finally {
-    clearInterval(tick);
-    frames.forEach((f) => f.close && f.close());
+    await renderShots(shots, { fps, scale, format: 'video', title, genre, onProgress, sink: (frames, last) => rec.play(frames, last), chunk: Math.round(fps * 3) });
+  } catch (e) {
+    await rec.finish().catch(() => null);
+    throw e;
   }
+  return rec.finish();
 }
 
 /** Puts SVG markup into an off-screen (but rendered, so it animates) box and returns the <svg> element. */

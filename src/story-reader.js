@@ -20,7 +20,9 @@ const FEMALE = new Set(['girl', 'woman', 'old_woman', 'princess', 'queen', 'witc
 const MALE = new Set(['boy', 'man', 'old_man', 'prince', 'king', 'man_teacher', 'man_superhero', 'police_officer', 'firefighter', 'doctor',
   'cook', 'farmer', 'astronaut', 'pirate', 'wizard', 'man_mage']);
 const BEINGS = new Set(['alien', 'alien_monster', 'ghost', 'snowman']);
-const isCreature = (id) => /^(people|animals|wildlife)/.test(getConcept(id)?.category ?? '') || BEINGS.has(id);
+// Living things that are scenery, not characters ("the coral had lost its colours")
+const SCENERY = new Set(['coral', 'sponge', 'seaweed', 'shell', 'spiral_shell', 'herb', 'potted_plant', 'mushroom']);
+const isCreature = (id) => !SCENERY.has(id) && (/^(people|animals|wildlife)/.test(getConcept(id)?.category ?? '') || BEINGS.has(id));
 const isAnimal = (id) => /^(animals|wildlife)/.test(getConcept(id)?.category ?? '');
 // (story friends and robots are "he", "she" or "it" as the story says, like animals)
 const ANY = new Set(['owl_teacher', 'baby_dragon', 'idea_buddy', 'robot']);
@@ -45,7 +47,9 @@ const NOT_NAMES = new Set(`once one two three the a an and but then so suddenly 
   first last afterwards everyone everybody nobody somebody someone something nothing all both each it its they he she we i you
   oh wow yes no hello hi goodbye bye look come go let lets please thank thanks good great well now here what who why how where
   together outside inside upstairs downstairs far near long little big happy sad deep high under over behind across through
-  along around beside inside poor dear sweet brave tiny huge old young her his their our my your its him them us me today`.split(/\s+/));
+  along around beside inside poor dear sweet brave tiny huge old young her his their our my your its him them us me today
+  monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october
+  november december spring summer autumn winter christmas easter weekend`.split(/\s+/));
 // Story verbs in the past, in the present the engine reads
 const PRESENT = {
   ran: 'runs', sat: 'sits', rode: 'rides', flew: 'flies', swam: 'swims', ate: 'eats', drank: 'drinks', held: 'holds', threw: 'throws',
@@ -56,7 +60,16 @@ const PRESENT = {
   hugged: 'hugs', cuddled: 'cuddles', laughed: 'laughs', smiled: 'smiles', cried: 'cries', looked: 'looks', watched: 'watches',
   wagged: 'wags', barked: 'barks', shouted: 'shouts', whispered: 'whispers', asked: 'asks', called: 'calls', lived: 'lives',
   carried: 'carries', picked: 'picks', opened: 'opens', helped: 'helps', kissed: 'kisses', painted: 'paints', cooked: 'cooks',
+  appeared: 'appears', pointed: 'points', cheered: 'cheer', cleaned: 'clean', showed: 'shows', dived: 'dives', dove: 'dives',
+  glowed: 'glows', explained: 'explains', learned: 'learns', learnt: 'learns', listened: 'listens', waited: 'waits',
+  clapped: 'claps', sailed: 'sails', floated: 'floats', grew: 'grows', built: 'builds', wrote: 'writes', drew: 'draws',
 };
+// Things worn ("put on their diving masks and flippers"): worn by those it says until the day or the
+// night changes, or they take them off (said in each scene as "with ...", src/text/matcher.js)
+const WORN = [[/\bdiving masks?\b|\bmasks?\b|\bsnorkels?\b/, 'a diving mask'], [/\bflippers\b|\bfins\b/, 'flippers'], [/\b(?:air |oxygen )?tanks?\b/, 'an air tank'],
+  [/\bhelmets?\b|\bhard hats?\b/, 'a helmet'], [/\bcapes?\b|\bcloaks?\b/, 'a cape'], [/\bcrowns?\b/, 'a crown'], [/\bgoggles\b/, 'goggles'],
+  [/\bbackpacks?\b|\brucksacks?\b/, 'a backpack'], [/\bboots\b|\bwellies\b/, 'boots'], [/\bscarf\b|\bscarves\b/, 'a scarf'],
+  [/\bheadphones\b/, 'headphones'], [/\bwings\b/, 'wings'], [/\bcaps?\b/, 'a cap']];
 const SAY_VERBS = 'said|says|asked|asks|shouted|shouts|cried|called|calls|whispered|whispers|replied|replies|barked|barks|yelled|answered|sang|laughed|giggled|exclaimed';
 
 // Where and when: carried from scene to scene until the story says otherwise
@@ -74,12 +87,14 @@ const PLACES = [
   ['park', /\b(park|playground)\b/, 'in the park'],
   ['garden', /\b(garden|yard|backyard)\b/, 'in the garden'],
   ['beach', /\b(beach|seaside|shore|sand)\b/, 'on the beach'],
-  ['sea', /\b(sea|ocean|lake|river|pond)\b/, (w) => `by the ${w}`],
+  ['boat', /\b(boat|ship|sailboat|canoe)\b/, 'on the sea'],
+  // (a sea turtle, a sea star, a seashell: not a place)
+  ['sea', /\b(sea|ocean|lake|river|pond)\b(?!\s*(?:turtles?|horses?|stars?|shells?|gulls?|lions?|weeds?|creatures?|animals?)\b)/, (w) => `by the ${w}`],
   ['city', /\b(city|town|street)\b/, 'in the city'],
   ['classroom', /\b(school|classroom)\b/, 'in the classroom'],
   ['kitchen', /\bkitchen\b/, 'in the kitchen'],
   ['bedroom', /\b(bedroom|bed)\b/, 'in the bedroom'],
-  ['home', /\b(home|house|living room|inside|indoors)\b/, 'at home'],
+  ['home', /(?<!\bway )\b(home|house|living room|inside|indoors)\b/, 'at home'],
 ];
 const TIMES = [
   ['night', /\b(night|nighttime|midnight|bedtime|dark|moon|stars)\b/],
@@ -143,7 +158,13 @@ export function readStory(text, { individuals = [] } = {}) {
   const mention = (m) => { m.last = ++tick; return m; };
   // The studio's own characters, already keys in the text
   for (const ind of individuals) if (ind?.key && getConcept(ind.base)) cast.push({ name: ind.key, key: ind.key, id: ind.base, gender: genderOf(ind.base), saved: true, last: 0 });
-  const named = (name) => cast.find((m) => m.name && m.name.toLowerCase() === name.toLowerCase());
+  // (a titled name and the name alone are one person: "Grandpa Leo" is "Leo", "her grandpa Leo")
+  const named = (name) => {
+    const n = name.toLowerCase(), last = n.split(' ').pop();
+    return cast.find((m) => m.name && m.name.toLowerCase() === n)
+      ?? cast.find((m) => m.name && m.titled && m.name.toLowerCase().split(' ').pop() === n)
+      ?? (n.includes(' ') ? cast.find((m) => m.name && !m.titled && m.name.toLowerCase() === last) : null);
+  };
   const addNamed = (name, id, color, noun = null) => {
     const had = named(name);
     if (had) return had;
@@ -165,7 +186,7 @@ export function readStory(text, { individuals = [] } = {}) {
     return after && ['she', 'her'].includes(after) ? 'girl' : 'boy';
   };
 
-  let place = null, time = null, weather = null;
+  let place = null, time = null, weather = null, board = null;
   let lastScene = [], prevScene = []; // who was in the scenes before ("they")
   const scenes = [];
   let offset = 0;
@@ -195,10 +216,31 @@ export function readStory(text, { individuals = [] } = {}) {
     const p = PLACES.find(([, re]) => re.test(low));
     if (p) { place = [...p]; place.word = low.match(p[1])[1]; }
     const t = TIMES.find(([, re]) => re.test(low));
-    if (t) time = t[0];
     const w = WEATHER.find(([, re]) => re.test(low));
+    // (a new day or night: the weather clears unless it is said again; things worn come off)
+    const newTime = t && (t[0] !== time || /\b(next|following) (day|morning|night)|\bthat night\b|\bon (monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(low));
+    if (newTime) { if (!w) weather = null; for (const m of cast) delete m.wearing; }
+    if (t) time = t[0];
     if (w) weather = w[0] === 'clear' ? null : w[0];
+    // Things put on ("put on their diving masks and flippers", "wore a cape"): worn from now on
+    const dressing = low.match(/\b(?:put on|puts on|putting on|wore|wears|wearing|dressed in)\b([^.!?⟦]*)/);
+    if (dressing) {
+      const worn = WORN.filter(([re]) => re.test(dressing[1])).map(([, phrase]) => phrase);
+      for (const m of inScene) if (m.key && worn.length && /^people/.test(getConcept(m.id)?.category ?? '')) m.wearing = [...new Set([...(m.wearing ?? []), ...worn])];
+    }
+    if (/\b(?:took off|takes off|take off)\b/.test(low)) for (const m of inScene) delete m.wearing;
+    // (said in the scene, after each one's first mention)
+    for (const m of inScene) {
+      if (!m.wearing?.length || !m.key) continue;
+      const list = m.wearing.length > 1 ? `${m.wearing.slice(0, -1).join(', ')} and ${m.wearing.at(-1)}` : m.wearing[0];
+      prompt = prompt.replace(new RegExp(`\\b${m.key}\\b(?! with)`), `${m.key} with ${list}`);
+    }
     if (place && !place[1].test(prompt.toLowerCase())) prompt += ` ${typeof place[2] === 'function' ? place[2](place.word) : place[2]}`;
+    // (words on the classroom's board stay there while the story stays in the classroom)
+    const boardSays = raw.match(/\b(?:chalk|black|white)?board\b[^⟦.!?]{0,30}(⟦\d+⟧)/i);
+    if (boardSays) board = boardSays[1];
+    else if (place?.[0] !== 'classroom') board = null;
+    else if (board && !/\bboard\b/.test(prompt)) prompt += ` and the board says ${board}`;
     if (time === 'night' && !/\bnight\b/.test(prompt)) prompt += ' at night';
     if (time === 'evening' && !/\b(evening|sunset)\b/.test(prompt)) prompt += ' at sunset';
     if (weather && !new RegExp(`\\b${weather}\\b`).test(prompt)) prompt += ` in the ${weather}`;
@@ -211,7 +253,9 @@ export function readStory(text, { individuals = [] } = {}) {
       const member = cast.find((m) => m.key && mt.id === `${m.id}~${m.key}` && !m.saved);
       if (!member) continue;
       member.look ??= { seed: hash(member.name.toLowerCase()) };
-      if (mt.features && Object.keys(mt.features).length) member.look.features = { ...member.look.features, ...mt.features };
+      // (what they wear comes and goes with the scenes: not part of their look)
+      const { gear, ...own } = mt.features ?? {};
+      if (Object.keys(own).length) member.look.features = { ...member.look.features, ...own };
       if (mt.hair) member.look.hair = mt.hair;
       if (mt.color && COLOR_WORDS[mt.color]) member.look.main = COLOR_WORDS[mt.color];
     }
@@ -225,6 +269,10 @@ export function readStory(text, { individuals = [] } = {}) {
       // Speech: "“Hello!” said Mia." / "Mia said, “Hello!”" -> Mia says “Hello!”
       s = s.replace(new RegExp(`(⟦\\d+⟧)[,]?\\s+(?:${SAY_VERBS})\\s+((?:the|a|an|her|his)\\s+[a-z]+|[A-Z][a-z]+|he|she|they)\\b[.!]?`, 'g'), ' $2 says $1 ');
       s = s.replace(new RegExp(`\\b(${SAY_VERBS})\\s*[,:]?\\s*(⟦\\d+⟧)`, 'g'), 'says $2');
+      // (putting things on is said as "with ..." on whoever wears them: the words go)
+      s = s.replace(/\b(?:put|puts|putting)\s+on\s+(?:(?:their|his|her|the|some)\s+)?[a-z ,]*?(?=[.!?,;⟦]|\s(?:and then|then)\b|\s*$)/gi, ' ');
+      // ("the whole class", "the class": the children)
+      s = s.replace(/\b(?:the\s+)?(?:whole\s+)?class\b(?!room)/gi, 'the children');
       // Introductions: "a little girl called Mia", "Rex, a brown puppy,", "Rex the dog", "Grandma Rose", "his name was Rex"
       s = s.replace(/\b(?:a|an|the)\s+((?:[a-z]+\s+){0,3}?)([a-z]+)\s+(?:called|named)\s+([A-Z][a-z]+|pgc\d+)/g, (all, adj, word, name) => {
         const id = kindOf(word) ?? kindOf(adj.trim().split(/\s+/).pop() || '');
@@ -266,7 +314,11 @@ export function readStory(text, { individuals = [] } = {}) {
         return name;
       });
       s = s.replace(/\b(Mr|Mrs|Ms|Miss|Dr|Doctor|Grandma|Granny|Nana|Grandpa|Grandad|Uncle|Aunt|Auntie|King|Queen|Prince|Princess|Captain|Farmer|Teacher|Professor)\.?\s+([A-Z][a-z]+)/g,
-        (all, title, name) => { addNamed(`${title} ${name}`, TITLES[title.toLowerCase()], null, title.toLowerCase()); return `${title}_${name}`; });
+        (all, title, name) => {
+          const m = addNamed(`${title} ${name}`, TITLES[title.toLowerCase()], null, title.toLowerCase());
+          if (m.name === `${title} ${name}`) m.titled = true;
+          return `${title}_${name}`;
+        });
       s = s.replace(/\b(?:her|his|its|their)\s+name\s+(?:was|is)\s+([A-Z][a-z]+)/gi, (all, name) => {
         // (the last one named with nothing but a kind gets the name)
         const who = [...cast].filter((m) => !m.name).sort((a, b) => b.last - a.last)[0];

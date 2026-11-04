@@ -17,6 +17,7 @@ export const STOPWORDS = new Set(
   watches watched stares stared staring gazes gazed gazing glances glanced glancing smiles smiled laughs laughed cries cried frowns frowned each another
   all any each every such only own same other s t let lets get gets got go goes going went come came see saw look looks looking
   like likes liked once upon time day one's its very really
+  appear appears appeared appearing way clean cleans cleaned cleaning together whole
   stand standing stands stood play playing plays played
   eat eating eats ate`.split(/\s+/),
 );
@@ -45,7 +46,7 @@ export const MOTION_WORDS = {
   run: 'run', running: 'run', runs: 'run', ran: 'run', jog: 'run', jogging: 'run',
   // Gestures & Poses
   wave: 'wave', waving: 'wave', waves: 'wave', waved: 'wave',
-  point: 'point', pointing: 'point', points: 'point', pointed: 'point',
+  point: 'point', pointing: 'point', points: 'point', pointed: 'point', shows: 'point', showed: 'point', showing: 'point',
   thumbsup: 'thumbsup', 'thumbs-up': 'thumbsup',
   hold: 'hold', holding: 'hold', holds: 'hold', held: 'hold',
   // Acrobatics & Movement
@@ -53,7 +54,7 @@ export const MOTION_WORDS = {
   dance: 'dance', dancing: 'dance', dances: 'dance', danced: 'dance', groove: 'dance', grooving: 'dance',
   cheer: 'cheer', cheering: 'cheer', cheers: 'cheer', cheered: 'cheer', celebrate: 'cheer', celebrating: 'cheer', celebrates: 'cheer', hurray: 'cheer', hooray: 'cheer',
   fly: 'fly', flying: 'fly', flies: 'fly', flew: 'fly', soar: 'fly', soaring: 'fly',
-  swim: 'swim', swimming: 'swim', swims: 'swim', swam: 'swim',
+  swim: 'swim', swimming: 'swim', swims: 'swim', swam: 'swim', dive: 'swim', dives: 'swim', diving: 'swim', dived: 'swim', dove: 'swim',
   sleep: 'sleep', sleeping: 'sleep', sleeps: 'sleep', slept: 'sleep', snooze: 'sleep', snoozing: 'sleep', rest: 'sleep', resting: 'sleep',
   sit: 'sit', sitting: 'sit', sits: 'sit', sat: 'sit',
   think: 'think', thinking: 'think', thinks: 'think', thought: 'think', ponder: 'think', pondering: 'think',

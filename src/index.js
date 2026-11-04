@@ -11,7 +11,7 @@ const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...EN
 const PLACE_WORDS = new Set(['forest', 'woods', 'jungle', 'park', 'garden', 'home', 'coral', 'reef']);
 // (and these are always the backdrop in a scene, drawn by src/places.js: dunes and cacti, snowy
 // peaks, a castle on a hill, a barn and fields)
-const BACKDROP_WORDS = new Set(['desert', 'mountain', 'mountains', 'castle', 'farm', 'barn', 'board']);
+const BACKDROP_WORDS = new Set(['desert', 'mountain', 'mountains', 'castle', 'farm', 'barn', 'board', 'school', 'classroom']);
 // Words written on the board: 'the board says "2 + 2 = 4"', 'writes "Hello" on the board'
 const BOARD = '(?:chalkboard|blackboard|whiteboard|board)';
 const BOARD_SAYS = new RegExp(`\\b${BOARD}\\b(?:\\s+(?:that|which))?(?:\\s+(?:says|said|reads|shows|showing|with))?\\s*[:,]?\\s*["“]([^"”“]{1,60})["”]`, 'i');

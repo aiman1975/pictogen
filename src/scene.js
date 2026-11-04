@@ -34,7 +34,10 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 // The board on a classroom's wall ("points at the board", "a whiteboard")
 const BOARD_WORDS = ['board', 'chalkboard', 'blackboard', 'whiteboard'];
 
+// (what someone thinks or dreams of is not where they are: "thinks about the reef")
+const THINK_WORDS = new Set(['think', 'thinks', 'thinking', 'thought', 'dream', 'dreams', 'dreaming', 'dreamed', 'dreamt', 'imagine', 'imagines', 'imagining', 'remember', 'remembers', 'remembering', 'wonder', 'wonders', 'wondering']);
 function detectEnv(items, words) {
+  words = words.filter((x, i) => !(['about', 'of'].includes(words[i - 1]) && THINK_WORDS.has(words[i - 2])) && !(['about', 'of'].includes(words[i - 2]) && THINK_WORDS.has(words[i - 3]) && ['the', 'a', 'an', 'his', 'her', 'their'].includes(words[i - 1])));
   const w = new Set(words);
   const any = (k) => ENV_WORDS[k].some((x) => w.has(x));
   const ids = new Set(items.map((i) => i.c.id));
@@ -59,7 +62,7 @@ function detectEnv(items, words) {
     sunset,
     snow: any('snow') || tags.has('winter'),
     rain: any('rain') || ids.has('rain'),
-    water: any('water') || items.some((i) => i.c.placement === 'water' || i.c.placement === 'underwater'),
+    water: any('water') || any('beach') || items.some((i) => i.c.placement === 'water' || i.c.placement === 'underwater'),
     beach: any('beach'),
     room,
     roomKind,

@@ -490,7 +490,11 @@ export function parseTimeline(text, { force = false, names = null } = {}) {
   }
 
   // Targets that are not actors are props; an actor's first mention keeps its colour/expression words
-  const actors = actorIds.map((id) => ({ id, match: mentioned.get(id) || { id, word: id, count: 1 } }));
+  // (what the sentence says someone wears or looks like - "Mia with a diving mask" - wherever it says it)
+  const described = new Map();
+  for (const c of clauses) for (const m of parse(c).matches) if (m.features && !described.has(m.id)) described.set(m.id, m.features);
+  const withLook = (m) => (described.has(m.id) && !m.features ? { ...m, features: described.get(m.id) } : m);
+  const actors = actorIds.map((id) => ({ id, match: withLook(mentioned.get(id) || { id, word: id, count: 1 }) }));
   const props = [...mentioned.values()].filter((m) => !actorIds.includes(m.id));
   if (!actors.length || !beats.some((b) => b.actions.length)) return null;
   // The first clause can just set the stage: "a boy and a dog in the park, then ..." -> both present

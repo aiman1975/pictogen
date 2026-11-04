@@ -481,7 +481,10 @@ export function composeStory(storyInput, opts = {}) {
 
     for (const m of result.matches) {
       if (m.color || m.hair || m.features) {
-        carry[m.id] = { color: m.color ?? carry[m.id]?.color, hair: m.hair ?? carry[m.id]?.hair, ...(m.features || carry[m.id]?.features ? { features: { ...carry[m.id]?.features, ...m.features } } : {}) };
+        // (what someone wears is said scene by scene: it doesn't carry over)
+        const { gear, ...own } = m.features ?? {};
+        const kept = { ...carry[m.id]?.features, ...own };
+        carry[m.id] = { color: m.color ?? carry[m.id]?.color, hair: m.hair ?? carry[m.id]?.hair, ...(Object.keys(kept).length ? { features: kept } : {}) };
       }
     }
 
