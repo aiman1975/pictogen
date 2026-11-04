@@ -647,5 +647,35 @@ Remember: stop, look and check before you click.`, { style: 'stickman', genre: '
   check(T({ minDuration: 8 }) >= 8 && T() < 8, 'in a clip, a sequence holds its last moment while the scene is on (no restart)');
 }
 
+// A scene's mood (src/mood.js), and its card (src/scene-card.js)
+{
+  const { detectMood } = await import('../src/mood.js');
+  const { pgMusicPlan } = await import('../src/sound-synth.js');
+  check(detectMood('Suddenly, an email arrived. Sam was worried.') === 'tense' && detectMood('Everyone cheered. "We did it!"') === 'joyful'
+    && detectMood('Mia was sad. The coral was sick.') === 'sad' && detectMood('The waves were glowing. It was a mystery.') === 'mystery'
+    && detectMood('She slept peacefully, all was quiet.') === 'calm' && detectMood('A boy walks to the tree.') === null,
+    'a scene\'s mood is read from its words (tense, joyful, sad, mystery, calm, or none)');
+  check(detectMood('"Do not be afraid," said the whale.') === null, '..."not afraid" is not a scary moment');
+  check(detectMood('Lena smiled. "Well done, Sam! That was a scam."') === 'joyful', '..."well done" outweighs a scam that is over');
+  const tense = generate('suddenly a monster appears in the forest', { style: 'cartoon' });
+  check(tense.mood === 'tense' && /data-scene-mood="tense"/.test(tense.svg) && /pg-mood-camera/.test(tense.svg) && /"s":"tension"/.test(tense.svg.replace(/&quot;/g, '"')),
+    'a tense scene: dark edges, a slow push in, a low swell as it starts');
+  const sad = generate('a sad girl cried in the rain', { style: 'cartoon' });
+  check(sad.mood === 'sad' && /feColorMatrix type="saturate"/.test(sad.svg), 'a sad scene: paler colours');
+  check(generate('a girl smiles', { mood: 'mystery' }).mood === 'mystery' && !generate('suddenly a monster appears', { mood: 'none' }).mood
+    && !/data-scene-mood/.test(generate('a boy walks to the tree').svg), 'a mood can be chosen, or none; a scene without one stays as it was');
+  const camOwn = generate('suddenly a monster appears, then the camera zooms in', { style: 'cartoon' }).svg;
+  check(!/pg-mood-camera/.test(camOwn), 'a scene with its own camera move keeps it (no mood camera on top)');
+  const plan = pgMusicPlan([{ mood: 'tense', at: 0, duration: 4 }, { mood: null, at: 4, duration: 5 }, { mood: 'joyful', at: 9, duration: 5 }, { mood: 'joyful', at: 14, duration: 5 }], 'kids', 19);
+  check(JSON.stringify(plan.map((p) => p.tune)) === '["kids","celebration"]' && plan[1].at === 9,
+    'a clip\'s music turns to the mood\'s tune while the mood lasts long enough (a short tense moment keeps the clip\'s tune)');
+  const st = composeStory('Sam sat at his desk with his laptop.\nSuddenly, an email arrived. "Click this link now!"', { style: 'stickman', genre: 'howto', moods: { 'Sam sat at his desk with his laptop.': 'calm' } });
+  const [c1, c2] = st.scenes.map((sc) => sc.card);
+  check(st.scenes[0].mood === 'calm' && st.scenes[0].moodChosen && st.scenes[1].mood === 'tense' && !st.scenes[1].moodChosen, 'a story\'s scenes: a mood given for one, read for the other');
+  check(c1.figures[0].who === 'Sam' && c1.figures[0].kind === 'man' && c1.objects.some((o) => o.name === 'laptop') && c1.place === 'the office' && c1.action.includes('Sam sits'),
+    `the scene card: figures, objects, place, action (${JSON.stringify(c1)})`);
+  check(c2.message.said[0]?.text === 'Click this link now!' && c2.feeling.mood === 'tense' && c2.action.includes('the email arrives'), 'the card\'s message and feeling');
+}
+
 console.log(fails ? `\n${fails} timeline check(s) failed` : '\nTimeline test suite: ALL PASSED!');
 process.exit(fails ? 1 : 0);

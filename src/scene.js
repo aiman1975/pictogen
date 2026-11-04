@@ -8,6 +8,8 @@ import { emote } from './emotes.js';
 import { HEIGHTS, mergeFeatures } from './looks.js';
 import { actionCues, stillCues, soundTrack, voiceOf, thingCues, ambienceOf } from './sound.js';
 import { getConcept } from './concepts/index.js';
+import { detectMood, moodChoice, moodLight, moodCamera, MOOD_STINGS } from './mood.js';
+import { sceneCard } from './scene-card.js';
 import { createKit } from './core/kit.js';
 import { createRng } from './core/rng.js';
 import { drawConcept, shapesToSvg, svgDoc, newUid, styleWrap, esc } from './core/render.js';
@@ -640,6 +642,8 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
 const footSize = (it) => it.c.scale * (HEIGHTS[it.look?.features?.height] ?? 1) * (voiceOf(it.c.id)?.v === 'kid' ? 0.7 : 1);
 
 // Styles that suit the clean sound set (subtle, for explainers and presentations), when it is 'auto'
+// (white canvases, where a mood's light stays fainter)
+const LIGHT_CANVAS_STYLES = new Set(['stickman', 'whiteboard', 'cute2d', 'doodle', 'editorial', 'blueprint', 'geometric']);
 const CLEAN_SOUND_STYLES = new Set(['stickman', 'whiteboard', 'editorial', 'blueprint', 'geometric']);
 
 // Styles whose background() is a flat studio backdrop (no horizon) and that draw their own ground shadow.
@@ -1694,6 +1698,7 @@ export function composeScene(matches, opts = {}) {
   }
   if (timeline && actorSlots.size) {
     const { T, tracks, camera: events, beatTimes, speeches, doings } = playTimeline(timeline, actorSlots, propsAt, W, opts.minDuration ?? 0);
+    opts.timelineSpeeches = speeches.filter((sp) => sp.quoted).map((sp) => ({ who: sp.key.split('#')[0], text: sp.text }));
     timeline.duration = r2(T);
     timeline.beatTimes = beatTimes;
     for (const { key, t0, act } of doings) {
@@ -1737,6 +1742,22 @@ export function composeScene(matches, opts = {}) {
     opts.camera.duration = T;
   }
 
+  // The scene's mood (src/mood.js): chosen in the studio, else read from its words and feelings
+  const chosen = moodChoice(opts.mood);
+  const feelings = [...items.map((it) => it.m.expression), ...(timeline?.beats ?? []).flatMap((b) => b.actions.map((a) => a.expression))].filter(Boolean);
+  const mood = chosen === 'none' ? null : chosen ?? detectMood(opts.caption || opts.text || '', feelings);
+  opts.moodUsed = mood;
+  // What the scene is made of, for the studio's scene card (src/scene-card.js)
+  const timelineSaid = timeline ? (opts.timelineSpeeches ?? []) : [];
+  opts.card = sceneCard({
+    matches, timeline, env, mood, chosen: Boolean(chosen && chosen !== 'none') || chosen === 'none', board: env.boardText ?? null, caption: opts.caption ?? null,
+    said: [...(opts.speech ?? []).map((sp) => ({ who: sp.who, text: sp.text })), ...timelineSaid],
+  });
+  // (a slow camera of its own, when the scene has no camera move: over the scene's length)
+  const moodCam = mood && !cam ? moodCamera(mood, uid, W, H, opts.minDuration || timeline?.duration || 6) : null;
+  if (moodCam) motionCss.push(moodCam.css);
+  if (mood && MOOD_STINGS[mood]) cues.push({ t: 0.1, s: MOOD_STINGS[mood] });
+
   // The style's touches (src/core/styles.js): a filter over the landscape too (watercolor,
   // crayon) or over the whole picture (pixel), decoration behind everyone, an overlay on top
   const st = getStyle(style);
@@ -1750,16 +1771,24 @@ export function composeScene(matches, opts = {}) {
     motionCss.push(`@keyframes ${uid}cam { ${cameraCss(cam.keys, cam.T, W, H)}}`);
     content = `<g class="pg-camera" style="animation: ${uid}cam ${r2(cam.T)}s linear infinite;">${content}</g>`;
   }
+  if (moodCam) content = `<g class="pg-mood-camera" style="${moodCam.style}">${content}</g>`;
   if (st.wholeFilter && filterRef) content = `<g filter="${filterRef}">${content}</g>`;
+  // The mood's light: over everything, still while the camera moves
+  const light = mood && moodLight(mood, uid, W, H, { light: LIGHT_CANVAS_STYLES.has(style) });
+  if (light?.filter) content = `<g filter="url(#${light.filter})">${content}</g>`;
+  if (light) {
+    content += `<g class="pg-mood pg-mood-${mood}" data-scene-mood="${mood}" pointer-events="none">${light.overlay}</g>`;
+    if (light.css) motionCss.push(light.css);
+  }
   if (st.overlay) content += `<g class="pg-style-overlay" pointer-events="none">${st.overlay(uid, W, H)}</g>`;
   // The sound goes with the picture, for the studio, the clip player and video export to play
   // ... with the sounds of its things and its place, under it all
   cues.push(...thingCues(items.flatMap((it) => [it.c.id, ...(it.holding ? [it.holding.c.id] : [])]), { classroom: env.roomKind === 'classroom', cheering: items.filter((it) => it.m.animation === 'cheer').reduce((n, it) => n + (it.m.count ?? 1), 0) }));
   const amb = ambienceOf(env);
-  if (cues.length || amb) {
-    opts.sound = soundTrack(cues, soundLoop, { amb, clean: CLEAN_SOUND_STYLES.has(style) });
+  if (cues.length || amb || mood) {
+    opts.sound = soundTrack(cues, soundLoop, { amb, clean: CLEAN_SOUND_STYLES.has(style), mood });
     content += `<metadata class="pg-sound">${esc(JSON.stringify(opts.sound))}</metadata>`;
   }
   const motionDefs = motionCss.length ? `<style><![CDATA[${motionCss.join('\n')}]]></style>` : '';
-  return svgDoc({ width: W, height: H, viewBox: `0 0 ${W} ${H}`, defs: fx.defs + motionDefs, content });
+  return svgDoc({ width: W, height: H, viewBox: `0 0 ${W} ${H}`, defs: fx.defs + (light?.defs ?? '') + motionDefs, content });
 }

@@ -438,6 +438,8 @@ export function composeStory(storyInput, opts = {}) {
   const individuals = read ? [...(opts.individuals ?? []), ...read.individuals] : opts.individuals;
   // (the story's own names, for showing its prompts: "pgc21 waves" -> "Mia waves")
   const shown = (prompt) => (read ? prompt.replace(/\bpgc\d+\b/g, (k) => read.cast.find((c) => c.key === k && !/^pgc/.test(c.name ?? ''))?.name ?? k) : prompt);
+  // (a scene card with the story's names in it)
+  const named = (card) => JSON.parse(shown(JSON.stringify(card)));
 
   let title = opts.title ?? (read ? 'My Story' : undefined);
   let detectedGenre = genre;
@@ -475,6 +477,8 @@ export function composeStory(storyInput, opts = {}) {
       // "Your places" ("pgp1" -> a place made in the studio), carried like any place
       ...(Array.isArray(opts.places) ? { places: opts.places } : {}),
       carry: { ...carry },
+      // (its mood: given in the studio, else read from the scene, src/mood.js)
+      ...((opts.moods?.[sc.caption] ?? sc.mood) ? { mood: opts.moods?.[sc.caption] ?? sc.mood } : {}),
       // (a sequence holds its last moment while the scene is on, instead of starting over)
       minDuration: sc.duration || 5.0,
       // A caption of its own (not the prompt repeated) is what a talking figure says, lip-synced
@@ -500,6 +504,11 @@ export function composeStory(storyInput, opts = {}) {
       duration: Math.max(sc.duration || 5.0, result.duration || 0),
       svg: result.svg,
       matches: result.matches,
+      // (how it feels, and whether that was chosen)
+      mood: result.mood ?? null,
+      // (what it is made of: figures, objects, place, feeling, action, message - src/scene-card.js)
+      ...(result.card ? { card: named(result.card) } : {}),
+      ...((opts.moods?.[sc.caption] ?? sc.mood) ? { moodChosen: true } : {}),
       // (what could not be drawn, and whether the writer changed what to draw)
       ...(read ? { unknown: result.unknown, ...(sc.edited ? { edited: true } : {}) } : {}),
     };

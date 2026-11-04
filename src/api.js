@@ -32,6 +32,10 @@ const storyOpts = (payload) => ({
   // the clip's music: a mood ('calm', 'adventure'...) instead of its genre's (src/sound-pack.js TUNES)
   tune: typeof payload.tune === 'string' ? payload.tune.slice(0, 20) : undefined,
   sounds: typeof payload.sounds === 'string' ? payload.sounds.slice(0, 10) : undefined,
+  // the mood each scene is given in the studio: sentence -> 'tense', 'joyful', 'sad', 'calm', 'mystery' or 'none'
+  moods: payload.moods && typeof payload.moods === 'object' && !Array.isArray(payload.moods)
+    ? Object.fromEntries(Object.entries(payload.moods).filter(([k, v]) => typeof k === 'string' && /^(tense|joyful|sad|calm|mystery|none)$/.test(v)).slice(0, 80))
+    : undefined,
   // a story's scenes as the writer changed them: sentence -> what to draw
   edits: payload.edits && typeof payload.edits === 'object' && !Array.isArray(payload.edits)
     ? Object.fromEntries(Object.entries(payload.edits).filter(([k, v]) => typeof k === 'string' && typeof v === 'string').slice(0, 80))

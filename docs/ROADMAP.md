@@ -259,6 +259,11 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       laptop and coffee on top); stickman sits on chairs and gets line-sketched places (a whiteboard
       with its words, an office, trees, a city, the sea); a story's shooting star streaks across
       the sky; hugs show; people's talking is silent (bubbles only)
+- [x] **Scene mood**: tense, joyful, sad, calm, mystery: read from the words and feelings or chosen;
+      light (tint, vignette, paler colours), a slow camera, a sting as the scene starts, and the
+      clip's music turning to the mood's tune while it lasts (`src/mood.js`)
+- [x] **Scene card** in "How I read your story": figures, objects (× leaves one out), place,
+      feeling (the mood list), action, message (`src/scene-card.js`)
 
 ## Known issues to fix along the way
 - The bicycle drawing loses its wheels at small sizes

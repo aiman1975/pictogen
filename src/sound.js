@@ -31,6 +31,8 @@ export const SOUND_NAMES = [
   ...Object.values(CALLS),
   // things in the scene, and the clean set's quieter ones
   'ring', 'tick', 'typing', 'schoolbell', 'magic', 'applause', 'splash', 'thud', 'chime', 'click',
+  // a scene's mood, as it starts (src/mood.js)
+  'tension', 'triumph', 'sorrow', 'mystic',
 ];
 
 // Things in a scene that make a sound of their own, once as it starts: concept id -> sound
@@ -146,10 +148,11 @@ export function stillCues({ expression, words, animation, start = 0.5, at = 0.3 
  * The scene's sound: { loop, cues } in time order. loop: seconds after which it all starts again
  * (with the animation), or null to play once.
  */
-export function soundTrack(cues, loop = null, { amb = null, clean = false } = {}) {
+export function soundTrack(cues, loop = null, { amb = null, clean = false, mood = null } = {}) {
   const sorted = cues.filter((c) => !loop || c.t < loop).sort((a, b) => a.t - b.t);
-  // amb: the place's sound (ambienceOf); clean: a style that suits the clean sound set
-  return { loop: loop ? r3(loop) : null, cues: sorted, ...(amb ? { amb } : {}), ...(clean ? { clean: true } : {}) };
+  // amb: the place's sound (ambienceOf); clean: a style that suits the clean sound set; mood: the
+  // scene's (src/mood.js), for a clip's music to follow
+  return { loop: loop ? r3(loop) : null, cues: sorted, ...(amb ? { amb } : {}), ...(clean ? { clean: true } : {}), ...(mood ? { mood } : {}) };
 }
 
 /** The sound of a scene's SVG, or null (read from its <metadata class="pg-sound">) */

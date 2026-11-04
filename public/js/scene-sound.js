@@ -4,7 +4,7 @@
 // from the synthesizer (src/sound-synth.js, served at /js/sound-synth.js). Renders both for video
 // export. Sound and music are on by default, each with its own switch (remembered in this browser).
 
-import { pgSound, pgSoundTrack, pgBank, pgVoiced, pgMusicTrack, pgMusicRender, pgAmbience, pgCleanSet } from './sound-synth.js';
+import { pgSound, pgSoundTrack, pgBank, pgVoiced, pgMusicTrack, pgMusicRender, pgMusicPlan, pgAmbience, pgCleanSet } from './sound-synth.js';
 
 const remembered = (key) => { try { return localStorage.getItem(key) !== 'off'; } catch { return true; } };
 const remember = (key, on) => { try { localStorage.setItem(key, on ? 'on' : 'off'); } catch { /* not remembered */ } };
@@ -171,7 +171,17 @@ export async function renderClipSound(parts, total, { music: withMusic = null, g
   bus.gain.value = 1.2;
   bus.connect(comp);
   comp.connect(oc.destination);
-  const duck = withMusic ? pgMusicRender(oc, bus, withMusic.genre, await withTune(withMusic.genre), 0, total) : null;
+  // The music: the clip's tune, turning to a scene's mood's tune while the mood lasts (crossfading)
+  let duck = null;
+  if (withMusic) {
+    const plan = pgMusicPlan(parts.map((p) => ({ mood: p.sound?.mood, at: p.at, duration: p.duration })), withMusic.genre, total);
+    const ducks = [];
+    for (const [i, seg] of plan.entries()) {
+      const from = Math.max(0, seg.at - (i ? 0.7 : 0)), to = Math.min(total, seg.end + (i < plan.length - 1 ? 0.7 : 0));
+      ducks.push(pgMusicRender(oc, bus, seg.tune, await withTune(seg.tune), from, to - from));
+    }
+    duck = (at, s) => ducks.forEach((d) => d(at, s));
+  }
   for (const { sound, at, duration } of parts) {
     if (!sound) continue;
     const clean = pgCleanSet(soundSet, sound, genre);

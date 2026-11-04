@@ -137,7 +137,7 @@ export function generate(text, opts = {}) {
     ];
   }
   const common = { style, seed, vary, width, height, text, identities };
-  let svg, diagram = null;
+  let svg, diagram = null, mood = null, card = null;
   // A labelled diagram: asked for by its mode ("diagram", or "callout"), or in a scene by a school
   // topic said plainly ("the parts of a plant", "the water cycle"); labels renamed or left blank
   const isDiagramMode = mode === 'diagram' || mode === 'callout';
@@ -195,8 +195,10 @@ export function generate(text, opts = {}) {
     if (timeline) timeline.caption = caption;
     // Colours carried over from earlier scenes of a clip (composeStory): figure id -> colour
     const carry = opts.carry && typeof opts.carry === 'object' ? opts.carry : undefined;
-    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption, carry, ...(taken.setting ? { setting: taken.setting } : {}), ...(boardText ? { boardText } : {}), ...(opts.minDuration > 0 ? { minDuration: Math.min(+opts.minDuration, 30) } : {}) };
+    const sceneOpts = { ...common, words: parsed.tokens, timeline, camera, looks, speech, caption, carry, ...(taken.setting ? { setting: taken.setting } : {}), ...(boardText ? { boardText } : {}), ...(opts.minDuration > 0 ? { minDuration: Math.min(+opts.minDuration, 30) } : {}), ...(opts.mood ? { mood: opts.mood } : {}) };
     svg = composeScene(matches, sceneOpts);
+    mood = sceneOpts.moodUsed ?? null;
+    card = sceneOpts.card ?? null;
     if (sceneOpts.speechDuration) common.duration = Math.max(common.duration ?? 0, sceneOpts.speechDuration);
     if (camera?.duration) common.duration = Math.max(common.duration ?? 0, camera.duration);
   }
@@ -218,5 +220,5 @@ export function generate(text, opts = {}) {
     ? cast.filter((m) => getConcept(conceptOf(m.id)) && !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary))
       .map((m) => ({ id: m.id, label: getConcept(conceptOf(m.id)).label || m.id, person: getConcept(conceptOf(m.id)).category === 'people' }))
     : [];
-  return { svg, ...parsed, matches, unknown, suggestions, guessed: parsed.guessed || {}, ...(diagram ? { diagram } : {}), setting, images, ...clip, cast: castOut, ...(edited ? { edited: true } : {}) };
+  return { svg, ...parsed, ...(mood ? { mood } : {}), ...(card ? { card } : {}), matches, unknown, suggestions, guessed: parsed.guessed || {}, ...(diagram ? { diagram } : {}), setting, images, ...clip, cast: castOut, ...(edited ? { edited: true } : {}) };
 }

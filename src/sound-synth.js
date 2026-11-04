@@ -311,6 +311,25 @@ export function pgSound(ctx, dest, cue, when, bank) {
     // The clean set's quieter sounds
     case 'thud': blipTo(t0, 'sine', 160, 60, 0.12, 0.35); hiss(t0, 0.04, 'lowpass', [[0, 600], [1, 300]], 0.7, 0.15); break;
     case 'chime': bell(t0, 1319, 0.1, 0.6); bell(t0 + 0.12, 1760, 0.08, 0.7); break;
+    // A scene's mood as it starts (src/mood.js), soft enough to sit under everything
+    case 'tension': {
+      // A low swell and two heartbeats
+      const g = gainAt(); env(g.gain, t0, 0.16, 0.6, 0.5, 0.9);
+      const o = tone('sawtooth', t0, t0 + 2, filter('lowpass', 260, 2, g)); curve(o.frequency, t0, 2, [[0, 55], [1, 52]]);
+      const o2 = tone('sawtooth', t0, t0 + 2, filter('lowpass', 260, 2, g)); curve(o2.frequency, t0, 2, [[0, 58.3], [1, 55]]);
+      [0.55, 0.8, 1.55, 1.8].forEach((at, i) => blipTo(t0 + at, 'sine', i % 2 ? 70 : 85, 40, 0.12, 0.32));
+      break;
+    }
+    case 'triumph': [523, 659, 784, 1047].forEach((f, i) => bell(t0 + i * 0.09, f * 2, 0.22, 0.55 + i * 0.12)); hiss(t0 + 0.3, 0.8, 'highpass', [[0, 6000], [1, 9000]], 0.7, 0.04); break;
+    case 'sorrow': {
+      // Two soft falling notes
+      [[0, 440, 392], [0.55, 392, 330]].forEach(([at, f1, f2]) => {
+        const g = gainAt(); env(g.gain, t0 + at, 0.13, 0.12, 0.3, 0.6);
+        const o = tone('triangle', t0 + at, t0 + at + 1.1, filter('lowpass', 1400, 0.7, g)); curve(o.frequency, t0 + at, 0.9, [[0, f1], [1, f2]]);
+      });
+      break;
+    }
+    case 'mystic': [1175, 1397, 1661, 1397, 1760].forEach((f, i) => bell(t0 + i * 0.16, f, 0.06, 1.1)); hiss(t0, 1.4, 'bandpass', [[0, 3000], [1, 5000]], 3, 0.04); break;
     case 'click': blipTo(t0, 'sine', 1800, 1400, 0.03, 0.12); break;
     case 'jingle': [1047, 1319, 1568, 2093].forEach((f, i) => bell(t0 + i * 0.11, f, 0.16, 0.5)); break;
     case 'ding': bell(t0, 1760, 0.22, 1.1); break;
@@ -721,6 +740,33 @@ export function pgMusicTrack(ctx, dest, genre, bank, level) {
       setTimeout(() => out.disconnect(), 1500);
     },
   };
+}
+
+/** The tune a clip's music turns to while a scene's mood lasts (src/mood.js), from TUNES */
+export const MOOD_TUNES = { tense: 'mystery', joyful: 'celebration', sad: 'calm', mystery: 'mystery', calm: 'calm' };
+
+/**
+ * A clip's music, scene by scene: [{ tune, at, end }] - its own tune, turning to a mood's tune
+ * while that mood lasts long enough to be heard (minSeconds), and back. parts: [{ mood, at,
+ * duration }] in order; base: the clip's tune.
+ */
+export function pgMusicPlan(parts, base, total, minSeconds = 7) {
+  const runs = [];
+  for (const p of parts) {
+    const tune = MOOD_TUNES[p.mood] ?? base;
+    const last = runs[runs.length - 1];
+    if (last && last.tune === tune) last.end = p.at + p.duration;
+    else runs.push({ tune, at: p.at, end: p.at + p.duration });
+  }
+  // (too short to be heard as a change: the clip's own tune)
+  for (const r of runs) if (r.tune !== base && r.end - r.at < minSeconds) r.tune = base;
+  const merged = [];
+  for (const r of runs) {
+    const last = merged[merged.length - 1];
+    if (last && last.tune === r.tune) last.end = r.end; else merged.push({ ...r });
+  }
+  if (merged.length) { merged[0].at = 0; merged[merged.length - 1].end = total; }
+  return merged.length ? merged : [{ tune: base, at: 0, end: total }];
 }
 
 /** Renders `seconds` of a genre's music from ctx time t0 (offline, e.g. for video): returns duck(at, s) */

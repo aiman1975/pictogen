@@ -334,6 +334,17 @@
     .sr-draw { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--text-muted); font-weight: 700; }
     .sr-input { flex: 1; min-width: 0; font: inherit; font-weight: 600; color: var(--text); padding: 3px 7px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
     .sr-skip { font-size: 0.75rem; color: var(--text-muted); }
+    /* The scene card: figures, objects, place, feeling, action, message */
+    .sc-card { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 3px 12px; margin-top: 2px; padding: 5px 7px; border-radius: 8px; background: var(--surface); border: 1px dashed var(--border); font-size: 0.76rem; }
+    .sc-slot { display: flex; gap: 0.4rem; align-items: baseline; min-width: 0; }
+    .sc-name { flex: none; width: 5.6rem; color: var(--text-muted); font-weight: 800; }
+    .sc-body { min-width: 0; display: flex; flex-wrap: wrap; gap: 3px 5px; align-items: center; font-weight: 600; }
+    .sc-chip { display: inline-flex; align-items: center; gap: 3px; padding: 0 6px; border-radius: 999px; background: var(--surface-subtle); border: 1px solid var(--border); }
+    .sc-x { border: none; background: none; color: var(--text-muted); cursor: pointer; font-weight: 900; padding: 0 0 0 2px; line-height: 1; }
+    .sc-x:hover { color: #dc2626; }
+    .sc-mood { font: inherit; font-weight: 700; padding: 1px 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
+    .sc-said { font-style: italic; }
+    .sc-none { color: var(--text-muted); }
     .tl-title { font-weight: 800; color: var(--text); margin-right: auto; }
     .tl-time { font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-size: 0.75rem; min-width: 7.5em; }
     .tl-btn {
@@ -1726,6 +1737,8 @@
               ...(storyState.tune ? { tune: storyState.tune } : {}),
               // what the writer changed in "How I read your story" (names as keys, like the story)
               edits: Object.fromEntries(Object.entries(state.storyEdits || {}).map(([k, v]) => [named(k).text, named(v).text])),
+              // and the mood each scene was given there
+              moods: Object.fromEntries(Object.entries(state.storyMoods || {}).map(([k, v]) => [named(k).text, v])),
               ...clipRequest(),
               style: state.style,
               genre: state.genre,

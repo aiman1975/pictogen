@@ -465,6 +465,15 @@ try {
   await page.press('.sr-input[data-i="2"]', 'Enter');
   await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[2]?.edited && /pg-sitter/.test(window.pictogenStudio.getStory().scenes[2].svg));
   check(true, 'changing what a scene shows makes the clip again with it');
+  // The scene card: figures, objects, place, feeling, action, message; a mood picked; a thing left out
+  const cardText = await page.textContent('.sr-row:nth-child(2) .sc-card');
+  check(['Figures', 'Objects', 'Place', 'Feeling', 'Action', 'Message'].every((w) => cardText.includes(w)) && cardText.includes('Lily') && cardText.includes('puppy'),
+    'each scene has its card: figures, objects, place, feeling, action, message');
+  await page.selectOption('.sc-mood[data-mood="0"]', 'mystery');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[0]?.mood === 'mystery' && window.pictogenStudio.getStory().scenes[0].moodChosen);
+  check(sent.at(-1).includes('"moods"') && sent.at(-1).includes('mystery'), 'a mood picked for a scene makes the clip again with it (sent with the story)');
+  await page.selectOption('.sc-mood[data-mood="0"]', '');
+  await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.moodChosen);
   const sentKeep = sent.length;
   await page.click('.sr-who button[data-keep="Lily"]');
   await page.waitForFunction(() => window.pictogenCharacters.list().some((c) => c.name === 'Lily') && !document.querySelector('.sr-who button[data-keep="Lily"]'));

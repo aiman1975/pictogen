@@ -127,8 +127,10 @@ function protect(text) {
 const restore = (s, quotes) => s.replace(/⟦(\d+)⟧/g, (_, i) => `“${quotes[+i]}”`);
 
 /** The story's sentences (quotes kept whole) */
+// (after a quote, a new sentence starts - unless it says who said it: "“We did it!” Mia said.")
+const SAID_AFTER = new RegExp(`(?<=[.!?…])\\s+(?=[A-Z⟦])|(?<=⟧)\\s+(?=[A-Z])(?!(?:[A-Z][a-z]+|He|She|They|The [a-z]+)\\s+(?:${SAY_VERBS})\\b)`);
 function sentences(text) {
-  return text.split(/(?<=[.!?…])\s+(?=[A-Z⟦])|(?<=⟧)\s+(?=[A-Z])/).map((s) => s.trim()).filter(Boolean);
+  return text.split(SAID_AFTER).map((s) => s.trim()).filter(Boolean);
 }
 
 /** The scenes: one per line when the story has lines (long lines split in two), else one per sentence */
@@ -282,6 +284,7 @@ export function readStory(text, { individuals = [], adults = false } = {}) {
       // Speech: "“Hello!” said Mia." / "Mia said, “Hello!”" -> Mia says “Hello!”
       s = s.replace(new RegExp(`(⟦\\d+⟧)[,]?\\s+(?:${SAY_VERBS})\\s+((?:the|a|an|her|his)\\s+[a-z]+|[A-Z][a-z]+|he|she|they)\\b[.!]?`, 'g'), ' $2 says $1 ');
       s = s.replace(new RegExp(`\\b(${SAY_VERBS})\\s*[,:]?\\s*(⟦\\d+⟧)`, 'g'), 'says $2');
+      s = s.replace(new RegExp(`(⟦\\d+⟧)[,]?\\s+([A-Z][a-z]+|[Hh]e|[Ss]he|[Tt]hey|the [a-z]+)\\s+(?:${SAY_VERBS})\\b[.!]?`, 'g'), ' $2 says $1 ');
       // (putting things on is said as "with ..." on whoever wears them: the words go)
       s = s.replace(/\b(?:put|puts|putting)\s+on\s+(?:(?:their|his|her|the|some)\s+)?[a-z ,]*?(?=[.!?,;⟦]|\s(?:and then|then)\b|\s*$)/gi, ' ');
       // ("Lena from the IT team", "Tom from accounting": just them)
