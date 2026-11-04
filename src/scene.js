@@ -1311,6 +1311,8 @@ export function composeScene(matches, opts = {}) {
       if (!sleeping && !IN_BED_RE.test(said)) continue;
       it.inBed = { asleep: sleeping };
       it.wf = 1.3;
+      // (a bed is low: a little bigger, so it shows above a video's caption)
+      it.h *= 1.25;
       const bed = items.find((b) => b.c.id === 'bed' && !b.onSeat);
       if (bed) bed.onSeat = it;
       if (!sleeping) {
