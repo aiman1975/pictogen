@@ -1715,7 +1715,8 @@ export function composeScene(matches, opts = {}) {
   if (groups.front.length) {
     const front = groups.front;
     const rowWidth = front.reduce((sum, it) => sum + Math.min(it.h, H * 0.75) * (it.c.width ?? 0.8), 0) + (front.length - 1) * W * 0.03;
-    if (landscape && front.length >= 4 && rowWidth > W * 0.92) {
+    // (letters spelling something stay in one row, in their order: smaller, not one behind another)
+    if (landscape && front.length >= 4 && rowWidth > W * 0.92 && !front.some((it) => it.c.category === 'alphabet')) {
       // Too many to fit in one row: put every other item in a second row further back, smaller and
       // nearer the horizon, instead of shrinking everyone into a thin line.
       const FAR = 0.7;
@@ -1849,6 +1850,8 @@ export function composeScene(matches, opts = {}) {
     const here = placeLabel(env).split(' · ')[0];
     shots = directShots({
       T: sceneT, W, H, where, main, speeches: said, mood, text: `${opts.caption ?? ''} ${opts.text ?? ''}`, shot: choice,
+      // (a board with words: its top stays in the frame)
+      ...(env.boardText ? { keepTop: H * 0.06 } : {}),
       crowd: items.filter((it) => /^(people|animals|wildlife|alphabet)/.test(it.c.category ?? '')).reduce((n, it) => n + (it.m.count ?? 1), 0),
       context: { index: ctx.index ?? 0, first: Boolean(ctx.first), last: Boolean(ctx.last), newPlace: ctx.prevPlace == null ? Boolean(ctx.first) : ctx.prevPlace !== here },
     });

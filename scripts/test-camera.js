@@ -89,6 +89,11 @@ check(true, 'camera scenes are well-formed in flat, cartoon, sketch, stickman an
   check(says('a girl smiles in the park', { shotContext: { last: true, first: false } }) === 'pulling back at the end', 'director: the last scene pulls back');
   check(says('a boy and a dog in the park', { shotContext: { index: 2, prevPlace: 'the beach' } }) === 'wide, then easing in', 'director: a new place is shown wide first');
   check(!/pg-camera/.test(generate('a red apple on a table').svg), 'director: nobody there, no camera move');
+  const spell = generate('a yellow letter S, a red letter E, a blue letter V, a green letter E and a purple letter N say “We spell SEVEN!”', { style: 'flat' }).svg;
+  const xs = [...spell.matchAll(/data-id="letter_(\w)"[^>]*translate\(([\d.]+)/g)].map((m) => [m[1], +m[2]]).sort((a, b) => a[1] - b[1]).map((m) => m[0]).join('');
+  check(xs === 'seven', `letters spelling a word stay in one row, in their order (${xs})`);
+  const boardSays = generate('a pink letter A points at the board that says “A B C” in the classroom, then the letter A says “I am A!”', { style: 'flat' });
+  check(boardSays.card.camera.says === 'close on who speaks' && /pg-camera/.test(boardSays.svg), 'a close shot in a classroom with words on its board (the board\'s top kept in the frame)');
   check(says('a yellow letter S, a red letter E, a blue letter V, a green letter E and a purple letter N wave, then the letter S says “We spell SEVEN!”') === 'wide: everyone in view', 'director: someone speaking in a crowd keeps everyone in view');
   check(says('a girl smiles in the park', { mood: 'calm' }) === 'a slow drift (mood)', 'director: a scene with a mood keeps its mood\'s camera');
   // Chosen

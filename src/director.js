@@ -48,7 +48,7 @@ export function shotChoice(value) {
  *   shot: the shot chosen ({ kind, target }) or null
  * Returns { keys, says } (says: what the shots are, for the scene card) or null.
  */
-export function directShots({ T, W, H, where, main = null, speeches = [], mood = null, text = '', context = {}, shot = null, crowd = 1 }) {
+export function directShots({ T, W, H, where, main = null, speeches = [], mood = null, text = '', context = {}, shot = null, crowd = 1, keepTop = null }) {
   const wide = { z: 1, fx: W / 2, fy: H / 2 };
   const key = (t, s, ease = 'ease-in-out') => ({ t: r2(clamp(t, 0, T)), z: r2(s.z), fx: r2(s.fx), fy: r2(s.fy), ease });
   // Close on someone, their bubble (above their head, as tall as its lines) and most of them in the frame
@@ -56,7 +56,7 @@ export function directShots({ T, W, H, where, main = null, speeches = [], mood =
   const close = (id, t, zMax = MAX_Z, text = null) => {
     const f = id && where(id, t);
     if (!f) return null;
-    const top = f.y - f.h * 0.5 - bubble(text) - H * 0.05, bottom = f.y + f.h * 0.55;
+    const top = Math.min(f.y - f.h * 0.5 - bubble(text) - H * 0.05, keepTop ?? Infinity), bottom = f.y + f.h * 0.55;
     const z = clamp(H / Math.max(1, bottom - top), 1.15, zMax);
     return { z, fx: f.x, fy: (top + bottom) / 2 };
   };
