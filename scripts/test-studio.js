@@ -624,7 +624,18 @@ try {
   await page.click('.puppet-card [data-step="2"]');
   for (const x of [22, 36, 64, 78]) await pstroke([[x - 4, 51], [x + 4, 51], [x + 4, 95], [x - 4, 95], [x - 4, 52]]);
   check((await page.textContent('.puppet-kind')).includes('4 legs'), 'a figure: four legs looped, it walks like a dog');
-  await page.click('.puppet-card [data-step="4"]');
+  // A face: two eyes and a mouth clicked onto the table top
+  await page.click('.puppet-card [data-step="3"]');
+  const pclick = async (x, y) => { const b = await (await page.$('.puppet-overlay')).boundingBox(); await page.mouse.click(b.x + (x / 100) * b.width, b.y + (y / 100) * b.height); };
+  await page.click('.puppet-card [data-facetool="eyes"]');
+  await pclick(38, 40); await pclick(62, 40);
+  await page.click('.puppet-card [data-facetool="mouth"]');
+  await pclick(50, 46);
+  check(await page.$$eval('.puppet-overlay .pp-face', (els) => els.length) === 3, 'a face marked on the figure: two eyes and a mouth, where clicked');
+  await page.click('.puppet-card [data-try="says “Hello, nice to meet you!”"]');
+  await page.waitForFunction(() => { const h = document.querySelector('.puppet-preview')?.innerHTML ?? ''; return /pg-face-eyes/.test(h) && /pg-face-mouth/.test(h) && /data-lips/.test(h); });
+  check(true, 'the figure tries talking: its eyes blink and its mouth moves with the words');
+  await page.click('.puppet-card [data-step="5"]');
   await page.fill('.puppet-card .face-name', 'Mr Table');
   await page.click('.puppet-card [data-try="walks"]');
   await page.waitForFunction(() => /pg-rig-quadruped/.test(document.querySelector('.puppet-preview')?.innerHTML ?? ''));

@@ -6,6 +6,9 @@
 //               points: [[x, y], ...]      the loop drawn round the part, in the 0..100 box
 //               pivot: [x, y]              the dot it turns around (a leg's hip, an arm's shoulder)
 //               move?: { type: 'swing' | 'nod' | 'shake' | 'bounce' | 'spin', dx, dy, speed } }]
+//     face?: { eyes: [[x, y]] (one or two), eyeSize, mouth: [x, y], mouthSize, cheeks, skin, mouthSkin }
+//                                         a face of its own, marked on the picture: eyes that blink,
+//                                         a mouth that talks, both showing what it feels
 //     size: 'tiny' | 'small' | 'medium' | 'person' | 'big' | 'huge'   how tall, next to a person
 //     baseline, width                      where it stands (y), how wide it is (share of the box) }
 //
@@ -18,6 +21,7 @@
 // characters" ({ key: 'pgc501', puppet: {...} }); withPuppets() makes them concepts.
 import { registerConcept, getConcept } from './concepts/index.js';
 import { rigged } from './concepts/rig.js';
+import { eyes as faceEyes, mouth as faceMouth, cheek } from './concepts/animal-face.js';
 
 const ROLES = ['leg', 'arm', 'head', 'tail', 'part'];
 const MOVES = ['swing', 'nod', 'shake', 'bounce', 'spin'];
@@ -46,9 +50,19 @@ export function cleanPuppet(p) {
       ? { type: m.type, dx: r2(num(m.dx, -60, 60, 0)), dy: r2(num(m.dy, -60, 60, 0)), speed: SPEEDS[m.speed] ? m.speed : 'normal' } : null;
     parts.push({ role: part.role, points, pivot, ...(move ? { move } : {}) });
   }
+  // A face marked on it (eyes and a mouth drawn by the engine, as it feels)
+  const f = p.face && typeof p.face === 'object' ? p.face : null;
+  const eyesAt = Array.isArray(f?.eyes) ? f.eyes.slice(0, 2).map(pt).filter(Boolean) : [];
+  const mouthAt = pt(f?.mouth);
+  const face = eyesAt.length || mouthAt ? {
+    eyes: eyesAt, eyeSize: r2(num(f.eyeSize, 0.3, 3, 1)), ...(mouthAt ? { mouth: mouthAt, mouthSize: r2(num(f.mouthSize, 0.3, 3, 1)) } : {}),
+    ...(f.cheeks ? { cheeks: true } : {}), ...(/^#[0-9a-f]{6}$/i.test(f.skin ?? '') ? { skin: f.skin.toLowerCase() } : {}),
+    ...(/^#[0-9a-f]{6}$/i.test(f.mouthSkin ?? '') ? { mouthSkin: f.mouthSkin.toLowerCase() } : {}),
+  } : null;
   return {
     image: p.image,
     parts,
+    ...(face ? { face } : {}),
     size: PUPPET_SIZES[p.size] ? p.size : 'medium',
     baseline: r2(num(p.baseline, 40, 100, 96)),
     width: r2(num(p.width, 0.1, 1.2, 0.8)),
@@ -60,6 +74,16 @@ export const puppetKind = (p) => {
   const legs = p.parts.filter((x) => x.role === 'leg').length;
   return legs >= 3 ? 'quadruped' : legs ? 'person' : 'none';
 };
+
+/** Whether a point is inside a loop (even-odd) */
+function inside([x, y], pts) {
+  let yes = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) yes = !yes;
+  }
+  return yes;
+}
 
 function hash(s) {
   let h = 2166136261;
@@ -132,8 +156,22 @@ function drawPuppet(d, params, p, kind, id) {
     return svg;
   };
   const parts = p.parts.map((part, i) => ({ ...part, svg: partSvg(part, i) }));
+  // Its face: on the head part it is marked inside (turning with it), else on the body
+  const f = p.face;
+  const middle = f && (f.eyes.length ? [f.eyes.reduce((a, e) => a + e[0], 0) / f.eyes.length, f.eyes.reduce((a, e) => a + e[1], 0) / f.eyes.length] : f.mouth);
+  const faceHost = f && parts.find((x) => x.role === 'head' && inside(middle, x.points));
+  const drawFace = () => {
+    if (!f) return;
+    if (f.eyes.length) faceEyes(d, params, f.eyes, f.eyeSize, f.skin ?? null);
+    if (f.cheeks && f.eyes.length) for (const [x, y] of f.eyes) cheek(d, params, x + (x < middle[0] ? -2.5 : 2.5) * f.eyeSize, y + 4.5 * f.eyeSize, f.eyeSize);
+    if (f.mouth) {
+      // (a mouth the picture has of its own is covered, in the colour beside it, so only the face's shows)
+      if (f.mouthSkin) d.ellipse(f.mouth[0], f.mouth[1] + 0.6 * f.mouthSize, 8 * f.mouthSize, 3.6 * f.mouthSize, { fill: f.mouthSkin, kind: 'body' });
+      faceMouth(d, params, f.mouth[0], f.mouth[1], f.mouthSize);
+    }
+  };
   const style = () => (css.length ? d.raw(`<style>${css.join(' ')}</style>`, { kind: 'body' }) : null);
-  const joint = (cls, part) => d.joint(cls, part.pivot, () => d.raw(part.svg, { kind: 'body' }));
+  const joint = (cls, part) => d.joint(cls, part.pivot, () => { d.raw(part.svg, { kind: 'body' }); if (part === faceHost) drawFace(); });
   const of = (role) => parts.filter((x) => x.role === role).sort((a, b) => a.pivot[0] - b.pivot[0]);
 
   if (kind === 'none') {
@@ -141,6 +179,7 @@ function drawPuppet(d, params, p, kind, id) {
     d.group({ class: 'pg-body-torso' }, () => {
       style();
       d.raw(body, { kind: 'body' });
+      if (!faceHost) drawFace();
       for (const part of parts) joint(part.role === 'arm' ? 'pg-arm-right' : part.role === 'head' ? 'pg-head' : part.role === 'tail' ? 'pg-tail' : 'pg-part', part);
     });
     return;
@@ -160,6 +199,7 @@ function drawPuppet(d, params, p, kind, id) {
     }
     d.group({ class: 'pg-body-torso' }, () => {
       d.raw(body, { kind: 'body' });
+      if (!faceHost) drawFace();
       of('tail').forEach((t) => joint('pg-tail', t));
       of('arm').forEach((arm, i, all) => joint(all.length > 1 && i === 0 ? 'pg-arm-left' : 'pg-arm-right', arm));
       of('head').forEach((h) => joint('pg-head', h));

@@ -16,7 +16,9 @@ const MOVES = [['', 'No move of its own'], ['swing', '↔ Swing'], ['nod', '↷ 
 const SPEEDS = [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']];
 const SIZES = [['tiny', 'Tiny (a cup)'], ['small', 'Small (a cat)'], ['medium', 'Medium (a child)'], ['person', 'Like a person'], ['big', 'Big (a door)'], ['huge', 'Huge (a tree)']];
 const INKS = ['#1f2937', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#a1683a', '#ffffff'];
-const TRY = [['', '🧍 Stand'], ['walks', '🚶 Walk'], ['runs', '🏃 Run'], ['dances', '💃 Dance'], ['jumps', '🦘 Jump'], ['waves', '👋 Wave']];
+const TRY = [['', '🧍 Stand'], ['walks', '🚶 Walk'], ['runs', '🏃 Run'], ['dances', '💃 Dance'], ['jumps', '🦘 Jump'], ['waves', '👋 Wave'],
+  ['is happy', '😊 Happy'], ['is sad', '😢 Sad'], ['is surprised', '😮 Surprised'], ['says “Hello, nice to meet you!”', '🗣 Talk']];
+const FACE_SIZES = [[0.6, 'Small'], [1, 'Medium'], [1.5, 'Big'], [2.2, 'Huge']];
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -38,7 +40,7 @@ function save() {
 /** The neutral key a figure's name becomes in a prompt ("Mr Table" -> "pgc501") */
 const keyOf = (p) => `pgc${FIRST_KEY + puppets.indexOf(p)}`;
 /** What the engine gets: the picture and its parts, never the name */
-const sent = (p) => ({ image: p.image, parts: p.parts, size: p.size, baseline: p.baseline, width: p.width });
+const sent = (p) => ({ image: p.image, parts: p.parts, size: p.size, baseline: p.baseline, width: p.width, ...(p.face ? { face: p.face } : {}) });
 const individuals = () => puppets.map((p) => ({ key: keyOf(p), puppet: sent(p) }));
 const named = () => puppets.map((p) => ({ key: keyOf(p), name: p.name }));
 const kindOf = (parts) => {
@@ -60,7 +62,7 @@ function nameError(name, self = null) {
 const drawnCache = new Map();
 function picture(p, action = '', style = studio.getState().style) {
   const body = { text: `pgc${FIRST_KEY}${action ? ` ${action}` : ''}`, individuals: [{ key: `pgc${FIRST_KEY}`, puppet: sent(p) }], style, mode: 'scene', seed: 7, width: 640, height: 360 };
-  const key = JSON.stringify([p.image.length, p.parts, p.size, p.baseline, action, style]);
+  const key = JSON.stringify([p.image.length, p.parts, p.face, p.size, p.baseline, action, style]);
   if (!drawnCache.has(key)) {
     drawnCache.set(key, fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then((r) => r.json()).then((d) => d.svg || '').catch(() => ''));
@@ -91,15 +93,15 @@ function render() {
 
 function openEditor(existing = null) {
   const draft = existing
-    ? { name: existing.name, size: existing.size, parts: existing.parts.map((x) => JSON.parse(JSON.stringify(x))), image: existing.image }
-    : { name: '', size: 'medium', parts: [], image: null };
-  let step = existing ? 2 : 1, role = 'leg', selected = -1, tool = 'pen', ink = INKS[0], width = 6, trying = '';
+    ? { name: existing.name, size: existing.size, parts: existing.parts.map((x) => JSON.parse(JSON.stringify(x))), image: existing.image, face: existing.face ? JSON.parse(JSON.stringify(existing.face)) : null }
+    : { name: '', size: 'medium', parts: [], image: null, face: null };
+  let step = existing ? 2 : 1, role = 'leg', selected = -1, tool = 'pen', ink = INKS[0], width = 6, trying = '', faceTool = 'eyes';
   const modal = document.createElement('div');
   modal.className = 'face-modal';
   modal.innerHTML = `
     <div class="face-card puppet-card" role="dialog" aria-modal="true" aria-labelledby="puppet-title">
       <h3 id="puppet-title">${existing ? `Change ${esc(existing.name)}` : 'Make it move'}</h3>
-      <div class="puppet-steps" role="tablist">${['1 Picture', '2 Parts and dots', '3 Moves', '4 Name'].map((s, i) => `<button class="char-chip" role="tab" data-step="${i + 1}">${s}</button>`).join('')}</div>
+      <div class="puppet-steps" role="tablist">${['1 Picture', '2 Parts and dots', '3 Face', '4 Moves', '5 Name'].map((s, i) => `<button class="char-chip" role="tab" data-step="${i + 1}">${s}</button>`).join('')}</div>
       <div class="puppet-main">
         <div class="puppet-stage">
           <canvas class="puppet-canvas" width="${PX}" height="${PX}" aria-label="The picture"></canvas>
@@ -140,19 +142,32 @@ function openEditor(existing = null) {
     for (let y = 0; y < PX; y++) for (let x = 0; x < PX; x++) if (data[(y * PX + x) * 4 + 3] > 24) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y > maxY) maxY = y; }
     return maxX < 0 ? null : { baseline: r2(Math.min(100, (maxY + 1) / K)), width: r2(Math.max(0.1, (maxX - minX + 1) / PX)) };
   };
+  // (the colour round the eyes, for eyelids when it is sleepy)
+  const skinAt = ([x, y]) => {
+    const [r, g, b, a] = ctx.getImageData(Math.round(x * K), Math.round(y * K), 1, 1).data;
+    return a > 128 ? `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}` : null;
+  };
   const current = () => {
     const b = bounds();
-    return b ? { image: canvas.toDataURL('image/png'), parts: draft.parts, size: draft.size, baseline: b.baseline, width: b.width } : null;
+    if (!b) return null;
+    const f = draft.face && (draft.face.eyes.length || draft.face.mouth) ? { ...draft.face } : null;
+    if (f?.eyes.length) { const skin = skinAt([f.eyes[0][0] - 4.6 * f.eyeSize, f.eyes[0][1]]); if (skin) f.skin = skin; else delete f.skin; }
+    // (beside the mouth: the colour that covers a mouth the picture has of its own)
+    if (f?.mouth) { const skin = skinAt([f.mouth[0] + 5.2 * f.mouthSize, f.mouth[1]]) ?? skinAt([f.mouth[0] - 5.2 * f.mouthSize, f.mouth[1]]); if (skin) f.mouthSkin = skin; else delete f.mouthSkin; }
+    return { image: canvas.toDataURL('image/png'), parts: draft.parts, ...(f ? { face: f } : {}), size: draft.size, baseline: b.baseline, width: b.width };
   };
 
   // The overlay: each part's loop, its dot, its arrow
   const drawOverlay = (lasso = null) => {
     const parts = draft.parts.map((p, i) => {
       const on = i === selected;
-      const arrow = p.move && step === 3 ? `<line x1="${p.pivot[0]}" y1="${p.pivot[1]}" x2="${r2(p.pivot[0] + p.move.dx)}" y2="${r2(p.pivot[1] + p.move.dy)}" class="pp-arrow" marker-end="url(#pp-head)"/>` : '';
+      const arrow = p.move && step === 4 ? `<line x1="${p.pivot[0]}" y1="${p.pivot[1]}" x2="${r2(p.pivot[0] + p.move.dx)}" y2="${r2(p.pivot[1] + p.move.dy)}" class="pp-arrow" marker-end="url(#pp-head)"/>` : '';
       return `<polygon points="${p.points.map((q) => q.join(',')).join(' ')}" class="pp-loop${on ? ' on' : ''}" data-part="${i}"/>${arrow}<circle cx="${p.pivot[0]}" cy="${p.pivot[1]}" r="${on ? 2.6 : 2}" class="pp-dot${on ? ' on' : ''}" data-dot="${i}"/>`;
     }).join('');
-    overlay.innerHTML = `<defs><marker id="pp-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#f59e0b"/></marker></defs>${parts}${lasso ? `<polyline points="${lasso.map((q) => q.join(',')).join(' ')}" class="pp-lasso"/>` : ''}`;
+    // (the face as marked: eyes and a mouth, where the engine will draw them)
+    const f = draft.face;
+    const face = f ? `${f.eyes.map(([x, y], i) => `<g class="pp-face" data-eye="${i}"><circle cx="${x}" cy="${y}" r="${r2(3.3 * f.eyeSize)}" fill="#fff" stroke="#1f2937" stroke-width="${r2(0.8 * f.eyeSize)}"/><circle cx="${r2(x + 0.5 * f.eyeSize)}" cy="${r2(y + 0.2 * f.eyeSize)}" r="${r2(2.2 * f.eyeSize)}" fill="#1f2937"/></g>`).join('')}${f.mouth ? `<path class="pp-face" data-mouth="1" d="M${r2(f.mouth[0] - 3 * f.mouthSize)} ${r2(f.mouth[1] - 0.4 * f.mouthSize)} Q${f.mouth[0]} ${r2(f.mouth[1] + 2.8 * f.mouthSize)} ${r2(f.mouth[0] + 3 * f.mouthSize)} ${r2(f.mouth[1] - 0.6 * f.mouthSize)}" fill="none" stroke="#1f2937" stroke-width="${r2(1.3 * f.mouthSize)}" stroke-linecap="round"/>` : ''}` : '';
+    overlay.innerHTML = `${face}<defs><marker id="pp-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#f59e0b"/></marker></defs>${parts}${lasso ? `<polyline points="${lasso.map((q) => q.join(',')).join(' ')}" class="pp-lasso"/>` : ''}`;
   };
 
   // The side: what this step is for
@@ -171,6 +186,13 @@ function openEditor(existing = null) {
         <div class="char-chips">${ROLES.map(([r, l]) => `<button class="char-chip${role === r ? ' on' : ''}" data-role="${r}">${l}</button>`).join('')}</div>
         ${partsList || '<p class="face-note">No parts yet: without any it moves as a whole.</p>'}`;
     } else if (step === 3) {
+      const f = draft.face;
+      side.innerHTML = `<p class="face-note">Give it a face that blinks, talks and shows what it feels. Pick <b>Eyes</b> and click where each eye goes (one or two), then <b>Mouth</b> and click where the mouth goes. Drag them to move them. (Mark them inside the head's loop and they turn with the head.)</p>
+        <div class="char-chips"><button class="char-chip${faceTool === 'eyes' ? ' on' : ''}" data-facetool="eyes">👀 Eyes</button><button class="char-chip${faceTool === 'mouth' ? ' on' : ''}" data-facetool="mouth">👄 Mouth</button></div>
+        <div class="char-chips"><span>Eyes</span>${FACE_SIZES.map(([v, l]) => `<button class="char-chip${(f?.eyeSize ?? 1) === v ? ' on' : ''}" data-eyesize="${v}">${l}</button>`).join('')}</div>
+        <div class="char-chips"><span>Mouth</span>${FACE_SIZES.map(([v, l]) => `<button class="char-chip${(f?.mouthSize ?? 1) === v ? ' on' : ''}" data-mouthsize="${v}">${l}</button>`).join('')}</div>
+        <div class="char-chips"><button class="char-chip${f?.cheeks ? ' on' : ''}" data-cheeks="1">🌸 Rosy cheeks</button>${f ? '<button class="tl-btn danger" data-noface="1">Take the face off</button>' : ''}</div>`;
+    } else if (step === 4) {
       const p = draft.parts[selected];
       side.innerHTML = `<p class="face-note">A part can move on its own all the time: a pendulum swings, a lid shakes. Pick a part, its move, then <b>drag on the picture</b> to set the arrow: which way, and how far.</p>
         ${partsList || '<p class="face-note">Make some parts first (step 2).</p>'}
@@ -210,11 +232,26 @@ function openEditor(existing = null) {
       ctx.beginPath(); ctx.moveTo(q[0] * K, q[1] * K); ctx.lineTo(q[0] * K + 0.1, q[1] * K); ctx.stroke();
       return;
     }
+    // The face: an eye or the mouth grabbed and moved, or put where clicked
+    if (step === 3) {
+      const f = (draft.face ??= { eyes: [], eyeSize: 1, mouthSize: 1 });
+      const eye = f.eyes.findIndex((e) => Math.hypot(e[0] - q[0], e[1] - q[1]) < 4 * f.eyeSize);
+      if (eye >= 0) { gesture = { kind: 'eye', i: eye }; return; }
+      if (f.mouth && Math.hypot(f.mouth[0] - q[0], f.mouth[1] - q[1]) < 4 * f.mouthSize) { gesture = { kind: 'mouth' }; return; }
+      if (faceTool === 'mouth') f.mouth = q;
+      else if (f.eyes.length < 2) f.eyes.push(q);
+      else { const near = Math.hypot(f.eyes[0][0] - q[0], f.eyes[0][1] - q[1]) < Math.hypot(f.eyes[1][0] - q[0], f.eyes[1][1] - q[1]) ? 0 : 1; f.eyes[near] = q; }
+      // (two eyes: left one first)
+      f.eyes.sort((a, b) => a[0] - b[0]);
+      gesture = { kind: 'face' };
+      paint();
+      return;
+    }
     // (a dot grabbed: moved, in any step)
     const dot = draft.parts.findIndex((p) => Math.hypot(p.pivot[0] - q[0], p.pivot[1] - q[1]) < 4);
     if (dot >= 0) { selected = dot; gesture = { kind: 'dot', i: dot }; paint(); return; }
     if (step === 2) gesture = { kind: 'lasso', points: [q] };
-    else if (step === 3 && draft.parts[selected]?.move) gesture = { kind: 'arrow' };
+    else if (step === 4 && draft.parts[selected]?.move) gesture = { kind: 'arrow' };
   });
   overlay.addEventListener('pointermove', (e) => {
     if (!gesture) return;
@@ -226,6 +263,12 @@ function openEditor(existing = null) {
       const last = gesture.points.at(-1);
       if (Math.hypot(q[0] - last[0], q[1] - last[1]) > 1.2) gesture.points.push(q);
       drawOverlay(gesture.points);
+    } else if (gesture.kind === 'eye') {
+      draft.face.eyes[gesture.i] = q;
+      drawOverlay();
+    } else if (gesture.kind === 'mouth') {
+      draft.face.mouth = q;
+      drawOverlay();
     } else if (gesture.kind === 'dot') {
       draft.parts[gesture.i].pivot = q;
       drawOverlay();
@@ -268,7 +311,11 @@ function openEditor(existing = null) {
     const b = e.target.closest('button');
     if (!b) return;
     const d = b.dataset, part = draft.parts[selected];
-    if (d.step) { step = +d.step; if (step === 3 && selected < 0 && draft.parts.length) selected = 0; paint(); return; }
+    if (d.step) { step = +d.step; if (step === 4 && selected < 0 && draft.parts.length) selected = 0; paint(); return; }
+    if (d.facetool) { faceTool = d.facetool; paint(); return; }
+    if (d.eyesize || d.mouthsize) { draft.face ??= { eyes: [], eyeSize: 1, mouthSize: 1 }; if (d.eyesize) draft.face.eyeSize = +d.eyesize; else draft.face.mouthSize = +d.mouthsize; paint(); refreshPreview(); return; }
+    if (d.cheeks) { draft.face ??= { eyes: [], eyeSize: 1, mouthSize: 1 }; draft.face.cheeks = !draft.face.cheeks; paint(); refreshPreview(); return; }
+    if (d.noface) { draft.face = null; paint(); refreshPreview(); return; }
     if (d.ink) { ink = d.ink; tool = 'pen'; paint(); return; }
     if (d.width) { width = +d.width; paint(); return; }
     if (d.tool) { tool = tool === 'eraser' ? 'pen' : 'eraser'; paint(); return; }
@@ -279,14 +326,14 @@ function openEditor(existing = null) {
     if (d.speed && part?.move) { part.move.speed = d.speed; paint(); refreshPreview(); return; }
     if (d.size) { draft.size = d.size; paint(); refreshPreview(); return; }
     if (d.try !== undefined) { trying = d.try; modal.querySelectorAll('[data-try]').forEach((x) => x.classList.toggle('on', x === b)); refreshPreview(); return; }
-    if (d.do === 'clear') { ctx.clearRect(0, 0, PX, PX); draft.parts = []; selected = -1; paint(); refreshPreview(); return; }
+    if (d.do === 'clear') { ctx.clearRect(0, 0, PX, PX); draft.parts = []; draft.face = null; selected = -1; paint(); refreshPreview(); return; }
     if (d.do === 'cancel') { modal.remove(); return; }
     if (d.do === 'save') {
       const p = current();
       if (!p) { step = 1; paint(); return error('Draw your figure first, or bring in a picture.'); }
       const name = draft.name.trim().replace(/\s+/g, ' ');
       const why = nameError(name, existing);
-      if (why) { step = 4; paint(); return error(why); }
+      if (why) { step = 5; paint(); return error(why); }
       const made = { name, ...p };
       if (existing) Object.assign(existing, made); else puppets.push(made);
       if (!save()) return error('The browser has no room left to keep this figure: try a smaller picture.');

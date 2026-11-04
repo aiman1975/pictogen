@@ -174,6 +174,19 @@ if (!chromium) {
   const swing = { ...table, parts: [{ role: 'part', points: [[40, 10], [60, 10], [60, 40], [40, 40]], pivot: [50, 10], move: { type: 'swing', dx: 20, dy: 0, speed: 'slow' } }] };
   const sw = generate('pgc501 in the kitchen', { individuals: [{ key: 'pgc501', puppet: swing }] }).svg;
   check(/@keyframes \w+mv0 \{ 0% \{ transform: rotate\(-28deg\)/.test(sw) && /1\.6s ease-in-out infinite alternate/.test(sw), 'a part\'s own move (an arrow): a pendulum swinging slowly, all the time');
+  // A face marked on it: eyes that blink, a mouth that talks, both as it feels
+  const faced = { ...table, face: { eyes: [[38, 45], [62, 45]], eyeSize: 0.8, mouth: [50, 49], mouthSize: 0.7, cheeks: true, skin: '#C8915A' } };
+  check(cleanPuppet({ ...table, face: { eyes: [[1, 1], [2, 2], [3, 3]], eyeSize: 99 } }).face.eyes.length === 2 && cleanPuppet({ ...table, face: { eyes: [[1, 1]], eyeSize: 99 } }).face.eyeSize === 3
+    && cleanPuppet(faced).face.skin === '#c8915a' && !cleanPuppet({ ...table, face: {} }).face, 'a face: one or two eyes, a mouth, sizes kept sensible');
+  const look = (t) => generate(t, { style: 'flat', individuals: [{ key: 'pgc501', puppet: faced }] }).svg;
+  const happy = look('pgc501 in the kitchen'), sad = look('pgc501 is sad in the kitchen'), talk = look('pgc501 says “Hello there!” in the kitchen');
+  check(/class="pg-face-eyes"/.test(happy) && /class="pg-face-mouth"/.test(happy) && /#ff8a80/.test(happy), 'its eyes, mouth and rosy cheeks are drawn where marked');
+  check(sad !== happy && (sad.match(/<line/g) ?? []).length > (happy.match(/<line/g) ?? []).length, 'feeling sad, its face says so (brows, a frown)');
+  check(/data-lips=/.test(talk), 'talking, its mouth moves with the words');
+  const withHead = { ...faced, parts: [...table.parts, { role: 'head', points: [[30, 38], [70, 38], [70, 53], [30, 53]], pivot: [50, 53] }] };
+  const headSvg = generate('pgc501 in the kitchen', { individuals: [{ key: 'pgc501', puppet: withHead }] }).svg;
+  const head = headSvg.indexOf('class="pg-head"'), eyesAt = headSvg.indexOf('class="pg-face-eyes"');
+  check(head > 0 && eyesAt > head, 'marked inside the head\'s loop, the face turns with the head');
   const st = composeStory('pgc501 walks in the park.\nThen pgc501 dances.', { style: 'flat', individuals: ind });
   check(st.scenes.length === 2 && st.scenes.every((sc) => /data-who="pgc501"/.test(sc.svg)) && st.scenes[0].card.figures[0]?.who === 'pgc501', 'in a story, scene by scene, on the scene card');
 }
