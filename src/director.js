@@ -126,6 +126,8 @@ export function directShots({ T, W, H, where, main = null, speeches = [], mood =
       return { keys, says: 'close on who speaks', shake };
     }
   }
+  // (the end, with words on a board: they stay whole on screen)
+  if (context.last && context.first !== true && keepTop != null) return { keys: hold(wide), says: 'wide at the end: the board in view', shake };
   if (context.last && context.first !== true) {
     const at = close(main, T / 2, 1.3) ?? { z: 1.25, fx: W / 2, fy: H * 0.55 };
     return { keys: [key(0, at), key(T, wide)], says: 'pulling back at the end', shake };
