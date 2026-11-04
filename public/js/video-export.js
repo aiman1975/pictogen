@@ -277,7 +277,8 @@ async function renderShots(shots, { fps, scale, format, title, genre, onProgress
     const captioned = shot.scene && (shot.scene.caption || shot.scene.headline);
     let lift = captioned ? Math.round(captionLayout(ctx, shot.scene, W, H).boxH * 0.8) : 0;
     // (but never so far that a classroom's board, or a room's window and clock, lose their tops)
-    const top = lift && (shot.svg.querySelector('.pg-board') || shot.svg.querySelector('.pg-place-office, .pg-place-room, .pg-place-kitchen, .pg-place-bedroom, .pg-place-classroom, .pg-place-sketch'));
+    // (a board with words: its words are what must show, the frame above them may go)
+    const top = lift && (shot.svg.querySelector('.pg-board text') || shot.svg.querySelector('.pg-board') || shot.svg.querySelector('.pg-place-office, .pg-place-room, .pg-place-kitchen, .pg-place-bedroom, .pg-place-classroom, .pg-place-sketch'));
     if (top) {
       try { lift = Math.max(0, Math.min(lift, Math.floor(top.getBBox().y * (H / svgSize(shot.svg).height)) - 4)); } catch { /* not measurable */ }
     }

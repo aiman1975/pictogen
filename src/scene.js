@@ -1851,7 +1851,7 @@ export function composeScene(matches, opts = {}) {
     shots = directShots({
       T: sceneT, W, H, where, main, speeches: said, mood, text: `${opts.caption ?? ''} ${opts.text ?? ''}`, shot: choice,
       // (a board with words: its top stays in the frame)
-      ...(env.boardText ? { keepTop: H * 0.06 } : {}),
+      ...(env.boardText ? { keepTop: H * 0.13 } : {}),
       crowd: items.filter((it) => /^(people|animals|wildlife|alphabet)/.test(it.c.category ?? '')).reduce((n, it) => n + (it.m.count ?? 1), 0),
       context: { index: ctx.index ?? 0, first: Boolean(ctx.first), last: Boolean(ctx.last), newPlace: ctx.prevPlace == null ? Boolean(ctx.first) : ctx.prevPlace !== here },
     });

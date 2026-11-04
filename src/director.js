@@ -107,6 +107,8 @@ export function directShots({ T, W, H, where, main = null, speeches = [], mood =
   }
   // (a crowd - four or more - stays in view: someone speaking among them doesn't cut the others out)
   if (speakers.length === 1 && crowd >= 4) return { keys: hold(wide), says: 'wide: everyone in view', shake };
+  // (a board with words on it: the words and whoever speaks stay in view together)
+  if (speakers.length && keepTop != null) return { keys: hold(wide), says: 'wide: the board in view', shake };
   if (speakers.length === 1) {
     // One speaks: close on them while they speak, then back (or stay, if they speak to the end)
     const keys = [key(0, wide)];
