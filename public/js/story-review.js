@@ -43,6 +43,46 @@ function stepOf(old, does, actor, target) {
 }
 // The step editor's draft: { caption, steps } while one scene's steps are being changed
 let draft = null;
+// Adding to a scene: { caption, kind: 'figure' | 'object' } while its ＋ is open
+let adding = null;
+const LIVING = /^(people|animals|wildlife|fantasy|sea)/;
+const NUMBERS = ['', 'a', 'two', 'three', 'four', 'five'];
+const plural = (w) => (/(s|x|z|ch|sh)$/.test(w) ? `${w}es` : /[^aeiou]y$/.test(w) ? `${w.slice(0, -1)}ies` : `${w}s`);
+/** The names a figure can be: your characters and the story's named ones */
+const knownNames = () => [...(window.pictogenCharacters?.list() ?? []).map((c) => c.name),
+  ...(studio.getStory().cast ?? []).map((c) => (isKey(c.name) ? window.pictogenCharacters?.nameOfKey(c.name) : c.name)).filter(Boolean)];
+/** Suggestions while typing: names and kinds of figures, or things (the studio's concepts) */
+function datalists() {
+  const concepts = studio.getState().concepts ?? [];
+  // (the things once, when the pictures are known; the names each time: new characters come)
+  if (!document.getElementById('sc-figures')) document.body.insertAdjacentHTML('beforeend', '<datalist id="sc-figures"></datalist><datalist id="sc-objects"></datalist>');
+  const opt = (v) => `<option value="${esc(v)}"></option>`;
+  const figures = [...new Set([...knownNames(), ...concepts.filter((c) => !c.library && LIVING.test(c.category ?? '')).map((c) => c.label)])];
+  const things = [...new Set(concepts.filter((c) => !c.variantOf && !LIVING.test(c.category ?? '')).map((c) => c.label))];
+  document.getElementById('sc-figures').innerHTML = figures.map(opt).join('');
+  const objects = document.getElementById('sc-objects');
+  if (!objects.childElementCount) objects.innerHTML = things.map(opt).join('');
+}
+/** What the scene draws with one more figure or thing, there from its first moment */
+function withAdded(prompt, typed, count) {
+  const v = typed.trim().replace(/\s+/g, ' ');
+  const name = knownNames().find((n) => n.toLowerCase() === v.toLowerCase());
+  const phrase = name ? name
+    : /^(a|an|the|some|\d+|two|three|four|five|six|seven|eight|nine|ten)\s/i.test(v) ? v
+      : count > 1 ? `${NUMBERS[count]} ${plural(v)}` : `${/^[aeiou]/i.test(v) ? 'an' : 'a'} ${v}`;
+  const at = prompt.indexOf(', then ');
+  return at < 0 ? `${prompt} and ${phrase}` : `${prompt.slice(0, at)} and ${phrase}${prompt.slice(at)}`;
+}
+function adder(i) {
+  const fig = adding.kind === 'figure';
+  return `<div class="sc-adder" data-scene="${i}">
+    <span class="sc-name">${fig ? '👤 Add someone' : '📦 Add a thing'}</span>
+    <select class="sc-pick sc-count" aria-label="How many">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}">${n === 1 ? 'one' : NUMBERS[n]}</option>`).join('')}</select>
+    <input class="sr-input sc-new" list="${fig ? 'sc-figures' : 'sc-objects'}" maxlength="40" placeholder="${fig ? 'Mia, a teacher, a dog, a unicorn…' : 'a laptop, a ball, a tree, a cake…'}" aria-label="${fig ? 'Who to add' : 'What to add'}">
+    <button class="tl-btn sc-apply" data-add-ok="${i}">＋ Add</button>
+    <button class="tl-btn" data-add-cancel="1">Cancel</button>
+  </div>`;
+}
 
 function placePickers(sc, i) {
   const c = sc.card, chosen = studio.getState().storyPlaces[sc.caption];
@@ -89,7 +129,10 @@ function stepEditor(sc, i) {
 function card(sc, i, chosenMood) {
   const c = sc.card;
   if (!c) return '';
-  const figures = c.figures.map((f) => `<span class="sc-chip">${esc(nm(f.who) || `the ${f.kind}`)}${f.who ? ` <span class="char-base">${esc(f.kind)}</span>` : f.count > 1 ? ` ×${f.count}` : ''}${f.feels && f.feels !== 'happy' ? ` · ${esc(f.feels)}` : ''}</span>`).join('');
+  const figures = c.figures.map((f) => {
+    const word = nm(f.who) || f.kind;
+    return `<span class="sc-chip">${esc(nm(f.who) || `the ${f.kind}`)}${f.who ? ` <span class="char-base">${esc(f.kind)}</span>` : f.count > 1 ? ` ×${f.count}` : ''}${f.feels && f.feels !== 'happy' ? ` · ${esc(f.feels)}` : ''}<button class="sc-x" data-drop="${i}" data-word="${esc(word)}" title="Leave ${esc(word)} out of this scene" aria-label="Remove ${esc(word)}">×</button></span>`;
+  }).join('');
   const objects = c.objects.map((o) => `<span class="sc-chip">${esc(o.name)}${o.count > 1 ? ` ×${o.count}` : ''}<button class="sc-x" data-drop="${i}" data-word="${esc(o.word)}" title="Leave the ${esc(o.name)} out of this scene" aria-label="Remove ${esc(o.name)}">×</button></span>`).join('');
   const auto = sc.moodChosen ? null : c.feeling.mood;
   const mood = `<select class="sc-mood" data-mood="${i}" aria-label="The mood of scene ${i + 1}">
@@ -99,14 +142,15 @@ function card(sc, i, chosenMood) {
   const said = c.message.said.map((s) => `<span class="sc-said">${s.who ? `<b>${esc(nm(s.who))}:</b> ` : ''}“${esc(s.text)}”</span>`).join('');
   const board = c.message.board ? `<span class="sc-said"><b>Board:</b> “${esc(c.message.board)}”</span>` : '';
   const slot = (icon, name, body) => `<div class="sc-slot"><span class="sc-name">${icon} ${name}</span><span class="sc-body">${body || '<span class="sc-none">—</span>'}</span></div>`;
+  const plus = (kind) => `<button class="sc-add" data-add-kind="${kind}" data-i="${i}" title="Add ${kind === 'figure' ? 'someone' : 'a thing'} to this scene" aria-label="Add ${kind === 'figure' ? 'a figure' : 'an object'} to scene ${i + 1}">＋</button>`;
   return `<div class="sc-card">
-    ${slot('👤', 'Figures', figures)}
-    ${slot('📦', 'Objects', objects)}
+    ${slot('👤', 'Figures', figures + plus('figure'))}
+    ${slot('📦', 'Objects', objects + plus('object'))}
     ${slot('🏞️', 'Place', c.where ? placePickers(sc, i) : c.place ? esc(c.place) : '')}
     ${slot('💭', 'Feeling', mood)}
     ${slot('🎬', 'Action', `${c.action.map((a) => esc(nm(a))).join(' → ')}${c.steps && !(draft?.caption === sc.caption) ? ` <button class="tl-btn" data-edit="${i}" title="Change what happens, step by step">✎ Steps</button>` : ''}`)}
     ${slot('💬', 'Message', said + board)}
-  </div>${draft?.caption === sc.caption ? stepEditor(sc, i) : ''}`;
+  </div>${adding?.caption === sc.caption ? adder(i) : ''}${draft?.caption === sc.caption ? stepEditor(sc, i) : ''}`;
 }
 
 function render() {
@@ -141,9 +185,21 @@ function render() {
   }).join('');
   panel.innerHTML = `
     <div class="tl-head"><span class="tl-title">📖 How I read your story</span>
-      <span class="tl-hint">Change what a scene shows and press Enter, leave a thing out (×), or pick its mood; the clip is made again.</span></div>
+      <span class="tl-hint">Change what a scene shows and press Enter, add (＋) or leave out (×) someone or something, or pick its place, mood or steps; the clip is made again.</span></div>
     ${cast ? `<div class="sr-cast">${cast}</div>` : ''}
     <ol class="sr-list">${rows}</ol>`;
+  if (adding) datalists();
+}
+
+/** Adds what was typed in a scene's ＋ to what it draws (kept with its sentence, like an edit) */
+function addTo(i) {
+  const box = panel.querySelector(`.sc-adder[data-scene="${i}"]`);
+  const typed = box?.querySelector('.sc-new').value ?? '';
+  if (!typed.trim()) { box?.querySelector('.sc-new').focus(); return; }
+  const st = studio.getState(), sc = studio.getStory().scenes[i];
+  st.storyEdits[sc.caption] = withAdded(sc.prompt, typed, +box.querySelector('.sc-count').value || 1);
+  adding = null;
+  redo();
 }
 
 function redo() {
@@ -158,6 +214,16 @@ panel.addEventListener('click', (e) => {
   else if (el.dataset.reset !== undefined) {
     delete st.storyEdits[story.scenes[+el.dataset.reset].caption];
     redo();
+  } else if (el.dataset.addKind) {
+    adding = { caption: story.scenes[+el.dataset.i].caption, kind: el.dataset.addKind };
+    render();
+    datalists();
+    panel.querySelector('.sc-new')?.focus();
+  } else if (el.dataset.addCancel) {
+    adding = null;
+    render();
+  } else if (el.dataset.addOk !== undefined) {
+    addTo(+el.dataset.addOk);
   } else if (el.dataset.unplace !== undefined) {
     delete st.storyPlaces[story.scenes[+el.dataset.unplace].caption];
     redo();
@@ -244,6 +310,8 @@ panel.addEventListener('change', (e) => {
   redo();
 });
 panel.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.matches('.sc-new')) { e.preventDefault(); addTo(+e.target.closest('.sc-adder').dataset.scene); return; }
+  if (e.key === 'Escape' && e.target.matches('.sc-new')) { adding = null; render(); return; }
   if (e.key !== 'Enter' || !e.target.matches('.sr-input')) return;
   e.preventDefault();
   const st = studio.getState(), sc = studio.getStory().scenes[+e.target.dataset.i];

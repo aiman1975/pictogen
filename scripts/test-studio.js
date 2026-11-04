@@ -474,6 +474,23 @@ try {
   check(sent.at(-1).includes('"moods"') && sent.at(-1).includes('mystery'), 'a mood picked for a scene makes the clip again with it (sent with the story)');
   await page.selectOption('.sc-mood[data-mood="0"]', '');
   await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.moodChosen);
+  // ＋ on a card: a dog added to scene 1 (with suggestions while typing), then left out again (×)
+  await page.click('.sc-add[data-add-kind="figure"][data-i="0"]');
+  check(await page.$eval('#sc-figures', (d) => d.options.length > 20) && await page.$eval('#sc-objects', (d) => d.options.length > 500), 'adding to a scene suggests figures (with your names) and things while typing');
+  await page.fill('.sc-new', 'cat');
+  await page.press('.sc-new', 'Enter');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[0]?.card?.figures.some((f) => f.kind === 'cat'));
+  check(/and a cat/.test(await page.evaluate(() => window.pictogenStudio.getStory().scenes[0].prompt)), 'someone added on a scene\'s card is drawn in it');
+  await page.click('.sr-row:nth-child(1) .sc-x[data-word="cat"]');
+  await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.card?.figures.some((f) => f.kind === 'cat'));
+  await page.click('.sc-add[data-add-kind="object"][data-i="0"]');
+  await page.selectOption('.sc-count', '2');
+  await page.fill('.sc-new', 'apple');
+  await page.click('button[data-add-ok="0"]');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[0]?.card?.objects.some((o) => /apple/.test(o.name) && o.count === 2));
+  check(true, 'things added on a scene\'s card, as many as asked (two apples)');
+  await page.click('.sr-row:nth-child(1) button[data-reset="0"]');
+  await page.waitForFunction(() => !window.pictogenStudio.getStory().scenes?.[0]?.edited);
   // The card's place and steps: the beach at night for scene 1; its steps changed and used
   await page.selectOption('.sc-pick[data-place="0"][data-kind="place"]', 'beach');
   await page.waitForFunction(() => window.pictogenStudio.getStory().scenes?.[0]?.placeChosen && /beach/.test(window.pictogenStudio.getStory().scenes[0].card.place));
