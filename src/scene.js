@@ -1849,6 +1849,7 @@ export function composeScene(matches, opts = {}) {
     const here = placeLabel(env).split(' · ')[0];
     shots = directShots({
       T: sceneT, W, H, where, main, speeches: said, mood, text: `${opts.caption ?? ''} ${opts.text ?? ''}`, shot: choice,
+      crowd: items.filter((it) => /^(people|animals|wildlife|alphabet)/.test(it.c.category ?? '')).reduce((n, it) => n + (it.m.count ?? 1), 0),
       context: { index: ctx.index ?? 0, first: Boolean(ctx.first), last: Boolean(ctx.last), newPlace: ctx.prevPlace == null ? Boolean(ctx.first) : ctx.prevPlace !== here },
     });
     if (shots?.follow && timeline && actorSlots.size && timelineTracks) {

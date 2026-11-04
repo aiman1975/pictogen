@@ -273,7 +273,9 @@ export function readStory(text, { individuals = [], adults = false } = {}) {
     if (time === 'night' && !/\bnight\b/.test(prompt)) prompt += ' at night';
     if (time === 'evening' && !/\b(evening|sunset)\b/.test(prompt)) prompt += ' at sunset';
     if (weather && !new RegExp(`\\b${weather}\\b`).test(prompt)) prompt += ` in the ${weather}`;
-    if (!inScene.size && !lastScene.length && n < all.length - 1) { opening = `${caption} `; continue; }
+    // (letters and numbers acting - "A red number 7 says...": a scene, not an opening line)
+    const lettersAct = parseText(prompt).matches.some((m) => /^alphabet/.test(getConcept(m.id)?.category ?? ''));
+    if (!inScene.size && !lastScene.length && n < all.length - 1 && !lettersAct) { opening = `${caption} `; continue; }
     opening = '';
     // What the story says a named character looks like ("Mia, a girl with curly red hair") is their
     // look from then on, in every scene
@@ -296,7 +298,7 @@ export function readStory(text, { individuals = [], adults = false } = {}) {
     function readSentence(sentence) {
       let s = ` ${sentence} `;
       // Speech: "“Hello!” said Mia." / "Mia said, “Hello!”" -> Mia says “Hello!”
-      s = s.replace(new RegExp(`(⟦\\d+⟧)[,]?\\s+(?:${SAY_VERBS})\\s+((?:the|a|an|her|his)\\s+[a-z]+|${TITLED}|[A-Z][a-z]+|he|she|they)\\b[.!]?`, 'g'), ' $2 says $1 ');
+      s = s.replace(new RegExp(`(⟦\\d+⟧)[,]?\\s+(?:${SAY_VERBS})\\s+((?:the|a|an)\\s+(?:letter|number)\\s+[A-Za-z0-9]\\b|(?:the|a|an|her|his)\\s+[a-z]+|${TITLED}|[A-Z][a-z]+|he|she|they)\\b[.!]?`, 'g'), ' $2 says $1 ');
       // ("at work": in the office)
       s = s.replace(/\bat work\b/gi, 'in the office');
       s = s.replace(new RegExp(`\\b(${SAY_VERBS})\\s*[,:]?\\s*(⟦\\d+⟧)`, 'g'), 'says $2');

@@ -89,6 +89,7 @@ check(true, 'camera scenes are well-formed in flat, cartoon, sketch, stickman an
   check(says('a girl smiles in the park', { shotContext: { last: true, first: false } }) === 'pulling back at the end', 'director: the last scene pulls back');
   check(says('a boy and a dog in the park', { shotContext: { index: 2, prevPlace: 'the beach' } }) === 'wide, then easing in', 'director: a new place is shown wide first');
   check(!/pg-camera/.test(generate('a red apple on a table').svg), 'director: nobody there, no camera move');
+  check(says('a yellow letter S, a red letter E, a blue letter V, a green letter E and a purple letter N wave, then the letter S says “We spell SEVEN!”') === 'wide: everyone in view', 'director: someone speaking in a crowd keeps everyone in view');
   check(says('a girl smiles in the park', { mood: 'calm' }) === 'a slow drift (mood)', 'director: a scene with a mood keeps its mood\'s camera');
   // Chosen
   const low = generate('a boy and a dog in the park', { style: 'flat', shot: 'low' }), high = generate('a boy and a dog in the park', { style: 'flat', shot: 'high' });

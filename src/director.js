@@ -17,7 +17,7 @@
 // The director, on its own:
 //   - a new place: wide first (at least SETTLE seconds) so we see where we are
 //   - someone speaks: close on them while they speak (their bubble in the frame), then back
-//   - two or more speak: a two-shot that frames them all
+//   - two or more speak: a two-shot that frames them all; in a crowd (four or more) it stays wide
 //   - a tense scene with no words: pushing in on its main figure
 //   - the clip's last scene: pulling back to the wide shot
 //   - a crash, a bang, thunder: a shake as the scene starts
@@ -48,7 +48,7 @@ export function shotChoice(value) {
  *   shot: the shot chosen ({ kind, target }) or null
  * Returns { keys, says } (says: what the shots are, for the scene card) or null.
  */
-export function directShots({ T, W, H, where, main = null, speeches = [], mood = null, text = '', context = {}, shot = null }) {
+export function directShots({ T, W, H, where, main = null, speeches = [], mood = null, text = '', context = {}, shot = null, crowd = 1 }) {
   const wide = { z: 1, fx: W / 2, fy: H / 2 };
   const key = (t, s, ease = 'ease-in-out') => ({ t: r2(clamp(t, 0, T)), z: r2(s.z), fx: r2(s.fx), fy: r2(s.fy), ease });
   // Close on someone, their bubble (above their head, as tall as its lines) and most of them in the frame
@@ -105,6 +105,8 @@ export function directShots({ T, W, H, where, main = null, speeches = [], mood =
       return { keys: [key(0, wide), key(t0, wide), key(t0 + 0.9, at), key(T, at, 'linear')], says: 'two-shot of who speaks', shake };
     }
   }
+  // (a crowd - four or more - stays in view: someone speaking among them doesn't cut the others out)
+  if (speakers.length === 1 && crowd >= 4) return { keys: hold(wide), says: 'wide: everyone in view', shake };
   if (speakers.length === 1) {
     // One speaks: close on them while they speak, then back (or stay, if they speak to the end)
     const keys = [key(0, wide)];

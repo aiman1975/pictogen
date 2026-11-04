@@ -737,5 +737,12 @@ Remember: stop, look and check before you click.`, { style: 'stickman', genre: '
   check(/fill="#0b1433"/.test(generate('a man in the kitchen at night').svg) && !/fill="#0b1433"/.test(generate('a man in the kitchen').svg), 'at night a room is dim');
 }
 
+// Letters and numbers in a story
+{
+  const st = composeStory('A red number 7 says "Hello! I am seven."\nA blue number 3 and a green number 4 jump. "Three and four make seven!" says the number 3.', { style: 'flat' });
+  check(st.scenes.length === 2 && st.scenes[0].matches[0]?.id === 'number_7' && st.scenes[0].matches[0].color === 'red', 'letters and numbers acting are scenes of their own (a red number 7 says...)');
+  check(st.scenes[1].card.message.said[0]?.who === 'the number 3', '"says the number 3": the number 3 says it');
+}
+
 console.log(fails ? `\n${fails} timeline check(s) failed` : '\nTimeline test suite: ALL PASSED!');
 process.exit(fails ? 1 : 0);
