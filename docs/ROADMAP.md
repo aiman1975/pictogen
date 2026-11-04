@@ -188,8 +188,8 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       punctuation pauses; photo jaws and drawn mouths; speaking steps last as long as the words
 - [x] **Sound**: every figure has a voice (children high, adults lower, two of a kind differ;
       animals woof, meow, quack, tweet, roar...) and what it does is heard: footsteps, a whoosh
-      when running, a boing on a jump, "ooh" when surprised, "a-ha!", "hmm", "aww", giggles, and a
-      cute babble in time with the lip-sync ("?" rises). All synthesized in code (no recordings,
+      when running, a boing on a jump, "ooh" when surprised, "a-ha!", "hmm", "aww", giggles (people's words
+      stay silent in their bubbles: the babble that sang them sounded robotic and was dropped). All synthesized in code (no recordings,
       nothing to license); played in the studio (🔊), the clip player, the HTML export and videos
 - [x] **Background music per genre** for clips (kids, news, documentary, how-to), quieter while
       someone speaks; in the clip player (🎵), clip videos and HTML exports

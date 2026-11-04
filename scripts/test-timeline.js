@@ -603,5 +603,23 @@ for (const style of ['cartoon', 'sketch', 'stickman', 'neon']) {
 }
 check(true, 'timeline scenes are well-formed in cartoon, sketch, stickman and neon styles');
 
+// What the long-story test asked for
+{
+  const colours = (t) => parseText(t).matches.map((m) => m.color ?? null);
+  check(colours('the waves are glowing blue, then a girl smiles')[1] === null && colours('a blue sky and a girl')[0] === null,
+    'a colour said about something else does not dress the next person ("waves glowing blue, then a girl")');
+  check(colours('a bright red kite')[0] === 'red' && colours('a girl in blue')[0] === 'blue' && colours('a girl and a blue ball')[1] === 'blue', '...a colour said with its thing still is');
+  const intro = composeStory('A little girl called Mia stood on the beach.\nMia smiled.', { style: 'cartoon' });
+  check(intro.cast.filter((c) => c.id === 'girl').length === 1 && intro.cast[0].name === 'Mia', 'an introduction at the start of a sentence ("A little girl called Mia") names her');
+  const star = generate('a shooting star flies across the sky, then a girl smiles at night', { style: 'cartoon' });
+  check(!/data-id="shooting_star"/.test(star.svg) && /pg-env-shooting-big/.test(star.svg), 'a shooting star the story talks about streaks across the sky (not an icon)');
+  const hug = generate('pgc21 hugs pgc22, then pgc21 says “We did it!”', { style: 'cartoon', individuals: [{ key: 'pgc21', base: 'girl' }, { key: 'pgc22', base: 'old_man' }] });
+  const pose = [...hug.svg.matchAll(/class="pg-timeline-pose" data-anim="(\w+)"/g)].map((m) => m[1]);
+  check(pose.includes('hold') && !pose.includes('talk'), `a hug lasts while she says something (poses: ${pose})`);
+  check(/class="pg-board"/.test(generate('a teacher points at the board in the classroom').svg), 'the classroom board is marked (videos keep its top above a caption)');
+  const whale = (t) => { const m = generate(t, { style: 'cartoon' }).svg.match(/data-id="whale"[^>]*scale\(([\d.]+)\)/); return m ? +m[1] : 0; };
+  check(whale('a whale and a fish by the sea') > whale('a fish and a turtle and a whale and a crab under the sea') * 0.5, 'a whale seen from the shore is big');
+}
+
 console.log(fails ? `\n${fails} timeline check(s) failed` : '\nTimeline test suite: ALL PASSED!');
 process.exit(fails ? 1 : 0);

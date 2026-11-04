@@ -274,7 +274,7 @@ export function readStory(text, { individuals = [] } = {}) {
       // ("the whole class", "the class": the children)
       s = s.replace(/\b(?:the\s+)?(?:whole\s+)?class\b(?!room)/gi, 'the children');
       // Introductions: "a little girl called Mia", "Rex, a brown puppy,", "Rex the dog", "Grandma Rose", "his name was Rex"
-      s = s.replace(/\b(?:a|an|the)\s+((?:[a-z]+\s+){0,3}?)([a-z]+)\s+(?:called|named)\s+([A-Z][a-z]+|pgc\d+)/g, (all, adj, word, name) => {
+      s = s.replace(/\b(?:[Aa]n?|[Tt]he)\s+((?:[a-z]+\s+){0,3}?)([a-z]+)\s+(?:called|named)\s+([A-Z][a-z]+|pgc\d+)/g, (all, adj, word, name) => {
         const id = kindOf(word) ?? kindOf(adj.trim().split(/\s+/).pop() || '');
         if (!id) return all;
         const color = adj.split(/\s+/).find((a) => COLOR_WORDS[a]);

@@ -13,7 +13,7 @@ import { createRng } from './core/rng.js';
 import { drawConcept, shapesToSvg, svgDoc, newUid, styleWrap, esc } from './core/render.js';
 import { getStyle } from './core/styles.js';
 import { darken, lighten, mix } from './core/color.js';
-import { PLACE_ENV_WORDS, applySetting, extras, placeSky, shootingStar, space, underwater, desert, mountains, farm, jungle, castle, autumnLeaves } from './places.js';
+import { PLACE_ENV_WORDS, applySetting, extras, placeSky, shootingStar, bigShootingStar, space, underwater, desert, mountains, farm, jungle, castle, autumnLeaves } from './places.js';
 
 export const ENV_WORDS = {
   night: ['night', 'midnight', 'nighttime', 'dark', 'bedtime', 'sleep', 'sleeping', 'asleep', 'moon', 'stars'],
@@ -161,7 +161,8 @@ function roomDecor(d, env, W, H, wall, floor) {
   };
   // The board: a chalkboard (or a whiteboard) with "1 + 2 = 3" and a line of writing, or the words
   // the prompt or the place asks for (env.boardText)
-  const board = (bx, by, bw, bh) => {
+  const board = (bx, by, bw, bh) => d.group({ class: 'pg-board' }, () => drawBoard(bx, by, bw, bh));
+  const drawBoard = (bx, by, bw, bh) => {
     const white = env.whiteboard || env.roomCustom?.board === 'white';
     d.rect(bx - 6, by - 6, bw + 12, bh + 12, { ...bg, fill: white ? tone('#b0bec5', 0.15) : tone('#a1683a', 0.15), rx: 3 });
     d.rect(bx, by, bw, bh, { ...bg, fill: white ? '#fcfdfe' : '#2f5d46' });
@@ -461,7 +462,8 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
     extras(d, env, rng, W, H, hY);
     return d.shapes;
   }
-  if ((env.night && !env.rain) || env.extras?.has('shooting')) shootingStar(d, rng, W, H);
+  if (env.extras?.has('shooting')) bigShootingStar(d, W, H);
+  else if (env.night && !env.rain) shootingStar(d, rng, W, H);
   if (env.night || env.extras?.has('stars')) {
     for (let i = 0; i < 22; i++) {
       const delay = (rng() * 2).toFixed(2);
@@ -655,6 +657,7 @@ function playTimeline(timeline, slots, props, W) {
     const st = state.get(key);
     // (sitting on a seat: whatever it does, it does sitting there - "then waves")
     if (st.seated) return seatedPose(key, { ...extra, anim: extra.anim && extra.anim !== 'sit' ? extra.anim : 'sit' });
+    if (st.hugging && (!extra.anim || extra.anim === 'talk')) return standingPose(key, { ...extra, anim: 'hold' });
     return standingPose(key, extra);
   };
   const seatedPose = (key, extra) => ({ ...standingPose(key, extra), seat: 'seat', lift: state.get(key).seated.lift });
@@ -705,7 +708,7 @@ function playTimeline(timeline, slots, props, W) {
       const wasPresent = st.present;
       if (!st.present) st.k = 1; // (re)appearing figures start in the front row
       let move = null, d = 0, shown = null, words = null, then = null, dMove = 0;
-      if (['approach', 'recede', 'enter', 'moveTo', 'exit'].includes(a.type)) { st.lookAt = null; st.seated = null; } // eyes on the way ahead
+      if (['approach', 'recede', 'enter', 'moveTo', 'exit'].includes(a.type)) { st.lookAt = null; st.seated = null; st.hugging = null; } // eyes on the way ahead
       if (a.lookAt) st.lookAt = a.lookAt; // "waves at her"
       if (a.type === 'approach' || a.type === 'recede') {
         // Toward the camera (from the horizon if not there yet, else a step closer) or away into the
@@ -737,6 +740,8 @@ function playTimeline(timeline, slots, props, W) {
           if (taken(spot(side)) && !taken(spot(-side))) side = -side;
           if (!st.present) x0 = off(key, side);
           x1 = spot(side);
+          // (a hug as the scene starts: already near them, a step away, so the hug is what we see)
+          if (a.hug && t === 0) x0 = clamp(x1 + side * slot.w * 0.6, slot.w / 2, W - slot.w / 2);
         } else {
           if (!st.present) x0 = off(key, slot.cx < W / 2 ? -1 : 1);
           x1 = slot.cx;
@@ -755,8 +760,10 @@ function playTimeline(timeline, slots, props, W) {
           // Then holds them, turned to them, for the rest of the step
           st.lookAt = a.target;
           dMove = d;
-          d += 1.8;
+          d += 2.4;
           then = pose(key, { anim: 'hold' });
+          // (and keeps hugging while saying something or doing nothing else)
+          st.hugging = a.target;
         }
       } else if (a.type === 'look') {
         // Turns to look at someone (or at us), and keeps looking until it does something else
@@ -788,6 +795,7 @@ function playTimeline(timeline, slots, props, W) {
         if (!shown) { shown = then; then = null; }
       } else if (a.type === 'pose') {
         st.present = true;
+        if (a.anim !== 'talk') st.hugging = null;
         d = GESTURE_SECONDS[a.anim] ?? 2;
         shown = pose(key, { anim: a.anim });
         // Saying something: the words ("says “Hello!”"), else a clip scene's caption when the figure
@@ -1475,8 +1483,11 @@ export function composeScene(matches, opts = {}) {
     const standing = groups.front.length + groups.back.length > 0;
     groups.underwater.forEach((it) => place(it, it.cx, standing ? H * (0.24 + rng() * 0.12) : H * (0.42 + rng() * 0.22), 'center'));
   } else {
-    layoutRow(groups.underwater, W, (waterBottom - hY) * 0.5, rng);
-    groups.underwater.forEach((it) => place(it, it.cx, hY + (waterBottom - hY) * (0.55 + rng() * 0.2), 'center'));
+    // (a whale is big even seen from the shore: its back rises out of the water)
+    const band = waterBottom - hY, big = (it) => it.c.tags?.includes('big');
+    groups.underwater.forEach((it) => { if (!big(it)) it.h = Math.min(it.h, band * 0.5); else it.h *= 1.6; });
+    layoutRow(groups.underwater, W, band * (groups.underwater.some(big) ? 1.15 : 0.5), rng);
+    groups.underwater.forEach((it) => place(it, it.cx, hY + band * (big(it) ? 0.5 : 0.55 + rng() * 0.2), 'center'));
   }
 
   if (groups.front.length) {

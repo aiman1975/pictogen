@@ -591,6 +591,8 @@ function mergeMatches(found) {
  *   { matches: [{ id:'apple', word:'apples', count:3, color:'red' }, { id:'boy', ... }], unknown: [...], excluded: [...], tokens: [...] }
  *   excluded: concept words negated in the prompt ("no cats", "without a hat") and left out
  */
+const COLOUR_BREAKS = new Set('a an the and or but then so while when as with without in on at of to by from for into onto is are was were be been this that these those his her their its my your our some'.split(' '));
+
 export function parseText(text, { fuzzy = false, names = null, keep = null } = {}) {
   const idx = getIndex();
   // Named individuals ("pgc1" -> "boy~pgc1", see src/individuals.js) read as words for their figure
@@ -623,6 +625,13 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
     list = [];
   };
 
+  // (a colour is for the thing it is said with: "a blue ball", "a bright red kite"; not for someone
+  // later on - "a blue sky and a girl", "the waves were glowing blue, then a girl smiles")
+  const colourFor = () => {
+    if (!pend.color) return undefined;
+    const between = toks.slice((pend.colorAt ?? tokAt) + 1, tokAt);
+    return between.some((w) => COLOUR_BREAKS.has(w)) ? undefined : pend.color;
+  };
   const push = (hit, extra = {}) => {
     if (pend.negate) {
       excluded.push(hit.word);
@@ -630,7 +639,7 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
       return;
     }
     found.push({
-      id: hit.id, word: hit.word, color: pend.color, size: pend.size, ...(pend.count != null ? { countGiven: true } : {}),
+      id: hit.id, word: hit.word, color: colourFor(), size: pend.size, ...(pend.count != null ? { countGiven: true } : {}),
       ...(pend.hair ? { hair: pend.hair } : {}),
       ...(pend.features ? { features: pend.features } : {}),
       at: tokAt,
@@ -822,7 +831,7 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
     if (NUMBER_WORDS[t] != null) {
       pend.count = MULTIPLIERS.has(t.replace(/s$/, '')) && pend.count != null ? pend.count * NUMBER_WORDS[t] : NUMBER_WORDS[t];
     } else if (/^\d+$/.test(t)) pend.count = +t;
-    else if (COLOR_WORDS[t]) pend.color = t;
+    else if (COLOR_WORDS[t]) { pend.color = t; pend.colorAt = i; }
     else if (SIZE_WORDS[t]) pend.size = SIZE_WORDS[t];
     else if (EXPRESSION_WORDS[t]) {
       const expr = EXPRESSION_WORDS[t];

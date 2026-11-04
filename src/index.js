@@ -11,7 +11,7 @@ const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...EN
 const PLACE_WORDS = new Set(['forest', 'woods', 'jungle', 'park', 'garden', 'home', 'coral', 'reef']);
 // (and these are always the backdrop in a scene, drawn by src/places.js: dunes and cacti, snowy
 // peaks, a castle on a hill, a barn and fields)
-const BACKDROP_WORDS = new Set(['desert', 'mountain', 'mountains', 'castle', 'farm', 'barn', 'board', 'school', 'classroom']);
+const BACKDROP_WORDS = new Set(['desert', 'mountain', 'mountains', 'castle', 'farm', 'barn', 'board', 'school', 'classroom', 'shooting star', 'shooting stars']);
 // Words written on the board: 'the board says "2 + 2 = 4"', 'writes "Hello" on the board'
 const BOARD = '(?:chalkboard|blackboard|whiteboard|board)';
 const BOARD_SAYS = new RegExp(`\\b${BOARD}\\b(?:\\s+(?:that|which))?(?:\\s+(?:says|said|reads|shows|showing|with))?\\s*[:,]?\\s*["“]([^"”“]{1,60})["”]`, 'i');
@@ -116,6 +116,14 @@ export function generate(text, opts = {}) {
   // Several things happening one after another: actors follow a timeline of beats - the prompt's,
   // or the beats as edited in the studio (opts.beats), which can also bring a still scene to life
   let timeline = mode === 'scene' ? parseTimeline(text, { names }) : null;
+  // (a backdrop that moves - "a shooting star flies across the sky" - is the place's, not an actor)
+  if (timeline?.actors.some((a) => BACKDROP_WORDS.has(a.match?.word))) {
+    const gone = new Set(timeline.actors.filter((a) => BACKDROP_WORDS.has(a.match?.word)).map((a) => a.id));
+    timeline.actors = timeline.actors.filter((a) => !gone.has(a.id));
+    timeline.beats = timeline.beats.map((b) => ({ ...b, actions: b.actions.filter((x) => !gone.has(x.actor) && !gone.has(x.target)) }))
+      .filter((b) => b.actions.length || b.camera);
+    if (!timeline.actors.length) timeline = null;
+  }
   const cast = timeline
     ? [...timeline.actors.map(({ id, match }) => ({ ...match, id, count: match.count ?? 1, animation: undefined })), ...timeline.props]
     : matches.map((m) => ({ ...m, animation: undefined }));

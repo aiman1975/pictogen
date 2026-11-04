@@ -173,6 +173,20 @@ export function placeSky(env, sky) {
   return sky;
 }
 
+// A shooting star the story talks about: big and bright, crossing the sky as the scene starts
+export function bigShootingStar(d, W, H) {
+  d.group({ class: 'pg-env-shooting-big' }, () => {
+    const x = W * 0.3, y = H * 0.14, L = W * 0.2;
+    // (the tail: three streaks that fade, then the glowing star)
+    d.poly([[x - L, y - L * 0.32], [x - 2, y - 5], [x + 2, y + 5]], { ...bg, fill: '#fff59d', opacity: 0.35 });
+    d.line(x - L * 0.75, y - L * 0.26, x, y, { kind: 'line', stroke: '#fffde7', sw: 2.4, opacity: 0.85 });
+    d.circle(x, y, 9, { ...bg, fill: '#fff59d', opacity: 0.35 });
+    const pts = [];
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 2.6 : 6.5; pts.push([r2(x + Math.cos(a) * r), r2(y + Math.sin(a) * r)]); }
+    d.poly(pts, { ...bg, fill: '#ffeb3b' });
+  });
+}
+
 export function shootingStar(d, rng, W, H) {
   d.group({ class: 'pg-env-shooting', style: delay(rng, 7) }, () => {
     const x = W * (0.1 + rng() * 0.3), y = H * (0.05 + rng() * 0.12);
@@ -368,4 +382,6 @@ export const PLACE_CSS = `
 .pg-env-butterfly { transform-box: fill-box; transform-origin: center; animation: pgFlutter 6s ease-in-out infinite; }
 @keyframes pgShoot { 0%, 80% { transform: translate(0, 0); opacity: 0; } 83% { opacity: 1; } 100% { transform: translate(280px, 110px); opacity: 0; } }
 .pg-env-shooting { animation: pgShoot 7s ease-in infinite; }
+@keyframes pgShootBig { 0% { transform: translate(-60px, -24px); opacity: 0; } 8% { opacity: 1; } 55% { opacity: 1; } 70%, 100% { transform: translate(260px, 104px); opacity: 0; } }
+.pg-env-shooting-big { animation: pgShootBig 4.5s ease-in 0.3s infinite both; }
 `;

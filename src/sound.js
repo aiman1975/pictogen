@@ -1,7 +1,7 @@
 // Sound for scenes: what is heard when. Each figure gets a voice (children high, men low, every
 // animal its own call) and what it does becomes cues: footsteps while it walks, a whoosh when it
-// runs, a boing when it jumps, an "ooh" when it is surprised, a giggle when it laughs, a babble in
-// time with its lips when it talks. The cues go into the SVG (<metadata class="pg-sound">) and are
+// runs, a boing when it jumps, an "ooh" when it is surprised, a giggle when it laughs (people's words
+// stay silent, in their bubbles; an animal that talks barks or meows). The cues go into the SVG (<metadata class="pg-sound">) and are
 // played by src/sound-synth.js, which makes every sound from scratch: no recordings, nothing to
 // license, nothing to download.
 
@@ -86,9 +86,11 @@ export function voiceOf(conceptId, alt = 0) {
 const PEOPLE_VOICES = new Set(Object.values(PEOPLE).map(([v]) => v));
 
 // A voiced sound in this voice: an animal calls instead (a babble barks a few times)
+// (people say their words in a bubble, silently: a sung babble sounded robotic; they still say
+// "ooh", "a-ha!", "hmm"... with their feelings)
 function vocal(s, t, voice, extra = {}) {
   if (!voice) return [];
-  if (PEOPLE_VOICES.has(voice.v)) return [{ t, s, v: voice.v, p: voice.p, ...extra }];
+  if (PEOPLE_VOICES.has(voice.v)) return s === 'babble' ? [] : [{ t, s, v: voice.v, p: voice.p, ...extra }];
   const x = s === 'babble' ? Math.min(3, Math.max(1, Math.ceil((extra.n?.length ?? 3) / 3))) : 1;
   return [{ t, s: voice.v, p: voice.p, m: VOCAL[s] ?? 'neutral', ...(x > 1 ? { x } : {}) }];
 }
