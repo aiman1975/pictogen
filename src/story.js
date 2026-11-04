@@ -425,7 +425,7 @@ export function composeStory(storyInput, opts = {}) {
   // whole (src/story-reader.js), so its scenes share one cast, place and time
   const isTemplate = typeof storyInput === 'string' && STORY_TEMPLATES.some((t) => t.id === storyInput.trim().toLowerCase());
   const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !storyInput.includes('|')
-    ? readStory(storyInput, { individuals: opts.individuals ?? [] }) : null;
+    ? readStory(storyInput, { individuals: opts.individuals ?? [], adults: genre !== 'kids' }) : null;
   // What the writer changed in "How I read your story" (opts.edits: their sentence -> what to draw
   // instead, the names as in the story)
   const toKeys = (prompt) => (read?.cast ?? []).filter((c) => c.key && c.name && c.name !== c.key)
@@ -475,6 +475,8 @@ export function composeStory(storyInput, opts = {}) {
       // "Your places" ("pgp1" -> a place made in the studio), carried like any place
       ...(Array.isArray(opts.places) ? { places: opts.places } : {}),
       carry: { ...carry },
+      // (a sequence holds its last moment while the scene is on, instead of starting over)
+      minDuration: sc.duration || 5.0,
       // A caption of its own (not the prompt repeated) is what a talking figure says, lip-synced
       ...(sc.caption && sc.caption.toLowerCase().replace(/[.!?\s]+$/, '') !== sc.prompt.toLowerCase().replace(/[.!?\s]+$/, '') ? { caption: sc.caption } : {}),
     });

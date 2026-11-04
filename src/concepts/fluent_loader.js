@@ -23,6 +23,12 @@ const MAX_SHARED_LAST_WORD = 1;
 // Backdrop words handled by the scene composer (src/scene.js ENV_WORDS) never become icon aliases.
 const SETTING_LAST_WORDS = new Set(['night', 'rain', 'snow', 'water', 'sea', 'beach', 'sand', 'room', 'office', 'park', 'garden', 'street', 'road']);
 
+// Last words that are mostly said as verbs ("stop, look and check") never stand for an icon alone:
+// "a bus stop", "a check box" still do.
+const VERB_LAST_WORDS = new Set(['stop', 'check', 'play', 'pause', 'record', 'repeat', 'shuffle', 'eject']);
+// Phrases for an icon that its name doesn't give ("a warning sign" is one sign, not two things)
+const EXTRA_ALIASES = { warning: ['warning sign', 'warning signs', 'danger sign'] };
+
 const hasWord = (tokens, words) => words.some((w) => tokens.includes(w));
 
 function detectPlacement(key, cat = '') {
@@ -97,7 +103,8 @@ export function loadFluentConcepts() {
     // A plural last word whose singular is its own icon ("nest with eggs" -> "eggs", but "egg"
     // exists) stays the plural of that icon, so "three eggs" draws eggs rather than a nest.
     const pluralOfIcon = [last.replace(/s$/, ''), last.replace(/es$/, '')].some((w) => w !== last && icons[w]);
-    if (!variant && words.length > 1 && !SETTING_LAST_WORDS.has(last) && !pluralOfIcon) {
+    for (const extra of EXTRA_ALIASES[key] ?? []) aliases.add(extra);
+    if (!variant && words.length > 1 && !SETTING_LAST_WORDS.has(last) && !VERB_LAST_WORDS.has(last) && !pluralOfIcon) {
       const canonical = CANONICAL_LAST_WORD[last];
       if (canonical ? canonical === key : lastWordUse[last] <= MAX_SHARED_LAST_WORD) aliases.add(last);
     }

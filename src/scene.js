@@ -31,6 +31,24 @@ export const ENV_WORDS = {
 };
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+// Sitting or working at a desk or a table ("sits at his desk", "works at the table"), and the things
+// that go on it, with their height as a share of a standing person's
+const DESK_RE = /\b(sits?|sat|sitting|works?|worked|working|types?|typed|typing|writes|wrote|writing|studies|studied|studying)\s+(?:[a-z]+\s+){0,3}?at\s+(?:the\s+|his\s+|her\s+|their\s+|a\s+|my\s+|your\s+|our\s+)?(desk|table|workbench)\b/;
+const DESK_SIZES = { laptop: 0.19, desktop_computer: 0.25, mobile_phone: 0.1, hot_beverage: 0.1, teacup_without_handle: 0.08, book: 0.1, books: 0.12,
+  open_book: 0.07, notebook: 0.07, pencil: 0.08, spiral_calendar: 0.1, calendar: 0.1, envelope: 0.06, e_mail: 0.09, memo: 0.08, clipboard: 0.12,
+  telephone: 0.09, keyboard: 0.05, computer_mouse: 0.04, potted_plant: 0.14, desk_lamp: 0.18, lamp: 0.18, apple: 0.05, cup: 0.07, mug: 0.07 };
+const DESK_THINGS = new Set(Object.keys(DESK_SIZES));
+// A desk, wider than a table drawing: a top, two legs, a drawer on one side (in a table's units)
+function deskDrawing(style, olk) {
+  const d = createKit();
+  const ink = { stroke: '#000000', kind: 'line', strokeLinecap: 'round' };
+  const wood = ['stickman', 'whiteboard', 'editorial', 'blueprint', 'doodle', 'sketch', 'lineart'].includes(style) ? '#ffffff' : '#c8915a';
+  d.rect(-14, 46, 128, 9, { rx: 2, fill: wood, stroke: '#000000', sw: 3.2, kind: 'body' });
+  d.line(-6, 55, -6, 96, { ...ink, sw: 3.4 });
+  d.rect(78, 55, 28, 38, { fill: wood, stroke: '#000000', sw: 3, kind: 'body' });
+  d.line(84, 67, 100, 67, { ...ink, sw: 2.2 }); d.line(84, 80, 100, 80, { ...ink, sw: 2.2 });
+  return shapesToSvg(d.shapes, style, { olk });
+}
 // The board on a classroom's wall ("points at the board", "a whiteboard")
 const BOARD_WORDS = ['board', 'chalkboard', 'blackboard', 'whiteboard'];
 
@@ -364,6 +382,83 @@ function treeLine(d, env, pal, rng, W, hY, H) {
   }
 }
 
+// A place in a few light pencil lines, for the explainer styles' white canvas: whatever the words
+// name (a classroom's whiteboard with its words, an office, a room's window, trees, a city, the
+// sea, sun or moon, rain), never so much that the figures stop standing out
+function sketchPlace(d, env, W, H, rng) {
+  const ink = { kind: 'line', stroke: '#94a3b8', sw: 2, fill: 'none' }, base = H * 0.88;
+  const windowAt = (x, y, w, h) => {
+    d.rect(x, y, w, h, { ...ink, rx: 2 });
+    d.line(x + w / 2, y, x + w / 2, y + h, ink); d.line(x, y + h / 2, x + w, y + h / 2, ink);
+    d.line(x - 4, y + h + 3, x + w + 4, y + h + 3, ink);
+  };
+  const clock = (x, y, r) => { d.circle(x, y, r, ink); d.line(x, y, x, y - r * 0.6, ink); d.line(x, y, x + r * 0.45, y, ink); };
+  if (env.room) {
+    if (env.roomKind === 'classroom') {
+      // The whiteboard, its words in marker
+      const bx = W * 0.27, by = H * 0.08, bw = W * 0.46, bh = H * 0.3;
+      d.group({ class: 'pg-board' }, () => {
+        d.rect(bx, by, bw, bh, { kind: 'line', stroke: '#64748b', sw: 3, fill: '#ffffff', rx: 4 });
+        d.line(bx + bw * 0.1, by + bh + 5, bx + bw * 0.9, by + bh + 5, ink);
+        if (env.boardText) {
+          const words = String(env.boardText).slice(0, 60), lines = words.length > 22 ? splitBoard(words) : [words];
+          const size = Math.min(bh * (lines.length > 1 ? 0.26 : 0.36), (bw * 0.9) / Math.max(...lines.map((l) => l.length)) * 1.7);
+          const ys = lines.length > 1 ? [by + bh * 0.42, by + bh * 0.76] : [by + bh * 0.6];
+          lines.forEach((l, i) => d.raw(`<text x="${r2(bx + bw / 2)}" y="${r2(ys[i])}" text-anchor="middle" font-family="${BOARD_FONT}" font-size="${r2(size)}" font-weight="700" fill="#1d4ed8">${esc(l)}</text>`, { kind: 'detail' }));
+        } else {
+          for (let i = 0; i < 3; i++) d.line(bx + bw * 0.12, by + bh * (0.3 + i * 0.22), bx + bw * (0.85 - i * 0.18), by + bh * (0.3 + i * 0.22), { ...ink, stroke: '#93c5fd', sw: 3 });
+        }
+      });
+      clock(W * 0.86, H * 0.16, H * 0.05);
+    } else {
+      windowAt(W * 0.08, H * 0.12, W * 0.16, H * 0.26);
+      if (env.roomKind === 'office') {
+        clock(W * 0.86, H * 0.16, H * 0.05);
+        // (a plant in a pot by the wall)
+        d.path(`M ${W * 0.9} ${base} l ${-W * 0.015} ${-H * 0.07} h ${W * 0.03} z`, ink);
+        for (const a of [-0.6, 0, 0.6]) d.path(`M ${W * 0.9} ${base - H * 0.07} q ${a * W * 0.03} ${-H * 0.08} ${a * W * 0.04} ${-H * 0.12}`, ink);
+      } else {
+        d.rect(W * 0.78, H * 0.14, W * 0.12, H * 0.14, ink); // a picture on the wall
+        d.path(`M ${W * 0.79} ${H * 0.27} l ${W * 0.035} ${-H * 0.06} l ${W * 0.025} ${H * 0.04} l ${W * 0.02} ${-H * 0.03} l ${W * 0.03} ${H * 0.05}`, ink);
+      }
+    }
+    return;
+  }
+  // Outdoors (only where the words say so): the sky, then what stands on the horizon
+  const named = env.city || env.water || env.beach || env.forest || env.park || env.woods;
+  if (!named && !env.night && !env.rain) return;
+  if (env.night) {
+    d.path(`M ${W * 0.85} ${H * 0.09} a ${H * 0.07} ${H * 0.07} 0 1 0 ${H * 0.05} ${H * 0.12} a ${H * 0.055} ${H * 0.055} 0 1 1 ${-H * 0.05} ${-H * 0.12} z`, ink);
+    for (let i = 0; i < 5; i++) { const x = W * (0.1 + rng() * 0.6), y = H * (0.06 + rng() * 0.2); d.line(x - 3, y, x + 3, y, ink); d.line(x, y - 3, x, y + 3, ink); }
+  } else if (!env.rain && named) {
+    const x = W * 0.86, y = H * 0.16, r = H * 0.05;
+    d.circle(x, y, r, ink);
+    for (let i = 0; i < 8; i++) { const a = (i * Math.PI) / 4; d.line(x + Math.cos(a) * r * 1.4, y + Math.sin(a) * r * 1.4, x + Math.cos(a) * r * 1.9, y + Math.sin(a) * r * 1.9, ink); }
+  }
+  if (env.rain) for (let i = 0; i < 14; i++) { const x = W * (0.05 + rng() * 0.9), y = H * (0.05 + rng() * 0.5); d.line(x, y, x - 4, y + 10, ink); }
+  if (env.city) {
+    let x = W * 0.04;
+    while (x < W * 0.96) {
+      const w = W * (0.06 + rng() * 0.05), h = H * (0.18 + rng() * 0.22);
+      d.rect(x, base - h, w, h, ink);
+      for (let wy = base - h + 8; wy < base - 10; wy += 14) d.line(x + w * 0.3, wy, x + w * 0.7, wy, { ...ink, sw: 1.2 });
+      x += w + W * 0.015;
+    }
+  } else if (env.water || env.beach) {
+    for (let row = 0; row < 3; row++) {
+      let path = `M ${W * 0.06} ${H * (0.62 + row * 0.07)}`;
+      for (let x = W * 0.06; x < W * 0.94; x += 22) path += ' q 5.5 -5 11 0 t 11 0';
+      d.path(path, { ...ink, sw: 1.6 });
+    }
+  } else if (env.forest || env.park || env.woods) {
+    for (const fx of [0.1, 0.24, 0.8, 0.92]) {
+      const x = W * fx, h = H * (0.24 + rng() * 0.08);
+      d.line(x, base, x, base - h * 0.5, ink);
+      d.circle(x, base - h * 0.72, h * 0.28, ink);
+    }
+  }
+}
+
 function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
   const d = createKit();
   const bg = { kind: 'bg' };
@@ -377,6 +472,8 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
   if (style === 'stickman') {
     // Exact Image 1: clean white studio canvas with subtle baseline
     d.rect(0, 0, W, H, { ...bg, fill: '#ffffff' });
+    // (the place the words name, sketched in light lines: a whiteboard, an office window, trees...)
+    d.group({ class: 'pg-place pg-place-sketch' }, () => sketchPlace(d, env, W, H, rng));
     d.line(W * 0.08, H * 0.88, W * 0.92, H * 0.88, { kind: 'line', stroke: '#1e293b', sw: 2.2 });
     d.ellipse(W * 0.5, H * 0.91, W * 0.35, 6, { kind: 'shadow', fill: '#000000', opacity: 0.12 });
     return d.shapes;
@@ -617,7 +714,7 @@ const NEAR_K = 1.22; // "comes closer" from the front row: a step toward the cam
  * (x across the front row, k the depth scale: 1 front row, 1 / FAR_DISTANCE at the horizon)
  * with times in seconds.
  */
-function playTimeline(timeline, slots, props, W) {
+function playTimeline(timeline, slots, props, W, minDuration = 0) {
   const state = new Map();
   const tracks = new Map();
   for (const [key, slot] of slots) {
@@ -861,8 +958,10 @@ function playTimeline(timeline, slots, props, W) {
     beatTimes.push({ t0: r2(t), t1: r2(t + beatLen) });
     t += beatLen;
   }
-  for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + HOLD_SECONDS, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
-  return { T: t + HOLD_SECONDS, tracks, camera, beatTimes, speeches, doings };
+  // (in a clip, the last arrangement holds for as long as the scene is on: it loops only after that)
+  const hold = Math.max(HOLD_SECONDS, minDuration - t);
+  for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + hold, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
+  return { T: t + hold, tracks, camera, beatTimes, speeches, doings };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1105,6 +1204,8 @@ export function composeScene(matches, opts = {}) {
 
   // (a tall or short character is drawn bigger or smaller: src/looks.js)
   for (const it of items) it.h = it.c.scale * unit * (it.m.size || 1) * (HEIGHTS[it.look?.features?.height] ?? 1);
+  // (in a classroom, the board stays readable: nobody stands taller than the space below it)
+  if (env.roomKind === 'classroom') for (const it of items) it.h = Math.min(it.h, H * 0.5);
   // With no tree/house/mountain to give a sense of real size, small subjects (a cat, apples)
   // would be specks on the grass: zoom everything in together so the tallest grounded one
   // stands about 40% of the frame, keeping their sizes relative to each other.
@@ -1132,6 +1233,27 @@ export function composeScene(matches, opts = {}) {
       it.wf = Math.max(it.c.width ?? 0.8, need / it.h);
     }
     for (const o of it.carried) o.ratio = o.h / it.h;
+  }
+  // Working at a desk ("sits at his desk with his laptop and a coffee"): on a chair behind it, the
+  // desk in front hiding the legs, and what is on it (a laptop, a coffee, a phone, books) on top
+  const desk = !timeline && DESK_RE.test((words || []).join(' ')) && items.find((it) => it.c.id === 'table' && !it.carried?.length);
+  // (someone already on a chair "at the desk" moves to it, with the chair)
+  const worker = desk && items.find((it) => isPerson(it) && (!it.onSeat || it.onSeat.c.id === 'chair') && !it.carried);
+  const seated = worker && drawConcept(worker.c, { ...worker.look, style, seat: 'seat' });
+  if (worker && seated.seatAt != null && seated.seatAt <= 86) {
+    // (a desk comes up to the waist of whoever sits at it; its things keep their own sizes)
+    desk.desk = { worker, things: [] };
+    if (worker.onSeat) { const chair = worker.onSeat; chair.carried = chair.carried.filter((x) => x !== worker); if (!chair.carried.length) chair.onSeat = desk; }
+    worker.onSeat = desk;
+    worker.seated = seated;
+    // (what they hold goes on the desk too)
+    if (worker.holding && DESK_THINGS.has(worker.holding.c.id)) { desk.desk.things.push(worker.holding); worker.holding = null; }
+    for (const o of items) if (DESK_THINGS.has(o.c.id) && !o.onSeat && desk.desk.things.length < 4) { desk.desk.things.push(o); o.onSeat = desk; }
+    // (the desk and its worker are the picture: as big as one or two people standing would be)
+    const left = items.filter((x) => !x.onSeat && x !== desk && /^(people|animals|objects)/.test(x.c.category ?? '')).length;
+    worker.h = Math.min(Math.max(worker.h, H * (left === 0 ? 0.66 : left === 1 ? 0.56 : 0.48)), env.roomKind === 'classroom' ? H * 0.5 : H);
+    desk.h = worker.h * 0.78;
+    desk.wf = 1.5;
   }
   for (let i = items.length - 1; i >= 0; i--) if (items[i].onSeat) items.splice(i, 1);
   // Partners: holding hands, the gap that makes their hands meet; hugging, close and turned to each other
@@ -1219,6 +1341,28 @@ export function composeScene(matches, opts = {}) {
     const svg = shapesToSvg(shapes, style, { olk: clamp(W / 280 / (2.4 * s * k), 0.35, 4) });
     return `<g class="pg-${ride ? 'rider' : 'sitter'}" data-id="${o.c.id}"${who(o)} transform="translate(${r2(x)} ${r2(y)}) scale(${r2(k * 1000) / 1000})">${svg}${thoughtBubble(o, false)}</g>`;
   }).join('');
+  // At a desk: the chair and its worker behind the desk's drawing, its things on its top (in the
+  // desk's own units: s is its scale)
+  const atDesk = (it, s) => {
+    if (!it.desk) return { before: '', after: '' };
+    const { worker: o, things } = it.desk, k = o.h / it.h;
+    const shapes = drawConcept(o.c, { ...o.look, color: o.m.color, style, expression: o.m.expression || 'happy', seat: 'seat', view: o.m.view });
+    const chair = getConcept('chair');
+    const hips = ((o.c.baseline ?? 96) - (shapes.seatAt ?? 76)) * k;
+    const kc = hips / ((chair.baseline ?? 96) - chair.seatTop);
+    const olk = (kk) => clamp(W / 280 / (2.4 * s * kk), 0.35, 4);
+    let before = `<g class="pg-desk-chair" transform="translate(${r2(50 - 50 * kc)} ${r2(96 - (chair.baseline ?? 96) * kc)}) scale(${r2(kc * 1000) / 1000})">${shapesToSvg(drawConcept(chair, { style }), style, { olk: olk(kc) })}</g>`;
+    before += `<g class="pg-sitter" data-id="${o.c.id}"${who(o)} transform="translate(${r2(50 - 50 * k)} ${r2(96 - (o.c.baseline ?? 96) * k)}) scale(${r2(k * 1000) / 1000})">${shapesToSvg(shapes, style, { olk: olk(k) })}</g>`;
+    const order = [...things].sort((a, b) => (DESK_SIZES[b.c.id] ?? 0.1) - (DESK_SIZES[a.c.id] ?? 0.1));
+    // (the biggest - a laptop, a computer - at their side, so their face shows; the rest beyond)
+    const xs = [24, 78, 90, 10];
+    const after = order.map((t, i) => {
+      const kt = (DESK_SIZES[t.c.id] ?? 0.1) * k;
+      const x = xs[i] - 50 * kt, y = 47 - (t.c.baseline ?? 96) * kt;
+      return `<g class="pg-on-desk" data-id="${t.c.id}" transform="translate(${r2(x)} ${r2(y)}) scale(${r2(kt * 1000) / 1000})">${shapesToSvg(drawConcept(t.c, { ...t.look, color: t.m.color, style }), style, { olk: olk(kt) })}</g>`;
+    }).join('');
+    return { before, after };
+  };
   // Who says what in a still scene ("Tom says “Hello!”"): figure id -> words
   const said = new Map((opts.speech || []).map((sp) => [sp.who, sp.text]));
   const talkers = []; // who speaks where, for their speech bubbles: { x, top, text, room, of }
@@ -1318,7 +1462,9 @@ export function composeScene(matches, opts = {}) {
     const drawing = shapesToSvg(shapes, style, { olk });
     // (how it feels, as a sign over its head: "!", "?", a heart, "Zzz"...)
     const sign = emote(animation === 'sleep' ? 'sleepy' : expression, { head: headOf(it), mirrored: flip });
-    let wrappedContent = `<g class="pg-figure">${drawing}${sign}</g>${carried(it, s)}${thoughtBubble(it, flip)}`;
+    const deskParts = atDesk(it, s);
+    const drawn = it.desk ? deskDrawing(style, olk) : drawing;
+    let wrappedContent = `${deskParts.before}<g class="pg-figure">${drawn}${sign}</g>${deskParts.after}${carried(it, s)}${thoughtBubble(it, flip)}`;
     if (limbs && limbs !== 'blink' && !drawing.includes(`pg-anim-${limbs}`)) {
       wrappedContent = `<g class="pg-anim-${limbs}">${wrappedContent}</g>`;
     }
@@ -1547,7 +1693,7 @@ export function composeScene(matches, opts = {}) {
     }
   }
   if (timeline && actorSlots.size) {
-    const { T, tracks, camera: events, beatTimes, speeches, doings } = playTimeline(timeline, actorSlots, propsAt, W);
+    const { T, tracks, camera: events, beatTimes, speeches, doings } = playTimeline(timeline, actorSlots, propsAt, W, opts.minDuration ?? 0);
     timeline.duration = r2(T);
     timeline.beatTimes = beatTimes;
     for (const { key, t0, act } of doings) {

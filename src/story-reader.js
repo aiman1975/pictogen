@@ -31,10 +31,12 @@ const genderOf = (id) => (FEMALE.has(id) ? 'f' : MALE.has(id) ? 'm' : isAnimal(i
 // First names, to tell a girl from a boy when the story only says the name
 const GIRL_NAMES = new Set(`mia emma olivia ava sophia lily ella grace chloe ruby isla amelia emily lucy anna sara sarah zoe hannah
   maya nora leah julia eva alice rosie rose daisy molly poppy holly evie freya ivy luna stella bella lola nina tina amy kate katie
-  jessica jenny laura lisa maria sofia aisha fatima layla hana yasmin noor sana lea marie clara heidi elsa anya mira`.split(/\s+/));
+  jessica jenny laura lisa maria sofia aisha fatima layla hana yasmin noor sana lea marie clara heidi elsa anya mira lena sophie
+  hanna helen ellen nadia linda susan karen julie anne jane mary rachel rebecca natalie nicole sandra petra greta ines lara`.split(/\s+/));
 const BOY_NAMES = new Set(`tom max sam leo jack noah liam oliver ben finn harry charlie george oscar alfie theo leon luca adam
   james john jake ryan dylan ethan lucas henry arthur archie freddie toby joe josh daniel david peter paul mark luke tim timmy
-  ali omar yusuf hamza adam karim samir rami felix hugo otto nils jonas paul ivan`.split(/\s+/));
+  ali omar yusuf hamza adam karim samir rami felix hugo otto nils jonas paul ivan alex chris michael steve robert frank
+  thomas andrew simon martin kevin brian eric mike nick matt anton jan lukas stefan markus`.split(/\s+/));
 // Titles that say what someone is: "Grandma Rose", "Mr Brown", "King Leo"
 const TITLES = {
   mr: 'man', mrs: 'woman', ms: 'woman', miss: 'woman', dr: 'doctor', doctor: 'doctor', grandma: 'old_woman', granny: 'old_woman',
@@ -44,7 +46,8 @@ const TITLES = {
 // Words that start sentences and are not names ("Suddenly", "Once")
 const NOT_NAMES = new Set(`once one two three the a an and but then so suddenly finally later soon after before when while every
   next that this there these those at in on by with without into from to of for meanwhile today tomorrow yesterday tonight
-  first last afterwards everyone everybody nobody somebody someone something nothing all both each it its they he she we i you
+  first second third fourth fifth sixth finally firstly secondly thirdly lastly remember note step tip
+  last afterwards everyone everybody nobody somebody someone something nothing all both each it its they he she we i you
   oh wow yes no hello hi goodbye bye look come go let lets please thank thanks good great well now here what who why how where
   together outside inside upstairs downstairs far near long little big happy sad deep high under over behind across through
   along around beside inside poor dear sweet brave tiny huge old young her his their our my your its him them us me today
@@ -91,7 +94,8 @@ const PLACES = [
   // (a sea turtle, a sea star, a seashell: not a place)
   ['sea', /\b(sea|ocean|lake|river|pond)\b(?!\s*(?:turtles?|horses?|stars?|shells?|gulls?|lions?|weeds?|creatures?|animals?)\b)/, (w) => `by the ${w}`],
   ['city', /\b(city|town|street)\b/, 'in the city'],
-  ['classroom', /\b(school|classroom)\b/, 'in the classroom'],
+  ['classroom', /\b(school|classroom|training room|meeting room|lecture hall|whiteboard)\b/, 'in the classroom'],
+  ['office', /\b(office|workplace|desk)\b/, 'in the office'],
   ['kitchen', /\bkitchen\b/, 'in the kitchen'],
   ['bedroom', /\b(bedroom|bed)\b/, 'in the bedroom'],
   ['home', /(?<!\bway )\b(home|house|living room|inside|indoors)\b/, 'at home'],
@@ -151,7 +155,7 @@ function splitScenes(text) {
  * Reads a story. Returns its scenes ({ prompt: for the engine, caption: the writer's words }), the
  * characters it names itself (as individuals with keys and looks) and the whole cast.
  */
-export function readStory(text, { individuals = [] } = {}) {
+export function readStory(text, { individuals = [], adults = false } = {}) {
   const { text: safe, quotes } = protect(String(text ?? '').replace(/[’]/g, "'"));
   const cast = [];
   let tick = 0, nextKey = 21;
@@ -180,10 +184,12 @@ export function readStory(text, { individuals = [] } = {}) {
   // A name said with nothing about who it is: a girl's or a boy's name, else the first "she" or "he" after it
   const guessKind = (name, from) => {
     const n = name.toLowerCase();
-    if (GIRL_NAMES.has(n)) return 'girl';
-    if (BOY_NAMES.has(n)) return 'boy';
+    // (in an explainer, the news, a how-to: grown-ups)
+    const [f, m] = adults ? ['woman', 'man'] : ['girl', 'boy'];
+    if (GIRL_NAMES.has(n)) return f;
+    if (BOY_NAMES.has(n)) return m;
     const after = safe.slice(from).match(/\b(she|her|he|him|his)\b/i)?.[1]?.toLowerCase();
-    return after && ['she', 'her'].includes(after) ? 'girl' : 'boy';
+    return after && ['she', 'her'].includes(after) ? f : m;
   };
 
   let place = null, time = null, weather = null, board = null;
@@ -198,17 +204,24 @@ export function readStory(text, { individuals = [] } = {}) {
     const inScene = new Set();
     const parts = sentences(raw).map((s) => readSentence(s).replace(/[\s.,;:!?]+$/, ''));
     let prompt = parts.filter(Boolean).join(', then ');
+    // (whoever is just there is said with the first thing that happens, so they are there from the
+    // start, not popping up at the end: "the email asks for his password and Sam, then ...")
+    const withThere = (who) => {
+      const at = prompt.indexOf(', then ');
+      return at < 0 ? `${prompt} and ${who}` : `${prompt.slice(0, at)} and ${who}${prompt.slice(at)}`;
+    };
     // Someone speaking: whoever was with them in the scene before is still there, listening
     if (/⟦\d+⟧/.test(raw) && inScene.size) {
       const listeners = lastScene.filter((m) => !inScene.has(m) && !BEINGS.has(m.id));
       if (listeners.length && listeners.length + inScene.size <= 4) {
-        prompt += ` and ${listeners.map((m) => m.key ?? `the ${m.noun}`).join(' and ')}`;
+        prompt = withThere(listeners.map((m) => m.key ?? `the ${m.noun}`).join(' and '));
         listeners.forEach((m) => inScene.add(m));
       }
     }
     // A scene where nobody is named ("It started to rain") still has whoever was there
     if (!inScene.size && lastScene.length) {
-      prompt = `${prompt.trim() ? `${prompt} and ` : ''}${lastScene.map((m) => m.key ?? `the ${m.noun}`).join(' and ')}`;
+      const there = lastScene.map((m) => m.key ?? `the ${m.noun}`).join(' and ');
+      prompt = prompt.trim() ? withThere(there) : there;
       lastScene.forEach((m) => inScene.add(m));
     }
     // Where and when, carried on: the scene's own words first
@@ -271,6 +284,8 @@ export function readStory(text, { individuals = [] } = {}) {
       s = s.replace(new RegExp(`\\b(${SAY_VERBS})\\s*[,:]?\\s*(⟦\\d+⟧)`, 'g'), 'says $2');
       // (putting things on is said as "with ..." on whoever wears them: the words go)
       s = s.replace(/\b(?:put|puts|putting)\s+on\s+(?:(?:their|his|her|the|some)\s+)?[a-z ,]*?(?=[.!?,;⟦]|\s(?:and then|then)\b|\s*$)/gi, ' ');
+      // ("Lena from the IT team", "Tom from accounting": just them)
+      s = s.replace(/\b([A-Z][a-z]+)\s+from\s+(?:the\s+)?(?:(?:[A-Za-z]+\s+){0,2}(?:team|department|company)|IT|HR|support|accounting|sales|marketing)\b/g, '$1');
       // ("the whole class", "the class": the children)
       s = s.replace(/\b(?:the\s+)?(?:whole\s+)?class\b(?!room)/gi, 'the children');
       // Introductions: "a little girl called Mia", "Rex, a brown puppy,", "Rex the dog", "Grandma Rose", "his name was Rex"
@@ -352,8 +367,12 @@ export function readStory(text, { individuals = [] } = {}) {
         const first = i === 0 || /^[.!?⟧]$/.test(toks[i - 1] ?? '');
         const listed = GIRL_NAMES.has(low) || BOY_NAMES.has(low);
         const afterArticle = ['a', 'an', 'the', 'some'].includes(toks[i - 1]?.toLowerCase());
+        // (a capitalised word that starts a sentence - "Second,", "Scammers love...", "Remember:" - is a
+        // name only when the story uses it as one: mid-sentence too, or doing something)
+        const doing = PRESENT[next] || /^(is|was|were|are|has|had|and|said|says|can|could|will|would|did|does|from|with)$/.test(next) || /[a-z]ed$/.test(next);
+        const usedAsName = listed || doing || new RegExp(`[a-z,;] ${tok}\\b`).test(safe);
         if (/^[A-Z][a-z]+$/.test(tok) && !afterArticle && !NOT_NAMES.has(low) && (listed || !/(ly|ing|ed)$/.test(low)) && !PRESENT[low]
-          && (listed || (!first && !kindOf(low)) || !parseText(low).matches.length)
+          && (listed || (!first && !kindOf(low)) || (!parseText(low).matches.length && usedAsName))
           && !['in', 'on', 'at', 'under', 'near', 'by'].includes(next)) {
           out.push(ref(addNamed(tok, guessKind(tok, offset))));
           continue;

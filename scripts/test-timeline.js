@@ -621,5 +621,31 @@ check(true, 'timeline scenes are well-formed in cartoon, sketch, stickman and ne
   check(whale('a whale and a fish by the sea') > whale('a fish and a turtle and a whale and a crab under the sea') * 0.5, 'a whale seen from the shore is big');
 }
 
+// What the adult explainer test asked for (stickman, an office, a phishing email)
+{
+  const story = composeStory(`This is Sam. Sam works in an office.
+Second, the email wanted him to hurry. Scammers love pressure.
+He called Lena from the IT team.
+Remember: stop, look and check before you click.`, { style: 'stickman', genre: 'howto' });
+  const names = story.cast.filter((c) => c.name).map((c) => `${c.name}:${c.id}`);
+  check(names.join() === 'Sam:man,Lena:woman', `in an explainer, named people are grown-ups; "Second", "Scammers", "Remember" are no one (${names})`);
+  check(!/team/.test(story.scenes[2].prompt), '"Lena from the IT team" is Lena');
+  check(/in the office/.test(story.scenes[1].prompt), 'the office carries on from scene to scene');
+  check(composeStory('Tom waves.', { style: 'stickman' }).cast[0].id === 'boy', '...and in a kids\' story, children');
+  const ids = (t) => parseText(t).matches.map((m) => m.id);
+  check(!ids('stop, look and check before you click').length && ids('a bus stop')[0] === 'bus_stop', '"stop" and "check" said as verbs draw nothing; a bus stop is still one');
+  check(ids('a warning sign').join() === 'warning', 'a warning sign is one sign');
+  const desk = generate('a man sits at his desk with his laptop and a coffee in the office', { style: 'stickman' }).svg;
+  check(/pg-desk-chair/.test(desk) && /class="pg-sitter" data-id="man"/.test(desk) && /pg-on-desk" data-id="laptop"/.test(desk) && /pg-on-desk" data-id="hot_beverage"/.test(desk),
+    'sitting at a desk: on a chair behind it, the laptop and the coffee on top');
+  check(drawConcept(getConcept('man'), { style: 'stickman', seat: 'seat' }).seatAt === 80, 'a stickman sits on a chair (hips on the seat)');
+  const board = generate('a woman points at the whiteboard that says "Stop. Look. Check." in the classroom', { style: 'stickman' }).svg;
+  check(/pg-place-sketch/.test(board) && /class="pg-board"/.test(board) && /Stop\. Look\. Check\./.test(board), 'stickman places are sketched in lines: the whiteboard with its words');
+  check(/pg-place-sketch/.test(generate('a man in the office', { style: 'stickman' }).svg) && !/<rect[^>]*pg-place/.test(generate('a man waves', { style: 'stickman' }).svg),
+    '...an office; a scene with no place stays a white canvas');
+  const T = (o) => generate('a boy waves, then he jumps', o).duration;
+  check(T({ minDuration: 8 }) >= 8 && T() < 8, 'in a clip, a sequence holds its last moment while the scene is on (no restart)');
+}
+
 console.log(fails ? `\n${fails} timeline check(s) failed` : '\nTimeline test suite: ALL PASSED!');
 process.exit(fails ? 1 : 0);

@@ -803,12 +803,27 @@ export function drawStickPerson(d, p, role = 'boy') {
   const sw = 3.6;
   // (refreshed: a real side view - a profile, legs one before the other - and shoe-shaped feet)
   const side = fresh(p) && viewOf(p) === 'side';
-  const foot = (x, dir) => d.ellipse(x + dir * 2.6, 95.2, 4.4, 2.1, { fill: '#000000', kind: 'detail' });
+  const foot = (x, dir, y = 95.2) => d.ellipse(x + dir * 2.6, y, 4.4, 2.1, { fill: '#000000', kind: 'detail' });
+  // On a chair: everything 14 lower, hips on the seat, the knees bent and the feet on the floor
+  // (front: the thighs toward us, short; side: the thighs forward, the shins straight down)
+  const seated = p.opts.seat === 'seat' && anim !== 'sit' && anim !== 'sitting';
+  if (seated) p.seatAt = 80;
+  const seatedLeg = (dir) => {
+    if (side) {
+      d.polyline([[50, 66], [64 - (dir < 0 ? 3 : 0), 67], [63 - (dir < 0 ? 3 : 0), 80]], { stroke: '#000000', sw, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+      foot(63 - (dir < 0 ? 3 : 0), 1, 81.2);
+    } else {
+      d.polyline([[50, 66], [50 + dir * 7, 70], [50 + dir * 8, 80.5]], { stroke: '#000000', sw, strokeLinecap: 'round', fill: 'none', kind: 'line' });
+      foot(50 + dir * 8, dir, 81.2);
+    }
+  };
 
-  d.group({ class: animClass, style: idleStyle(p) }, () => {
+  d.group({ class: animClass, style: idleStyle(p) }, () => (seated ? d.group('translate(0 14)', stickBody) : stickBody()));
+  function stickBody() {
     // Legs rigged with joint pivots
     d.group({ class: 'pg-leg-left' }, () => {
-      if (anim === 'sit' || anim === 'sitting') {
+      if (seated) seatedLeg(-1);
+      else if (anim === 'sit' || anim === 'sitting') {
         d.polyline([[50, 66], [40, 80], [30, 80]], { stroke: '#000000', sw, strokeLinecap: 'round', fill: 'none', kind: 'line' });
       } else if (side) {
         d.line(50, 66, 45, 94, { stroke: '#000000', sw, strokeLinecap: 'round', kind: 'line' });
@@ -820,7 +835,8 @@ export function drawStickPerson(d, p, role = 'boy') {
       }
     });
     d.group({ class: 'pg-leg-right' }, () => {
-      if (anim === 'sit' || anim === 'sitting') {
+      if (seated) seatedLeg(1);
+      else if (anim === 'sit' || anim === 'sitting') {
         d.polyline([[50, 66], [58, 80], [68, 80]], { stroke: '#000000', sw, strokeLinecap: 'round', fill: 'none', kind: 'line' });
       } else if (side) {
         d.line(50, 66, 55, 94, { stroke: '#000000', sw, strokeLinecap: 'round', kind: 'line' });
@@ -915,7 +931,7 @@ export function drawStickPerson(d, p, role = 'boy') {
         dressHead(d, p, 50, 20, 15.5, 18);
       }, faceArea(p, 50, 20, 15.5));
     });
-  });
+  }
 }
 
 /**

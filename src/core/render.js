@@ -118,6 +118,8 @@ export function drawConcept(conceptOrId, opts = {}) {
   if (/^people/.test(c.category ?? '')) {
     const seat = opts.seat ?? (opts.animation === 'sit' || opts.animation === 'sitting' ? 'ground' : null);
     if (seat) shapes = seatPose(shapes, { mode: seat, view: opts.view });
+    // (a drawing that sits by itself - the stickman - says where its hips are)
+    if (seat && shapes.seatAt == null && p.seatAt != null) shapes.seatAt = p.seatAt;
     if (opts.reach) {
       const reached = reachPose(shapes, { side: opts.reach });
       reached.seatAt ??= shapes.seatAt;

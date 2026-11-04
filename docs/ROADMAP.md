@@ -250,6 +250,15 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] **Your clip**: save scenes one by one from the studio (timeline edits included), caption and
       reorder them, and play them as one clip in Clip Studio (video and HTML export included); kept
       in the browser between visits
+- [x] **Real tests: a long kids' story and an adult explainer** ("The Glowing Sea", 23 scenes; a
+      stickman phishing-awareness explainer): long videos record a few seconds at a time; the story
+      reader keeps one person per name ("Grandpa Leo" / "her grandpa Leo"), clears the weather on a
+      new day, keeps things worn until night, draws grown-ups in explainers, news and how-tos, and
+      doesn't take "Second," or "Remember:" for names; colours stay with their thing; a sequence
+      holds its last moment while the scene is on; people sit at desks (a chair behind it, the
+      laptop and coffee on top); stickman sits on chairs and gets line-sketched places (a whiteboard
+      with its words, an office, trees, a city, the sea); a story's shooting star streaks across
+      the sky; hugs show; people's talking is silent (bubbles only)
 
 ## Known issues to fix along the way
 - The bicycle drawing loses its wheels at small sizes
