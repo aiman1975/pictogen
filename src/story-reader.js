@@ -78,6 +78,8 @@ const WORN = [[/\bdiving masks?\b|\bmasks?\b|\bsnorkels?\b/, 'a diving mask'], [
 const SAY_VERBS = 'said|says|asked|asks|shouted|shouts|cried|called|calls|whispered|whispers|replied|replies|barked|barks|yelled|answered|sang|laughed|giggled|exclaimed';
 
 // Where and when: carried from scene to scene until the story says otherwise
+// Coming in to whoever is there
+const ENTERS = /\b(?:walks?|walked|comes?|came|runs?|ran|rushes|rushed|hurries|hurried|bursts?|burst|steps?|stepped|pops?|popped)\s+in\b|\b(?:enters?|entered|arrives?|arrived)\b/i;
 const PLACES = [
   // (one of "your places", made in the studio: its key, "pgp1")
   ['yours', /\b(pgp\d{1,2})\b/, (w) => `in ${w}`],
@@ -221,6 +223,15 @@ export function readStory(text, { individuals = [], adults = false } = {}) {
       if (listeners.length && listeners.length + inScene.size <= 4) {
         prompt = withThere(listeners.map((m) => m.key ?? `the ${m.noun}`).join(' and '));
         listeners.forEach((m) => inScene.add(m));
+      }
+    }
+    // Someone coming in ("Mia walks in with a cake", "Tom arrived"): whoever was there is still there,
+    // unless the sentence takes them somewhere else
+    if (ENTERS.test(raw) && inScene.size && !PLACES.some(([, re]) => re.test(raw.toLowerCase()))) {
+      const stay = lastScene.filter((m) => !inScene.has(m) && !BEINGS.has(m.id));
+      if (stay.length && stay.length + inScene.size <= 4) {
+        prompt = withThere(stay.map((m) => m.key ?? `the ${m.noun}`).join(' and '));
+        stay.forEach((m) => inScene.add(m));
       }
     }
     // A scene where nobody is named ("It started to rain") still has whoever was there

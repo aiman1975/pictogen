@@ -1,5 +1,5 @@
 // Scene timelines: several actions one after another ("a boy walks in, then waves, then a dog runs to him").
-import { parseTimeline, hasSequence, generate, composeStory, getConcept, editTimeline, parseText, lookRelations, drawConcept, shapesToSvg, speechRelations, lipKeys } from '../src/index.js';
+import { parseTimeline, hasSequence, generate, composeStory, readStory, getConcept, editTimeline, parseText, lookRelations, drawConcept, shapesToSvg, speechRelations, lipKeys } from '../src/index.js';
 import { wellFormedError } from './xml-check.js';
 
 let fails = 0;
@@ -727,6 +727,14 @@ Remember: stop, look and check before you click.`, { style: 'stickman', genre: '
   check(/pg-awake/.test(phone) && /pg-in-bed-holds" data-id="mobile_phone"/.test(phone), '"looks at her phone in bed, then...": in bed with the phone (a still scene)');
   const looks = composeStory('Anna waved.\nAnna smiled.', { style: 'flat', genre: 'howto', sceneStyles: { 'Anna smiled.': 'stickman' } }).scenes;
   check(!looks[0].style && looks[1].style === 'stickman' && /pg-place-sketch|stroke-width="3\.6"/.test(looks[1].svg), 'a scene with a look of its own (stickman) in a flat clip');
+}
+
+// Someone walking in, night indoors
+{
+  const r = readStory('Tom sat in the kitchen.\nSuddenly, Mia walks in with a big cake!\nMia went to the park.').scenes.map((sc) => sc.prompt);
+  check(/pgc22 walks in with a big cake and pgc21/.test(r[1]) && !/pgc21/.test(r[2]), 'someone walking in: whoever was there is still there (not when they go somewhere else)');
+  check(!/pgc21/.test(readStory('Tom sat in the kitchen.\nMia walks in the park.').scenes[1].prompt), '...walking in a park is not coming in to them');
+  check(/fill="#0b1433"/.test(generate('a man in the kitchen at night').svg) && !/fill="#0b1433"/.test(generate('a man in the kitchen').svg), 'at night a room is dim');
 }
 
 console.log(fails ? `\n${fails} timeline check(s) failed` : '\nTimeline test suite: ALL PASSED!');

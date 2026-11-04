@@ -183,6 +183,7 @@ if (!chromium) {
   check(/class="pg-face-eyes"/.test(happy) && /class="pg-face-mouth"/.test(happy) && /#ff8a80/.test(happy), 'its eyes, mouth and rosy cheeks are drawn where marked');
   check(sad !== happy && (sad.match(/<line/g) ?? []).length > (happy.match(/<line/g) ?? []).length, 'feeling sad, its face says so (brows, a frown)');
   check(/data-lips=/.test(talk), 'talking, its mouth moves with the words');
+  check(JSON.stringify(cleanPuppet(faced) && (await import('../src/concepts/index.js')).getConcept(puppetConcept(faced)).signAt) === '[66.8,37.8]', 'a feeling\'s sign (!, Zzz) goes over its face');
   const withHead = { ...faced, parts: [...table.parts, { role: 'head', points: [[30, 38], [70, 38], [70, 53], [30, 53]], pivot: [50, 53] }] };
   const headSvg = generate('pgc501 in the kitchen', { individuals: [{ key: 'pgc501', puppet: withHead }] }).svg;
   const head = headSvg.indexOf('class="pg-head"'), eyesAt = headSvg.indexOf('class="pg-face-eyes"');

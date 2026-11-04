@@ -75,6 +75,16 @@ export const puppetKind = (p) => {
   return legs >= 3 ? 'quadruped' : legs ? 'person' : 'none';
 };
 
+/** Where a feeling's sign goes, in the figure's box: up and to the right of its eyes, else its head */
+function signAt(p) {
+  const f = p.face;
+  if (f?.eyes.length) return [r2(Math.min(92, Math.max(...f.eyes.map((e) => e[0])) + 6 * f.eyeSize)), r2(Math.max(4, Math.min(...f.eyes.map((e) => e[1])) - 9 * f.eyeSize))];
+  if (f?.mouth) return [r2(Math.min(92, f.mouth[0] + 10)), r2(Math.max(4, f.mouth[1] - 16))];
+  const head = p.parts.find((x) => x.role === 'head');
+  const ys = (head ? head.points : p.parts.flatMap((x) => x.points)).map((q) => q[1]);
+  return [68, r2(Math.max(4, (ys.length ? Math.min(...ys) : 20) - 8))];
+}
+
 /** Whether a point is inside a loop (even-odd) */
 function inside([x, y], pts) {
   let yes = false;
@@ -112,6 +122,8 @@ export function puppetConcept(raw) {
     baseline: p.baseline,
     width: p.width,
     puppet: true,
+    // (where a feeling's sign goes - "!", "Zzz", a rain cloud: over its face, else over its head or top)
+    signAt: signAt(p),
     draw(d, opts) { drawPuppet(d, opts, p, kind, id); },
   });
   return id;

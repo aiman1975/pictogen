@@ -580,6 +580,8 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
     d.rect(0, H * 0.88, W, H * 0.12, { ...bg, fill: floorColor });
     d.group({ class: `pg-place pg-place-${env.roomKind}` }, () => roomDecor(d, env, W, H, wallColor, floorColor));
     d.line(0, H * 0.88, W, H * 0.88, { kind: 'line', stroke: '#000000', sw: 3.5 });
+    // (at night the room is dim, its lights low; the figures, drawn over it, stay clear)
+    if (env.night) d.rect(0, 0, W, H, { ...bg, fill: '#0b1433', opacity: 0.42 });
     return d.shapes;
   }
 
@@ -1392,7 +1394,8 @@ export function composeScene(matches, opts = {}) {
     return flip ? `<g transform="translate(100 0) scale(-1 1)">${body}</g>` : body;
   };
   // Where a sign over a figure's head goes, in its own units (a person's head is near the top)
-  const headOf = (it) => (/^people/.test(it.c.category ?? '') ? [62, 6] : [68, 16]);
+  // (a figure of your own says where its face is: src/puppets.js signAt)
+  const headOf = (it) => it.c.signAt ?? (/^people/.test(it.c.category ?? '') ? [62, 6] : [68, 16]);
   // What a figure holds, for drawConcept
   const heldOf = (it) => (it.holding ? { id: it.holding.c.id, color: it.holding.m.color } : undefined);
   // Whoever sits on a seat or rides a bike, drawn on it in its own units (s: its scale): hips on the
