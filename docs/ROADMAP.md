@@ -281,6 +281,16 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       feeling (the mood list), action, message (`src/scene-card.js`); the place (place, time,
       weather, your places), the steps (who, what, to whom, order, together) and the message (who says
       what, lines added or removed, the board's words) editable per scene
+- [x] **Explainers from an outline, phase 1** (`src/slides.js`): `# Title`, `## Headline`, `- points`
+      become cards (title, points with a picture, big number, comparison, steps, quote, recap,
+      statement) and `Scene:` lines acted scenes; points appear one by one with a soft sound, each
+      card as long as it takes to read; a slow drift on each card, a progress bar, the clip style's
+      look; videos cross-fade between scenes and embed the studio font
+- [ ] Explainers, phase 2: a writer that turns notes or an article into that outline (rules: key
+      sentences, headings, lists, numbers)
+- [ ] Explainers, phase 3: an optional local language model for the writer (a download, like the
+      sound pack; its output checked, the rules as fallback; licence checked for sale)
+- [ ] Explainers, phase 4: the writer choosing which points become acted scenes
 - [x] **In a clip, scene to scene:** someone still in the same place starts the next scene where they
       stood; jumping or dancing keeps on while someone talks after it; letters and digits are never
       drawn backwards, step and sing along when they dance

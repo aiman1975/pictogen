@@ -123,6 +123,8 @@
       position: relative;
     }
     .story-text { resize: vertical; min-height: 8.5rem; line-height: 1.45; font-weight: 600; }
+    /* (the genre picked: amber, its words readable - the buttons' own white background would hide them) */
+    #story-genre-group .pill-btn.active { background: #f59e0b !important; border-color: #f59e0b !important; color: #fff; }
     .prompt-box:has(.story-text:not([hidden])) { align-items: flex-start; }
     .prompt-input {
       flex: 1;
@@ -1027,7 +1029,7 @@
         />
         <!-- Clip Studio: a whole story, in lines or sentences (read by src/story-reader.js) -->
         <textarea id="story-text" class="prompt-input story-text" rows="6" hidden aria-label="Your story"
-          placeholder="Write a story, one part per line (or just sentences), e.g.&#10;Once upon a time, a little girl called Mia lived near a big forest.&#10;One morning, she found a small puppy under a tree.&#10;At night, Mia hugged the puppy and fell asleep."></textarea>
+          placeholder="Write a story, one part per line (or just sentences), e.g.&#10;Once upon a time, a little girl called Mia lived near a big forest.&#10;One morning, she found a small puppy under a tree.&#10;At night, Mia hugged the puppy and fell asleep.&#10;&#10;Or an explainer as an outline: # Title, ## Headline, - point"></textarea>
         <button id="btn-generate" class="btn-generate">
           <span>✨ Draw</span>
         </button>
@@ -1503,7 +1505,30 @@
       howto: [
         { id: 'workplace-ergonomics', label: '🪑 Desk Ergonomics' },
         { id: 'plant-care', label: '🪴 Houseplant Care Guide' },
+        { outline: 'saving', label: '📋 Explainer from an outline' },
       ],
+    };
+    // An explainer written as an outline (src/slides.js): put in the story box to try and change
+    const SAMPLE_OUTLINES = {
+      saving: `# Saving Money Made Simple
+Small habits, big results
+## Pay yourself first
+- Move a little to savings the day you get paid
+- What you don't see, you don't spend
+## 20% of your income
+- A common goal for savings and paying off debt
+## Needs vs Wants
+- Rent and food | A new phone
+- Bus pass | Eating out every day
+## Start this week
+1. Open a separate savings account
+2. Set up an automatic transfer
+3. Check your progress each month
+Scene: a woman puts a coin in a jar | Every coin counts
+## Recap
+- Save first, spend what is left
+- Automate it
+- Be patient: it adds up`,
     };
 
     let storyState = {
@@ -1561,13 +1586,21 @@
       if (!storyPresetsContainer) return;
       const list = STORY_PRESETS[genre] || STORY_PRESETS.kids;
       storyPresetsContainer.innerHTML = list.map(item => `
-        <button class="btn-action story-preset-btn" data-story="${item.id}" style="background:#fff; font-weight:700; border-color:#fcd34d;">
+        <button class="btn-action story-preset-btn" ${item.outline ? `data-outline="${item.outline}"` : `data-story="${item.id}"`} style="background:#fff; font-weight:700; border-color:#fcd34d;">
           ${item.label}
         </button>
       `).join('');
 
       storyPresetsContainer.querySelectorAll('.story-preset-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+          // (an outline goes into the story box, to change and make again)
+          if (btn.dataset.outline) {
+            usePrompt();
+            state.prompt = SAMPLE_OUTLINES[btn.dataset.outline];
+            showStoryBox(true);
+            runGenerate();
+            return;
+          }
           const storyId = btn.dataset.story;
           usePrompt();
           state.prompt = storyId;
@@ -1810,6 +1843,8 @@
           storyState.genre = data.genre || state.genre;
           storyState.aspect = data.aspect || state.aspect;
           storyState.title = data.title;
+          // (an explainer from an outline: cards, its first one its title)
+          storyState.slides = Boolean(data.slides);
           storyState.isPlaying = true;
           storyBtnPlay.textContent = '⏸ Pause';
 
@@ -3096,7 +3131,8 @@
       const mounted = story.scenes.map((sc) => mountOffscreen(sc.svg));
       try {
         const shots = story.scenes.map((sc, i) => ({ svg: mounted[i].svg, duration: sc.duration || 5, scene: sc }));
-        const blob = await exportVideo(shots, { fps: 30, title: story.title, genre: story.genre, tune: story.tune, sound: story.sound, music: story.music, onProgress: progress });
+        // (an explainer from an outline starts with its own title card)
+        const blob = await exportVideo(shots, { fps: 30, title: story.slides ? undefined : story.title, genre: story.genre, tune: story.tune, sound: story.sound, music: story.music, onProgress: progress });
         download(blob, `${slug(story.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
         studio.showToast(`Clip video saved (${Math.round(blob.size / 1024)} KB)`);
       } finally {

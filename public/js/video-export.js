@@ -12,6 +12,32 @@ import { soundOf, renderClipSound } from './scene-sound.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+// The studio's own font (public/fonts, inlined), put into every frame: an SVG drawn as a picture
+// can't use the page's fonts, and words on cards, boards and bubbles should look as they do in
+// the studio, not in whatever font the computer has
+let fontRules = null;
+async function frameFonts() {
+  if (fontRules !== null) return fontRules;
+  try {
+    const base = new URL('../fonts/', import.meta.url);
+    const css = await (await fetch(new URL('fonts.css', base))).text();
+    const rules = (css.match(/@font-face\s*\{[^}]*\}/g) || []).filter((r) => r.includes("'Nunito'"));
+    const out = [];
+    for (const r of rules) {
+      const file = /url\(([\w.-]+\.woff2)\)/.exec(r);
+      if (!file) continue;
+      const bytes = new Uint8Array(await (await fetch(new URL(file[1], base))).arrayBuffer());
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      out.push(r.replace(file[0], `url(data:font/woff2;base64,${btoa(bin)})`).replace(/font-display:[^;]*;/, ''));
+    }
+    fontRules = out.join('\n');
+  } catch {
+    fontRules = '';
+  }
+  return fontRules;
+}
+
 const loadImage = (url) => new Promise((resolve, reject) => {
   const img = new Image();
   img.onload = () => resolve(img);
@@ -32,6 +58,7 @@ const svgSize = (svg) => {
  */
 export async function renderFrames(svg, { duration, fps, ctx, box, onFrame, start = 0 }) {
   const { width, height } = svgSize(svg);
+  const fonts = await frameFonts();
   const animations = svg.getAnimations({ subtree: true });
   // Which properties each element's animations change (only those are copied onto the still)
   const animated = new Map();
@@ -63,7 +90,7 @@ export async function renderFrames(svg, { duration, fps, ctx, box, onFrame, star
       });
       still.querySelectorAll('.pg-hit').forEach((el) => el.remove());
       const freeze = document.createElementNS(SVG_NS, 'style');
-      freeze.textContent = '*{animation:none!important;transition:none!important}';
+      freeze.textContent = `${fonts}\n*{animation:none!important;transition:none!important}`;
       still.appendChild(freeze);
       still.setAttribute('width', width);
       still.setAttribute('height', height);
@@ -245,7 +272,7 @@ function drawTitleCard(ctx, title, genre, W, H) {
  * scene?: { caption, tag, headline } }; with `title`, a title card comes first.
  * format 'gif' -> ImageData frames at 1x; 'video' -> ImageBitmaps at `scale`.
  */
-async function renderShots(shots, { fps, scale, format, title, genre, onProgress, sink, chunk = 90 }) {
+export async function renderShots(shots, { fps, scale, format, title, genre, onProgress, sink, chunk = 90, transition = 'fade' }) {
   const { width, height } = svgSize(shots[0].svg);
   const W = Math.round(width * scale), H = Math.round(height * scale);
   const canvas = document.createElement('canvas');
@@ -267,9 +294,25 @@ async function renderShots(shots, { fps, scale, format, title, genre, onProgress
   };
   const total = Math.round((title ? 1.5 : 0) * fps) + shots.reduce((s, sh) => s + Math.max(1, Math.round(sh.duration * fps)), 0);
   if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  // A cross-fade into each scene: its first frames drawn over the last frame of the one before,
+  // more and more (the clip keeps its length: the fade is the new scene's start)
+  const fade = transition === 'cut' ? 0 : Math.round(0.4 * fps);
+  const canvasOf = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
+  const prev = fade ? canvasOf() : null, now = fade ? canvasOf() : null;
+  let hasPrev = false;
+  const keep = () => { if (prev) { prev.getContext('2d').drawImage(canvas, 0, 0); hasPrev = true; } };
+  const blend = (i) => {
+    if (!hasPrev || i >= fade) return;
+    now.getContext('2d').drawImage(canvas, 0, 0);
+    ctx.drawImage(prev, 0, 0);
+    ctx.globalAlpha = (i + 1) / (fade + 1);
+    ctx.drawImage(now, 0, 0);
+    ctx.globalAlpha = 1;
+  };
   if (title) {
     drawTitleCard(ctx, title, genre, W, H);
     for (let i = 0; i < Math.round(1.5 * fps); i++) { await grab(); onProgress && onProgress(done / total); }
+    keep();
   }
   for (const shot of shots) {
     // With a caption, the picture moves up by most of the caption's height (cropping empty sky),
@@ -284,9 +327,11 @@ async function renderShots(shots, { fps, scale, format, title, genre, onProgress
     }
     await renderFrames(shot.svg, {
       duration: shot.duration, fps, ctx, box: { x: 0, y: -lift, w: W, h: H },
-      onFrame: async () => {
+      onFrame: async (i, n) => {
         if (captioned) drawCaption(ctx, shot.scene, genre, W, H);
+        blend(i);
         await grab();
+        if (i === n - 1) keep();
         onProgress && onProgress(done / total);
       },
     });
@@ -296,8 +341,8 @@ async function renderShots(shots, { fps, scale, format, title, genre, onProgress
 }
 
 /** Animated GIF of the shots -> Blob (image/gif). */
-export async function exportGif(shots, { fps = 15, title, genre, onProgress } = {}) {
-  const { frames, width, height } = await renderShots(shots, { fps, scale: 1, format: 'gif', title, genre, onProgress: (p) => onProgress && onProgress(p * 0.8) });
+export async function exportGif(shots, { fps = 15, title, genre, transition, onProgress } = {}) {
+  const { frames, width, height } = await renderShots(shots, { fps, scale: 1, format: 'gif', title, genre, transition, onProgress: (p) => onProgress && onProgress(p * 0.8) });
   // GIF delays are whole hundredths of a second: alternate them (7, 7, 6... at 15 fps) to keep exact time
   const bytes = encodeGif(frames, { width, height, delayCs: (i) => Math.round(((i + 1) * 100) / fps) - Math.round((i * 100) / fps) });
   onProgress && onProgress(1);
@@ -322,9 +367,10 @@ export async function clipSound(shots, { fps = 30, title, music = null, genre } 
 /**
  * Video (MP4 or WebM, whatever this browser records) of the shots -> Blob; recording runs in real
  * time. sound: with the scenes' voices and effects (default true); music: with the genre's
- * background music under it (default false).
+ * background music under it (default false); transition: 'fade' (a short cross-fade into each
+ * scene, the default) or 'cut'.
  */
-export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, tune, sound = true, music = false, onProgress } = {}) {
+export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, tune, sound = true, music = false, transition, onProgress } = {}) {
   // The sound first (it needs only the scenes and their lengths), then the frames, drawn and
   // recorded a few seconds at a time
   const audio = sound || music
@@ -333,7 +379,7 @@ export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, tu
   const { width, height } = svgSize(shots[0].svg);
   const rec = await openRecorder({ fps, width: Math.round(width * scale), height: Math.round(height * scale), audio });
   try {
-    await renderShots(shots, { fps, scale, format: 'video', title, genre, onProgress, sink: (frames, last) => rec.play(frames, last), chunk: Math.round(fps * 3) });
+    await renderShots(shots, { fps, scale, format: 'video', title, genre, transition, onProgress, sink: (frames, last) => rec.play(frames, last), chunk: Math.round(fps * 3) });
   } catch (e) {
     await rec.finish().catch(() => null);
     throw e;

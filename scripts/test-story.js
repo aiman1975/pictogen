@@ -135,5 +135,59 @@ On Saturday, the whole class cleaned the beach together.`);
   assert(/the children clean the beach/.test(p[10]) && !/board/.test(p[10]), 'the whole class is the children; the board stays at school');
 }
 
+// Explainers from an outline (src/slides.js): cards, each as long as it takes to read
+{
+  const { isOutline, readOutline, picturesFor, READ_WPS } = await import('../src/slides.js');
+  const text = `# Compound Interest
+Why starting early matters
+## Money grows on money
+- You earn interest on the money you put in
+- Next year, you also earn interest on that interest
+Show: coins
+## 7% a year
+- A long-run average for a broad stock index
+## Saving vs Spending
+- Grows over time | Gone tomorrow
+- Works while you sleep | Needs you to work for it
+## How to start
+1. Open a savings account
+2. Set up a monthly transfer
+> Spend what is left after saving. — Warren Buffett
+Scene: a teacher points at the board | Interest on interest
+## Recap
+- Start early
+- Keep going`;
+  assert(isOutline(text) && !isOutline('Mia went to school.\nShe met Tom.') && !isOutline('# just a title'), 'an outline is told from a story (headings and points)');
+  const o = readOutline(text);
+  assert(o.title === 'Compound Interest' && o.cards[0].subtitle === 'Why starting early matters', 'the title and its subtitle');
+  assert(o.cards.map((c) => c.kind).join() === 'title,bullets,number,compare,steps,quote,scene,recap', `card kinds from the outline: ${o.cards.map((c) => c.kind)}`);
+  assert(o.cards[1].show === 'coins' && o.cards[2].number === '7%' && o.cards[2].label === 'a year', 'what to show; a big number and its label');
+  assert(o.cards[3].left === 'Saving' && o.cards[3].pairs[1][1] === 'Needs you to work for it', 'a comparison: its two sides, point by point');
+  assert(o.cards[5].quote === 'Spend what is left after saving.' && o.cards[5].by === 'Warren Buffett', 'a quote and who said it');
+  const halves = readOutline('## Cats vs Dogs\n- Quiet\n- Independent\n- Loud\n- Loyal').cards[0].pairs;
+  assert(JSON.stringify(halves) === '[["Quiet","Loud"],["Independent","Loyal"]]', 'a comparison without "|": the points halved, left then right');
+  assert(readOutline('## 3 ways to save\n- Cook at home\n- Walk\n- Wait a day before buying').cards[0].kind === 'bullets', '"3 ways to…" with its points is a list, not a big number');
+  assert(picturesFor('Protect your password')[0] === 'locked' && picturesFor('Money grows')[0] === 'money_bag' && !picturesFor('money').includes('monkey'), `pictures for explainer words (password: ${picturesFor('Protect your password')}, money: ${picturesFor('money')})`);
+
+  const st = composeStory(text, { style: 'flat', genre: 'howto' });
+  assert(st.slides && st.title === 'Compound Interest' && st.scenes.length === 8, `a clip of cards (${st.scenes.length} scenes, slides: ${st.slides})`);
+  const bullets = st.scenes[1];
+  assert(bullets.caption === '' && /pg-slide-bullets/.test(bullets.svg) && /Next year, you also earn/.test(bullets.svg), 'a card carries its own words (no caption under it)');
+  const wordsOn = 4 + 9 + 9;
+  assert(bullets.duration >= wordsOn / READ_WPS && bullets.duration <= 20, `long enough to read (${bullets.duration}s for ${wordsOn} words)`);
+  assert(st.scenes[2].duration < bullets.duration, 'a card with fewer words is on for less time');
+  const reveals = (bullets.svg.match(/@keyframes pg\w+r\d+ /g) ?? []).length;
+  assert(reveals >= 3, `its headline and points appear one by one (${reveals} reveals)`);
+  const cues = JSON.parse(bullets.svg.match(/<metadata class="pg-sound">([^<]*)</)[1].replace(/&quot;/g, '"')).cues;
+  assert(cues.filter((c) => c.s === 'pop').length === 2 && cues[0].t < cues[1].t, 'a soft pop as each point appears');
+  assert(/scale\(1\) translate\(0px, 0px\)/.test(bullets.svg) || /scale\(1.045\)/.test(bullets.svg), 'a slow camera on the card');
+  assert(st.scenes[6].caption === 'Interest on interest' && !st.scenes[6].slide && /Interest|board/i.test(st.scenes[6].svg), 'a "Scene:" line is an acted scene among the cards, with its caption');
+  const dark = composeStory(text, { style: 'chalkboard' }).scenes[1].svg;
+  assert(/#1f3a2e/.test(dark), 'the cards take the look of the clip\'s style (a chalkboard)');
+  const tall = composeStory(text, { style: 'flat', aspect: '9:16' });
+  assert(tall.height > tall.width && /viewBox="0 0 \d+ \d+"/.test(tall.scenes[1].svg) && !/NaN|undefined/.test(tall.scenes.map((s) => s.svg).join('')), 'a tall clip lays its cards out too');
+  assert(!/NaN|undefined|\[object/.test(st.scenes.map((s) => s.svg).join('')), 'cards draw clean SVG');
+}
+
 console.log(`\nStory Engine test suite: ${fails === 0 ? 'ALL PASSED!' : `${fails} FAILS`}`);
 process.exit(fails === 0 ? 0 : 1);

@@ -190,6 +190,29 @@ if (!chromium) {
       const want = 1.5 + clip.scenes * 1.2;
       check(Math.abs(d - want) < 0.5, `clip video = title card + ${clip.scenes} scenes (${d.toFixed(2)}s, expected ~${want}s)`);
     } else check(clip.bytes.length > 10000, 'clip video was recorded');
+    // A cross-fade into each scene: red, then blue - the blue scene's first frames are a mix
+    const fade = await page.evaluate(async () => {
+      const { renderShots, mountOffscreen } = await import('/js/video-export.js');
+      const flat = (c) => mountOffscreen(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="36" viewBox="0 0 64 36"><rect width="64" height="36" fill="${c}"/></svg>`);
+      const a = flat('#ff0000'), b = flat('#0000ff');
+      try {
+        const px = async (transition) => {
+          const { frames } = await renderShots([{ svg: a.svg, duration: 0.5 }, { svg: b.svg, duration: 0.5 }], { fps: 10, scale: 1, format: 'gif', transition });
+          return frames.map((f) => [f[0], f[2]]);
+        };
+        return { fade: await px('fade'), cut: await px('cut') };
+      } finally { a.remove(); b.remove(); }
+    });
+    const [r4, r5, r9] = [fade.fade[4], fade.fade[5], fade.fade[9]];
+    check(r4[0] > 240 && r4[1] < 15 && r5[0] > 100 && r5[1] > 30 && fade.fade[7][1] > r5[1] && r9[1] > 240 && r9[0] < 15, `scenes cross-fade: last red ${r4}, first blue a mix ${r5}, then blue ${r9}`);
+    check(fade.cut[5][1] > 240 && fade.cut[5][0] < 15, `transition 'cut': straight to blue (${fade.cut[5]})`);
+    // An explainer from an outline: its own title card, no black one before it
+    const outline = await page.evaluate(async () => {
+      const res = await fetch('/api/story/generate', { method: 'POST', body: JSON.stringify({ text: '# Saving Tips\n## Start small\n- Put a little aside each week' }) });
+      const story = await res.json();
+      return { slides: story.slides, kinds: story.scenes.map((sc) => sc.slide?.kind), captions: story.scenes.map((sc) => sc.caption) };
+    });
+    check(outline.slides && outline.kinds.join() === 'title,bullets' && outline.captions.every((c) => c === ''), `an outline makes cards: ${outline.kinds} (no captions under them)`);
     check(!errors.length, `no page errors during export${errors.length ? ': ' + errors.join('; ') : ''}`);
   } finally {
     if (browser) await browser.close();
