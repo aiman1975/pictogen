@@ -19,7 +19,7 @@ import { parseText } from './text/matcher.js';
 import { drawConcept, shapesToSvg, svgDoc, newUid, esc } from './core/render.js';
 import { textWidth } from './bubble.js';
 import { soundTrack } from './sound.js';
-import { LANGS } from './lang.js';
+import { LANGS, detectLanguage } from './lang.js';
 
 const r2 = (v) => Math.round(v * 100) / 100;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -178,14 +178,22 @@ const PICTURE_WORDS = [
 ];
 
 /** Pictures for some words: first from what they name exactly, else the explainer words above */
-export function picturesFor(text, max = 2) {
+export function picturesFor(text, max = 2, lang = null) {
   const s = String(text ?? '').toLowerCase();
   const out = [];
   const add = (id) => { if (id && getConcept(id) && !out.includes(id)) out.push(id); };
+  // (by the words of the text's language: English ones would misread German - "Text" is no phone)
+  const code = lang ?? detectLanguage(s);
+  if (code !== 'en' && LANGS[code]) {
+    for (const [re, id] of LANGS[code].pictures) if (re.test(s)) add(id);
+    return out.slice(0, max);
+  }
   for (const [re, id] of PICTURE_WORDS) if (re.test(s)) add(id);
-  // (and the other languages' words: German so far)
-  for (const pack of Object.values(LANGS)) for (const [re, id] of pack.pictures) if (re.test(s)) add(id);
   for (const m of parseText(s).matches) if (!/^(alphabet)/.test(getConcept(m.id)?.category ?? '')) add(m.id);
+  // (a few words with nothing English about them - "Geld sparen": the other languages' words too)
+  if (!lang && !(s.match(/\p{L}+/gu) ?? []).some((w) => LANGS.en.stop.has(w))) {
+    for (const pack of Object.values(LANGS)) for (const [re, id] of pack.pictures) if (re.test(s)) add(id);
+  }
   return out.slice(0, max);
 }
 
@@ -294,7 +302,9 @@ export function renderSlide(card, opts = {}) {
     if (ids.some((id) => ['money_bag', 'coin', 'dollar_banknote'].includes(id))) cues.push({ t: r2(when + 0.1), s: 'coins' });
     return appear(g, { pop: true, at: when });
   };
-  const pics = (s, n = 2) => picturesFor(s, n);
+  // (the clip's language, else the card's own)
+  const lang = opts.lang ?? detectLanguage([card.headline, card.subtitle, card.note, card.quote, card.label, ...(card.points ?? []).map((p) => p.text)].filter(Boolean).join(' '));
+  const pics = (s, n = 2) => picturesFor(s, n, lang);
 
   const M = 34 * u; // margin
   let body = '';

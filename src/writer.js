@@ -31,6 +31,8 @@ export function shorten(sentence, max = 14, lang = null) {
   s = s.replace(/^to [^,]{1,30},\s*(?=(first|then|next|finally)\b)/i, '');
   for (let k = 0; k < 3 && L.openers.test(s); k++) s = s.replace(L.openers, '');
   s = s.replace(/\s*\([^)]*\)/g, '').replace(/\s+[—–]\s+[^—–]*[—–]\s+/g, ' ').replace(/\s+/g, ' ');
+  // (an example at the end goes: ", such as support@paypa1.com..." / ", zum Beispiel ...")
+  s = s.replace(/,\s*(such as|for example|for instance|e\.g\.|like|zum beispiel|z\.\s?b\.|beispielsweise|wie etwa|etwa)\s[^,;]*$/i, '');
   s = trimEnd(s);
   const w = s.split(' ');
   if (w.length <= max) return cap(s);

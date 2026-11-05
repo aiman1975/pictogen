@@ -1,6 +1,7 @@
 // PictoGen Story & Clip Engine: Multi-scene animated clips for Kids Stories,
 // Science Documentaries, News & Editorial Briefs, and How-To Explainer Guides.
 import { isOutline, readOutline, renderSlide } from './slides.js';
+import { detectLanguage } from './lang.js';
 import { readStory } from './story-reader.js';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
@@ -587,6 +588,8 @@ export function composeStory(storyInput, opts = {}) {
 function composeOutline(text, opts, dims) {
   const { style = 'flat', seed = 1, genre = 'howto', aspect = '16:9' } = opts;
   const { title, cards } = readOutline(text);
+  // (the outline's language, for the pictures its cards find: src/lang.js)
+  const lang = detectLanguage(text);
   const scenes = cards.map((card, i) => {
     if (card.kind === 'scene') {
       // ("Scene: what to draw | its caption": no caption, the picture speaks for itself)
@@ -594,7 +597,7 @@ function composeOutline(text, opts, dims) {
       const sc = composeStory([{ prompt, caption: caption || ' ', duration: 5 }], { ...opts, title: title ?? 'Explainer' }).scenes[0];
       return { ...sc, index: i, tag: '', headline: '', caption: caption.trim() };
     }
-    const { svg, duration } = renderSlide(card, { style, width: dims.width, height: dims.height, index: i, total: cards.length, seed });
+    const { svg, duration } = renderSlide(card, { style, width: dims.width, height: dims.height, index: i, total: cards.length, seed, lang });
     // (a card carries its words itself: no caption under it)
     return { index: i, prompt: card.headline || card.quote || card.note || title, caption: '', headline: '', tag: '', duration, svg, matches: [], slide: card };
   });

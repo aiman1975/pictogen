@@ -76,6 +76,8 @@ export const LANGS = {
     texts: { recap: 'Zusammenfassung', steps: 'Schritt für Schritt', title: 'Ein Erklärvideo' },
     // Pictures for German words (a word's start: "Passwort", "Passwörter", "Sicherheitspasswort")
     pictures: [
+      // (a warning first: "Warnzeichen ist Zeitdruck" is a warning more than a time)
+      [/(warnung|warn|risiko|riskant|gefahr|gefährlich|vorsicht|bedrohung|betrug|phishing|fehler|achtung)/i, 'warning'],
       [/(geld|bargeld|einkommen|gehalt|lohn|preis|kosten|bezahl|budget|vermögen|gewinn|verdien|gebühr)/i, 'money_bag'],
       [/(spar|münze|cent\b)/i, 'coin'],
       [/(zins|wachs|wachstum|steig|zunahme|rendite|anlage|investi|aktie|börse|markt)/i, 'chart_increasing'],
@@ -84,7 +86,6 @@ export const LANGS = {
       [/(zeit|jahre|jahrzehnt|monat|langfristig|geduld|warte|früh|später|frist)/i, 'hourglass_not_done'],
       [/(uhr|stunde|minute|zeitplan|routine|morgens|wecker)/i, 'alarm_clock'],
       [/(kalender|datum|termin|woche|planung|plan\b)/i, 'calendar'],
-      [/(warnung|warn|risiko|riskant|gefahr|gefährlich|vorsicht|bedrohung|betrug|phishing|fehler|achtung)/i, 'warning'],
       [/(passwort|passwörter|kennwort|schloss|sicherheit|sicher\b|datenschutz|privat|verschlüssel|anmeld|konto)/i, 'locked'],
       [/(schlüssel|zugang|zugriff)/i, 'key'],
       [/(schutz|schütz|versicherung)/i, 'shield'],
