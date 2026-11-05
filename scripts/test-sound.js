@@ -70,7 +70,7 @@ const repoPack = readPack();
 check(repoPack.files.filter((e) => /CC0/.test(e.license) && /Kenney/.test(e.source)).length >= 20 && existsSync(new URL('../public/audio/pack/licenses/kenney-interface-sounds.txt', import.meta.url)),
   'the shipped pack has Kenney\'s CC0 interface sounds, with their license text');
 check(!repoPack.problems.length, `the shipped sound pack is clean: every file listed with a source and a license${repoPack.problems.length ? ': ' + repoPack.problems.join('; ') : ''}`);
-check(CATALOGUE.length === 76 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') && CATALOGUE.some((c) => c.slot === 'music/documentary'), `the catalogue lists ${CATALOGUE.length} slots (voices, syllables, animals, effects, music)`);
+check(CATALOGUE.length === 92 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') && CATALOGUE.some((c) => c.slot === 'music/documentary'), `the catalogue lists ${CATALOGUE.length} slots (voices, syllables, animals, effects, music)`);
 // Footsteps by size, things that sound, places' sounds, the sound set of a clip
 {
   const snd = (t, o) => soundOf(generate(t, o).svg) || {};
@@ -93,7 +93,14 @@ check(CATALOGUE.length === 76 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') &
   const { TUNES, packForClip, readPack } = await import('../src/sound-pack.js');
   const { composeStory, generateStoryHtml } = await import('../src/story.js');
   const have = new Set(readPack().files.filter((e) => e.music).map((e) => e.music));
-  check(TUNES.length === 10 && TUNES.every(([k]) => have.has(k)), `ten tunes in the pack, one per genre and mood (${[...have].join(', ')})`);
+  check(TUNES.length === 20 && TUNES.every(([k]) => have.has(k)), `twenty tunes in the pack, one per genre and mood (${[...have].join(', ')})`);
+  check(composeStory('# Tips\n## One\n- a point').tune === 'explainer' && composeStory('# Tips\n## One\n- a point', { tune: 'focus' }).tune === 'focus', 'an explainer from an outline plays the explainer tune unless another is picked');
+  // (new reactions: "wow!" when excited, "oh no!" when scared, "hooray!" taking turns with "yay!")
+  const { generate: gen, soundOf: sndOf } = await import('../src/index.js');
+  const cueOf = (t) => sndOf(gen(t, { style: 'flat' }).svg)?.cues ?? [];
+  check(cueOf('an excited girl').some((c) => c.s === 'wow') && cueOf('a scared boy').some((c) => c.s === 'ohno'), 'an excited figure says "wow!", a scared one "oh no!"');
+  const files = readPack().files;
+  check(['kid', 'woman', 'man'].every((v) => ['wow', 'ohno'].every((s) => files.some((e) => e.voice === v && e.sound === s)) && files.filter((e) => e.voice === v && e.sound === 'yay').length >= 2), 'each voice has its "wow" and "oh no", and two cheers');
   check(packForClip([], { genre: 'sea' }).some((e) => e.music === 'sea') && !packForClip([], { genre: 'sea' }).some((e) => e.music === 'kids'), 'an exported clip carries only the tune it plays');
   const clip = composeStory('a fish swims under the sea | Splash!', { tune: 'sea' });
   const html = generateStoryHtml(clip);
@@ -175,7 +182,7 @@ if (!chromium) {
     await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
 
     // Every sound, in every voice, renders: audible, finite, not clipping, over within seconds
-    const voiced = ['babble', 'ooh', 'aha', 'hmm', 'giggle', 'yay', 'hi', 'aww', 'hmph'];
+    const voiced = ['babble', 'ooh', 'aha', 'hmm', 'giggle', 'yay', 'hi', 'wow', 'ohno', 'aww', 'hmph'];
     const cues = SOUND_NAMES.flatMap((s) => (voiced.includes(s)
       ? ['kid', 'woman', 'man'].map((v) => ({ s, v, n: s === 'babble' ? babbleNotes('Hello Mia! How are you?') : undefined }))
       : [{ s, d: 2 }]));

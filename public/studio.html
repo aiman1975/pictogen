@@ -1353,7 +1353,10 @@
               <option value="">Genre's music</option>
               <option value="kids">😊 Happy</option><option value="calm">🌿 Calm</option><option value="adventure">🗺️ Adventure</option>
               <option value="mystery">🔍 Mystery</option><option value="sea">🐠 Under the sea</option><option value="bedtime">🌙 Bedtime</option>
-              <option value="celebration">🎉 Celebration</option><option value="documentary">🔬 Science</option><option value="howto">💡 How-to</option><option value="news">📰 News</option>
+              <option value="celebration">🎉 Celebration</option><option value="funny">🤡 Funny</option><option value="action">⚡ Action</option><option value="tense">😬 Tense</option><option value="sad">🌧️ Sad</option>
+              <option value="nature">🌿 Nature</option><option value="holiday">❄️ Holiday</option><option value="focus">🎧 Focus</option>
+              <option value="explainer">📋 Explainer</option><option value="inspiring">✨ Inspiring</option><option value="tech">💻 Technology</option>
+              <option value="documentary">🔬 Science</option><option value="howto">💡 How-to</option><option value="news">📰 News</option>
             </select>
             <button class="btn-action" id="story-btn-book" style="background:#f59e0b; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="The clip as a picture book to print: a cover, a page for each scene with its caption, The End">📖 Picture Book</button>
             <button class="btn-action" id="story-btn-export-html" style="background:#10b981; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Export standalone offline animated player">💾 Export Clip (.html)</button>
@@ -1845,6 +1848,8 @@ Scene: a woman puts a coin in a jar | Every coin counts
           storyState.title = data.title;
           // (an explainer from an outline: cards, its first one its title)
           storyState.slides = Boolean(data.slides);
+          // (the clip's own tune when none is picked: an explainer's)
+          storyState.clipTune = data.tune || '';
           storyState.isPlaying = true;
           storyBtnPlay.textContent = '⏸ Pause';
 
@@ -2514,7 +2519,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
       if (storyState.sound && storyState.isPlaying) window.pictogenSound?.play(getSvgElement());
       else window.pictogenSound?.stop();
       // The genre's background music, across the scenes
-      if (storyState.isPlaying) window.pictogenSound?.startMusic(storyState.tune || storyState.genre || 'kids');
+      if (storyState.isPlaying) window.pictogenSound?.startMusic(storyState.tune || storyState.clipTune || storyState.genre || 'kids');
       // The caption read aloud; the scene stays as long as that takes
       if (narrator.on && storyState.isPlaying) {
         storyState.duration = Math.max(storyState.duration, narrator.seconds(sc.caption) * 1000);
@@ -2595,7 +2600,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
         narrator.say(storyState.scenes?.[storyState.curIndex]?.caption);
         startStoryProgress();
         if (storyState.sound) window.pictogenSound?.resume(getSvgElement());
-        window.pictogenSound?.startMusic(storyState.tune || storyState.genre || 'kids');
+        window.pictogenSound?.startMusic(storyState.tune || storyState.clipTune || storyState.genre || 'kids');
       } else {
         clearInterval(storyState.progressInterval);
         clearTimeout(storyState.timer);
@@ -2647,14 +2652,14 @@ Scene: a woman puts a coin in a jar | Every coin counts
       try { localStorage.setItem('pictogen.tune.v1', storyState.tune); } catch { /* not remembered */ }
       if (storyState.music && storyState.isPlaying && storyState.scenes?.length) {
         window.pictogenSound?.stopMusic();
-        window.pictogenSound?.startMusic(storyState.tune || storyState.genre || 'kids');
+        window.pictogenSound?.startMusic(storyState.tune || storyState.clipTune || storyState.genre || 'kids');
       }
     });
     storyBtnMusic.addEventListener('click', () => {
       storyState.music = !storyState.music;
       showMusic(storyState.music);
       window.pictogenSound?.setMusic(storyState.music);
-      if (storyState.music && storyState.isPlaying && storyState.scenes?.length) window.pictogenSound?.startMusic(storyState.tune || storyState.genre || 'kids');
+      if (storyState.music && storyState.isPlaying && storyState.scenes?.length) window.pictogenSound?.startMusic(storyState.tune || storyState.clipTune || storyState.genre || 'kids');
     });
     window.addEventListener('load', () => {
       const on = window.pictogenSound ? window.pictogenSound.isEnabled() : true;
@@ -3132,7 +3137,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
       try {
         const shots = story.scenes.map((sc, i) => ({ svg: mounted[i].svg, duration: sc.duration || 5, scene: sc }));
         // (an explainer from an outline starts with its own title card)
-        const blob = await exportVideo(shots, { fps: 30, title: story.slides ? undefined : story.title, genre: story.genre, tune: story.tune, sound: story.sound, music: story.music, onProgress: progress });
+        const blob = await exportVideo(shots, { fps: 30, title: story.slides ? undefined : story.title, genre: story.genre, tune: story.tune || story.clipTune, sound: story.sound, music: story.music, onProgress: progress });
         download(blob, `${slug(story.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
         studio.showToast(`Clip video saved (${Math.round(blob.size / 1024)} KB)`);
       } finally {

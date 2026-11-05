@@ -29,6 +29,8 @@ const VOICE_SOUNDS = [
   ['giggle', 0.8, 'a giggle (laughing)', 'giggling happily, 4 or 5 short "hee-hee" sounds'],
   ['yay', 0.7, 'cheering "yay!"', 'cheering an excited "Yaaay!"'],
   ['hi', 0.5, 'a friendly "hey!" (waving)', 'calling a friendly, cheerful "Hey!" as a greeting'],
+  ['wow', 0.8, 'amazed "wow!" (excited)', 'saying an amazed, excited "Wow!"'],
+  ['ohno', 0.8, 'worried "oh no!" (scared)', 'saying a worried, alarmed "Oh no!", not screaming'],
   ['snore', 2.5, 'a gentle snore (sleeping), loops', 'snoring gently while sleeping, one slow breath in and out, cute not gross'],
 ];
 const ANIMAL_SOUNDS = [
@@ -68,6 +70,16 @@ const MUSIC = [
   ['sea', 'Under the sea', 'Dreamy underwater music for children: shimmering harp, soft marimba and gentle bubbling synth pads, floating and wondrous, 85 BPM, major key'],
   ['bedtime', 'Bedtime', 'Soft bedtime lullaby music: music box, gentle harp and soft strings, slow and soothing, 65 BPM, major key'],
   ['celebration', 'Celebration', 'Joyful celebration music for children: bright brass, bouncy bass, hand claps and glockenspiel, festive and happy, 128 BPM, major key'],
+  ['explainer', 'Explainer', 'Modern, neutral background music for an explainer video: soft piano chords, light plucked synth, gentle steady beat, clear and optimistic, 100 BPM, major key, unobtrusive under on-screen text'],
+  ['inspiring', 'Inspiring', 'Uplifting, inspiring background music: piano arpeggios building with warm strings and a soft kick drum, hopeful and motivating, 110 BPM, major key'],
+  ['tech', 'Technology', 'Clean modern technology background music: arpeggiated synths, crisp light electronic beat, curious and smart, 112 BPM, neutral key, not aggressive'],
+  ['sad', 'Sad', 'Gentle, tender sad music: slow solo piano with a soft cello, quiet and reflective, 68 BPM, minor key, sad but comforting, not dramatic'],
+  ['tense', 'Tense', 'Tense suspense music for a family story: low pulsing strings, ticking percussion, building slowly, 96 BPM, minor key, suspenseful but not scary or violent'],
+  ['action', 'Action', 'Energetic action chase music for a cartoon: driving drums, fast staccato strings and bold brass hits, exciting and fun, 140 BPM, minor key'],
+  ['funny', 'Funny', 'Funny, quirky comedy music for a cartoon: bouncy bassoon, pizzicato strings, playful woodwinds and light percussion, cheeky, 112 BPM, major key'],
+  ['nature', 'Nature', 'Peaceful nature music: wooden flute, fingerpicked acoustic guitar and soft hand percussion, open and airy like a sunny meadow, 84 BPM, major key'],
+  ['focus', 'Focus', 'Calm, steady focus music for studying: mellow electric piano, soft warm bass and a slow relaxed beat, cosy and concentrated, 80 BPM, major key'],
+  ['holiday', 'Holiday', 'Festive winter holiday music: sleigh bells, celesta, pizzicato strings and warm horns, cosy and joyful, 118 BPM, major key, an original melody (not a known carol)'],
 ];
 /** The tunes a clip can play: [key, label] (its genre's, or a mood picked in the studio) */
 export const TUNES = MUSIC.map(([key, label]) => [key, label]);

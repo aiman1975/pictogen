@@ -21,9 +21,9 @@ const SPREAD = [1, 0.9, 1.12, 0.84, 1.2, 0.95];
 // What a gesture and a mood sound like
 const ANIM_SOUNDS = { jump: 'boing', cheer: 'yay', wave: 'hi', dance: 'jingle', think: 'hmm', sleep: 'snore', sit: 'plop', spin: 'whirl', thumbsup: 'ding', point: 'blip', fly: 'flutter', flap: 'flutter', swim: 'bubble' };
 const MOOD_SOUNDS = { surprised: 'ooh', laugh: 'giggle', happy: 'aha', sad: 'aww', angry: 'hmph', confused: 'hmm', skeptical: 'hmm', wink: 'twinkle',
-  scared: 'ooh', excited: 'yay', love: 'aww', shy: 'giggle', sleepy: 'hmm' };
+  scared: 'ohno', worried: 'ohno', excited: 'wow', amazed: 'wow', love: 'aww', shy: 'giggle', sleepy: 'hmm' };
 // Sounds made with the voice, and the mood an animal calls them in
-const VOCAL = { ooh: 'surprised', aha: 'happy', giggle: 'happy', yay: 'happy', hi: 'happy', aww: 'sad', hmph: 'angry', hmm: 'neutral', babble: 'neutral' };
+const VOCAL = { ooh: 'surprised', aha: 'happy', giggle: 'happy', yay: 'happy', hi: 'happy', wow: 'surprised', ohno: 'sad', aww: 'sad', hmph: 'angry', hmm: 'neutral', babble: 'neutral' };
 
 /** Every sound the synth knows (src/sound-synth.js) */
 export const SOUND_NAMES = [

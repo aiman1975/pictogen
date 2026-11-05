@@ -610,7 +610,8 @@ function composeOutline(text, opts, dims) {
     scenes,
     // (its first card is its title: no title card before it)
     slides: true,
-    ...(TUNES.some(([k]) => k === opts.tune) ? { tune: opts.tune } : {}),
+    // (its music: the one picked, else the explainer tune)
+    tune: TUNES.some(([k]) => k === opts.tune) ? opts.tune : 'explainer',
     ...(['playful', 'clean'].includes(opts.sounds) ? { sounds: opts.sounds } : {}),
   };
 }

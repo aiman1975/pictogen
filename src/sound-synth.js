@@ -222,6 +222,12 @@ export function pgSound(ctx, dest, cue, when, bank) {
     case 'giggle': vocal([1.65, 1.55, 1.5, 1.4, 1.32].map((k, i) => ({ at: i * 0.13, dur: 0.08, h: 0.03, amp: 1 - i * 0.12, pitch: [[0, k], [1, k * 0.94]], vowels: [[0, i % 2 ? 'i' : 'e'], [1, 'i']] }))); break;
     case 'yay': vocal([{ at: 0, dur: 0.6, pitch: [[0, 1.2], [0.45, 1.65], [1, 1.45]], vowels: [[0, 'i'], [0.25, 'a'], [0.8, 'e'], [1, 'i']] }]); break;
     case 'hi': vocal([{ at: 0, dur: 0.38, h: 0.07, pitch: [[0, 1.15], [0.5, 1.42], [1, 1.25]], vowels: [[0, 'e'], [0.6, 'e'], [1, 'i']] }]); break;
+    // ("wow!": rising through "a" to "o"; "oh no!": two falling syllables, the "n" hummed)
+    case 'wow': vocal([{ at: 0, dur: 0.62, h: 0.05, pitch: [[0, 1.08], [0.4, 1.55], [1, 1.18]], vowels: [[0, 'u'], [0.3, 'a'], [0.75, 'o'], [1, 'u']] }]); break;
+    case 'ohno': vocal([
+      { at: 0, dur: 0.22, pitch: [[0, 1.3], [1, 1.24]], vowels: [[0, 'o'], [1, 'o']] },
+      { at: 0.3, dur: 0.48, h: 0.04, pitch: [[0, 1.38], [0.5, 1.2], [1, 0.95]], vowels: [[0, 'm'], [0.15, 'o'], [1, 'o']] },
+    ]); break;
     case 'babble': {
       // One sung syllable per syllable of the words: a wandering tune, "?" lifting the sentence's
       // end, "!" lifting all of it
@@ -743,7 +749,7 @@ export function pgMusicTrack(ctx, dest, genre, bank, level) {
 }
 
 /** The tune a clip's music turns to while a scene's mood lasts (src/mood.js), from TUNES */
-export const MOOD_TUNES = { tense: 'mystery', joyful: 'celebration', sad: 'calm', mystery: 'mystery', calm: 'calm' };
+export const MOOD_TUNES = { tense: 'tense', joyful: 'celebration', sad: 'sad', mystery: 'mystery', calm: 'calm' };
 
 /**
  * A clip's music, scene by scene: [{ tune, at, end }] - its own tune, turning to a mood's tune

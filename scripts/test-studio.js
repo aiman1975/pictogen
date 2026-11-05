@@ -555,8 +555,8 @@ try {
   check(sent.slice(sentKeep).every((body) => !body.includes('Lily')), 'kept as a character, Lily is in every scene as her own key, the change to scene 3 still there, her name never sent');
   await page.evaluate(() => { const i = window.pictogenCharacters.list().findIndex((c) => c.name === 'Lily'); document.querySelector(`#characters-panel [data-remove="${i}"]`)?.click(); });
   check(await page.isVisible('#story-btn-read'), 'a button reads the story aloud');
-  check(await page.evaluate(() => { const t = document.getElementById('story-tune'); t.value = 'sea'; t.dispatchEvent(new Event('change')); return window.pictogenStudio.getStory().tune === 'sea' && t.options.length === 11; }),
-    'the clip\'s music: its genre\'s, or one of ten tunes picked (here "Under the sea")');
+  check(await page.evaluate(() => { const t = document.getElementById('story-tune'); t.value = 'sea'; t.dispatchEvent(new Event('change')); return window.pictogenStudio.getStory().tune === 'sea' && t.options.length === 21; }),
+    'the clip\'s music: its genre\'s, or one of twenty tunes picked (here "Under the sea")');
   await page.evaluate(() => { const t = document.getElementById('story-tune'); t.value = ''; t.dispatchEvent(new Event('change')); });
   await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="scene"]').click());
   await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'scene');

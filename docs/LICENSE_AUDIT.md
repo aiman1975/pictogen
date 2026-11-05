@@ -67,13 +67,16 @@ font, data file or dependency is added.
    in `docs/SOUND_PACK.md`, instrumental only, no artist or song named. Each file is on record in
    `manifest.json` with its source and terms. Before selling: keep a copy of the Gemini API terms
    of that day, confirm they allow commercial use of the output, and remember that AI-made music
-   is generally not protected by copyright (usable, but not exclusively ours).
+   is generally not protected by copyright (usable, but not exclusively ours). Ten more (explainer,
+   inspiring, technology, sad, tense, action, funny, nature, focus, holiday) were made the same way
+   on 2026-11-05, each checked by listening (instrumental, fits its mood, no glitches).
 9. **Voice reactions made with Gemini TTS.** "Ooh", "a-ha", "hmm", "hmph", "aww", a giggle, "yay"
    and "hey" in a child's, a woman's and a man's voice (36 clips in `public/audio/pack/voices/`) were
    generated with `gemini-3.8-flash-tts` and its prebuilt synthetic voices (2026-11-03, paid
    tier); the children's clips are a young voice raised in pitch. No real person's voice was
    imitated. Each clip was checked for length and by listening (`gemini-3.5-flash`) before it was
-   added; source and terms are on record in `manifest.json`. Same caveats as (8).
+   added; source and terms are on record in `manifest.json`. Same caveats as (8). On 2026-11-05,
+   "wow!", "oh no!" and "hooray!" were added the same way (14 clips).
 
 ## Rules for new material
 
