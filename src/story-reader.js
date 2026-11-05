@@ -143,7 +143,7 @@ const PLACES = [
   ['sky', /\b(sky|skies|heaven|above the clouds|in the clouds)\b|\bfl(?:y|ies|ew|ying)\s+(?:up\s+)?(?:through|across|into|among)\s+(?:the\s+)?(?:night|air|clouds|stars|dark)\b/, 'up in the sky'],
 ];
 // (the ground: under a tree, by the houses - not up in the sky any more)
-const ON_GROUND = /\b(?<!over |above |down at |down on )(?:the |a |an |big |small |little |tall |old )*(trees?|flowers?|grass|ground|meadow|field|houses?|garden|path|road|bench|rock)\b/;
+const ON_GROUND = /\b(trees?|flowers?|grass|ground|meadow|field|houses?|garden|path|road|bench|rock)\b/;
 // (what someone looks at, over or behind is not where they are: "looked over the mountains")
 const LOOKED_AT = /\b(?:looks?|looked|looking|sees?|saw|watch(?:es|ed)?|peeks?|peeked|gazes?|gazed|searches|searched)\s+(?:over|behind|at|across|towards?|into|through|up at|down at|out over|out at|under|in)?\s*[^.,;!?⟦]*/g;
 // (someone missing or lost is not in the picture: "a little star was missing", "lost her puppy")
@@ -301,11 +301,12 @@ export function readStory(text, { individuals = [], adults = false, translate = 
     }
     // Where and when, carried on: the scene's own words first
     const low = raw.toLowerCase();
-    const where = low.replace(LOOKED_AT, ' ');
+    // (and what is shone on, flown over, gone past: "shines over the small houses" is not at home)
+    const where = low.replace(LOOKED_AT, ' ').replace(/\b(?:over|above|past|across|beyond)\s+(?:the\s+|a\s+|some\s+)?(?:[a-z]+\s+){0,2}?(?:houses?|homes?|mountains?|hills?|forest|woods|city|town|villages?|sea|lake|fields?|trees?)\b/g, ' ');
     const p = PLACES.find(([, re]) => re.test(where));
     if (p) { place = [...p]; place.word = where.match(p[1])[1] ?? 'sky'; }
     // (down from the sky, under a tree: the ground again)
-    else if (place?.[0] === 'sky' && ON_GROUND.test(where)) place = null;
+    else if (place?.[0] === 'sky' && ON_GROUND.test(low.replace(LOOKED_AT, ' '))) place = null;
     const t = TIMES.find(([, re]) => re.test(low));
     const w = WEATHER.find(([, re]) => re.test(low));
     // (a new day or night: the weather clears unless it is said again; things worn come off)
