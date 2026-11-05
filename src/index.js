@@ -21,7 +21,7 @@ import { renderIcon, renderCard, renderSheet, renderPlaceholder } from './core/r
 import { getConcept } from './concepts/index.js';
 import { parseTimeline, extractCamera, editTimeline, lookRelations, speechRelations } from './timeline.js';
 import { takeQuotes } from './speech.js';
-import { findDiagram, renderDiagram, renderLabelledPictures, DIAGRAMS } from './diagrams.js';
+import { findDiagram, findGermanDiagram, renderDiagram, renderLabelledPictures, DIAGRAMS } from './diagrams.js';
 import { conceptOf, individualNames, individualLooks } from './individuals.js';
 import { placeKeys, takePlace, cleanPlace } from './places.js';
 import { withPuppets } from './puppets.js';
@@ -67,7 +67,22 @@ export function generate(text, opts = {}) {
   // (spelling a word keeps its letters: "MÜNCHEN")
   let leftOut = [];
   const spelling = ['alphabet', 'spelling', 'letterling', 'letters'].includes(mode);
-  if (!spelling && (opts.lang === 'de' || (!opts.lang && isGermanPrompt(text)))) ({ text, unknown: leftOut } = bridgeGerman(text));
+  // (letters in German: "K wie Katze" is "K is for cat", the German word on its banner; "zähle bis 5")
+  let phonicsDe = null;
+  if (spelling) {
+    const ph = text.trim().match(/^([A-Za-zÄÖÜäöü])\s+(?:wie|für|ist für)\s+(.+)$/u);
+    const count = text.match(/(?:zähl\p{L}*\s+)?(?:von\s+(\d)\s+)?bis\s+(\d)(?:\s+zähl\p{L}*)?/iu);
+    if (ph) {
+      phonicsDe = { join: 'WIE', word: ph[2].replace(/[^\p{L}\s-]/gu, '').trim().split(/\s+/).pop().toUpperCase() };
+      text = `${ph[1].toUpperCase()} is for ${bridgeGerman(ph[2]).text}`;
+    } else if (count && /zähl/i.test(text)) text = `count ${count[1] ? `from ${count[1]} ` : ''}to ${count[2]}`;
+  }
+  if (!spelling && (opts.lang === 'de' || (!opts.lang && isGermanPrompt(text)))) {
+    // (a diagram topic named in German: "der Wasserkreislauf" -> the water cycle)
+    const topic = findGermanDiagram(text);
+    if (topic) text = topic.replace(/_/g, ' ').replace('butterfly cycle', 'life cycle of a butterfly').replace(/^(plant|tree)$/, 'parts of a $1').replace(/^body$/, 'the human body').replace(/^earth$/, 'layers of the earth');
+    else ({ text, unknown: leftOut } = bridgeGerman(text));
+  }
   // One of "your places" (opts.places: [{ key: 'pgp1', place, time, weather, extras }], made in the
   // studio): its key in the prompt sets the scene's backdrop ("Tom waves in pgp1"), src/places.js
   const taken = takePlace(text, placeKeys(opts.places));
@@ -210,7 +225,7 @@ export function generate(text, opts = {}) {
   } else if (mode === 'coloring') {
     svg = renderColoringBook(matches, common);
   } else if (mode === 'alphabet' || mode === 'spelling' || mode === 'letterling' || mode === 'letters') {
-    svg = renderAlphabet(matches, common);
+    svg = renderAlphabet(matches, { ...common, ...(phonicsDe ? { phonics: phonicsDe } : {}) });
   } else {
     // Camera moves without a timeline: targets as concept ids (a pronoun means the first figure)
     const camera = !timeline && shot.moves.length ? {

@@ -80,6 +80,9 @@
       letter-spacing: 0.05em;
     }
 
+    .lang-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .lang-btn { font: inherit; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border: none; background: var(--surface); color: var(--text-muted); cursor: pointer; }
+    .lang-btn.on { background: #2563eb; color: #fff; }
     .header-links {
       display: flex;
       align-items: center;
@@ -929,8 +932,9 @@
       .brand { gap: 0.5rem; }
       .brand-logo { width: 30px; height: 30px; font-size: 1rem; border-radius: 8px; }
       .brand-title { font-size: 1.05rem; }
-      .header-links { gap: 0.4rem; }
+      .header-links { gap: 0.25rem; }
       .header-links .btn-link { font-size: 0.82rem; white-space: nowrap; }
+      .lang-btn { padding: 4px 6px; }
       header .header-links a.btn-link { padding: 6px 10px !important; }
       main { padding: 0 0.5rem; margin-top: 0.5rem; gap: 0.6rem; }
       .card { padding: 0.75rem; }
@@ -1015,6 +1019,8 @@
       <span class="brand-badge">Pictures from words</span>
     </a>
     <div class="header-links">
+      <!-- English / Deutsch (public/js/i18n.js) -->
+      <span class="lang-switch" data-lang-switch></span>
       <button class="btn-link" data-install hidden title="Install PictoGen as an app on this device: it opens in its own window and works offline">⬇ <span class="hide-phone">Install app</span></button>
       <a href="/showcase" target="_blank" class="btn-link" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-weight: 800; box-shadow: 0 2px 6px rgba(37,99,235,0.3); transition: transform 0.15s, opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
         🎬 <span class="hide-phone">Watch the </span>Show
@@ -1667,6 +1673,10 @@ Scene: a woman puts a coin in a jar | Every coin counts
       history.replaceState(null, '', '?' + q.toString());
     }
 
+    function studioLang() {
+      try { const l = localStorage.getItem('pictogen.lang.v1'); if (l) return l; } catch { /* not remembered */ }
+      return /^de/i.test(navigator.languages?.[0] ?? navigator.language ?? '') ? 'de' : 'en';
+    }
     function restoreFromUrl() {
       const q = new URLSearchParams(location.search);
       const pick = (group, attr, value) => {
@@ -1677,6 +1687,8 @@ Scene: a woman puts a coin in a jar | Every coin counts
       };
       if (q.get('style') && pick('styles-group', 'style', q.get('style'))) state.style = q.get('style');
       if (q.get('text')) promptInput.value = state.prompt = q.get('text');
+      // (the first picture in the studio's language: public/js/i18n.js picks it the same way)
+      else if (studioLang() === 'de' && promptInput.value === state.prompt) promptInput.value = state.prompt = 'ein Mädchen mit einem Luftballon und ihrem Hund im Park';
       if (q.get('seed')) { state.seed = parseInt(q.get('seed'), 10) || 1; seedVal.textContent = state.seed; }
       if (q.get('vary') === '1') optVary.checked = true;
       const mode = q.get('mode');
@@ -3139,6 +3151,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
   <script type="module" src="/js/puppets.js"></script>
   <script type="module" src="/js/worksheet.js"></script>
   <script type="module" src="/js/book.js"></script>
+  <script type="module" src="/js/i18n.js"></script>
   <script type="module" src="/js/story-review.js"></script>
   <script type="module" src="/js/cards-review.js"></script>
   <script type="module">

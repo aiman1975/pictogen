@@ -780,6 +780,41 @@ try {
   await phone.tap('#tb-done');
   check((await phone.evaluate(() => getComputedStyle(document.getElementById('object-toolbar')).display)) === 'none' && !phoneErrors.length, `"Done" closes the sheet${phoneErrors.length ? '; errors: ' + phoneErrors.join('; ') : ''}`);
   await phoneCtx.close();
+
+  // The studio in German (public/js/i18n.js): a German browser gets German words, German example
+  // prompts and a German first picture; EN / DE switches and is remembered
+  const deCtx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'de-DE' });
+  const de = await deCtx.newPage();
+  const deErrors = [];
+  de.on('pageerror', (e) => deErrors.push(e.message));
+  await de.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
+  await de.waitForFunction(() => document.querySelectorAll('#svg-viewport svg .movable-item').length >= 2, null, { timeout: 30000 });
+  const deStudio = await de.evaluate(() => ({
+    lang: document.documentElement.lang,
+    draw: document.getElementById('btn-generate').textContent.trim(),
+    prompt: document.getElementById('prompt-input').value,
+    chip: document.querySelector('.chip[data-prompt]')?.dataset.prompt,
+    on: document.querySelector('.lang-btn.on')?.dataset.lang,
+  }));
+  check(deStudio.lang === 'de' && /Zeichnen/.test(deStudio.draw) && deStudio.on === 'de', `a German browser gets the studio in German (${deStudio.draw})`);
+  check(/Mädchen/.test(deStudio.prompt), `the first picture is drawn from a German prompt ("${deStudio.prompt}")`);
+  const chips = await de.evaluate(() => [...document.querySelectorAll('.chip[data-prompt]')].map((c) => c.dataset.prompt));
+  check(chips.includes('K wie Katze') && chips.includes('der Wasserkreislauf'), `the example prompts are German (${chips.slice(0, 3).join(' · ')})`);
+  await de.click('.lang-btn[data-lang="en"]');
+  await de.waitForLoadState('networkidle');
+  await de.waitForFunction(() => document.querySelector('.lang-btn.on')?.dataset.lang === 'en');
+  const enAgain = await de.evaluate(() => ({ draw: document.getElementById('btn-generate').textContent.trim(), lang: document.documentElement.lang }));
+  check(/Draw/.test(enAgain.draw) && enAgain.lang === 'en', `"EN" shows the studio in English again, and is remembered (${enAgain.draw})`);
+  await de.evaluate(() => localStorage.setItem('pictogen.lang.v1', 'de'));
+  await de.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
+  await de.waitForFunction(() => (document.getElementById('typed')?.textContent ?? '').length > 12, null, { timeout: 15000 });
+  const landing = await de.evaluate(() => ({ typed: document.getElementById('typed').textContent, h1: document.querySelector('h1').textContent }));
+  check(/^ein Mädchen/.test(landing.typed) && /Satz/.test(landing.h1), `the landing page in German, its demo typing German prompts ("${landing.typed}…")`);
+  await de.goto(`http://localhost:${port}/help`, { waitUntil: 'networkidle' });
+  const help = await de.evaluate(() => ({ h1: document.querySelector('h1').textContent, ex: document.querySelector('a.ex')?.getAttribute('href') }));
+  check(/So nutzt du PictoGen/.test(help.h1) && /M%C3%A4dchen|Mädchen/.test(help.ex ?? ''), `the help page in German, its examples open German prompts (${help.h1})`);
+  check(!deErrors.length, `no page errors in German${deErrors.length ? ': ' + deErrors.join('; ') : ''}`);
+  await deCtx.close();
 } finally {
   if (browser) await browser.close();
   server.kill();

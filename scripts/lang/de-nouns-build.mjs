@@ -36,7 +36,25 @@ for (const [id, nouns] of Object.entries(merged)) {
 }
 const nouns = Object.fromEntries([...forms].sort().map(([w, id]) => [w, english[id]]));
 const covered = new Set([...forms.values()]);
+// Which forms are plural only ("Hunde", "Kindern"): 1, 2 when it is the "-n" of "mit den Hunden", 3
+// when it is also the singular after "den"/"dem" ("den Jungen", "dem Löwen")
+const low = (w) => String(w ?? '').trim().toLowerCase();
+const singular = new Set();
+for (const ns of Object.values(merged)) for (const n of ns) { singular.add(low(n.sg)); if (n.g !== 'f' && n.sg) singular.add(low(n.sg) + (/[sßxz]$/.test(n.sg) ? 'es' : 's')); }
+const plural = {};
+for (const ns of Object.values(merged)) {
+  for (const n of ns) {
+    if (!n.pl) continue;
+    const pl = low(n.pl);
+    const weak = n.g === 'm' && /n$/.test(pl) && !/n$/.test(low(n.sg));
+    if (!singular.has(pl) && forms.has(pl)) plural[pl] = weak ? 3 : 1;
+    if (!/[ns]$/.test(pl) && !singular.has(pl + 'n') && forms.has(pl + 'n')) plural[pl + 'n'] = 2;
+  }
+}
 writeFileSync(`${D}/nouns.json`, JSON.stringify(nouns));
+const head = readFileSync(new URL('../../src/lang-de-nouns.js', import.meta.url), 'utf8').split('export default')[0];
+writeFileSync(new URL('../../src/lang-de-nouns.js', import.meta.url), `${head}export default ${JSON.stringify(nouns).replace(/,"/g, ',\n"')};\n\n// (the plural forms: see scripts/lang/de-nouns-build.mjs)\nexport const PLURAL = ${JSON.stringify(Object.fromEntries(Object.entries(plural).sort()))};\n`);
+console.log('plural forms', Object.keys(plural).length);
 console.log('pictures with an English word that draws them', Object.keys(english).length, 'of', Object.keys(merged).length);
 console.log('German forms', Object.keys(nouns).length, 'pictures covered', covered.size);
 for (const w of ['hund', 'hunde', 'katze', 'katzen', 'junge', 'mädchen', 'mann', 'frau', 'kind', 'kinder', 'baum', 'sonne', 'auto', 'ball', 'lehrer', 'lehrerin', 'apfel', 'äpfel', 'fahrrad', 'haus', 'vogel', 'fisch', 'buch', 'einhorn', 'roboter', 'drache']) console.log(w.padEnd(10), '->', nouns[w] ?? '—');

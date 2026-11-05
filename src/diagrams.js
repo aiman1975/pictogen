@@ -303,6 +303,24 @@ export const DIAGRAMS = {
  * clearly asks for one ("the parts of a plant", "the water cycle"), as in a scene; otherwise (the
  * diagram mode) the topic's own word is enough ("a plant", "a volcano").
  */
+// The topics' names in German ("der Wasserkreislauf", "die Teile einer Pflanze")
+const GERMAN_TOPICS = {
+  plant: /(teile (einer|der) pflanze|pflanzenteile|pflanze beschriften|aufbau einer pflanze)/,
+  tree: /(teile (eines|des) baum(e?s)?|baumteile|aufbau eines baum(e?s)?)/,
+  body: /(menschliche[rn]? körper|körperteile|teile des körpers|der körper)/,
+  water_cycle: /(wasserkreislauf|kreislauf des wassers)/,
+  volcano: /(vulkan(e|ausbruch)?\b)/,
+  earth: /(schichten der erde|erdschichten|aufbau der erde|erdkern|erdkruste|erdmantel|das innere der erde)/,
+  solar_system: /(sonnensystem|die planeten|acht planeten)/,
+  butterfly_cycle: /(lebenszyklus (eines|des) schmetterling(s)?|metamorphose|schmetterlingszyklus|vom ei zum schmetterling)/,
+};
+/** A diagram topic named in German, or null */
+export function findGermanDiagram(text) {
+  const t = String(text || '').toLowerCase();
+  for (const [id, re] of Object.entries(GERMAN_TOPICS)) if (re.test(t)) return id;
+  return null;
+}
+
 export function findDiagram(text, { strict = false } = {}) {
   const t = String(text || '').toLowerCase();
   for (const [id, dg] of Object.entries(DIAGRAMS)) if (dg.match.test(t)) return id;

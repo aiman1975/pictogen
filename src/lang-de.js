@@ -3,7 +3,7 @@
 // pictures, colours, counts, feelings, actions, places, times, the weather - works in German too.
 // What is said („Hallo!“) and the board's words stay as written. Words not known are left out (a
 // figure of your own, "pgc1", stays). Nouns: src/lang-de-nouns.js (drafted, checked); the rest here.
-import NOUNS from './lang-de-nouns.js';
+import DRAFTED, { PLURAL } from './lang-de-nouns.js';
 
 const w = (pairs) => Object.fromEntries(pairs.trim().split(/\n/).flatMap((line) => {
   const [de, en] = line.split('=').map((s) => s.trim());
@@ -12,6 +12,8 @@ const w = (pairs) => Object.fromEntries(pairs.trim().split(/\n/).flatMap((line) 
 
 // Small words: articles, prepositions, joining words, pronouns
 const GRAMMAR = w(`
+daumenhoch = thumbsup
+vonvon = out of
 der, die, das, den, dem, des = the
 ein, eine, einen, einem, einer, eines = a
 kein, keine, keinen, keinem, keiner = no
@@ -103,6 +105,8 @@ klettert, klettern, kletterte = climbs
 fällt, fallen, fiel, stürzt = falls
 kommt, kommen, kam, kamen = comes
 betritt, betreten, betrat = walks in
+gehtfern = walks into the distance
+kommtzu = walks toward us
 verlässt, verlassen, verließ = leaves
 schaut, schauen, schaute, sieht, sehen, sah, blickt, guckt, beobachtet = looks
 spricht, sprechen, sprach, redet, reden, plaudert, erzählt = talks
@@ -129,6 +133,7 @@ wartet, warten, wartete = waits
 hilft, helfen, half = helps
 gibt, geben, gab, schenkt = gives
 findet, finden, fand = finds
+entdeckt, entdecken, entdeckte = discovers
 `);
 
 // Describing: colours, sizes, feelings, doing-words (each with its endings: rot, rote, roter...)
@@ -191,6 +196,14 @@ heiß = hot
 dunkel = dark
 hell = bright
 schön, hübsch = beautiful
+freundlich, nett = friendly
+sonnig = sunny
+regnerisch, verregnet = rainy
+verschneit = snowy
+windig = windy
+neblig = foggy
+skeptisch, misstrauisch = skeptical
+nachdenklich = thoughtful
 `);
 
 // Counting
@@ -233,6 +246,7 @@ spielplatz = playground
 schloss, burg = castle
 unterwasser = underwater
 wasser = water
+sternenhimmel, sternennacht = starry night
 nacht, nachts, abends, abend = night
 sonnenuntergang, abenddämmerung = sunset
 morgen, morgens, vormittag = morning
@@ -245,6 +259,16 @@ sommer = summer
 frühling = spring
 gewitter, sturm = storm
 `);
+
+// Things, written here (they come before the drafted nouns, src/lang-de-nouns.js)
+const NOUNS = { ...DRAFTED, ...w(`
+kaffee, kaffees = coffee
+tee, tees = tea
+taucher, tauchers = diver
+taucherin, taucherinnen = woman diver
+apfelbaum, apfelbaumes, apfelbaums = apple tree
+apfelbäume, apfelbäumen = apple trees
+`) };
 
 // Adjective endings: rot -> rot, rote, roter, roten, rotes, rotem
 const ADJ_FORMS = {};
@@ -269,6 +293,19 @@ export function germanWord(word) {
   }
   return null;
 }
+
+// An English noun as more than one ("dog" -> "dogs", "child" -> "children"; "cityscape at dusk" stays)
+const IRREGULAR = { child: 'children', man: 'men', woman: 'women', person: 'people', mouse: 'mice', foot: 'feet', tooth: 'teeth', goose: 'geese', ox: 'oxen', sheep: 'sheep', fish: 'fish', deer: 'deer', baby: 'babies', knife: 'knives', leaf: 'leaves', wolf: 'wolves', shelf: 'shelves', loaf: 'loaves', calf: 'calves', half: 'halves', grandma: 'grandmas', cactus: 'cacti', octopus: 'octopuses', bus: 'buses', potato: 'potatoes', tomato: 'tomatoes', hero: 'heroes', volcano: 'volcanoes', mango: 'mangoes' };
+export function pluralEn(en) {
+  if (en.split(' ').length > 2) return en;
+  const [, front, last] = en.match(/^(.*?)(\S+)$/);
+  const pl = IRREGULAR[last] ?? (/(s|x|z|ch|sh)$/.test(last) ? `${last}es` : /[^aeiou]y$/.test(last) ? `${last.slice(0, -1)}ies` : `${last}s`);
+  return front + pl;
+}
+// (a German plural that is the singular too after these: "einen Jungen", "dem Löwen")
+const ONE_BEFORE = /^(ein|einen|einem|eines|einer|dem|des|kein|keinen|keinem)$/i;
+// (a verb's part at the end of its clause: "liest ein Buch vor", "zieht die Jacke an")
+const PARTICLE_END = /^(vor|an|aus|ein|auf|zu|mit|ab|weg|zurück|los|hin|her|mit|nach|fest|herum|vorbei|zusammen)$/i;
 
 /** What kind of word a German word is: 'verb', 'noun' (a picture or a place), 'art', 'adj', 'num' or 'other' */
 function kindOf(word) {
@@ -295,6 +332,14 @@ function kindOf(word) {
  */
 export function bridgeGerman(text) {
   const unknown = [];
+  // (a few sayings of more than one word: "Daumen hoch" is a thumbs-up)
+  // ("kommt herein" walks in, "in die Ferne" is into the distance, "zu Fuß" is just walking)
+  text = String(text ?? '').replace(/(^|[^\p{L}])(?:mit )?(?:dem |den )?daumen (nach oben|hoch)(?![\p{L}])/giu, '$1daumenhoch')
+    .replace(/(^|[^\p{L}])(kommt|kommen|kam|kamen) herein(?![\p{L}])/giu, '$1betritt')
+    .replace(/(^|[^\p{L}])(?:geht|gehen|ging|läuft|laufen|lief) (\p{L}+ )?in die ferne(?: davon| weg)?(?![\p{L}])/giu, (m, a, who) => `${a}${who ?? ''}gehtfern`)
+    .replace(/(^|[^\p{L}])zu fuß(?![\p{L}])/giu, '$1')
+    .replace(/(^|[^\p{L}])(?:kommt|kommen|kam|kamen|läuft|laufen|lief|geht|gehen|ging) auf (?:uns|mich|dich|die kamera) zu(?![\p{L}])/giu, '$1kommtzu')
+    .replace(/(\d+) von (\d+)/gu, '$1 vonvon $2');
   const parts = String(text ?? '').split(/(„[^“”"]*[“”"]|"[^"]*"|“[^”]*”|«[^»]*»)/);
   const out = parts.map((part, i) => {
     // (what is said: as it is, in plain quotes)
@@ -309,8 +354,17 @@ export function bridgeGerman(text) {
         // ("der Buchstabe A", "die Zahl 7": a letter or a number figure)
         if (/^buchstaben?$/i.test(word) && /^\p{L}$/u.test(ws[n + 1] ?? '')) { toks.push({ en: `letter ${ws[++n].toLowerCase()}`, kind: 'noun' }); continue; }
         if (/^(zahl|ziffer|nummer)$/i.test(word) && /^\d$/.test(ws[n + 1] ?? '')) { toks.push({ en: `number ${ws[++n]}`, kind: 'noun' }); continue; }
-        const en = germanWord(word);
+        // (a verb's part at the end - "liest ... vor" - is part of the verb, no word of its own)
+        if (n === ws.length - 1 && n >= 2 && PARTICLE_END.test(word) && ws.slice(0, n).some((w) => kindOf(w) === 'verb')) continue;
+        let en = germanWord(word);
         if (en == null) { unknown.push(word); continue; }
+        // (more than one: "Hunde" -> dogs; "den Jungen" stays one boy, "den Kindern" is children)
+        const lw = word.toLowerCase(), pl = PLURAL[lw];
+        if (pl && en === NOUNS[lw]) {
+          const before = (ws[n - 1] ?? '').toLowerCase();
+          const one = ONE_BEFORE.test(before) || (pl === 3 && before === 'den');
+          if (!one) en = pluralEn(en);
+        }
         toks.push({ en, kind: kindOf(word) });
       }
       // (the verb before who does it - the clause did not start with them: put it after them)
@@ -338,12 +392,16 @@ export function bridgeGerman(text) {
 // (German words that are English words too don't tell: "in", "an", "gold", "pink", "park"...)
 const BOTH = new Set('in an um so gold orange pink rosa lila hell park all see tag bis da die was war man will also hat bin'.split(' '));
 const GERMAN_ONLY = new Set([...Object.keys(GRAMMAR), ...Object.keys(VERBS), ...Object.keys(ADJ_FORMS), ...Object.keys(NUMBERS)].filter((k) => !BOTH.has(k)));
+// (German nouns with a capital - "Apfel, Fahrrad, Baum" - tell too; not these, English words as well)
+const EN_TOO = new Set('kind gift rock bad boot rat art hut note planet wind nest links ice angel computer auto couch cricket football notebook senior smartphone palette omnibus yen fuji hotdog bunny mate hose mode list brand chef fall golf mist hand arm ball bus taxi hotel radio ring'.split(' '));
 const ENGLISH_SMALL = new Set('a an the and or is are was were of to with on at he she it they his her their this that then while says'.split(' '));
 
 /** True when a prompt is German: German small words, verbs or describing words, and no English ones */
 export function isGermanPrompt(text) {
   const ws = (String(text ?? '').replace(/„[^“”"]*[“”"]|"[^"]*"|“[^”]*”/g, ' ').toLowerCase().match(/\p{L}+/gu) ?? []);
-  const de = ws.filter((x) => GERMAN_ONLY.has(x)).length + (/[äöüß]/i.test(ws.join(' ')) ? 1 : 0);
+  const caps = (String(text ?? '').replace(/„[^“”"]*[“”"]|"[^"]*"|“[^”]*”/g, ' ').match(/\p{Lu}[\p{Ll}-]+/gu) ?? []).map((x) => x.toLowerCase());
+  const nouns = caps.filter((x) => NOUNS[x] !== undefined && NOUNS[x] !== x && !EN_TOO.has(x)).length;
+  const de = ws.filter((x) => GERMAN_ONLY.has(x)).length + (/[äöüß]/i.test(ws.join(' ')) ? 1 : 0) + (nouns >= 2 || (nouns && ws.length === 1) ? nouns : 0);
   const en = ws.filter((x) => ENGLISH_SMALL.has(x)).length;
   return de >= 1 && de > en;
 }

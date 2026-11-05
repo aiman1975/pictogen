@@ -10,9 +10,10 @@ a board stays in their own language.
 | Letter figures | A-Z, 0-9 | + Ä Ö Ü ß | planned | planned (Ñ) |
 | Explainers: outline words, card pictures | ✅ | ✅ | planned | planned |
 | Notes → explainer | ✅ | ✅ | planned | planned |
-| Scenes from a prompt | ✅ | ✅ (word bridge) | planned | planned |
+| Scenes from a prompt | ✅ | ✅ (word bridge, plurals) | planned | planned |
+| Diagram topics, letter modes ("K wie Katze", "zähle bis 5") | ✅ | ✅ | planned | planned |
 | Stories (a cast kept across lines) | ✅ | a scene per line | planned | planned |
-| The studio's own words | ✅ | planned | planned | planned |
+| The studio, landing page and help page in the language | ✅ | ✅ (EN / DE switch) | planned | planned |
 
 ## Where each language lives
 
@@ -28,9 +29,27 @@ a board stays in their own language.
   bike); after a place or a time at the front, the verb goes back after who does it ("Nachts fliegt
   eine Rakete" → "night a rocket flies"); what is said („Hallo!“) is kept as it is.
 
+- `public/js/i18n.js` and `public/js/i18n-de.js`: the pages in German. Every text a page shows -
+  what it says, what panels add later, tooltips, placeholders, the example prompts - is looked up in
+  the dictionary (`texts`: English as shown -> German; `patterns`: texts with names or numbers in
+  them, "Szene 3"). A sentence with bold words or a link is looked up whole. What people write and
+  the drawings are never translated. The language: the one picked with **EN / DE** in the header,
+  else the browser's, remembered in this browser (`pictogen.lang.v1`). The first picture, the
+  landing page's demo and the example chips are German prompts in German.
+
+## The pages in German
+
+`public/js/i18n-de.js` (about 1,150 texts of the studio, landing and help pages, plus 2,081 picture
+names from the nouns' draft) was drafted with Gemini (`gemini-3.5-flash`, 2026-11-05) from the texts
+the pages show (collected in a browser with `pictogenI18n.keysOf`), informal "du", tags kept; the
+help page's example links open the same prompts in German, each checked to draw what the English
+one draws. A native speaker should read it before a release: to change a word, change it in that
+file. A text added to a page later shows in English until it is added there.
+
 ## The German nouns
 
-`src/lang-de-nouns.js` (3,600 word forms for about 930 pictures) was drafted with Gemini
+`src/lang-de-nouns.js` (3,600 word forms for about 930 pictures, and which forms are plural:
+"Hunde" draws dogs, "den Kindern" children, "den Jungen" one boy) was drafted with Gemini
 (`gemini-3.5-flash`, 2026-11-05) from each picture's English names - singular, plural and gender -
 with `scripts/lang/de-nouns-draft.py`, then built with `scripts/lang/de-nouns-build.mjs`: plural
 and case endings added, one picture chosen per word (the one drawn in the engine's own style, else
@@ -43,4 +62,6 @@ should look over it before a release; to fix a word, change the hand-written lis
 1. Its letters, if it has letters of its own (`src/concepts/alphabet.js`).
 2. A pack in `src/lang.js` (copy the German one) and its outline words in `src/slides.js`.
 3. Its scene words: a `src/lang-xx.js` like the German one, its nouns drafted and checked the same way.
-4. Tests in `scripts/test-story.js`, as for German.
+4. Its page texts: a `public/js/i18n-xx.js` like the German one, added to `LANGS` in
+   `public/js/i18n.js`.
+5. Tests in `scripts/test-story.js` and `scripts/test-studio.js`, as for German.

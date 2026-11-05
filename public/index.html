@@ -109,12 +109,18 @@
       * { animation-duration: 0.001s !important; animation-iteration-count: 1 !important; transition: none !important; }
     }
   </style>
+  <style>
+    .lang-switch { display: inline-flex; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    .lang-btn { font: inherit; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border: none; background: #fff; color: #64748b; cursor: pointer; }
+    .lang-btn.on { background: #2563eb; color: #fff; }
+  </style>
+  <script type="module" src="/js/i18n.js"></script>
 </head>
 <body>
   <div class="wrap">
     <nav class="top" aria-label="PictoGen">
       <a class="brand" href="/"><span class="logo">P</span>PictoGen</a>
-      <span style="display:flex;gap:8px;align-items:center"><button class="btn btn-soft btn-small" data-install hidden>⬇ <span class="long">Install </span>app</button><a class="btn btn-soft btn-small" href="/help">❓ <span class="long">How to use</span><span class="short">Help</span></a><a class="btn btn-soft btn-small" href="/studio">✏️ <span class="long">Open the </span>studio</a></span>
+      <span style="display:flex;gap:8px;align-items:center"><span class="lang-switch" data-lang-switch></span><button class="btn btn-soft btn-small" data-install hidden>⬇ <span class="long">Install </span>app</button><a class="btn btn-soft btn-small" href="/help">❓ <span class="long">How to use</span><span class="short">Help</span></a><a class="btn btn-soft btn-small" href="/studio">✏️ <span class="long">Open the </span>studio</a></span>
     </nav>
 
     <header class="hero">
@@ -128,7 +134,7 @@
         <p class="promise">🔒 Free to try · no sign-up · nothing you make leaves your device</p>
       </div>
       <div class="demo" aria-label="PictoGen drawing examples, one after another">
-        <div class="demo-bar"><span class="pen">✏️</span><span class="typed" id="typed"></span><span class="caret" aria-hidden="true"></span><span class="draw-btn">Draw</span></div>
+        <div class="demo-bar"><span class="pen">✏️</span><span class="typed no-i18n" id="typed"></span><span class="caret" aria-hidden="true"></span><span class="draw-btn">Draw</span></div>
         <div class="demo-pic" id="demo-pic"><span class="waiting">Getting the pencils ready…</span></div>
         <div class="demo-dots" id="demo-dots" role="group" aria-label="Examples"></div>
       </div>
@@ -210,19 +216,20 @@
     const studioLink = (d) => `/studio?${new URLSearchParams({ text: d.text, mode: d.mode || 'scene', style: d.style || 'flat' })}`;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // 1. The demo: a sentence typed, then drawn, one after another
+    // 1. The demo: a sentence typed, then drawn, one after another (in the page's language)
+    function pageLang() { try { const l = localStorage.getItem('pictogen.lang.v1'); if (l) return l; } catch { /* */ } return /^de/i.test(navigator.languages?.[0] ?? navigator.language ?? '') ? 'de' : 'en'; }
     const DEMOS = [
-      { text: 'a girl with a balloon walks in the park', style: 'cartoon' },
-      { text: 'a boy says "Look, a rainbow!" to his dog', style: 'flat' },
-      { text: 'a superhero flies over the city at night', style: 'comic' },
-      { text: 'the water cycle', mode: 'diagram', style: 'flat' },
-      { text: 'grandma and grandpa read books in the kitchen', style: 'watercolor' },
-    ];
+      { text: 'a girl with a balloon walks in the park', de: 'ein Mädchen mit einem Luftballon läuft im Park', style: 'cartoon' },
+      { text: 'a boy says "Look, a rainbow!" to his dog', de: 'ein Junge sagt „Schau, ein Regenbogen!“ zu seinem Hund', style: 'flat' },
+      { text: 'a superhero flies over the city at night', de: 'ein Superheld fliegt nachts über die Stadt', style: 'comic' },
+      { text: 'the water cycle', de: 'der Wasserkreislauf', mode: 'diagram', style: 'flat' },
+      { text: 'grandma and grandpa read books in the kitchen', de: 'Oma und Opa lesen Bücher in der Küche', style: 'watercolor' },
+    ].map((d) => (pageLang() === 'de' ? { ...d, text: d.de } : d));
     const typed = document.getElementById('typed'), pic = document.getElementById('demo-pic'), dots = document.getElementById('demo-dots');
     const cache = new Map();
     const svgOf = (d) => { if (!cache.has(d)) cache.set(d, draw(d.text, d)); return cache.get(d); };
     let at = 0, run = 0;
-    dots.innerHTML = DEMOS.map((d, i) => `<button aria-label="Example ${i + 1}: ${d.text.replace(/"/g, '&quot;')}"></button>`).join('');
+    dots.innerHTML = DEMOS.map((d, i) => `<button aria-label="${pageLang() === 'de' ? 'Beispiel' : 'Example'} ${i + 1}: ${d.text.replace(/"/g, '&quot;')}"></button>`).join('');
     dots.querySelectorAll('button').forEach((b, i) => b.addEventListener('click', () => show(i)));
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     async function show(i) {
@@ -255,15 +262,15 @@
 
     // 2. You type -> you get
     const PAIRS = [
-      { text: 'a teacher reads a book to children in a classroom', style: 'flat', note: 'A picture for the lesson' },
-      { text: 'the parts of a plant', mode: 'diagram', style: 'flat', note: '…and a worksheet to print' },
-      { text: 'a cat finds a fish "Look, a fish!" "Yum!" "Best day ever!"', mode: 'comic', style: 'comic', note: 'A comic strip' },
-    ];
+      { text: 'a teacher reads a book to children in a classroom', de: 'eine Lehrerin liest den Kindern im Klassenzimmer ein Buch vor', style: 'flat', note: 'A picture for the lesson' },
+      { text: 'the parts of a plant', de: 'die Teile einer Pflanze', mode: 'diagram', style: 'flat', note: '…and a worksheet to print' },
+      { text: 'a cat finds a fish "Look, a fish!" "Yum!" "Best day ever!"', de: 'eine Katze findet einen Fisch „Schau, ein Fisch!“ „Lecker!“ „Bester Tag überhaupt!“', mode: 'comic', style: 'comic', note: 'A comic strip' },
+    ].map((d) => (pageLang() === 'de' ? { ...d, text: d.de } : d));
     const pairs = document.getElementById('pairs');
     const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     pairs.innerHTML = PAIRS.map((d, i) => `
       <a class="pair" href="${studioLink(d)}" style="text-decoration:none">
-        <div class="said"><small>You type</small>“${esc(d.text)}”</div>
+        <div class="said"><small>${pageLang() === 'de' ? 'Du tippst' : 'You type'}</small><span class="no-i18n">“${esc(d.text)}”</span></div>
         <div class="arrow" aria-hidden="true">↓</div>
         <div class="pic" id="pair-${i}"><span class="waiting">Drawing…</span></div>
         <div class="more"><span>${d.note}</span><span style="color:var(--brand);font-weight:900">Try this →</span></div>
@@ -273,8 +280,9 @@
     // 3. One sentence, six styles
     const STYLES = [['cartoon', 'Cartoon'], ['watercolor', 'Watercolour'], ['anime', 'Anime'], ['crayon', 'Crayon'], ['chalkboard', 'Chalkboard'], ['pixel', 'Pixel art']];
     const styles = document.getElementById('styles');
-    styles.innerHTML = STYLES.map(([s, name]) => `<a class="style" href="${studioLink({ text: 'a happy girl and her dog', style: s })}" style="text-decoration:none"><div class="pic" id="st-${s}"></div>${name}</a>`).join('');
-    for (const [s] of STYLES) draw('a happy girl and her dog', { style: s, width: 360, height: 360 }).then((svg) => { document.getElementById(`st-${s}`).innerHTML = svg; });
+    const STYLE_TEXT = pageLang() === 'de' ? 'ein fröhliches Mädchen und ihr Hund' : 'a happy girl and her dog';
+    styles.innerHTML = STYLES.map(([s, name]) => `<a class="style" href="${studioLink({ text: STYLE_TEXT, style: s })}" style="text-decoration:none"><div class="pic" id="st-${s}"></div>${name}</a>`).join('');
+    for (const [s] of STYLES) draw(STYLE_TEXT, { style: s, width: 360, height: 360 }).then((svg) => { document.getElementById(`st-${s}`).innerHTML = svg; });
   </script>
 </body>
 </html>

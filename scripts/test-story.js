@@ -273,6 +273,21 @@ So what should you do? First, stop and do not click anything. Then, hover over t
   const st = composeStory('Ein roter Buchstabe A geht in den Park.\nDann kommt eine blaue Zahl 7.\nDer Buchstabe A und die Zahl 7 tanzen zusammen.', { style: 'flat' });
   assert(st.scenes.length === 3 && st.scenes[0].caption === 'Ein roter Buchstabe A geht in den Park.' && st.scenes[2].matches.map((m) => m.id).join() === 'letter_a,number_7',
     'a German story: a scene per line, its caption as written, "Buchstabe A" and "Zahl 7" as figures');
+  // More than one, a verb's split-off part, sayings, lists of things
+  assert(seen('drei Hunde laufen im Park') === 'dogx3 walk' && bridgeGerman('die Kinder spielen').text === 'the children plays' && bridgeGerman('er sieht den Jungen').text === 'he looks the boy'
+    && bridgeGerman('mit den Kindern').text === 'with the children', 'German plurals: Hunde -> dogs, Kinder/Kindern -> children; "den Jungen" stays one boy');
+  assert(bridgeGerman('eine Lehrerin liest den Kindern ein Buch vor').text === 'a teacher reads the children a book', 'a verb\'s part at the end of the clause ("liest … vor") is no word of its own');
+  assert(bridgeGerman('ein Junge kommt herein, dann geht er in die Ferne davon').text === 'a boy walks in, then he walks into the distance'
+    && bridgeGerman('7 von 10 Kindern gehen zu Fuß zur Schule').text === '7 out of 10 children walks to the school', 'sayings: "kommt herein", "in die Ferne", "zu Fuß", "7 von 10"');
+  assert(isGermanPrompt('Apfel, Fahrrad, Baum, Sonne, Kaffee, Buch') && !isGermanPrompt('Apple, Bike, Tree') && seen('Apfel, Fahrrad, Baum, Sonne, Kaffee, Buch') === 'apple, bike, tree, sun, hot_beverage, book',
+    'a list of German nouns (with their capitals) is German');
+  for (const [t, topic] of [['der Wasserkreislauf', 'water_cycle'], ['die Teile einer Pflanze', 'plant'], ['der menschliche Körper', 'body'], ['das Sonnensystem', 'solar_system'], ['Schichten der Erde', 'earth'], ['der Lebenszyklus eines Schmetterlings', 'butterfly_cycle']]) {
+    assert(gen(t, { mode: 'diagram' }).diagram?.topic === topic && gen(t).diagram?.topic === topic, `a diagram named in German: "${t}" -> ${topic}`);
+  }
+  const phon = gen('K wie Katze', { mode: 'alphabet' });
+  const count = gen('zähle bis 5', { mode: 'alphabet' });
+  assert(phon.matches[0]?.id === 'cat' && />WIE</.test(phon.svg) && /K wie KATZE/.test(phon.svg) && [...count.svg.matchAll(/>(\d)</g)].map((m) => m[1]).join('') === '12345',
+    'letters in German: "K wie Katze" (its German word on the banner), "zähle bis 5"');
   // (and in English: "says … and waves" waves; "a boat and waves" stays the sea)
   assert(seen('a boy says "Hi!" and waves') === 'boy wave' && seen('a boat and waves') === 'boat, water_wavex3' && seen('a boy and a girl dance and jump') === 'boy dance, girl dance', '"and waves" after doing something is waving; after a thing, the sea');
 }

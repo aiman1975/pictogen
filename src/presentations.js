@@ -1077,14 +1077,14 @@ export function renderAlphabet(matches, opts = {}) {
   const cleanText = counting ? '' : [...text.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '')].map((c) => (c === 'ß' ? c : c.toUpperCase())).join('');
 
   // Check if prompt is a phonics pair: e.g. "A is for Apple" or "C is for Cat"
-  const isPhonics = !counting && (/^[A-Z]\s+(is\s+for|for)\s+/i.test(text.trim()) ||
+  const isPhonics = !counting && (/^[A-ZÄÖÜ]\s+(is\s+for|for)\s+/i.test(text.trim()) ||
                     (matches.length > 0 && matches.some(m => !pal(m.id))));
 
   let heroLetter = 'A';
   let phonicsConcept = null;
 
   if (isPhonics) {
-    const firstLetterMatch = text.match(/letter\s+([A-Z])/i) || text.match(/^([A-Z])/i);
+    const firstLetterMatch = text.match(/letter\s+([A-ZÄÖÜ])/i) || text.match(/^([A-ZÄÖÜ])/i);
     heroLetter = firstLetterMatch ? firstLetterMatch[1].toUpperCase() : 'A';
     phonicsConcept = matches.find(m => !pal(m.id)) || { id: 'apple' };
   } else if (counting) {
@@ -1175,14 +1175,14 @@ export function renderAlphabet(matches, opts = {}) {
       <!-- Connecting Phonics Heart / Badge -->
       <g transform="translate(${W * 0.5}, ${groundY - 45}) scale(1.05)">
         <circle cx="0" cy="0" r="24" fill="#ffffff" stroke="${letterPal.main}" stroke-width="3"/>
-        <text x="0" y="6" text-anchor="middle" font-family="${FONT}" font-size="12" font-weight="900" fill="${letterPal.main}">IS FOR</text>
+        <text x="0" y="6" text-anchor="middle" font-family="${FONT}" font-size="12" font-weight="900" fill="${letterPal.main}">${opts.phonics?.join ?? 'IS FOR'}</text>
       </g>
 
       <!-- Phonics Word Title Banner at Bottom -->
       <g transform="translate(${W * 0.5}, ${H - 26})">
         <rect x="-140" y="-20" width="280" height="34" rx="17" fill="${letterPal.main}" stroke="#ffffff" stroke-width="2"/>
         <text x="0" y="4" text-anchor="middle" font-family="${FONT}" font-size="17" font-weight="900" fill="#ffffff" letter-spacing="0.05em">
-          ${heroLetter} is for ${(cObj.label || cObj.id).toUpperCase()}
+          ${opts.phonics ? `${heroLetter} wie ${esc(opts.phonics.word)}` : `${heroLetter} is for ${(cObj.label || cObj.id).toUpperCase()}`}
         </text>
       </g>
     `;
