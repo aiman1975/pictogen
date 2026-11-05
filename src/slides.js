@@ -135,9 +135,10 @@ const PICTURE_WORDS = [
   [/\b(protect\w*|safe|safety|defen[cs]e\w*|guard\w*|insurance)\b/, 'shield'],
   [/\b(ideas?|insights?|think\w*|creativ\w*|innovat\w*|tips?|tricks?)\b/, 'light_bulb'],
   [/\b(brain|learn\w*|memory|remember|focus|mind|knowledge|understand\w*)\b/, 'brain'],
+  // (a warning before a tick: "the first warning sign... almost right" is a warning)
+  [/\b(warnings?|risks?|risky|danger\w*|caution|careful|threats?|scams?|fraud|phishing|mistakes?|errors?)\b/, 'warning'],
   [/\b(check\w*|done|correct|verif\w*|confirm\w*|right)\b/, 'check_mark_button'],
   [/\b(why|questions?|what|unknown|ask\w*)\b/, 'red_question_mark'],
-  [/\b(warnings?|risks?|risky|danger\w*|caution|careful|threats?|scams?|fraud|phishing|mistakes?|errors?)\b/, 'warning'],
   [/\b(e-?mails?|inbox|messages?|mail)\b/, 'e_mail'],
   [/\b(computers?|software|online|internet|websites?|digital|it)\b/, 'laptop'],
   [/\b(phones?|mobile|apps?|smartphone|text)\b/, 'mobile_phone'],
