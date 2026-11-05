@@ -46,7 +46,10 @@ a board stays in their own language.
   captions stay as written; "Not drawn" lists the German words left out. German "er", "sie" and
   "es" go by the noun's gender, as in German ("der Mond … er", "das Sternchen … es", "die Eule …
   sie"; the genders come with the drafted nouns), "sie" with a verb for more than one is the last
-  two spoken of, and a name is "er" or "sie" by the first name.
+  two spoken of, and a name is "er" or "sie" by the first name. Also read: "fehlte" (missing: not
+  drawn), "hüpfte auf den Rücken der Eule" (rides the owl), "ein leises Weinen" (a sound, not someone
+  crying), "vorbei an …" (what goes by), and a German plural is the English plural only when that
+  draws the same picture ("Häusern": house, not the "houses" icon).
 
 ## The pages in German
 

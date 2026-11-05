@@ -321,8 +321,18 @@ So what should you do? First, stop and do not click anything. Then, hover over t
       `the title line is the title, the line under it no scene (${moon.title}; ${moon.scenes.length} scenes)`);
     assert(moonKey && moon.scenes[1].matches.some((m) => m.id === moonKey) && moon.scenes[6].matches.some((m) => m.id === moonKey && m.expression === 'happy'),
       `the moon is a character, the same one all along: "Er schaute…", "Der Mond lächelte" (${moon.scenes.map((sc) => ids(sc).join(' ')).join(' | ')})`);
-    assert(ids(moon.scenes[2]).includes('star_friend:sit') && ids(moon.scenes[3]).some((x) => /^star_friend.* sad$/.test(x)) && ids(moon.scenes[4]).includes('owl:fly') && /the star and the owl fl/.test(moon.scenes[5].prompt.replace(/pgc\d+/g, 'the star')),
-      `the little star sits under the tree, "schluchzte es" is the star crying, the owl flies; "flogen sie" is the star and the owl (${moon.scenes[5].prompt})`);
+    assert(ids(moon.scenes[2]).includes('star_friend:sit') && ids(moon.scenes[3]).some((x) => /^star_friend.* sad$/.test(x)) && ids(moon.scenes[4]).includes('owl:fly') && /the star rides the owl up in the sky/.test(moon.scenes[5].prompt) && ids(moon.scenes[5]).includes('star_friend:sit'),
+      `the little star sits under the tree, "schluchzte es" is the star crying, the owl flies; "hüpfte auf den Rücken der Eule. Gemeinsam flogen sie" rides the owl up in the sky (${moon.scenes[5].prompt})`);
+    assert(/pg-place-sky/.test(moon.scenes[0].svg) && /pg-place-sky/.test(moon.scenes[5].svg) && !/pg-place-sky/.test(moon.scenes[2].svg) && /<g class="pg-rider"/.test(moon.scenes[5].svg),
+      'up in the sky: the moon\'s home and the flight are on the clouds; under a tree is the ground again; the star drawn on the owl\'s back');
+    // Missing, looked at, heard: none of them is where someone is or what they feel
+    const lost = composeStory('Es war einmal ein kleiner Mond am Himmel.\n\nEin kleines Sternchen fehlte!\n\n„Oh nein!“, rief der Mond. „Wo ist mein Sternchen?“\n\nEr schaute über die Berge. Nichts.\n\nDa hörte er ein leises Weinen.\n\n„Da bist du ja!“, riefen die anderen Sterne glücklich.', { style: 'flat' });
+    const lids = lost.scenes.map(ids);
+    assert(!lids[1].some((x) => /^star/.test(x)) && !lids[2].some((x) => /^star/.test(x)) && !/mountain/.test(lost.scenes[4].prompt) && !/pg-place-mountains/.test(lost.scenes[4].svg) && !lids[4].some((x) => / sad$/.test(x)),
+      `a missing star is not drawn (nor brought in to listen), looking over the mountains doesn't go there, hearing crying doesn't make the moon sad (${lids.map((x) => x.join(' ')).join(' | ')})`);
+    assert(lost.scenes[5].matches.some((m) => m.id === 'star_friend' && m.count === 3), `"die anderen Sterne" are three star friends (${lids[5]})`);
+    const front = gen('a moon friend shines over small houses and big trees at night', { style: 'flat' }).svg;
+    assert(front.lastIndexOf('data-id="moon_friend"') > front.lastIndexOf('data-id="tree"'), 'the moon is drawn in front of the trees, not behind them');
     const plain = gen('a girl looks at the moon at night', { style: 'flat' });
     assert(plain.matches.some((m) => m.id === 'moon') && !plain.matches.some((m) => /_friend/.test(m.id)), 'a moon that only shines stays the sky\'s moon');
   }

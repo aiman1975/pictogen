@@ -125,6 +125,8 @@ export function loadFluentConcepts() {
       colors: { main: '#42a5f5' },
       isLibrary: true,
       ...(variant ? { variantOf: key.replace(TONE_RE, '').replace(/-/g, '_') } : {}),
+      // (an owl carries a little one on its back: a story's star, a tiny friend)
+      ...(key === 'owl' ? { saddle: [50, 9] } : {}),
       draw(d) {
         // Fluent Emoji viewbox is 32x32, scale to 100x100
         d.raw(`<g transform="scale(3.125)">${icon.body}</g>`);

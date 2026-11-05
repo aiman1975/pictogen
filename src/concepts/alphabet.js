@@ -366,15 +366,17 @@ export function drawLetterCreature(d, p, letter = 'A') {
   const char = letter === 'ß' ? 'ß' : String(letter || 'A').toUpperCase();
   const pal = LETTER_PALETTES[char] || LETTER_PALETTES.A;
   const bodyColor = p.opts.color || pal.main;
-  const anim = p.opts.animation;
+  // (on a seat or riding - a star on an owl's back: sitting, its hips where the legs start)
+  const anim = p.opts.seat && !p.opts.animation ? 'sit' : p.opts.animation;
+  if (p.opts.seat) p.seatAt = 78;
   const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
   const expr = p.opts.expression || p.expression || 'happy';
   const [fcx, fcy] = FACE_ANCHORS[char] || [50, 46];
 
   // (pg-rig-glyph: how a letter or a digit dances and sings, src/core/render.js)
   d.group({ class: `pg-rig-glyph ${animClass}` }, () => {
-    // Soft baseline ground shadow
-    d.ellipse(50, 94, 26, 4.5, { fill: '#000000', opacity: 0.14, kind: 'shadow' });
+    // Soft baseline ground shadow (not under the moon, the sun or a cloud: they are up in the air)
+    if (!['MOON', 'SUN', 'CLOUD'].includes(char)) d.ellipse(50, 94, 26, 4.5, { fill: '#000000', opacity: 0.14, kind: 'shadow' });
 
     // Rigged Legs and Shoes
     d.group({ class: 'pg-leg-left' }, () => {

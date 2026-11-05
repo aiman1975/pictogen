@@ -16,7 +16,7 @@ import { createRng } from './core/rng.js';
 import { drawConcept, shapesToSvg, svgDoc, newUid, styleWrap, esc } from './core/render.js';
 import { getStyle } from './core/styles.js';
 import { darken, lighten, mix } from './core/color.js';
-import { PLACE_ENV_WORDS, applySetting, extras, placeSky, shootingStar, bigShootingStar, space, underwater, desert, mountains, farm, jungle, castle, autumnLeaves } from './places.js';
+import { PLACE_ENV_WORDS, applySetting, extras, placeSky, shootingStar, bigShootingStar, skyland, space, underwater, desert, mountains, farm, jungle, castle, autumnLeaves } from './places.js';
 
 export const ENV_WORDS = {
   night: ['night', 'midnight', 'nighttime', 'dark', 'bedtime', 'sleep', 'sleeping', 'asleep', 'moon', 'stars'],
@@ -103,7 +103,8 @@ function detectEnv(items, words) {
   const sunset = any('sunset');
   // (furniture is indoors, unless the words say where: "a bench in the park", "a chair outside")
   const place = (k) => any(k) || (k === 'underwater' && /\bunder (the )?(sea|ocean|water)\b|\bocean floor\b|\bsea ?bed\b/.test(words.join(' ')))
-    || (k === 'space' && /\b(outer space|on the moon|in space)\b/.test(words.join(' ')));
+    || (k === 'space' && /\b(outer space|on the moon|in space)\b/.test(words.join(' ')))
+    || (k === 'sky' && /\b(up in the sky|high in the sky|high up in the sky|above the clouds|in the clouds|among the clouds|on (?:a|the) clouds?|through the night sky|up into the sky)\b/.test(words.join(' ')));
   const places = Object.fromEntries(Object.keys(PLACE_ENV_WORDS).map((k) => [k, place(k)]));
   const outdoors = ['park', 'garden', 'outside', 'outdoors', 'yard', 'street', 'meadow'].some((x) => w.has(x)) || any('forest') || any('beach') || Object.values(places).some(Boolean);
   const room = !outdoors && (any('room') || tags.has('furniture') || ['chair', 'table', 'window', 'door', 'bed', 'box', 'sofa'].some((id) => ids.has(id)));
@@ -135,12 +136,14 @@ function detectEnv(items, words) {
     // (one place drawn: space, then underwater, the desert, a farm, a jungle; mountains and a
     // castle go behind; autumn leaves fall on any of them)
     space: places.space,
+    // (up in the sky, on the clouds: no ground, no other place)
+    sky: !places.space && !places.underwater && places.sky,
     underwater: !places.space && places.underwater,
     desert: !places.space && !places.underwater && places.desert,
     farm: !places.space && !places.underwater && !places.desert && places.farm,
     jungle: !places.space && !places.underwater && !places.desert && places.jungle,
-    mountains: !places.space && !places.underwater && places.mountains && !ids.has('mountain'),
-    castle: !places.space && !places.underwater && places.castle && !ids.has('castle'),
+    mountains: !places.space && !places.underwater && !places.sky && places.mountains && !ids.has('mountain'),
+    castle: !places.space && !places.underwater && !places.sky && places.castle && !ids.has('castle'),
     autumn: !places.space && !places.underwater && places.autumn,
     sun: ids.has('sun'),
     // (moving things said in words: "fireflies", "a shooting star")
@@ -645,6 +648,12 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
     }
   }
 
+  // Up in the sky: the clouds instead of the ground, and some drifting by
+  if (env.sky && !upDown) {
+    layer('mid', () => d.group({ class: 'pg-place pg-place-sky' }, () => skyland(d, env, pal, rng, W, H, hY)));
+    extras(d, { ...env, extras: new Set([...(env.extras ?? []), 'clouds']) }, rng, W, H, hY);
+    return d.shapes;
+  }
   const waterTop = hY;
   const shoreTop = H * 0.84;
   if (upDown) d.shapes.push({ type: 'g-start', class: 'pg-travel-land' });
@@ -1428,6 +1437,8 @@ export function composeScene(matches, opts = {}) {
       const need = it.carried.reduce((sum, o) => sum + o.h * (o.c.width ?? 0.8) * 0.85, 0);
       it.wf = Math.max(it.c.width ?? 0.8, need / it.h);
     }
+    // (an animal that carries someone is big enough to: an owl with a star on its back)
+    if (it.c.saddle && it.c.isLibrary) it.h = Math.max(it.h, 1.5 * Math.max(...it.carried.map((o) => o.h)));
     for (const o of it.carried) o.ratio = o.h / it.h;
   }
   // Working at a desk ("sits at his desk with his laptop and a coffee"): on a chair behind it, the
@@ -1821,11 +1832,15 @@ export function composeScene(matches, opts = {}) {
     place(it, x, H * (0.12 + rng() * 0.14), 'center');
   });
 
-  // air: birds, planes, balloons, kites
+  // air: birds, planes, balloons, kites; a character up there (the moon, a cloud with a face) is
+  // bigger, and drawn after the ground - in front of the trees, not behind them
+  const airFolk = [];
   groups.air.forEach((it, i) => {
-    it.h = Math.min(it.h, H * 0.24);
+    const folk = it.c.category === 'people';
+    it.h = Math.min(it.h, H * (folk ? 0.34 : 0.24));
     const x = W * (0.1 + ((i + 0.5) / groups.air.length) * 0.8) + (rng() - 0.5) * W * 0.06;
-    place(it, x, H * (0.28 + rng() * 0.14), 'center');
+    const y = H * (folk ? 0.24 + rng() * 0.08 : 0.28 + rng() * 0.14);
+    if (folk) airFolk.push([it, x, y]); else place(it, x, y, 'center');
   });
 
   // ground: big things (trees, houses) in a back row, everything else in front
@@ -1883,6 +1898,7 @@ export function composeScene(matches, opts = {}) {
       front.forEach((it) => place(it, it.cx, frontY));
     }
   }
+  for (const [it, x, y] of airFolk) place(it, x, y, 'center');
 
   let cam = null; // { keys, T }
   // What the camera looks at: an actor (where it is at that moment) or anything else in the scene

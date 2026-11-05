@@ -46,7 +46,7 @@ function stepText(a) {
 export function placeLabel(env) {
   if (!env) return '';
   const where = env.room ? (env.roomKind && env.roomKind !== 'room' ? `the ${env.roomKind}` : 'indoors')
-    : env.space ? 'space' : env.underwater ? 'under the sea' : env.desert ? 'the desert' : env.farm ? 'the farm'
+    : env.space ? 'space' : env.sky ? 'the sky' : env.underwater ? 'under the sea' : env.desert ? 'the desert' : env.farm ? 'the farm'
       : env.jungle ? 'the jungle' : env.castle ? 'the castle' : env.mountains ? 'the mountains' : env.beach ? 'the beach'
         : env.water ? 'the sea' : env.city ? 'the city' : env.park ? 'the park' : env.woods ? 'the forest' : 'outdoors';
   const when = env.night ? 'night' : env.sunset ? 'sunset' : env.room ? null : 'day';
@@ -57,7 +57,7 @@ export function placeLabel(env) {
 /** Where and when as the studio's pickers say it: { place, time, weather } (src/places.js PLACE_CHOICES) */
 export function placeChoice(env) {
   if (!env) return { place: 'meadow', time: 'day', weather: 'clear' };
-  const place = env.room ? (env.roomKind || 'room') : env.space ? 'space' : env.underwater ? 'underwater' : env.desert ? 'desert'
+  const place = env.room ? (env.roomKind || 'room') : env.space ? 'space' : env.sky ? 'sky' : env.underwater ? 'underwater' : env.desert ? 'desert'
     : env.farm ? 'farm' : env.jungle ? 'jungle' : env.castle ? 'castle' : env.mountains ? 'mountains' : env.beach ? 'beach'
       : env.water ? 'sea' : env.city ? 'city' : env.park ? 'park' : env.woods ? 'forest' : 'meadow';
   return { place, time: env.night ? 'night' : env.sunset ? 'sunset' : 'day', weather: env.rain ? 'rain' : env.snow ? 'snow' : env.autumn ? 'autumn' : 'clear' };

@@ -139,7 +139,15 @@ const PLACES = [
   ['kitchen', /\bkitchen\b/, 'in the kitchen'],
   ['bedroom', /\b(bedroom|bed)\b/, 'in the bedroom'],
   ['home', /(?<!\bway )\b(home|house|living room|inside|indoors)\b/, 'at home'],
+  // (up in the sky: where the moon lives, flying through the night, reaching the sky)
+  ['sky', /\b(sky|skies|heaven|above the clouds|in the clouds)\b|\bfl(?:y|ies|ew|ying)\s+(?:up\s+)?(?:through|across|into|among)\s+(?:the\s+)?(?:night|air|clouds|stars|dark)\b/, 'up in the sky'],
 ];
+// (the ground: under a tree, by the houses - not up in the sky any more)
+const ON_GROUND = /\b(?<!over |above |down at |down on )(?:the |a |an |big |small |little |tall |old )*(trees?|flowers?|grass|ground|meadow|field|houses?|garden|path|road|bench|rock)\b/;
+// (what someone looks at, over or behind is not where they are: "looked over the mountains")
+const LOOKED_AT = /\b(?:looks?|looked|looking|sees?|saw|watch(?:es|ed)?|peeks?|peeked|gazes?|gazed|searches|searched)\s+(?:over|behind|at|across|towards?|into|through|up at|down at|out over|out at|under|in)?\s*[^.,;!?⟦]*/g;
+// (someone missing or lost is not in the picture: "a little star was missing", "lost her puppy")
+const MISSING = /\b(?:(?:the|a|an|my|his|her|their|our)\s+)?(?:(?:little|small|tiny|lost|own)\s+)*([a-z]+)\s+(?:is|was|were|are|went|goes|has gone|had gone)\s+(?:missing|lost|gone|away)\b|\b(?:lost|loses|misses|missed|cannot find|can't find|could not find|couldn't find|looks for|looked for|searches for|searched for)\s+(?:the|a|an|my|his|her|their|our)?\s*(?:(?:little|small|tiny)\s+)*([a-z]+)\b/g;
 const TIMES = [
   ['night', /\b(night|nighttime|midnight|bedtime|dark|moon|stars)\b|\b(?:one|two|three|four|1|2|3|4)\s+(?:in the morning|a\.?m\b)/],
   ['evening', /\b(evening|sunset|dusk)\b/],
@@ -260,6 +268,8 @@ export function readStory(text, { individuals = [], adults = false, translate = 
     const inScene = new Set();
     const parts = sentences(raw).map((s) => readSentence(s).replace(/[\s.,;:!?]+$/, ''));
     let prompt = parts.filter(Boolean).join(', then ');
+    // (riding someone, then flying off together: one picture, riding - "the star rides the owl")
+    prompt = prompt.replace(/\b((pgc\d+|the [a-z]+) rides (pgc\d+|the [a-z]+)), then (?:\2 and \3|\3 and \2|they) fl(?:y|ies|ew)\b[^,]*/, '$1');
     // (whoever is just there is said with the first thing that happens, so they are there from the
     // start, not popping up at the end: "the email asks for his password and Sam, then ...")
     const withThere = (who) => {
@@ -291,8 +301,11 @@ export function readStory(text, { individuals = [], adults = false, translate = 
     }
     // Where and when, carried on: the scene's own words first
     const low = raw.toLowerCase();
-    const p = PLACES.find(([, re]) => re.test(low));
-    if (p) { place = [...p]; place.word = low.match(p[1])[1]; }
+    const where = low.replace(LOOKED_AT, ' ');
+    const p = PLACES.find(([, re]) => re.test(where));
+    if (p) { place = [...p]; place.word = where.match(p[1])[1] ?? 'sky'; }
+    // (down from the sky, under a tree: the ground again)
+    else if (place?.[0] === 'sky' && ON_GROUND.test(where)) place = null;
     const t = TIMES.find(([, re]) => re.test(low));
     const w = WEATHER.find(([, re]) => re.test(low));
     // (a new day or night: the weather clears unless it is said again; things worn come off)
@@ -313,7 +326,7 @@ export function readStory(text, { individuals = [], adults = false, translate = 
       const list = m.wearing.length > 1 ? `${m.wearing.slice(0, -1).join(', ')} and ${m.wearing.at(-1)}` : m.wearing[0];
       prompt = prompt.replace(new RegExp(`\\b${m.key}\\b(?! with)`), `${m.key} with ${list}`);
     }
-    if (place && !place[1].test(prompt.toLowerCase())) prompt += ` ${typeof place[2] === 'function' ? place[2](place.word) : place[2]}`;
+    if (place && (place[0] === 'sky' ? !/\bup in the sky\b/.test(prompt) : !place[1].test(prompt.toLowerCase()))) prompt += ` ${typeof place[2] === 'function' ? place[2](place.word) : place[2]}`;
     // (words on the classroom's board stay there while the story stays in the classroom)
     const boardSays = raw.match(/\b(?:chalk|black|white)?board\b[^⟦.!?]{0,30}(⟦\d+⟧)/i) ?? raw.match(/\bwr(?:ites|ote|ite)\b[^⟦.!?]{0,20}(⟦\d+⟧)[^⟦.!?]{0,30}\bboard\b/i);
     if (boardSays) board = boardSays[1];
@@ -411,6 +424,11 @@ export function readStory(text, { individuals = [], adults = false, translate = 
         return all;
       });
 
+      // Someone missing or lost: known, but not drawn ("Ein kleines Sternchen fehlte!")
+      s = s.replace(MISSING, (all, a, b) => {
+        const w = (a ?? b ?? '').toLowerCase();
+        return kindOf(w) && !PRESENT[w] ? ` absent_${w} ` : all;
+      });
       // Word by word: names, pronouns, the creatures it speaks of, verbs
       const toks = (s.replace(/(\w)'s\b/g, '$1').match(/⟦\d+⟧|[A-Za-z_'][A-Za-z0-9_']*|[0-9]+|[^\sA-Za-z0-9]/g) ?? []);
       const out = [];
@@ -428,6 +446,18 @@ export function readStory(text, { individuals = [], adults = false, translate = 
       for (let i = 0; i < toks.length; i++) {
         const tok = toks[i], low = tok.toLowerCase(), next = toks[i + 1]?.toLowerCase() ?? '';
         if (/^⟦/.test(tok)) { out.push(tok); continue; }
+        // (someone missing: met, not in the scene)
+        if (low.startsWith('absent_')) {
+          const w = low.slice(7), id = kindOf(w);
+          if (id && !cast.some((c) => c.noun === w || (c.id === id && !c.name))) cast.push({ id, noun: w, gender: genderOf(id), last: 0, ...(friendly.has(w) ? { friend: true, name: `the ${w}`, key: `pgc${nextKey++}`, look: { seed: hash(w) } } : {}) });
+          continue;
+        }
+        // (the others of a sky friend: "the other stars" are star friends too)
+        if (friendly.has(low.replace(/s$/, '')) && low.endsWith('s') && low !== 'sus') {
+          if (['the', 'other', 'all'].includes(out[out.length - 1]?.toLowerCase())) while (['the', 'other', 'all'].includes(out[out.length - 1]?.toLowerCase())) out.pop();
+          out.push('three', `${low.slice(0, -1)} friends`);
+          continue;
+        }
         // A titled name ("Grandma_Rose")
         if (tok.includes('_')) { const m = named(tok.replace('_', ' ')); out.push(m ? ref(m) : tok.replace('_', ' ')); continue; }
         // A character already met, by name (or the studio's key)
@@ -519,6 +549,8 @@ function verbs(s) {
     .replace(/\b(excitedly)\b/g, 'excited').replace(/\b(sleepily)\b/g, 'sleepy').replace(/\b(nervously|fearfully)\b/g, 'scared')
     .replace(/\b(?:follows|followed|follow)\b/g, 'walks to')
     .replace(/\bbarks\b/g, 'wags')
+    // (hearing someone cry is hearing a sound: not crying oneself)
+    .replace(/\b(hears|heard|listens(?: to)?|listened(?: to)?)\s+(?:a\s+|some\s+|someone\s+|somebody\s+)?(?:[a-z]+\s+)?(?:cry|crying|cries|sob|sobbing|weeping)\b/g, '$1')
     .replace(/\bit (?:starts|started|begins|began|is starting) to (?:rain|snow)\b/gi, ' ')
     .replace(/\b(?:once upon a time|there (?:is|was|are|were|lives|lived)|who (?:lives|lived)|every (?:day|morning|evening|night)|one (?:day|morning|evening|night)|the next (?:day|morning)|together|suddenly|finally)\b/gi, ' ')
     .replace(/^\s*[,.;]+/, '')

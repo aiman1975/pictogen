@@ -12,7 +12,7 @@ const MAX = 12;
 const PLACES = [
   ['meadow', '🌿 Meadow'], ['park', '🌳 Park'], ['forest', '🌲 Forest'], ['jungle', '🌴 Jungle'], ['city', '🏙️ City'],
   ['beach', '🏖️ Beach'], ['sea', '🌊 Sea'], ['underwater', '🐠 Under the sea'], ['desert', '🏜️ Desert'], ['mountains', '⛰️ Mountains'],
-  ['farm', '🚜 Farm'], ['castle', '🏰 Castle'], ['space', '🪐 Space'],
+  ['farm', '🚜 Farm'], ['castle', '🏰 Castle'], ['sky', '☁️ Up in the sky'], ['space', '🪐 Space'],
   ['classroom', '🏫 Classroom'], ['office', '💼 Office'], ['kitchen', '🍳 Kitchen'], ['bedroom', '🛏️ Bedroom'], ['room', '🛋️ Room'],
 ];
 const TIMES = [['day', '☀️ Day'], ['sunset', '🌇 Sunset'], ['night', '🌙 Night']];

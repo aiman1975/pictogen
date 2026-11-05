@@ -23,6 +23,8 @@ export const PLACE_ENV_WORDS = {
   castle: ['castle', 'kingdom', 'palace', 'fairytale', 'fairy-tale'],
   autumn: ['autumn', 'autumnal'],
   fireflies: ['fireflies', 'firefly'],
+  // (up in the sky, on the clouds: said as "up in the sky", "above the clouds", "on a cloud")
+  sky: ['skyland', 'cloudland'],
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -33,7 +35,7 @@ export const PLACE_ENV_WORDS = {
 
 /** What can be picked: the place, the time of day, the weather, and things in it (some moving) */
 export const PLACE_CHOICES = {
-  place: ['meadow', 'park', 'forest', 'city', 'beach', 'sea', 'desert', 'mountains', 'space', 'underwater', 'farm', 'jungle', 'castle', 'classroom', 'office', 'kitchen', 'bedroom', 'room'],
+  place: ['meadow', 'park', 'forest', 'city', 'beach', 'sea', 'desert', 'mountains', 'sky', 'space', 'underwater', 'farm', 'jungle', 'castle', 'classroom', 'office', 'kitchen', 'bedroom', 'room'],
   time: ['day', 'sunset', 'night'],
   weather: ['clear', 'rain', 'snow', 'autumn'],
   extras: ['mountains', 'castle', 'stars', 'shooting', 'clouds', 'fireflies', 'bubbles', 'leaves', 'butterflies'],
@@ -44,7 +46,7 @@ export const PLACE_CHOICES = {
 const HEX = /^#[0-9a-f]{6}$/i;
 const ROOMS = new Set(['classroom', 'office', 'kitchen', 'bedroom', 'room']);
 // (place flags that pick the backdrop; a setting turns all of them off first)
-const PLACE_FLAGS = ['room', 'water', 'beach', 'woods', 'park', 'city', 'space', 'underwater', 'desert', 'farm', 'jungle', 'mountains', 'castle'];
+const PLACE_FLAGS = ['room', 'water', 'beach', 'woods', 'park', 'city', 'sky', 'space', 'underwater', 'desert', 'farm', 'jungle', 'mountains', 'castle'];
 
 /** A place as sent, checked: anything unknown left out ({ place, time, weather, extras }) or null */
 export function cleanPlace(p) {
@@ -115,7 +117,7 @@ export function applySetting(env, setting, { force = false } = {}) {
     out.rain = s.weather === 'rain'; out.snow = s.weather === 'snow'; out.autumn = s.weather === 'autumn';
   }
   const x = new Set(s.extras);
-  if (!out.room && !out.space && !out.underwater) {
+  if (!out.room && !out.space && !out.underwater && !out.sky) {
     if (x.has('mountains')) out.mountains = true;
     if (x.has('castle')) out.castle = true;
   }
@@ -196,6 +198,22 @@ export function shootingStar(d, rng, W, H) {
     d.line(x - 34, y - 14, x, y, { kind: 'line', stroke: '#fff8e1', sw: 1.6, opacity: 0.7 });
     d.circle(x, y, 2.2, { ...bg, fill: '#ffffff' });
   });
+}
+
+// Up in the sky: no ground, a soft bank of clouds to stand on, the far clouds below the horizon
+export function skyland(d, env, pal, rng, W, H, hY) {
+  const [far, near, light] = env.night ? ['#2f3d73', '#46559a', '#5f6fb4'] : env.sunset ? ['#f7c6b0', '#ffe2d4', '#fff1ea'] : ['#cfe6fb', '#f4f9ff', '#ffffff'];
+  // (far clouds along the horizon, smaller)
+  for (let x = -20; x < W + 40; x += W / 11) d.circle(x + rng() * 18, hY + H * 0.02, H * (0.04 + rng() * 0.03), { ...bg, fill: far });
+  d.rect(0, hY + H * 0.02, W, H, { ...bg, fill: far });
+  // (the bank in front, round tops, a lighter edge)
+  for (let x = -30; x < W + 40; x += W / 8) {
+    const y = hY + H * (0.1 + rng() * 0.03), r = H * (0.08 + rng() * 0.04);
+    d.circle(x + rng() * 20, y, r, { ...bg, fill: near });
+    d.circle(x + rng() * 20 - r * 0.2, y - r * 0.25, r * 0.55, { ...bg, fill: light, opacity: 0.7 });
+  }
+  d.rect(0, hY + H * 0.12, W, H, { ...bg, fill: near });
+  for (let x = -20; x < W + 40; x += W / 6) d.circle(x + rng() * 30, H * (0.96 + rng() * 0.03), H * (0.07 + rng() * 0.03), { ...bg, fill: light, opacity: 0.55 });
 }
 
 export function space(d, env, pal, rng, W, H, hY) {

@@ -469,6 +469,10 @@ export function bridgeGerman(text, { names = null, story = false } = {}) {
     .replace(/(^|[^\p{L}])heiße[nr]? schokolade(?![\p{L}])/giu, '$1kakao')
     .replace(/(^|[^\p{L}])(?:strahlt|strahlte|strahlten|lacht|lachte|lachten) vor freude(?![\p{L}])/giu, '$1lachtvorfreude')
     .replace(/(^|[^\p{L}])(?:zur|auf die|zu der) erde(?![\p{L}])/giu, '$1')
+    // ("vorbei an schlafenden Dörfern": what goes by, not who is there)
+    .replace(/,?\s*vorbei an [^.,;!?]*/giu, '')
+    // ("hüpfte auf den Rücken der Eule": rides the owl)
+    .replace(/(^|[^\p{L}])(?:hüpft|hüpfte|hüpften|springt|sprang|klettert|kletterte|steigt|stieg|setzt sich|setzte sich)\s+auf (?:den|seinen|ihren) rücken (?:der|des|von der|von dem|vom)\s+/giu, '$1reitet die ')
     .replace(/(^|[^\p{L}])(?:hebt|hob|hoben|heben) (?:die|ihre|seine) hand(?![\p{L}])|(^|[^\p{L}])(?:meldet|meldete) sich(?![\p{L}])/giu, (m, a, b) => `${a ?? b ?? ''}hebtdiehand`)
     .replace(/(^|[^\p{L}])(?:(?:fing|fängt) es an zu|es (?:fing|fängt) an zu|es begann zu|es beginnt zu) (regnen|schneien)(?![\p{L}])/giu, (m, a, w) => `${a}${/regnen/i.test(w) ? 'esregnet' : 'esschneit'}`)
     .replace(/(^|[^\p{L}])(?:kommt|kommen|kam|kamen|läuft|laufen|lief|geht|gehen|ging) auf (?:uns|mich|dich|die kamera) zu(?![\p{L}])/giu, '$1kommtzu')
@@ -506,6 +510,8 @@ export function bridgeGerman(text, { names = null, story = false } = {}) {
           toks.push({ en: v ? (/en$/i.test(v) ? 'they' : 'she') : n === 0 ? 'she' : 'her', kind: 'pron' });
           continue;
         }
+        // ("ein leises Weinen", "das Lachen": a verb as a thing, a sound - not someone doing it)
+        if (n > 0 && /^\p{Lu}/u.test(word) && VERBS[lw0] !== undefined && /^(ein|das|dem|vom|beim|zum|lautes?|leises?|lauten|leisen|fröhliches?|trauriges?)$/i.test(ws[n - 1])) { unknown.push(word); continue; }
         let en = germanWord(word);
         if (en == null) { unknown.push(word); continue; }
         // (more than one: "Hunde" -> dogs; "den Jungen" stays one boy, "den Kindern" is children)
@@ -515,7 +521,8 @@ export function bridgeGerman(text, { names = null, story = false } = {}) {
           while (b > 0 && ADJ_FORMS[(ws[b] ?? '').toLowerCase()] !== undefined) b--;
           const before = (ws[b] ?? '').toLowerCase();
           const one = ONE_BEFORE.test(before) || (pl === 3 && before === 'den');
-          if (!one) en = pluralEn(en);
+          // (the plural only when it is the same picture: "houses" is a picture of its own, a small icon)
+          if (!one) { const pl = pluralEn(en), id = (w) => parseText(w).matches[0]?.id; if (id(pl) === id(en)) en = pl; }
         }
         toks.push({ en, kind: kindOf(word) });
       }

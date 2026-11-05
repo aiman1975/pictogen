@@ -3219,6 +3219,7 @@ export default {
    "zebra": "Zebra",
    "Zebra": "Zebra",
    "📋 Your cards": "📋 Deine Karten",
+   "☁️ Up in the sky": "☁️ Oben am Himmel",
    "Moon friend": "Mond-Freund",
    "Star friend": "Sternchen-Freund",
    "Sun friend": "Sonnen-Freund",
