@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { generate, getConcept, renderIcon, STYLE_NAMES, DIAGRAMS, renderWorksheet } from '../src/index.js';
+import { generate, getConcept, renderIcon, STYLE_NAMES, DIAGRAMS, renderWorksheet, parseText, tokenize } from '../src/index.js';
+const await_import = { parseText, tokenize };
 import { fitText } from '../src/bubble.js';
 
 let fails = 0;
@@ -261,5 +262,15 @@ if (fails > 0) {
   console.error(`\nTest suite FAILED with ${fails} failures.`);
   process.exit(1);
 } else {
-  console.log('\nAll Presentation Modes & Styles test suite: ALL PASSED!');
+  // German letters: Ä Ö Ü ß as figures, words with them read whole
+test('German letters: Ä Ö Ü ß are figures, spelled as they are (ß stays ß), and words keep their letters', () => {
+  const { parseText, tokenize } = await_import;
+  const ids = ['the letter ä', 'a red letter Ö', 'letter ß', 'a jumping letter ü'].map((t) => parseText(t).matches[0]?.id);
+  if (ids.join() !== 'letter_ae,letter_oe,letter_ss,letter_ue') throw new Error(`letters: ${ids}`);
+  const spelled = (t) => generate(t, { mode: 'alphabet' }).svg.match(/PALS • ([^<\n]*)/)?.[1]?.trim();
+  if (spelled('Straße') !== 'STRAßE' || spelled('MÜNCHEN') !== 'MÜNCHEN') throw new Error(`spelled: ${spelled('Straße')} ${spelled('MÜNCHEN')}`);
+  if (tokenize('Der Bär läuft über die Straße').join(' ') !== 'der bär läuft über die straße') throw new Error('words split at their letters');
+});
+
+console.log('\nAll Presentation Modes & Styles test suite: ALL PASSED!');
 }

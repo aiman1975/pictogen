@@ -186,7 +186,7 @@ export function tokenize(text) {
   return String(text || '')
     .toLowerCase()
     .replace(/['’]s\b/g, '')
-    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
     .split(/[\s-]+/)
     .filter(Boolean);
 }

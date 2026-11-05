@@ -31,6 +31,11 @@ export const LETTER_PALETTES = {
   X: { main: '#d97706', dark: '#b45309', shadow: '#92400e', accent: '#fef3c7' }, // Amber
   Y: { main: '#ec4899', dark: '#db2777', shadow: '#9d174d', accent: '#fce7f3' }, // Hot Pink
   Z: { main: '#6d28d9', dark: '#5b21b6', shadow: '#4c1d95', accent: '#ede9fe' }, // Deep Purple
+  // German letters
+  'Ä': { main: '#f43f5e', dark: '#be123c', shadow: '#9f1239', accent: '#ffe4e6' }, // Raspberry
+  'Ö': { main: '#14b8a6', dark: '#0d9488', shadow: '#0f766e', accent: '#ccfbf1' }, // Teal
+  'Ü': { main: '#a855f7', dark: '#9333ea', shadow: '#7e22ce', accent: '#f3e8ff' }, // Orchid
+  'ß': { main: '#0284c7', dark: '#0369a1', shadow: '#075985', accent: '#e0f2fe' }, // Ocean
   // Numberlings
   0: { main: '#64748b', dark: '#475569', shadow: '#334155', accent: '#f1f5f9' }, // Pebble Grey
   1: { main: '#ef4444', dark: '#dc2626', shadow: '#b91c1c', accent: '#fee2e2' }, // Red
@@ -52,7 +57,20 @@ function drawGlyphShape(d, letter, fill, stroke) {
   const o = { fill, stroke, sw: 2.5, strokeLinejoin: 'round', kind: 'body' };
   const cut = { fill: '#ffffff', stroke, sw: 2, strokeLinejoin: 'round', kind: 'bg' };
 
+  // Letters with two dots (German Ä Ö Ü): the letter, the dots over it
+  const UMLAUT = { 'Ä': 'A', 'Ö': 'O', 'Ü': 'U' };
+  if (UMLAUT[letter]) {
+    drawGlyphShape(d, UMLAUT[letter], fill, stroke);
+    d.circle(39, 7, 5, o);
+    d.circle(61, 7, 5, o);
+    return;
+  }
+
   switch (letter) {
+    case 'ß':
+      // The sharp s: a tall stem, a rounded top, two bowls down the right
+      d.path('M 22 78 V 32 C 22 20 32 14 46 14 C 62 14 72 22 72 31 C 72 38 67 43 60 45 C 71 47 78 55 78 63 C 78 73 69 78 56 78 H 46 V 66 H 54 C 60 66 63 64 63 61 C 63 57 58 55 52 55 H 46 V 43 H 50 C 55 43 58 39 58 33 C 58 28 53 26 47 26 C 41 26 38 29 38 34 V 78 Z', o);
+      break;
     case 'A':
       d.path('M 50 16 L 80 78 L 63 78 L 56 62 L 44 62 L 37 78 L 20 78 Z', o);
       d.path('M 50 32 L 56 50 L 44 50 Z', cut);
@@ -238,6 +256,7 @@ const FACE_ANCHORS = {
   M: [50, 46], N: [50, 46], O: [50, 46], P: [48, 36], Q: [48, 44], R: [48, 36],
   S: [48, 46], T: [50, 38], U: [50, 52], V: [50, 42], W: [50, 48], X: [50, 46],
   Y: [50, 34], Z: [50, 48],
+  'Ä': [50, 44], 'Ö': [50, 46], 'Ü': [50, 52], 'ß': [44, 40],
   0: [50, 22], 1: [50, 46], 2: [50, 21], 3: [52, 21], 4: [61, 44], 5: [56, 59],
   6: [44, 27], 7: [50, 21], 8: [50, 47], 9: [49, 64],
 };
@@ -303,7 +322,8 @@ function drawKawaiiFace(d, cx, cy, expr = 'happy') {
  * Main draw function for any Letterling creature.
  */
 export function drawLetterCreature(d, p, letter = 'A') {
-  const char = String(letter || 'A').toUpperCase();
+  // (ß has no capital of its own in most fonts: it stays as it is, not 'SS')
+  const char = letter === 'ß' ? 'ß' : String(letter || 'A').toUpperCase();
   const pal = LETTER_PALETTES[char] || LETTER_PALETTES.A;
   const bodyColor = p.opts.color || pal.main;
   const anim = p.opts.animation;
@@ -409,6 +429,32 @@ for (let i = 0; i < 26; i++) {
     },
   });
 }
+
+// German letters: Ä Ö Ü (letter_ae, letter_oe, letter_ue) and ß (letter_ss), "the letter Ä"
+export const EXTRA_LETTERS = [['Ä', 'ae', 'a umlaut'], ['Ö', 'oe', 'o umlaut'], ['Ü', 'ue', 'u umlaut'], ['ß', 'ss', 'sharp s']];
+for (const [letter, key, name] of EXTRA_LETTERS) {
+  alphabetConcepts.push({
+    id: `letter_${key}`,
+    label: `Letter ${letter}`,
+    category: 'alphabet',
+    placement: 'ground',
+    scale: 0.85,
+    baseline: 94,
+    width: 0.8,
+    flippable: false,
+    aliases: [`letter ${letter.toLowerCase()}`, `letter ${key}`, name, `letter ${name}`, `cute ${letter.toLowerCase()}`, `letterling ${letter.toLowerCase()}`],
+    tags: ['alphabet', 'letter', 'letters', 'learning', 'kids', 'german', 'character', 'cute'],
+    colors: { main: LETTER_PALETTES[letter].main, dark: LETTER_PALETTES[letter].dark },
+    draw(d, p) {
+      drawLetterCreature(d, p, letter);
+    },
+  });
+}
+/** The character a letter or number figure is ('letter_ae' -> 'Ä', 'letter_b' -> 'B', 'number_7' -> '7') */
+export const glyphOf = (id) => {
+  const k = String(id).replace(/^(letter|number)_/, '');
+  return EXTRA_LETTERS.find(([, key]) => key === k)?.[0] ?? k.toUpperCase();
+};
 
 // Numberlings 0-9 (number_0 ... number_9): "the number 3", "number three", "digit 7"
 for (let n = 0; n <= 9; n++) {

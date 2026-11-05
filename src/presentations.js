@@ -7,7 +7,7 @@ import { getStyle } from './core/styles.js';
 import { createRng } from './core/rng.js';
 import { lighten, darken, mix } from './core/color.js';
 import { createKit } from './core/kit.js';
-import { drawLetterCreature, LETTER_PALETTES } from './concepts/alphabet.js';
+import { drawLetterCreature, LETTER_PALETTES, glyphOf } from './concepts/alphabet.js';
 import { layoutBubbles, fitText, textWidth } from './bubble.js';
 import { takeQuotes } from './speech.js';
 import { conceptOf, whoOf, lookOf } from './individuals.js';
@@ -1073,7 +1073,8 @@ export function renderAlphabet(matches, opts = {}) {
   const pal = (id) => /^(letter|number)_/.test(id);
   // "count to 5" -> 1 2 3 4 5; otherwise the letters and digits of the prompt
   const counting = text.match(/\bcount(?:ing)?\s+(?:from\s+(\d)\s+)?to\s+(\d)\b/i);
-  const cleanText = counting ? '' : text.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  // (German letters too: Ä Ö Ü and ß, which stays ß rather than becoming 'SS')
+  const cleanText = counting ? '' : [...text.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '')].map((c) => (c === 'ß' ? c : c.toUpperCase())).join('');
 
   // Check if prompt is a phonics pair: e.g. "A is for Apple" or "C is for Cat"
   const isPhonics = !counting && (/^[A-Z]\s+(is\s+for|for)\s+/i.test(text.trim()) ||
@@ -1093,7 +1094,7 @@ export function renderAlphabet(matches, opts = {}) {
     rawLetters = cleanText.slice(0, 8).split(''); // Max 8 letters on stage
   } else if (matches.length > 0) {
     for (const m of matches) {
-      if (pal(m.id)) rawLetters.push(m.id.replace(/^(letter|number)_/, '').toUpperCase());
+      if (pal(m.id)) rawLetters.push(glyphOf(m.id));
     }
   }
 
