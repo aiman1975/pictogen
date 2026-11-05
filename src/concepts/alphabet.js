@@ -288,15 +288,13 @@ function drawKawaiiFace(d, cx, cy, expr = 'happy') {
       d.path(`M ${cx - 3} ${cy + 5.5} Q ${cx} ${cy + 9} ${cx + 3} ${cy + 5.5} Z`, { fill: '#ff758c', kind: 'accent' });
     } else if (expr === 'surprised') {
       d.ellipse(cx, cy + 5, 2.8, 3.6, { fill: INK, kind: 'detail' });
+    } else if (/^(sad|crying|cry|worried|scared|upset|angry|grumpy|cross|mad)$/.test(expr)) {
+      // A small frown (a sad letter doesn't smile)
+      d.path(`M ${cx - 4.5} ${cy + 6.5} Q ${cx} ${cy + 2.5} ${cx + 4.5} ${cy + 6.5}`, { stroke: INK, sw: 2, strokeLinecap: 'round', fill: 'none', kind: 'line' });
     } else {
-      // Sweet kitty smile
-      d.path(`M ${cx - 4.5} ${cy + 3.2} Q ${cx - 2} ${cy + 6} ${cx} ${cy + 3.8} Q ${cx + 2} ${cy + 6} ${cx + 4.5} ${cy + 3.2}`, {
-        stroke: INK,
-        sw: 2,
-        strokeLinecap: 'round',
-        fill: 'none',
-        kind: 'line',
-      });
+      // An open smile with a tongue: it opens and shuts when the letter talks or sings
+      d.path(`M ${cx - 4.5} ${cy + 3.2} Q ${cx} ${cy + 8.6} ${cx + 4.5} ${cy + 3.2} Z`, { fill: INK, stroke: INK, sw: 1.2, kind: 'detail' });
+      d.path(`M ${cx - 2.4} ${cy + 5.4} Q ${cx} ${cy + 8} ${cx + 2.4} ${cy + 5.4} Z`, { fill: '#ff758c', kind: 'accent' });
     }
   });
 }
@@ -313,7 +311,8 @@ export function drawLetterCreature(d, p, letter = 'A') {
   const expr = p.opts.expression || p.expression || 'happy';
   const [fcx, fcy] = FACE_ANCHORS[char] || [50, 46];
 
-  d.group({ class: animClass }, () => {
+  // (pg-rig-glyph: how a letter or a digit dances and sings, src/core/render.js)
+  d.group({ class: `pg-rig-glyph ${animClass}` }, () => {
     // Soft baseline ground shadow
     d.ellipse(50, 94, 26, 4.5, { fill: '#000000', opacity: 0.14, kind: 'shadow' });
 
@@ -394,6 +393,8 @@ for (let i = 0; i < 26; i++) {
     scale: 0.85,
     baseline: 94,
     width: 0.8,
+    // (a letter or a digit is never drawn the other way round: a backwards 7 is not a 7)
+    flippable: false,
     aliases: [
       `letter ${letter.toLowerCase()}`,
       `letter ${letter}`,
@@ -420,6 +421,8 @@ for (let n = 0; n <= 9; n++) {
     scale: 0.85,
     baseline: 94,
     width: 0.8,
+    // (a letter or a digit is never drawn the other way round: a backwards 7 is not a 7)
+    flippable: false,
     aliases: [
       `number ${n}`,
       `number ${DIGIT_WORDS[n]}`,

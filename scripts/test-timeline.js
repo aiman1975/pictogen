@@ -766,6 +766,12 @@ Remember: stop, look and check before you click.`, { style: 'stickman', genre: '
   check(order === 'seven' && !/data-who="v2"/.test(svg), `they keep their places (${order}) and are no one in particular`);
   const st = composeStory('A red number 7 says "Hi!"\nA yellow letter S, a red letter E, a blue letter V, a green letter E and a purple letter N wave. "We spell SEVEN!" says the letter S.', { style: 'flat' });
   check(st.scenes[1].card.figures.length === 5 && st.scenes[1].card.cast.some((c) => c.id === 'letter_e~v2'), 'in a story too, on the scene card: five letters, each its own');
+  // A letter or a digit walking the other way is never drawn backwards (a backwards 7 is not a 7)
+  const walkers = generate('In the park, a red letter A walks in, then a blue number 7 walks in.', { style: 'cartoon' }).svg;
+  check(/data-id="number_7/.test(walkers) && !/translate\(100 0\) scale\(-1 1\)/.test(walkers), 'a number walking in from the right is not mirrored');
+  // ...and dancing, it steps from foot to foot and sings along
+  const dancer = generate('a red letter A dances', { style: 'cartoon' }).svg;
+  check(/pg-rig-glyph pg-anim-dance/.test(dancer) && /\.pg-rig-glyph\.pg-anim-dance \.pg-leg-left \{ animation: pgStepL/.test(dancer) && /\.pg-rig-glyph\.pg-anim-dance \.pg-face-mouth/.test(dancer), 'a dancing letter steps its feet and moves its mouth');
 }
 
 console.log(fails ? `\n${fails} timeline check(s) failed` : '\nTimeline test suite: ALL PASSED!');

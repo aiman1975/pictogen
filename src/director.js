@@ -16,7 +16,8 @@
 //   shake           a jolt as the scene starts
 // The director, on its own:
 //   - a new place: wide first (at least SETTLE seconds) so we see where we are
-//   - someone speaks: close on them while they speak (their bubble in the frame), then back
+//   - someone speaks: close on them while they speak (their bubble in the frame), then back; when
+//     someone stands so near that the close shot would cut them in half, both stay in the frame
 //   - two or more speak: a two-shot that frames them all; in a crowd (four or more) it stays wide
 //   - a tense scene with no words: pushing in on its main figure
 //   - the clip's last scene: pulling back to the wide shot
@@ -46,9 +47,10 @@ export function shotChoice(value) {
  *   speeches: [{ who (id), start, end }] what is said, in the bubbles
  *   mood, text: its mood and words; context: { first, last, newPlace } in a clip
  *   shot: the shot chosen ({ kind, target }) or null
+ *   others: the ids of everyone else in it (people, animals, creatures)
  * Returns { keys, says } (says: what the shots are, for the scene card) or null.
  */
-export function directShots({ T, W, H, where, main = null, speeches = [], mood = null, text = '', context = {}, shot = null, crowd = 1, keepTop = null }) {
+export function directShots({ T, W, H, where, main = null, speeches = [], mood = null, text = '', context = {}, shot = null, crowd = 1, keepTop = null, others = [] }) {
   const wide = { z: 1, fx: W / 2, fy: H / 2 };
   const key = (t, s, ease = 'ease-in-out') => ({ t: r2(clamp(t, 0, T)), z: r2(s.z), fx: r2(s.fx), fy: r2(s.fy), ease });
   // Close on someone, their bubble (above their head, as tall as its lines) and most of them in the frame
@@ -71,6 +73,16 @@ export function directShots({ T, W, H, where, main = null, speeches = [], mood =
     return { z, fx: (left + right) / 2, fy: (top + bottom) / 2 };
   };
   const hold = (s) => [key(0, s), key(T, s, 'linear')];
+  // (a close shot that would cut someone standing near in half: them in the frame too)
+  const withNear = (id, t, at) => {
+    if (!at) return at;
+    const half = W / at.z / 2;
+    const near = others.filter((o) => o !== id).filter((o) => {
+      const f = where(o, t);
+      return f && Math.abs(f.x - at.fx) < half + f.h * 0.4;
+    });
+    return near.length ? together([id, ...near], t) : at;
+  };
   const kind = shot?.kind;
 
   // Chosen on the card
@@ -114,7 +126,7 @@ export function directShots({ T, W, H, where, main = null, speeches = [], mood =
     const keys = [key(0, wide)];
     let last = 0;
     for (const s of said) {
-      const t0 = Math.max(settle, s.start - 0.5, last), at = close(s.who, s.start + 0.2, MAX_Z, s.text);
+      const t0 = Math.max(settle, s.start - 0.5, last), at = withNear(s.who, s.start + 0.2, close(s.who, s.start + 0.2, MAX_Z, s.text));
       if (!at || t0 >= T - 0.6) continue;
       keys.push(key(t0, keys.at(-1)), key(Math.min(T, t0 + 0.8), at));
       const t1 = Math.min(T, s.end + 0.5);

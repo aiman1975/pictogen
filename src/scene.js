@@ -1640,7 +1640,7 @@ export function composeScene(matches, opts = {}) {
       if (pose.anim && !drawing.includes(`pg-anim-${pose.anim}`)) svg = `<g class="pg-anim-${pose.anim}">${svg}</g>`;
       // (sitting on a seat: hips up on it)
       if (pose.lift) svg = `<g transform="translate(0 ${r2(-pose.lift / s)})">${svg}</g>`;
-      if (pose.mirror) svg = `<g transform="translate(100 0) scale(-1 1)">${svg}</g>`;
+      if (pose.mirror && it.c.flippable !== false) svg = `<g transform="translate(100 0) scale(-1 1)">${svg}</g>`;
       // How it feels in this pose, as a sign over its head (there while it feels that way)
       const [hx, hy] = headOf(it);
       svg += emote(pose.anim === 'sleep' ? 'sleepy' : pose.expression, { head: [hx, hy - (pose.lift ?? 0) / s] });
@@ -1854,6 +1854,7 @@ export function composeScene(matches, opts = {}) {
       // (a board with words: its top stays in the frame)
       ...(env.boardText ? { keepTop: H * 0.13 } : {}),
       crowd: items.filter((it) => /^(people|animals|wildlife|alphabet)/.test(it.c.category ?? '')).reduce((n, it) => n + (it.m.count ?? 1), 0),
+      others: [...new Set(items.filter((it) => /^(people|animals|wildlife|fantasy|sea|alphabet|puppet)/.test(it.c.category ?? '') && it.aid).map((it) => it.aid))],
       context: { index: ctx.index ?? 0, first: Boolean(ctx.first), last: Boolean(ctx.last), newPlace: ctx.prevPlace == null ? Boolean(ctx.first) : ctx.prevPlace !== here },
     });
     if (shots?.follow && timeline && actorSlots.size && timelineTracks) {

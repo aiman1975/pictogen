@@ -1,6 +1,7 @@
 // Camera moves: zoom in/out, pan, follow a character - as timeline beats or on their own.
 import { cameraAction, extractCamera, generate, composeStory } from '../src/index.js';
 import { wellFormedError } from './xml-check.js';
+import { directShots } from '../src/director.js';
 
 let fails = 0;
 const check = (ok, msg) => { console.log(`${ok ? '✓ PASS' : '✗ FAIL'}: ${msg}`); if (!ok) fails++; };
@@ -96,6 +97,13 @@ check(true, 'camera scenes are well-formed in flat, cartoon, sketch, stickman an
   check(boardSays.card.camera.says === 'wide: the board in view', 'someone speaking by a board with words: the board stays in view');
   check(says('a yellow letter S, a red letter E, a blue letter V, a green letter E and a purple letter N wave, then the letter S says “We spell SEVEN!”') === 'wide: everyone in view', 'director: someone speaking in a crowd keeps everyone in view');
   check(says('a girl smiles in the park', { mood: 'calm' }) === 'a slow drift (mood)', 'director: a scene with a mood keeps its mood\'s camera');
+  // (someone speaking right next to a friend: the close shot keeps the friend whole)
+  const pair = (gap) => directShots({ T: 6, W: 640, H: 360, main: 'a', others: ['a', 'b'], speeches: [{ who: 'a', start: 1, end: 2.5, text: 'Hi!' }],
+    where: (id) => ({ a: { x: 260, y: 230, h: 110 }, b: { x: 260 + gap, y: 230, h: 110 } })[id] });
+  const near = pair(170), far = pair(400);
+  const sees = (sh, x) => sh.keys.every((k) => Math.abs(x - k.fx) + 110 * 0.4 <= 640 / k.z / 2 + 1);
+  check(sees(near, 430) && sees(near, 260), 'director: a close shot on someone keeps a friend beside them whole');
+  check(far.says === 'close on who speaks' && Math.max(...far.keys.map((k) => k.z)) > Math.max(...near.keys.map((k) => k.z)), 'director: a friend far off still lets the close shot come in close');
   // Chosen
   const low = generate('a boy and a dog in the park', { style: 'flat', shot: 'low' }), high = generate('a boy and a dog in the park', { style: 'flat', shot: 'high' });
   const scaleOf = (svg) => +(svg.match(/data-id="boy"[^>]*scale\(([\d.]+)\)/)?.[1] ?? 0);

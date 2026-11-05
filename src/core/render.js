@@ -603,6 +603,10 @@ ${SEA_CSS}
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3.5px); }
 }
+/* A letter or a digit dancing steps from foot to foot and sings along; jumping, it sings too */
+.pg-rig-glyph.pg-anim-dance .pg-leg-left { animation: pgStepL 0.55s ease-in-out infinite; }
+.pg-rig-glyph.pg-anim-dance .pg-leg-right { animation: pgStepR 0.55s ease-in-out infinite; }
+.pg-rig-glyph.pg-anim-dance .pg-face-mouth, .pg-rig-glyph.pg-anim-jump .pg-face-mouth { transform-origin: center top; animation: pgTalkMouth 0.275s ease-in-out infinite alternate; }
 .pg-rig-quadruped.pg-anim-run .pg-leg-left { animation: pgGallopLegL 0.45s ease-in-out infinite alternate; }
 .pg-rig-quadruped.pg-anim-run .pg-leg-right { animation: pgGallopLegR 0.45s ease-in-out infinite alternate; }
 .pg-rig-quadruped.pg-anim-run .pg-body-torso {
