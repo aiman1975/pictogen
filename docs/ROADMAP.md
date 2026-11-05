@@ -294,8 +294,8 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       (outline words, pictures, notes -> outline by German rules; `src/lang.js`)
 - [x] German scenes: picture words, plurals, sayings, diagram topics, letter modes (`src/lang-de.js`)
 - [x] The studio, landing page and help page in German: EN / DE switch (`public/js/i18n.js`)
-- [ ] Languages next: German stories (a cast kept across lines); then Arabic (letters, right to
-      left, a font) and later Spanish
+- [x] German stories: a cast kept across scenes, names, er/sie/ihn, places and times carried on
+- [ ] Languages next: Arabic (letters, right to left, a font), later Spanish
 - [ ] Explainers, phase 3: an optional local language model for the writer (a download, like the
       sound pack; its output checked, the rules as fallback; licence checked for sale)
 - [ ] Explainers, phase 4: the writer choosing which points become acted scenes

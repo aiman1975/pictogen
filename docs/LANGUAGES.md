@@ -12,7 +12,7 @@ a board stays in their own language.
 | Notes → explainer | ✅ | ✅ | planned | planned |
 | Scenes from a prompt | ✅ | ✅ (word bridge, plurals) | planned | planned |
 | Diagram topics, letter modes ("K wie Katze", "zähle bis 5") | ✅ | ✅ | planned | planned |
-| Stories (a cast kept across lines) | ✅ | a scene per line | planned | planned |
+| Stories (a cast kept across lines, names, pronouns) | ✅ | ✅ | planned | planned |
 | The studio, landing page and help page in the language | ✅ | ✅ (EN / DE switch) | planned | planned |
 
 ## Where each language lives
@@ -36,6 +36,14 @@ a board stays in their own language.
   the drawings are never translated. The language: the one picked with **EN / DE** in the header,
   else the browser's, remembered in this browser (`pictogen.lang.v1`). The first picture, the
   landing page's demo and the example chips are German prompts in German.
+
+- German stories: `germanStory` (in `src/lang-de.js`) finds the story's names ("ein Mädchen namens
+  Mia", "einen Hund, der Rex heißt", "Oma Rose", "Herr Braun", "rief Emma") and gives the story
+  reader (`src/story-reader.js`, `translate`) each scene in the engine's English words, so a German
+  story is read like an English one: a cast kept from scene to scene, "er", "sie" (she, they or her,
+  by its verb) and "ihn" for the right one, places, times and the weather carried on, story openers
+  ("Es war einmal", "Eines Morgens", "Am nächsten Tag"), the past tense and "hat … gefunden". The
+  captions stay as written; "Not drawn" lists the German words left out.
 
 ## The pages in German
 

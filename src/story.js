@@ -2,7 +2,7 @@
 // Science Documentaries, News & Editorial Briefs, and How-To Explainer Guides.
 import { isOutline, readOutline, renderSlide } from './slides.js';
 import { detectLanguage } from './lang.js';
-import { isGermanPrompt } from './lang-de.js';
+import { isGermanPrompt, germanStory } from './lang-de.js';
 import { readStory } from './story-reader.js';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
@@ -449,11 +449,13 @@ export function composeStory(storyInput, opts = {}) {
   const isTemplate = typeof storyInput === 'string' && STORY_TEMPLATES.some((t) => t.id === storyInput.trim().toLowerCase());
   // An outline ("# Title", "## Headline", "- point"): an explainer of cards (src/slides.js)
   if (typeof storyInput === 'string' && !isTemplate && isOutline(storyInput)) return composeOutline(storyInput, opts, dims);
-  // (a story in German: a scene per line for now, each drawn from its German words - src/lang-de.js;
-  // the story reader that keeps a cast across lines reads English)
+  // (a story in German: read the same way, each scene in the engine's English words, its caption in
+  // German as written - src/lang-de.js)
   const german = typeof storyInput === 'string' && isGermanPrompt(storyInput);
-  const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !german && !storyInput.includes('|')
-    ? readStory(storyInput, { individuals: opts.individuals ?? [], adults: genre !== 'kids' }) : null;
+  const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !storyInput.includes('|')
+    ? readStory(storyInput, { individuals: opts.individuals ?? [], adults: genre !== 'kids', ...(german ? { translate: germanStory(storyInput) } : {}) }) : null;
+  // (a German story: the German words left out are what was not drawn)
+  const germanLeftOut = german && read ? germanStory(storyInput).leftOut : null;
   // What the writer changed in "How I read your story" (opts.edits: their sentence -> what to draw
   // instead, the names as in the story)
   // (names in what is said stay names: "You look great, Anna!" is said, not drawn)
@@ -470,7 +472,7 @@ export function composeStory(storyInput, opts = {}) {
   // (a scene card with the story's names in it)
   const named = (card) => JSON.parse(shown(JSON.stringify(card)));
 
-  let title = opts.title ?? (read ? 'My Story' : undefined);
+  let title = opts.title ?? (read ? (german ? 'Meine Geschichte' : 'My Story') : undefined);
   let detectedGenre = genre;
 
   if (typeof storyInput === 'string') {
@@ -563,7 +565,7 @@ export function composeStory(storyInput, opts = {}) {
       ...(sceneStyle !== style ? { style: sceneStyle } : {}),
       ...((opts.moods?.[sc.caption] ?? sc.mood) ? { moodChosen: true } : {}),
       // (what could not be drawn, and whether the writer changed what to draw)
-      ...(read ? { unknown: result.unknown, ...(sc.edited ? { edited: true } : {}) } : {}),
+      ...(read ? { unknown: germanLeftOut && !sc.edited ? germanLeftOut(sc.caption.replace(/[“”]/g, '"')) : result.unknown, ...(sc.edited ? { edited: true } : {}) } : {}),
     };
   });
 

@@ -288,6 +288,29 @@ So what should you do? First, stop and do not click anything. Then, hover over t
   const count = gen('zähle bis 5', { mode: 'alphabet' });
   assert(phon.matches[0]?.id === 'cat' && />WIE</.test(phon.svg) && /K wie KATZE/.test(phon.svg) && [...count.svg.matchAll(/>(\d)</g)].map((m) => m[1]).join('') === '12345',
     'letters in German: "K wie Katze" (its German word on the banner), "zähle bis 5"');
+  // German stories, read as a whole (src/lang-de.js germanStory + src/story-reader.js): a cast kept,
+  // names, "er"/"sie"/"ihn" for the right one, places, times and the weather carried on
+  {
+    const mia = composeStory('Es war einmal ein kleines Mädchen namens Mia. Sie wohnte in der Nähe von einem großen Wald.\nEines Morgens fand sie einen kleinen Welpen unter einem Baum.\n„Hallo, kleiner Hund!“, sagte Mia. Der Welpe wedelte mit dem Schwanz.\nSie nahm ihn mit nach Hause und gab ihm etwas Milch.\nDann fing es an zu regnen. Mia und der Welpe liefen schnell ins Haus.\nIn der Nacht schliefen sie zusammen ein. Sie waren jetzt beste Freunde.', { style: 'flat' });
+    const ids = (sc) => sc.matches.map((m) => m.id.split('~')[0] + (m.animation ? `:${m.animation}` : '')).join(', ');
+    const girlKey = mia.scenes[0].matches[0].id;
+    assert(mia.title === 'Meine Geschichte' && mia.scenes.length === 6 && /^girl~pgc\d+$/.test(girlKey) && mia.scenes.every((sc, i) => i === 0 || sc.matches.some((m) => m.id === girlKey)),
+      `a German story keeps its girl, Mia, in every scene (${mia.scenes.map(ids).join(' | ')})`);
+    assert(mia.scenes[0].caption.startsWith('Es war einmal ein kleines Mädchen namens Mia.') && /Hallo, kleiner Hund!/.test(mia.scenes[2].caption) && /Hallo, kleiner Hund!/.test(mia.scenes[2].svg),
+      'its captions are the German as written, and what is said is said in German');
+    assert(/looks at/.test(mia.scenes[1].prompt) && ids(mia.scenes[1]).includes('dog') && ids(mia.scenes[3]).split(', ').filter((x) => x === 'glass_of_milk').length === 1 && ids(mia.scenes[3]).includes('dog'),
+      `"fand sie einen kleinen Welpen" looks at the puppy, "nahm ihn … gab ihm etwas Milch" (${mia.scenes[1].prompt}; ${mia.scenes[3].prompt})`);
+    assert(/\brain\b/.test(mia.scenes[4].prompt) && /\bnight\b/.test(mia.scenes[5].prompt) && /smile at each other/.test(mia.scenes[5].prompt) && /\bforest\b/.test(mia.scenes[1].prompt),
+      'the forest, the rain and the night carried on; "Sie waren beste Freunde" smile at each other');
+    const tom = composeStory('Tom ist ein mutiger Junge. Er hat einen Hund, der Rex heißt.\nEines Tages gehen Tom und Rex in den Park.\nDort treffen sie Oma Rose. „Guten Morgen, Tom!“, ruft Oma Rose.\nRex bellt und springt. Tom lacht.', { style: 'flat' });
+    const cast = tom.scenes.flatMap((sc) => sc.matches.map((m) => m.id));
+    assert(cast.includes(tom.scenes[0].matches[0].id) && /^boy~/.test(tom.scenes[0].matches[0].id) && tom.scenes[0].matches.some((m) => /^dog~pgc/.test(m.id)) && tom.scenes[2].matches.some((m) => /^old_woman~pgc/.test(m.id))
+      && /Tom and Rex walks? in the park/.test(tom.scenes[1].prompt) && /Grandma Rose says “Guten Morgen, Tom!”/.test(tom.scenes[2].prompt),
+      `names: "einen Hund, der Rex heißt", "Oma Rose", "gehen Tom und Rex", "ruft Oma Rose" (${tom.scenes.map((sc) => sc.prompt).join(' | ')})`);
+    const braun = composeStory('Herr Braun war ein netter Lehrer.\nIm Klassenzimmer schrieb er „2 + 2 = 4“ an die Tafel.\nDie Kinder klatschten.', { style: 'flat' });
+    assert(/^man_teacher~/.test(braun.scenes[0].matches[0].id) && /Mr Braun writes/.test(braun.scenes[1].prompt) && braun.scenes[1].svg.includes('2 + 2 = 4') && braun.scenes[2].matches.some((m) => m.animation === 'cheer'),
+      '"Herr Braun" is a man teacher (not brown), "er" is him, the board says what he wrote, the children cheer');
+  }
   // (and in English: "says … and waves" waves; "a boat and waves" stays the sea)
   assert(seen('a boy says "Hi!" and waves') === 'boy wave' && seen('a boat and waves') === 'boat, water_wavex3' && seen('a boy and a girl dance and jump') === 'boy dance, girl dance', '"and waves" after doing something is waving; after a thing, the sea');
 }

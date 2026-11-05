@@ -36,7 +36,14 @@ const GIRL_NAMES = new Set(`mia emma olivia ava sophia lily ella grace chloe rub
 const BOY_NAMES = new Set(`tom max sam leo jack noah liam oliver ben finn harry charlie george oscar alfie theo leon luca adam
   james john jake ryan dylan ethan lucas henry arthur archie freddie toby joe josh daniel david peter paul mark luke tim timmy
   ali omar yusuf hamza adam karim samir rami felix hugo otto nils jonas paul ivan alex chris michael steve robert frank
-  thomas andrew simon martin kevin brian eric mike nick matt anton jan lukas stefan markus`.split(/\s+/));
+  thomas andrew simon martin kevin brian eric mike nick matt anton jan lukas stefan markus
+  emil elias luis maximilian karl fritz hans heinz klaus ole moritz oskar mats jonathan julian niklas tobias florian
+  sebastian johannes matthias wolfgang jürgen uwe dieter bernd michi kai till lars sven jens`.split(/\s+/));
+for (const n of `mila emilia lina leni frieda ida marlene johanna matilda mathilda ute helga liesel anni lotta lotte merle pia nele jule
+  luisa paula charlotte katharina susanne sabine monika ursula gisela ingrid birgit heike anja tanja jana svenja finja carla
+  amelie annika franziska lisa-marie mariechen gretel`.split(/\s+/)) GIRL_NAMES.add(n);
+/** True for a first name the reader knows (a girl's or a boy's) */
+export const isFirstName = (word) => GIRL_NAMES.has(String(word).toLowerCase()) || BOY_NAMES.has(String(word).toLowerCase());
 // Titles that say what someone is: "Grandma Rose", "Mr Brown", "King Leo"
 const TITLES = {
   mr: 'man', mrs: 'woman', ms: 'woman', miss: 'woman', dr: 'doctor', doctor: 'doctor', grandma: 'old_woman', granny: 'old_woman',
@@ -87,7 +94,7 @@ const PLACES = [
   ['underwater', /\b(underwater|under the (sea|ocean|water)|seabed|sea bed|coral reef|ocean floor)\b/, 'under the sea'],
   ['desert', /\b(desert|dunes|sahara|oasis)\b/, 'in the desert'],
   ['mountains', /\b(mountains?|alps|peaks?|valley)\b/, 'in the mountains'],
-  ['castle', /\b(castle|palace|kingdom)\b/, 'at the castle'],
+  ['castle', /\b((?<!sand )castle|palace|kingdom)\b/, 'at the castle'],
   ['farm', /\b(farm|farmyard|barn|ranch)\b/, 'on the farm'],
   ['jungle', /\b(jungle|rainforest)\b/, 'in the jungle'],
   ['forest', /\b(forest|woods)\b/, 'in the forest'],
@@ -125,7 +132,8 @@ const kindOf = (word) => {
 /** Quoted words kept aside (⟦0⟧, ⟦1⟧...), so sentences are not split inside them */
 function protect(text) {
   const quotes = [];
-  const out = text.replace(/["“]([^"“”]*)["”]/g, (_, q) => `⟦${quotes.push(q) - 1}⟧`);
+  // (German quotes too: „Hallo!“)
+  const out = text.replace(/["“„]([^"“”„]*)["”“]/g, (_, q) => `⟦${quotes.push(q) - 1}⟧`);
   return { text: out, quotes };
 }
 const restore = (s, quotes) => s.replace(/⟦(\d+)⟧/g, (_, i) => `“${quotes[+i]}”`);
@@ -161,7 +169,7 @@ function splitScenes(text) {
  * Reads a story. Returns its scenes ({ prompt: for the engine, caption: the writer's words }), the
  * characters it names itself (as individuals with keys and looks) and the whole cast.
  */
-export function readStory(text, { individuals = [], adults = false } = {}) {
+export function readStory(text, { individuals = [], adults = false, translate = null } = {}) {
   // (a title's full stop is no sentence's end: "Dr. Lee" is "Dr Lee")
   const { text: safe, quotes } = protect(String(text ?? '').replace(/[’]/g, "'").replace(/\b(Dr|Mr|Mrs|Ms|Prof|St)\.(?=\s+[A-Z])/g, '$1'));
   const cast = [];
@@ -179,6 +187,8 @@ export function readStory(text, { individuals = [], adults = false } = {}) {
   const addNamed = (name, id, color, noun = null) => {
     const had = named(name);
     if (had) return had;
+    // ("Mr Brown was a teacher": a man teacher)
+    if (id === 'teacher' && /^(mr|grandpa|grandad|uncle|king|prince|professor)\b/i.test(name)) id = 'man_teacher';
     // (a girl's name is "she" whatever she is: Zoe the astronaut)
     const first = name.split(' ').pop().toLowerCase();
     const gender = /^people/.test(getConcept(id)?.category ?? '') && GIRL_NAMES.has(first) ? 'f'
@@ -195,7 +205,7 @@ export function readStory(text, { individuals = [], adults = false } = {}) {
     const [f, m] = adults ? ['woman', 'man'] : ['girl', 'boy'];
     if (GIRL_NAMES.has(n)) return f;
     if (BOY_NAMES.has(n)) return m;
-    const after = safe.slice(from).match(/\b(she|her|he|him|his)\b/i)?.[1]?.toLowerCase();
+    const after = said.slice(from).match(/\b(she|her|he|him|his)\b/i)?.[1]?.toLowerCase();
     return after && ['she', 'her'].includes(after) ? f : m;
   };
 
@@ -205,9 +215,14 @@ export function readStory(text, { individuals = [], adults = false } = {}) {
   let offset = 0;
   let opening = ''; // ("It was a cold winter day." before anyone is there: said with the first scene that has someone)
   const all = splitScenes(safe);
-  for (const [n, raw] of all.entries()) {
-    offset = safe.indexOf(raw, offset);
-    const caption = `${opening}${restore(raw, quotes)}`;
+  // (a story in another language: each scene read in the engine's English words, its caption as
+  // written - src/lang-de.js germanStory)
+  const read = translate ? all.map((raw) => translate(raw)) : all;
+  const said = translate ? read.join('\n') : safe;
+  for (const [n, written] of all.entries()) {
+    const raw = read[n];
+    offset = said.indexOf(raw, offset);
+    const caption = `${opening}${restore(written, quotes)}`;
     const inScene = new Set();
     const parts = sentences(raw).map((s) => readSentence(s).replace(/[\s.,;:!?]+$/, ''));
     let prompt = parts.filter(Boolean).join(', then ');
@@ -266,7 +281,7 @@ export function readStory(text, { individuals = [], adults = false } = {}) {
     }
     if (place && !place[1].test(prompt.toLowerCase())) prompt += ` ${typeof place[2] === 'function' ? place[2](place.word) : place[2]}`;
     // (words on the classroom's board stay there while the story stays in the classroom)
-    const boardSays = raw.match(/\b(?:chalk|black|white)?board\b[^⟦.!?]{0,30}(⟦\d+⟧)/i);
+    const boardSays = raw.match(/\b(?:chalk|black|white)?board\b[^⟦.!?]{0,30}(⟦\d+⟧)/i) ?? raw.match(/\bwr(?:ites|ote|ite)\b[^⟦.!?]{0,20}(⟦\d+⟧)[^⟦.!?]{0,30}\bboard\b/i);
     if (boardSays) board = boardSays[1];
     else if (place?.[0] !== 'classroom') board = null;
     else if (board && !/\bboard\b/.test(prompt)) prompt += ` and the board says ${board}`;
@@ -391,7 +406,7 @@ export function readStory(text, { individuals = [], adults = false } = {}) {
         // (a capitalised word that starts a sentence - "Second,", "Scammers love...", "Remember:" - is a
         // name only when the story uses it as one: mid-sentence too, or doing something)
         const doing = PRESENT[next] || /^(is|was|were|are|has|had|and|said|says|can|could|will|would|did|does|from|with)$/.test(next) || /[a-z]ed$/.test(next);
-        const usedAsName = listed || doing || new RegExp(`[a-z,;] ${tok}\\b`).test(safe);
+        const usedAsName = listed || doing || new RegExp(`[a-z,;] ${tok}\\b`).test(said);
         if (/^[A-Z][a-z]+$/.test(tok) && !afterArticle && !NOT_NAMES.has(low) && (listed || !/(ly|ing|ed)$/.test(low)) && !PRESENT[low]
           && (listed || (!first && !kindOf(low)) || (!parseText(low).matches.length && usedAsName))
           && !['in', 'on', 'at', 'under', 'near', 'by'].includes(next)) {

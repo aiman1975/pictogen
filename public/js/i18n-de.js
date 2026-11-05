@@ -3343,6 +3343,10 @@ export default {
     "Entschuldigung: $1"
    ],
    [
+    "Not drawn: (.+)",
+    "Nicht gezeichnet: $1"
+   ],
+   [
     "Painted shape with (.+)",
     "Form gefärbt mit $1"
    ],
