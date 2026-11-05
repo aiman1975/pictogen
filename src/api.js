@@ -3,6 +3,7 @@
 
 import { cleanFeatures } from './looks.js';
 import { writeOutline } from './slides.js';
+import { outlineFromNotes } from './writer.js';
 import { generate, listConcepts, getConcept, drawConcept, shapesToSvg, renderIcon, STYLE_NAMES, isStyle, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './index.js';
 import { getShowcaseData } from './showcase.js';
 import { renderWorksheet } from './worksheet.js';
@@ -137,6 +138,12 @@ export function handleApi(method, url, payload = {}) {
   if (pathname === '/api/outline/write' && method === 'POST') {
     const cards = Array.isArray(payload.cards) ? payload.cards.slice(0, 60) : [];
     return json({ text: writeOutline(cards) });
+  }
+
+  // Notes or an article turned into an explainer's outline (src/writer.js), to check and make
+  if (pathname === '/api/outline/from-notes' && method === 'POST') {
+    const notes = typeof payload.text === 'string' ? payload.text.slice(0, 40000) : '';
+    return json(outlineFromNotes(notes, typeof payload.title === 'string' && payload.title.trim() ? { title: payload.title.slice(0, 120) } : {}));
   }
 
   // Export story as standalone offline HTML player

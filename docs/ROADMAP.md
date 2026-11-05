@@ -288,8 +288,8 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       look; videos cross-fade between scenes and embed the studio font
 - [x] Explainers: quiz cards (answers, time to think, the right one and the announcer's "Correct!");
       "Your cards" in the studio (change, move, add cards; written back as the outline); fade or cut
-- [ ] Explainers, phase 2: a writer that turns notes or an article into that outline (rules: key
-      sentences, headings, lists, numbers)
+- [x] Explainers, phase 2: a writer that turns notes or an article into that outline (rules: key
+      sentences, headings, lists, numbers, steps, quotes, comparisons, a recap; `src/writer.js`)
 - [ ] Explainers, phase 3: an optional local language model for the writer (a download, like the
       sound pack; its output checked, the rules as fallback; licence checked for sale)
 - [ ] Explainers, phase 4: the writer choosing which points become acted scenes

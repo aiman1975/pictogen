@@ -1115,6 +1115,12 @@
 
         <!-- Presets Container (Dynamic based on selected genre) -->
         <div id="story-presets-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+        <!-- Notes or an article in the story box -> an explainer's outline (src/writer.js) -->
+        <div class="notes-row" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-top: 0.75rem;">
+          <button class="btn-action" id="btn-notes-outline" style="background:#fff; font-weight:800; border-color:#86efac;" title="Paste your notes or an article in the box above, then press this: it writes an explainer's outline from them (title, cards, steps, numbers, a recap) and makes the clip">📝 Notes → explainer</button>
+          <button class="btn-action" id="btn-notes-back" hidden style="background:#fff; font-weight:700;" title="Put your notes back in the box">↺ Back to my notes</button>
+          <span style="font-size: 0.78rem; color: #92400e;">Paste notes or an article above; I pick the main points and write the outline - check it, change it, then make the clip.</span>
+        </div>
 
         <div style="margin-top: 0.6rem; font-size: 0.74rem; color: #b45309;">
           💡 <strong>Tip:</strong> Pick a story above, or write your own in the box: one part per line (or just sentences). Name your characters (“a little girl called Mia”) and they stay the same all the way through. <strong>Ctrl + Enter</strong> makes the clip.
@@ -2660,6 +2666,35 @@ Scene: a woman puts a coin in a jar | Every coin counts
       storyBtnMusic.style.color = on ? '#f59e0b' : '#64748b';
       storyBtnMusic.style.opacity = on ? '1' : '0.6';
     }
+    // Notes -> an explainer's outline (/api/outline/from-notes): the outline replaces the notes in the
+    // story box (the notes kept, to go back to) and the clip is made from it
+    const btnNotes = document.getElementById('btn-notes-outline');
+    const btnNotesBack = document.getElementById('btn-notes-back');
+    let keptNotes = null;
+    btnNotes.addEventListener('click', async () => {
+      const notes = (storyText.hidden ? '' : storyText.value).trim();
+      if (!notes || notes.split(/\s+/).length < 12) { showToast('Paste your notes or an article in the story box first'); if (storyText.hidden) showStoryBox(true); storyText.focus(); return; }
+      try {
+        const res = await fetch('/api/outline/from-notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: notes }) });
+        const out = await res.json();
+        if (!out.text) throw new Error('no outline');
+        keptNotes = notes;
+        btnNotesBack.hidden = false;
+        storyText.value = out.text;
+        usePrompt();
+        state.genre = state.genre || 'howto';
+        runGenerate();
+        showToast(`An outline of ${out.cards.length} cards from your notes - check it in "Your cards"`);
+      } catch (err) { showToast(`Could not write an outline: ${err.message}`); }
+    });
+    btnNotesBack.addEventListener('click', () => {
+      if (keptNotes == null) return;
+      showStoryBox(true);
+      storyText.value = keptNotes;
+      btnNotesBack.hidden = true;
+      storyText.focus();
+    });
+
     // Between scenes in a video: a short cross-fade (the default) or a cut, remembered
     const storyTransition = document.getElementById('story-transition');
     try { storyState.transition = localStorage.getItem('pictogen.transition.v1') || 'fade'; storyTransition.value = storyState.transition; } catch { storyState.transition = 'fade'; }

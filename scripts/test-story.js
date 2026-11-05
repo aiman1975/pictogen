@@ -201,5 +201,33 @@ Scene: a teacher points at the board | Interest on interest
   assert(/^- \[x\] Money earning interest$/m.test(writeOutline([q])) && /^## Quiz: Which grows faster\?$/m.test(writeOutline([q])), 'a quiz written back keeps its marker and its right answer');
 }
 
+// The writer (src/writer.js): notes or an article -> an explainer's outline, from the writer's own sentences
+{
+  const { outlineFromNotes, shorten } = await import('../src/writer.js');
+  const { readOutline: read } = await import('../src/slides.js');
+  const article = `Phishing emails are fake messages that try to trick you into giving away passwords or money. They often look like they come from a bank, a delivery company or your own IT team. In 2023, about 90% of data breaches started with a phishing email, according to industry reports.
+
+The first warning sign is urgency. Scammers want you to act before you think, so they write things like "Your account will be closed today". Another sign is a sender address that is almost right, such as support@paypa1.com instead of paypal.com. Links can also be disguised: the text says one thing, but the real address is somewhere else.
+
+So what should you do? First, stop and do not click anything. Then, hover over the link to see where it really goes. Next, check the sender's address carefully. Finally, report the email to your IT team and delete it.
+
+"Security is everyone's job, not just the IT department's," says Maria Lopez, head of security at Acme Corp. A few seconds of care can save a company millions.`;
+  const a = outlineFromNotes(article);
+  const kinds = read(a.text).cards.map((c) => c.kind);
+  assert(a.title === 'Phishing emails' && kinds.join() === 'title,number,bullets,steps,quote,recap', `an article -> a title, a big number, points, steps, a quote, a recap (${a.title}: ${kinds})`);
+  assert(/^## 90% of data breaches started with a phishing email$/m.test(a.text) && /^## The first warning sign is urgency$/m.test(a.text), 'a number the part rests on is its headline; a paragraph\'s first sentence heads it');
+  assert(/^1\. Stop and do not click anything$/m.test(a.text) && /^4\. Report the email to your IT team and delete it$/m.test(a.text), 'first, then, next, finally -> steps');
+  assert(/^> Security is everyone's job, not just the IT department's\. — Maria Lopez$/m.test(a.text), 'someone quoted -> a quote card, with who said it');
+  const sentencesIn = (t) => article.replace(/\s+/g, ' ').includes(t.replace(/\.$/, ''));
+  assert(read(a.text).cards.filter((c) => c.kind === 'bullets').every((c) => c.points.every((pt) => sentencesIn(pt.text) || article.includes(pt.text.slice(0, 30)))), 'its points are the writer\'s own words (nothing made up)');
+  const notes = 'Sleep better tonight\n\nWhy sleep matters\n- adults need 7-9 hours of sleep\n- poor sleep hurts memory, mood and focus\n\nScreens vs books\n- blue light keeps you awake | paper doesn\'t glow\n\nEvening routine:\n1. dim the lights an hour before bed\n2. put the phone in another room\n3. go to bed at the same time\n\nSummary\n- a steady routine trains your body clock\n- light matters more than you think';
+  const n = read(outlineFromNotes(notes).text);
+  assert(n.title === 'Sleep better tonight' && n.cards.map((c) => c.kind).join() === 'title,bullets,compare,steps,recap' && n.cards.at(-1).points[0].text === 'A steady routine trains your body clock',
+    `notes with headings and lists keep them; their own summary is the recap (${n.cards.map((c) => c.kind)})`);
+  assert(shorten('However, links can also be disguised: the text says one thing, but the real address is somewhere else entirely today.') === 'Links can also be disguised: the text says one thing', `a point made short at a clause, filler at the start gone ("${shorten('However, links can also be disguised: the text says one thing, but the real address is somewhere else entirely today.')}")`);
+  const st = composeStory(a.text, { style: 'flat' });
+  assert(st.slides && st.scenes.length === 6 && st.title === 'Phishing emails', 'and the outline makes the clip');
+}
+
 console.log(`\nStory Engine test suite: ${fails === 0 ? 'ALL PASSED!' : `${fails} FAILS`}`);
 process.exit(fails === 0 ? 0 : 1);

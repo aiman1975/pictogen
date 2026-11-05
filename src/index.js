@@ -38,6 +38,8 @@ export { findDiagram, renderDiagram, renderLabelledPictures, DIAGRAMS } from './
 export { voiceOf, soundOf, SOUND_NAMES } from './sound.js';
 export { listConcepts, getConcept, registerConcept } from './concepts/index.js';
 export { parseStoryText, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './story.js';
+export { isOutline, readOutline, writeOutline } from './slides.js';
+export { outlineFromNotes } from './writer.js';
 export { readStory } from './story-reader.js';
 
 /**

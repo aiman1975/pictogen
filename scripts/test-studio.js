@@ -573,6 +573,13 @@ try {
   const edited = await page.evaluate(() => ({ kinds: window.pictogenStudio.getStory().scenes.map((sc) => sc.slide?.kind ?? 'scene'), box: document.getElementById('story-text').value }));
   check(edited.kinds[1] === 'quiz' && /## Pay yourself first, always/.test(edited.box) && /- \[x\]/.test(edited.box) && edited.box.indexOf('Quiz:') < edited.box.indexOf('Pay yourself'),
     `an explainer's cards: changed, turned into a quiz, moved - written back as the outline and made again (${edited.kinds.join(', ')})`);
+  // Notes in the story box -> an explainer's outline, the notes kept to go back to
+  await page.fill('#story-text', 'Phishing emails are fake messages that try to trick you into giving away passwords. In 2023, about 90% of data breaches started with a phishing email.\n\nWhat should you do? First, stop and do not click anything. Then, check the sender. Next, hover over the link. Finally, report the email.');
+  await page.click('#btn-notes-outline');
+  await page.waitForFunction(() => /^# /.test(document.getElementById('story-text').value) && window.pictogenStudio.getStory().scenes.some((sc) => sc.slide?.kind === 'steps'), null, { timeout: 20000 });
+  await page.click('#btn-notes-back');
+  check(await page.evaluate(() => document.getElementById('story-text').value.startsWith('Phishing emails are fake') && document.getElementById('btn-notes-back').hidden),
+    'notes -> an explainer: the outline written, its clip made (steps and all), the notes there to go back to');
   await page.evaluate(() => document.querySelector('#story-genre-group .pill-btn[data-genre="kids"]').click());
   await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="scene"]').click());
   await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'scene');
