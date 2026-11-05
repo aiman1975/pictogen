@@ -1,0 +1,7 @@
+Phishing-Mails sind gefälschte Nachrichten, die dich dazu bringen sollen, Passwörter oder Geld preiszugeben. Sie sehen oft so aus, als kämen sie von deiner Bank, einem Paketdienst oder deiner eigenen IT-Abteilung. Laut Branchenberichten begannen 2023 etwa 90 % aller Datenlecks mit einer Phishing-Mail.
+
+Das erste Warnzeichen ist Zeitdruck. Betrüger wollen, dass du handelst, bevor du nachdenkst, deshalb schreiben sie Sätze wie „Ihr Konto wird heute gesperrt“. Ein weiteres Zeichen ist eine Absenderadresse, die fast stimmt, zum Beispiel support@paypa1.com statt paypal.com. Auch Links können getarnt sein: Der Text sagt das eine, die echte Adresse führt woanders hin.
+
+Was solltest du also tun? Zuerst: Halte inne und klicke nichts an. Dann fahre mit der Maus über den Link, um zu sehen, wohin er wirklich führt. Danach prüfe die Adresse des Absenders genau. Zum Schluss meldest du die Mail deiner IT-Abteilung und löschst sie.
+
+„Sicherheit ist die Aufgabe aller, nicht nur der IT-Abteilung“, sagt Maria Lopez, Sicherheitschefin bei Acme. Ein paar Sekunden Sorgfalt können einem Unternehmen Millionen sparen.

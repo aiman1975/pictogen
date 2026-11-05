@@ -290,6 +290,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       "Your cards" in the studio (change, move, add cards; written back as the outline); fade or cut
 - [x] Explainers, phase 2: a writer that turns notes or an article into that outline (rules: key
       sentences, headings, lists, numbers, steps, quotes, comparisons, a recap; `src/writer.js`)
+- [x] Languages: words read in any alphabet; German letters Ä Ö Ü ß; explainers in German
+      (outline words, pictures, notes -> outline by German rules; `src/lang.js`)
+- [ ] Languages next: German picture words for scenes, the studio in German, German stories; then
+      Arabic (letters, right to left, a font), then Spanish
 - [ ] Explainers, phase 3: an optional local language model for the writer (a download, like the
       sound pack; its output checked, the rules as fallback; licence checked for sale)
 - [ ] Explainers, phase 4: the writer choosing which points become acted scenes

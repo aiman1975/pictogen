@@ -19,6 +19,7 @@ import { parseText } from './text/matcher.js';
 import { drawConcept, shapesToSvg, svgDoc, newUid, esc } from './core/render.js';
 import { textWidth } from './bubble.js';
 import { soundTrack } from './sound.js';
+import { LANGS } from './lang.js';
 
 const r2 = (v) => Math.round(v * 100) / 100;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -30,16 +31,17 @@ export const READ_WPS = 3.2;
 const HEADING = /^(#{1,3})\s+(.+)$/;
 const BULLET = /^(?:[-*•–]|(\d+)[.)])\s+(.+)$/;
 const QUOTE = /^>\s*(.+)$/;
-const SHOW = /^(?:show|picture|image|visual)\s*:\s*(.+)$/i;
-const SCENE = /^(?:scene|🎬)\s*:?\s*(.+)$/i;
-const RECAP = /^(recap|summary|in summary|in short|key takeaways?|takeaways|to sum up|remember|what to remember)\b/i;
-const VERSUS = /\s+(?:vs\.?|versus)\s+/i;
-const STEPS = /^(how to|steps?\b|the steps|the process|in \d+ steps)/i;
+// (the outline's own words, in every language at once: English and German so far)
+const SHOW = /^(?:show|picture|image|visual|bild|zeige|zeigen)\s*:\s*(.+)$/i;
+const SCENE = /^(?:scene|szene|🎬)\s*:?\s*(.+)$/i;
+const RECAP = /^(recap|summary|in summary|in short|key takeaways?|takeaways|to sum up|remember|what to remember|zusammenfassung|fazit|kurz gesagt|das wichtigste|merke|auf einen blick)(?![\p{L}])/iu;
+const VERSUS = /\s+(?:vs\.?|versus|gegen|gegenüber)\s+/i;
+const STEPS = /^(how to|steps?\b|the steps|the process|in \d+ steps|so geht|anleitung|schritte|schritt für schritt|in \d+ schritten|wie du)/i;
 // A quiz: "## Quiz: question?" (or any headline) with "- [x] right" and "- [ ] wrong" answers
 const TICKBOX = /^\[( |x|X|✓)\]\s*/;
-const QUIZ = /^(quiz|question|q|test yourself|check yourself)\s*[:\-–—]\s*/i;
+const QUIZ = /^(quiz|question|q|test yourself|check yourself|frage|quizfrage|teste dich)\s*[:\-–—]\s*/i;
 // A number to show big: "7%", "$1.8T", "3x", "40 years", "1 in 4"
-const STAT = /^((?:[$€£¥]\s?)?\d[\d,.]*\s?(?:%|x|×|k|m|bn|t|million|billion|trillion|thousand|years?|months?|weeks?|days?|hours?|minutes?|seconds?|kg|km|percent)?(?:\s+in\s+\d+)?)(?=\s|$|[:–—-])\s*(?:[:–—|-]\s*)?(.*)$/i;
+const STAT = /^((?:[$€£¥]\s?)?\d[\d,.]*(?:\s?[-–]\s?\d[\d,.]*)?\s?(?:%|x|×|k|m|bn|t|million|billion|trillion|thousand|years?|months?|weeks?|days?|hours?|minutes?|seconds?|kg|km|percent|prozent|mio\.?|mrd\.?|millionen|milliarden|billionen|tausend|mal|jahre?n?|monate?n?|wochen|tage?n?|stunden?|minuten|sekunden|euro)?(?:\s+(?:in|von)\s+\d+)?)(?=\s|$|[:–—-])\s*(?:[:–—|-]\s*)?(.*)$/i;
 
 /** True when the text is an outline ("# Title", "## Headline", "- point") rather than a story */
 export function isOutline(text) {
@@ -181,6 +183,8 @@ export function picturesFor(text, max = 2) {
   const out = [];
   const add = (id) => { if (id && getConcept(id) && !out.includes(id)) out.push(id); };
   for (const [re, id] of PICTURE_WORDS) if (re.test(s)) add(id);
+  // (and the other languages' words: German so far)
+  for (const pack of Object.values(LANGS)) for (const [re, id] of pack.pictures) if (re.test(s)) add(id);
   for (const m of parseText(s).matches) if (!/^(alphabet)/.test(getConcept(m.id)?.category ?? '')) add(m.id);
   return out.slice(0, max);
 }

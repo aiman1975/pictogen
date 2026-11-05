@@ -229,5 +229,25 @@ So what should you do? First, stop and do not click anything. Then, hover over t
   assert(st.slides && st.scenes.length === 6 && st.title === 'Phishing emails', 'and the outline makes the clip');
 }
 
+// German (src/lang.js): outlines in German words, notes in German turned into one
+{
+  const { outlineFromNotes } = await import('../src/writer.js');
+  const { readOutline: read, picturesFor } = await import('../src/slides.js');
+  const { detectLanguage } = await import('../src/lang.js');
+  const { readFileSync } = await import('node:fs');
+  assert(detectLanguage('Der Hund läuft in den Park, so wie immer.') === 'de' && detectLanguage('I will also go in so we can talk.') === 'en', 'the language of some text: German or English');
+  const de = read('# Sparen leicht gemacht\n## 20 % deines Einkommens\n- Ein übliches Ziel\n## Bedürfnisse gegen Wünsche\n- Miete | Neues Handy\n## So geht\'s\n1. Ein Sparkonto eröffnen\n2. Einen Dauerauftrag einrichten\n## Frage: Was wächst schneller?\n- [ ] Geld unter der Matratze\n- [x] Geld mit Zinsen\n## Zusammenfassung\n- Zuerst sparen\n- Geduld haben\nBild: Münzen');
+  assert(de.cards.map((c) => c.kind).join() === 'title,number,compare,steps,quiz,recap' && de.cards[1].number === '20 %' && de.cards[2].left === 'Bedürfnisse',
+    `an outline in German words: ${de.cards.map((c) => c.kind)}`);
+  assert(picturesFor('Passwörter schützen')[0] === 'locked' && picturesFor('Geld sparen')[0] === 'money_bag' && picturesFor('Achtung, Phishing!')[0] === 'warning', 'pictures for German words');
+  const a = outlineFromNotes(readFileSync(new URL('./fixtures/phishing-de.txt', import.meta.url), 'utf8'));
+  const kinds = read(a.text).cards.map((c) => c.kind);
+  assert(a.title === 'Phishing-Mails' && kinds.join() === 'title,number,bullets,steps,quote,recap', `a German article -> ${a.title}: ${kinds}`);
+  assert(/^## 90 % aller Datenlecks mit einer Phishing-Mail$/m.test(a.text) && /^## Zusammenfassung$/m.test(a.text) && /^- Links können getarnt sein: Der Text sagt das eine$/m.test(a.text),
+    'a big number in German (90 %), the recap as "Zusammenfassung", a point cut at a whole clause');
+  assert(/^1\. Halte inne und klicke nichts an$/m.test(a.text) && /^4\. Melde die Mail deiner IT-Abteilung und lösche sie$/m.test(a.text), 'zuerst, dann, danach, zum Schluss -> steps, said as steps ("Melde ... und lösche")');
+  assert(/^> Sicherheit ist die Aufgabe aller, nicht nur der IT-Abteilung\. — Maria Lopez$/m.test(a.text), 'a German quote („…“, sagt …) with who said it');
+}
+
 console.log(`\nStory Engine test suite: ${fails === 0 ? 'ALL PASSED!' : `${fails} FAILS`}`);
 process.exit(fails === 0 ? 0 : 1);
