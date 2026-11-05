@@ -249,5 +249,33 @@ So what should you do? First, stop and do not click anything. Then, hover over t
   assert(/^> Sicherheit ist die Aufgabe aller, nicht nur der IT-Abteilung\. — Maria Lopez$/m.test(a.text), 'a German quote („…“, sagt …) with who said it');
 }
 
+// German scenes (src/lang-de.js): a German prompt drawn from its German words
+{
+  const { generate: gen } = await import('../src/index.js');
+  const { bridgeGerman, isGermanPrompt } = await import('../src/lang-de.js');
+  const seen = (t) => gen(t, { style: 'flat' }).matches.map((m) => m.id + (m.color ? `:${m.color}` : '') + (m.count > 1 ? `x${m.count}` : '') + (m.animation ? ` ${m.animation}` : '') + (m.expression ? ` ${m.expression}` : '')).join(', ');
+  assert(isGermanPrompt('ein roter Hund läuft im Park') && isGermanPrompt('Mia winkt') && !isGermanPrompt('a red dog runs in the park') && !isGermanPrompt('a ball in the park'), 'a German prompt is told from an English one');
+  for (const [t, want] of [
+    ['ein roter Hund läuft im Park', 'dog:red walk'],
+    ['Zwei Katzen schlafen unter einem Baum', 'catx2 sleep, tree'],
+    ['Eine traurige Lehrerin steht im Klassenzimmer', 'teacher sad'],
+    ['Der Junge sagt „Hallo, Mia!“ und winkt', 'boy wave'],
+    ['Nachts fliegt eine Rakete in den Weltraum', 'rocket fly'],
+    ['Im Park spielt ein kleiner Hund mit einem Ball', 'dog, ball'],
+    ['Ein Mädchen fährt Fahrrad im Park', 'girl sit, bike'],
+    ['Ein gelbes Auto fährt durch die Stadt', 'car:yellow walk-across'],
+  ]) assert(seen(t) === want, `German: "${t}" -> ${seen(t)}`);
+  assert(/"Hallo, Mia!"/.test(bridgeGerman('Der Junge sagt „Hallo, Mia!“').text) && gen('Der Junge sagt „Hallo, Mia!“', { style: 'flat' }).svg.includes('Hallo, Mia!'), 'what is said stays German, in the bubble');
+  assert(bridgeGerman('Ein Kinderfahrrad im Garten').text === 'a bike in the garden', 'a compound word read by its last part (Kinderfahrrad -> bike)');
+  assert(bridgeGerman('Nachts fliegt eine Rakete').text === 'night a rocket flies', 'the verb back after who does it ("Nachts fliegt eine Rakete")');
+  const env = gen('Ein Mädchen und ein Junge tanzen am Strand bei Sonnenuntergang', { style: 'flat' }).svg;
+  assert(/pg-place|#ff/.test(env) && seen('Ein Mädchen und ein Junge tanzen am Strand bei Sonnenuntergang') === 'girl dance, boy dance', 'German places and times (am Strand, bei Sonnenuntergang)');
+  const st = composeStory('Ein roter Buchstabe A geht in den Park.\nDann kommt eine blaue Zahl 7.\nDer Buchstabe A und die Zahl 7 tanzen zusammen.', { style: 'flat' });
+  assert(st.scenes.length === 3 && st.scenes[0].caption === 'Ein roter Buchstabe A geht in den Park.' && st.scenes[2].matches.map((m) => m.id).join() === 'letter_a,number_7',
+    'a German story: a scene per line, its caption as written, "Buchstabe A" and "Zahl 7" as figures');
+  // (and in English: "says … and waves" waves; "a boat and waves" stays the sea)
+  assert(seen('a boy says "Hi!" and waves') === 'boy wave' && seen('a boat and waves') === 'boat, water_wavex3' && seen('a boy and a girl dance and jump') === 'boy dance, girl dance', '"and waves" after doing something is waving; after a thing, the sea');
+}
+
 console.log(`\nStory Engine test suite: ${fails === 0 ? 'ALL PASSED!' : `${fails} FAILS`}`);
 process.exit(fails === 0 ? 0 : 1);

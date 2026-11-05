@@ -1,6 +1,7 @@
 // PictoGen public API – offline text-to-vector image generator.
 
 import { parseText, suggestWords } from './text/matcher.js';
+import { bridgeGerman, isGermanPrompt } from './lang-de.js';
 import { composeScene, ENV_WORDS, DESK_RE, IN_BED_RE } from './scene.js';
 
 // Words that set the scene's backdrop (night, rain, beach...) rather than draw an object.
@@ -62,6 +63,11 @@ export function generate(text, opts = {}) {
   const dim = (v, d) => (Number.isFinite(+v) && +v > 0 ? +v : d);
   const width = dim(opts.width, 640), height = dim(opts.height, 360);
   text = String(text ?? '');
+  // A German prompt: read in the engine's English words (src/lang-de.js); what is said, as it is
+  // (spelling a word keeps its letters: "MÜNCHEN")
+  let leftOut = [];
+  const spelling = ['alphabet', 'spelling', 'letterling', 'letters'].includes(mode);
+  if (!spelling && (opts.lang === 'de' || (!opts.lang && isGermanPrompt(text)))) ({ text, unknown: leftOut } = bridgeGerman(text));
   // One of "your places" (opts.places: [{ key: 'pgp1', place, time, weather, extras }], made in the
   // studio): its key in the prompt sets the scene's backdrop ("Tom waves in pgp1"), src/places.js
   const taken = takePlace(text, placeKeys(opts.places));
@@ -236,7 +242,7 @@ export function generate(text, opts = {}) {
   const setting = mode === 'scene'
     ? [...backdrop.map((m) => m.word), ...parsed.unknown.filter((w) => SETTING_WORDS.has(w))]
     : [];
-  const unknown = parsed.unknown.filter((w) => !setting.includes(w) && !/^qq\d+$/.test(w));
+  const unknown = [...parsed.unknown.filter((w) => !setting.includes(w) && !/^qq\d+$/.test(w)), ...leftOut];
   // For each word not drawn, words close to it that can be (the studio offers them)
   const suggestions = Object.fromEntries(unknown.map((w) => [w, suggestWords(w)]).filter(([, list]) => list.length));
   const clip = timeline?.duration

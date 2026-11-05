@@ -2,6 +2,7 @@
 // Science Documentaries, News & Editorial Briefs, and How-To Explainer Guides.
 import { isOutline, readOutline, renderSlide } from './slides.js';
 import { detectLanguage } from './lang.js';
+import { isGermanPrompt } from './lang-de.js';
 import { readStory } from './story-reader.js';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
@@ -380,7 +381,7 @@ export function parseStoryText(text) {
   if (tpl) return tpl.scenes;
 
   const rawLines = text
-    .split(/\n+|\s*\/\/\s*|(?=Scene\s+\d+:?)|(?=\b\d+[\.\)]\s+)/i)
+    .split(/\n+|\s*\/\/\s*|(?=Scene\s+\d+:?)|(?=\b\d+[\.\)][ \t]+\S)/i)
     .map((l) => l.trim())
     .filter((l) => l.length > 2);
 
@@ -404,7 +405,8 @@ export function parseStoryText(text) {
     } else if (parts.length === 2) {
       caption = parts[1].trim();
     } else {
-      caption = prompt.charAt(0).toUpperCase() + prompt.slice(1) + '.';
+      // (its own full stop, unless it has one: "…im Park." stays as it is)
+      caption = prompt.charAt(0).toUpperCase() + prompt.slice(1) + (/[.!?“”"»]$/.test(prompt) ? '' : '.');
     }
 
     return {
@@ -447,7 +449,10 @@ export function composeStory(storyInput, opts = {}) {
   const isTemplate = typeof storyInput === 'string' && STORY_TEMPLATES.some((t) => t.id === storyInput.trim().toLowerCase());
   // An outline ("# Title", "## Headline", "- point"): an explainer of cards (src/slides.js)
   if (typeof storyInput === 'string' && !isTemplate && isOutline(storyInput)) return composeOutline(storyInput, opts, dims);
-  const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !storyInput.includes('|')
+  // (a story in German: a scene per line for now, each drawn from its German words - src/lang-de.js;
+  // the story reader that keeps a cast across lines reads English)
+  const german = typeof storyInput === 'string' && isGermanPrompt(storyInput);
+  const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !german && !storyInput.includes('|')
     ? readStory(storyInput, { individuals: opts.individuals ?? [], adults: genre !== 'kids' }) : null;
   // What the writer changed in "How I read your story" (opts.edits: their sentence -> what to draw
   // instead, the names as in the story)

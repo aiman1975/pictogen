@@ -168,6 +168,8 @@ const HOLD_VERBS = new Set(['hold', 'holds', 'holding', 'held', 'carry', 'carrie
 const NOT_HELD_AFTER = ['at', 'to', 'toward', 'towards', 'over', 'under', 'in', 'on', 'into', 'onto', 'from', 'for', 'around', 'near',
   'by', 'past', 'through', 'across', 'behind', 'beside', 'next', 'above', 'below', 'up', 'down', 'away', 'back', 'off', 'out', 'like'];
 const SUBJECT_PRONOUNS = new Set(['he', 'she', 'it', 'they', 'who', 'we', 'i', 'you']);
+// (words for doing that come before "and waves": what someone does, not a thing)
+const SPEECH_LIKE = new Set(['smiles', 'smiled', 'laughs', 'laughed', 'says', 'said', 'shouts', 'nods', 'turns', 'stands', 'sits', 'looks']);
 // "no cats", "a boy without a hat": the next concept is left out of the picture.
 const NEGATIONS = new Set(['no', 'without', 'zero', 'none']);
 
@@ -809,7 +811,11 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
     // ("smiles and waves at the bird": a motion aimed at someone is a verb, not "the waves at the beach")
     const aimed = MOTION_WORDS[t] && i > 0 && found.length && ['at', 'to', 'goodbye', 'hello', 'back'].includes(next)
       && !['a', 'an', 'the', 'some', 'these', 'those', 'his', 'her', 'their', 'my', 'your', 'our', 'its', 'no', 'of'].includes(prev);
-    const afterMover = aimed || ((MOTION_WORDS[t] || HOLD_VERBS.has(t) || RIDE_VERBS.has(t) || EXPRESSION_WORDS[t]) && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev] && !COLOR_WORDS[prev]
+    // ("says “Hi!” and waves", "smiles and waves": after "and" that ends what someone does, a motion
+    // word is what they do too; "a boat and waves" - after a thing - stays the sea)
+    const andDoes = MOTION_WORDS[t] && prev === 'and' && i > 1 && found.length && (!at(toks, i - 2) || EXPRESSION_WORDS[toks[i - 2]] || MOTION_WORDS[toks[i - 2]] || SPEECH_LIKE.has(toks[i - 2]))
+      && MOVERS.has(getConcept(found[found.length - 1].id.split('~')[0])?.category) && (next === undefined || NOT_HELD_AFTER.includes(next));
+    const afterMover = aimed || andDoes || ((MOTION_WORDS[t] || HOLD_VERBS.has(t) || RIDE_VERBS.has(t) || EXPRESSION_WORDS[t]) && i > 0 && !NOUN_LEADERS.has(prev) && !NUMBER_WORDS[prev] && !COLOR_WORDS[prev]
       && (SUBJECT_PRONOUNS.has(prev) || names?.has(prev)
         || (lastConceptIndex === i - 1 && found.length && MOVERS.has(getConcept(found[found.length - 1].id.split('~')[0])?.category))));
 
@@ -866,9 +872,12 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
         for (const j of holding.group) found[j].animation ??= 'hold';
       } else if (hasNextConcept) {
         pend.animation = anim;
-      } else if (found.length > 0 && (at <= lastConceptIndex + 2)) {
-        found[found.length - 1].animation = anim;
-        spreadMotion(anim);
+      } else if (found.length > 0 && (at <= lastConceptIndex + 2 || andDoes)) {
+        // (after "and", only if it does nothing yet: "dance and jump" stays a dance)
+        if (!(andDoes && found[found.length - 1].animation)) {
+          found[found.length - 1].animation = anim;
+          spreadMotion(anim);
+        }
       } else {
         pend.animation = anim;
       }
