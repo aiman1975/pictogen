@@ -43,7 +43,10 @@ a board stays in their own language.
   story is read like an English one: a cast kept from scene to scene, "er", "sie" (she, they or her,
   by its verb) and "ihn" for the right one, places, times and the weather carried on, story openers
   ("Es war einmal", "Eines Morgens", "Am nächsten Tag"), the past tense and "hat … gefunden". The
-  captions stay as written; "Not drawn" lists the German words left out.
+  captions stay as written; "Not drawn" lists the German words left out. German "er", "sie" and
+  "es" go by the noun's gender, as in German ("der Mond … er", "das Sternchen … es", "die Eule …
+  sie"; the genders come with the drafted nouns), "sie" with a verb for more than one is the last
+  two spoken of, and a name is "er" or "sie" by the first name.
 
 ## The pages in German
 

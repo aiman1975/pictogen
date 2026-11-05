@@ -3,8 +3,10 @@
 // pictures, colours, counts, feelings, actions, places, times, the weather - works in German too.
 // What is said („Hallo!“) and the board's words stay as written. Words not known are left out (a
 // figure of your own, "pgc1", stays). Nouns: src/lang-de-nouns.js (drafted, checked); the rest here.
-import DRAFTED, { PLURAL } from './lang-de-nouns.js';
-import { isFirstName } from './story-reader.js';
+import DRAFTED, { PLURAL, GENDER } from './lang-de-nouns.js';
+import { isFirstName, isGirlName } from './story-reader.js';
+import { parseText } from './text/matcher.js';
+import { getConcept } from './concepts/index.js';
 
 const w = (pairs) => Object.fromEntries(pairs.trim().split(/\n/).flatMap((line) => {
   const [de, en] = line.split('=').map((s) => s.trim());
@@ -14,6 +16,11 @@ const w = (pairs) => Object.fromEntries(pairs.trim().split(/\n/).flatMap((line) 
 // Small words: articles, prepositions, joining words, pronouns
 const GRAMMAR = w(`
 daumenhoch = thumbsup
+doch = but
+jede, jeden, jedes, jeder = every
+bald = soon
+nichts = nothing
+lachtvorfreude = smiles happy
 ans = to the
 sich = 
 hebtdiehand = waves
@@ -75,7 +82,8 @@ schließlich, zuletzt, endlich = finally
 während = while
 als, wenn, sobald = when
 bis = until
-weil, da = because
+weil = because
+da = then
 er = he
 sie = she
 es = it
@@ -162,6 +170,14 @@ findet, finden, fand = finds
 entdeckt, entdecken, entdeckte = discovers
 wohnt, wohnte, wohnten, lebt, lebte, lebten = lives
 wedelt, wedelte, wedeln = wags
+bemerkt, bemerkte, bemerkten = notices
+schluchzt, schluchzte, schnieft = cries
+schickt, schickte, schickten = sends
+erreicht, erreichte, erreichten = reaches
+strahlt, strahlte, strahlten = smiles
+fehlt, fehlte = is missing
+sucht, suchte, suchten, suchen = looks for
+vermisst, vermisste = misses
 bekommt, bekam, bekamen, kriegt = gets
 macht, machte, machten, machen = makes
 setzte, setzten = sits
@@ -310,7 +326,7 @@ const PLACES = w(`
 park, parks = park
 garten, gärten = garden
 strand, strände, stränden = beach
-meer, meere, ozean, see = sea
+meer, meere, ozean = sea
 wald, wälder, wäldern, waldes = forest
 stadt, städte, innenstadt = city
 wüste, wüsten = desert
@@ -350,6 +366,11 @@ const NOUNS = { ...DRAFTED, ...w(`
 kaffee, kaffees = coffee
 tee, tees = tea
 milch = milk
+sternchen, sternlein = star
+eule, eulen = owl
+himmel, himmels = sky
+lichtstrahl, lichtstrahlen, strahl = sparkles
+
 möwe, möwen = bird
 mütze, mützen, kappe, kappen = billed cap
 kakao, kakaos, heißgetränk = hot beverage
@@ -446,6 +467,8 @@ export function bridgeGerman(text, { names = null, story = false } = {}) {
     .replace(/(^|[^\p{L}])nach hause(?![\p{L}])/giu, '$1heim').replace(/(^|[^\p{L}])zu hause(?![\p{L}])/giu, '$1zuhause')
     .replace(/(^|[^\p{L}])mit (?:dem|seinem|ihrem) schwanz(?![\p{L}])/giu, '$1')
     .replace(/(^|[^\p{L}])heiße[nr]? schokolade(?![\p{L}])/giu, '$1kakao')
+    .replace(/(^|[^\p{L}])(?:strahlt|strahlte|strahlten|lacht|lachte|lachten) vor freude(?![\p{L}])/giu, '$1lachtvorfreude')
+    .replace(/(^|[^\p{L}])(?:zur|auf die|zu der) erde(?![\p{L}])/giu, '$1')
     .replace(/(^|[^\p{L}])(?:hebt|hob|hoben|heben) (?:die|ihre|seine) hand(?![\p{L}])|(^|[^\p{L}])(?:meldet|meldete) sich(?![\p{L}])/giu, (m, a, b) => `${a ?? b ?? ''}hebtdiehand`)
     .replace(/(^|[^\p{L}])(?:(?:fing|fängt) es an zu|es (?:fing|fängt) an zu|es begann zu|es beginnt zu) (regnen|schneien)(?![\p{L}])/giu, (m, a, w) => `${a}${/regnen/i.test(w) ? 'esregnet' : 'esschneit'}`)
     .replace(/(^|[^\p{L}])(?:kommt|kommen|kam|kamen|läuft|laufen|lief|geht|gehen|ging) auf (?:uns|mich|dich|die kamera) zu(?![\p{L}])/giu, '$1kommtzu')
@@ -522,8 +545,15 @@ export function bridgeGerman(text, { names = null, story = false } = {}) {
         }
       }
       // (the verb before who does it - the clause did not start with them: put it after them)
+      // ("Unter einem Baum saß ein Sternchen": a place at the front, then the verb, then who)
+      let lead = -1;
+      if (/^(under|in|in the|on|over|behind|next to|in front of|at|at the|near|near the|between|through|around|from|from the|to the)$/.test(toks[0]?.en ?? '')) {
+        let k = 1;
+        while (['art', 'num', 'adj'].includes(toks[k]?.kind)) k++;
+        if (toks[k]?.kind === 'noun') lead = k + 1;
+      }
       for (let j = 1; j < toks.length - 1; j++) {
-        if (toks[j].kind !== 'verb' || ['noun', 'pron'].includes(toks[j - 1].kind)) continue;
+        if (toks[j].kind !== 'verb' || (['noun', 'pron'].includes(toks[j - 1].kind) && j !== lead)) continue;
         const e = subjectEnd(j + 1);
         if (e < 0) continue;
         const [verb] = toks.splice(j, 1);
@@ -570,11 +600,70 @@ const STORY_PHRASES = [
   [/,\s*(?:der|die|das)\s+(\p{Lu}[\p{L}-]*)\s+(?:hieß|heißt)(?![\p{L}])/gu, ' namens $1'],
 ];
 /** For readStory's `translate`: a scene of a German story in the engine's English words */
+// (a noun that can be "er", "sie" or "es" in a story: someone, an animal, or the moon, a star, the
+// sun or a cloud)
+const CHARACTER = /^(people|animals|wildlife)/;
+const isCharacter = (lw) => {
+  const en = NOUNS[lw];
+  if (!en) return false;
+  if (/^(moon|star|sun|cloud)$/.test(en)) return true;
+  const m = parseText(en).matches;
+  return m.length === 1 && CHARACTER.test(getConcept(m[0].id)?.category ?? '');
+};
+// German "er", "sie" and "es" are for the last one of that gender ("der Mond … er", "das Sternchen …
+// es", "die Eule … sie"), not for a boy or a girl: each is written as who it is before reading
+function pronounsFor(names) {
+  const refs = { m: null, f: null, n: null };
+  const recent = []; // (who was spoken of, the last one last: "sie" for more than one is the last two)
+  const said = (ref) => { const k = ref.name ?? ref.noun.toLowerCase(); const at = recent.findIndex((r) => (r.name ?? r.noun.toLowerCase()) === k); if (at >= 0) recent.splice(at, 1); recent.push(ref); };
+  const ART = { m: 'der', f: 'die', n: 'das' };
+  const as = (ref) => ref.name ?? `${ART[ref.g]} ${ref.noun}`;
+  return (t) => {
+    const ws = [...t.matchAll(/⟦\d+⟧|[\p{L}][\p{L}-]*|[.,;:!?]/gu)];
+    let out = '', last = 0;
+    for (let i = 0; i < ws.length; i++) {
+      const w = ws[i][0], lw = w.toLowerCase();
+      const prev = (ws[i - 1]?.[0] ?? '').toLowerCase(), next = (ws[i + 1]?.[0] ?? '').toLowerCase();
+      if (names.has(lw) && /^\p{Lu}/u.test(w)) { said(refs[isGirlName(lw) ? 'f' : 'm'] = { name: w }); continue; }
+      if (/^\p{Lu}/u.test(w) && GENDER[lw] && isCharacter(lw)) {
+        said(refs[GENDER[lw]] = { noun: w, g: GENDER[lw] });
+        // (das Mädchen is "sie" too)
+        if (/^(mädchen|fräulein|mädel)$/.test(lw)) refs.f = refs.n;
+        continue;
+      }
+      const verbNear = VERBS[next] !== undefined || VERBS[prev] !== undefined || SAY_DE.test(prev) || SAY_DE.test(next);
+      let g = null;
+      if (lw === 'er' || lw === 'ihn') g = 'm';
+      else if (lw === 'ihm') g = refs.m ? 'm' : 'n';
+      else if (lw === 'es' && verbNear && !/^(regnet|regnete|schneit|schneite|gibt|gab)$/.test(next)) g = 'n';
+      else if (lw === 'sie') {
+        // (they, when the verb is for more than one: "sie flogen")
+        const v = VERBS[next] !== undefined ? next : VERBS[prev] !== undefined ? prev : '';
+        if (!/en$/.test(v) && !/^(sind|waren|haben|hatten)$/.test(next)) g = 'f';
+        // (more than one: the last two spoken of - "Das Sternchen hüpfte auf die Eule. Gemeinsam flogen sie")
+        else if (recent.length >= 2) {
+          out += t.slice(last, ws[i].index) + `${as(recent.at(-2))} und ${as(recent.at(-1))}`;
+          last = ws[i].index + w.length;
+          continue;
+        }
+      }
+      const ref = g && refs[g];
+      if (!ref) continue;
+      const art = { m: lw === 'ihn' ? 'den' : lw === 'ihm' ? 'dem' : 'der', f: 'die', n: 'das' }[g];
+      out += t.slice(last, ws[i].index) + (ref.name ?? `${art} ${ref.noun}`);
+      last = ws[i].index + w.length;
+    }
+    return out + t.slice(last);
+  };
+}
+
 export function germanStory(text) {
   const names = storyNames(text);
+  const who = pronounsFor(names);
   const translate = (scene) => {
     let t = String(scene ?? '');
     for (const [re, to] of STORY_PHRASES) t = t.replace(re, to);
+    t = who(t);
     const en = bridgeGerman(t, { names, story: true }).text
       // (seeing someone is looking at them: "sah einen Hund")
       .replace(/\blooks (?=(?:a|an|the|some|two|three|many|her|him|them)\b|\p{Lu})/gu, 'sees ')

@@ -472,7 +472,7 @@ export function composeStory(storyInput, opts = {}) {
   // (a scene card with the story's names in it)
   const named = (card) => JSON.parse(shown(JSON.stringify(card)));
 
-  let title = opts.title ?? (read ? (german ? 'Meine Geschichte' : 'My Story') : undefined);
+  let title = opts.title ?? (read ? (read.title ?? (german ? 'Meine Geschichte' : 'My Story')) : undefined);
   let detectedGenre = genre;
 
   if (typeof storyInput === 'string') {

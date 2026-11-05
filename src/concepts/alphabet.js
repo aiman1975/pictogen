@@ -36,6 +36,11 @@ export const LETTER_PALETTES = {
   'Ö': { main: '#14b8a6', dark: '#0d9488', shadow: '#0f766e', accent: '#ccfbf1' }, // Teal
   'Ü': { main: '#a855f7', dark: '#9333ea', shadow: '#7e22ce', accent: '#f3e8ff' }, // Orchid
   'ß': { main: '#0284c7', dark: '#0369a1', shadow: '#075985', accent: '#e0f2fe' }, // Ocean
+  // Sky friends: the moon, a star, the sun, a cloud as story characters
+  MOON: { main: '#fde68a', dark: '#f59e0b', shadow: '#d97706', accent: '#fef9c3' },
+  STAR: { main: '#facc15', dark: '#eab308', shadow: '#ca8a04', accent: '#fef9c3' },
+  SUN: { main: '#fbbf24', dark: '#f97316', shadow: '#ea580c', accent: '#fef3c7' },
+  CLOUD: { main: '#f8fafc', dark: '#94a3b8', shadow: '#64748b', accent: '#e0f2fe' },
   // Numberlings
   0: { main: '#64748b', dark: '#475569', shadow: '#334155', accent: '#f1f5f9' }, // Pebble Grey
   1: { main: '#ef4444', dark: '#dc2626', shadow: '#b91c1c', accent: '#fee2e2' }, // Red
@@ -67,6 +72,40 @@ function drawGlyphShape(d, letter, fill, stroke) {
   }
 
   switch (letter) {
+    case 'MOON': {
+      // A crescent lying like a smile, its horns up: the face in its full lower part
+      const [a, b, R, c, e, r] = [50, 48, 31, 57, 21, 26];
+      const dx = c - a, dy = e - b, dist = Math.hypot(dx, dy);
+      const t = (R * R - r * r + dist * dist) / (2 * dist), h = Math.sqrt(R * R - t * t);
+      const mx = a + (dx * t) / dist, my = b + (dy * t) / dist;
+      const p1 = [mx + (h * dy) / dist, my - (h * dx) / dist], p2 = [mx - (h * dy) / dist, my + (h * dx) / dist];
+      const f = (q) => `${q[0].toFixed(1)} ${q[1].toFixed(1)}`;
+      d.path(`M ${f(p1)} A ${R} ${R} 0 1 0 ${f(p2)} A ${r} ${r} 0 0 1 ${f(p1)} Z`, o);
+      break;
+    }
+    case 'STAR': {
+      // A plump five-pointed star
+      const pts = [];
+      for (let k = 0; k < 10; k++) {
+        const ang = -Math.PI / 2 + (k * Math.PI) / 5, rad = k % 2 ? 19 : 37;
+        pts.push(`${(50 + rad * Math.cos(ang)).toFixed(1)} ${(50 + rad * Math.sin(ang)).toFixed(1)}`);
+      }
+      d.path(`M ${pts.join(' L ')} Z`, { ...o, sw: 3, strokeLinejoin: 'round' });
+      break;
+    }
+    case 'SUN': {
+      // A round sun with its rays
+      for (let k = 0; k < 10; k++) {
+        const ang = (k * Math.PI) / 5, q = (rad, da) => `${(50 + rad * Math.cos(ang + da)).toFixed(1)} ${(46 + rad * Math.sin(ang + da)).toFixed(1)}`;
+        d.path(`M ${q(26, -0.17)} L ${q(38, 0)} L ${q(26, 0.17)} Z`, { fill: stroke === fill ? fill : '#f97316', stroke, sw: 2, strokeLinejoin: 'round', kind: 'detail' });
+      }
+      d.circle(50, 46, 27, o);
+      break;
+    }
+    case 'CLOUD':
+      // A soft cloud
+      d.path('M 26 70 C 14 70 12 52 26 50 C 24 36 40 30 48 38 C 52 24 74 26 74 42 C 88 42 90 62 78 70 Z', o);
+      break;
     case 'ß':
       // The sharp s: a tall stem, a rounded top, two bowls down the right
       d.path('M 22 78 V 32 C 22 20 32 14 46 14 C 62 14 72 22 72 31 C 72 38 67 43 60 45 C 71 47 78 55 78 63 C 78 73 69 78 56 78 H 46 V 66 H 54 C 60 66 63 64 63 61 C 63 57 58 55 52 55 H 46 V 43 H 50 C 55 43 58 39 58 33 C 58 28 53 26 47 26 C 41 26 38 29 38 34 V 78 Z', o);
@@ -257,6 +296,7 @@ const FACE_ANCHORS = {
   S: [48, 46], T: [50, 38], U: [50, 52], V: [50, 42], W: [50, 48], X: [50, 46],
   Y: [50, 34], Z: [50, 48],
   'Ä': [50, 44], 'Ö': [50, 46], 'Ü': [50, 52], 'ß': [44, 40],
+  MOON: [50, 62], STAR: [50, 50], SUN: [50, 47], CLOUD: [50, 54],
   0: [50, 22], 1: [50, 46], 2: [50, 21], 3: [52, 21], 4: [61, 44], 5: [56, 59],
   6: [44, 27], 7: [50, 21], 8: [50, 47], 9: [49, 64],
 };
@@ -482,6 +522,31 @@ for (let n = 0; n <= 9; n++) {
     colors: { main: pal.main, dark: pal.dark },
     draw(d, p) {
       drawLetterCreature(d, p, String(n));
+    },
+  });
+}
+
+// Sky friends: the moon, a star, the sun and a cloud as characters with faces, arms and legs, for
+// stories where they talk and do things ("the little moon looked behind the clouds"; the plain
+// moon, star, sun and cloud stay the sky's). A story picks them when they act (src/story-reader.js).
+export const SKY_FRIENDS = { moon: 'MOON', star: 'STAR', sun: 'SUN', cloud: 'CLOUD' };
+for (const [word, glyph] of Object.entries(SKY_FRIENDS)) {
+  const pal = LETTER_PALETTES[glyph];
+  alphabetConcepts.push({
+    id: `${word}_friend`,
+    label: `${word.charAt(0).toUpperCase()}${word.slice(1)} friend`,
+    category: 'people',
+    // (the moon, the sun and a cloud are up in the air; a star can come down and sit)
+    placement: word === 'star' ? 'ground' : 'air',
+    scale: word === 'star' ? 0.75 : 1.2,
+    baseline: 94,
+    width: 0.85,
+    flippable: false,
+    aliases: [`${word} friend`, `${word}friend`, `${word} character`, `smiling ${word}`, `cute ${word}`],
+    tags: ['sky', 'friend', 'character', 'story', 'kids', 'cute', word],
+    colors: { main: pal.main, dark: pal.dark },
+    draw(d, p) {
+      drawLetterCreature(d, p, glyph);
     },
   });
 }

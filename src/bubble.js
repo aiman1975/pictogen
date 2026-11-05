@@ -108,7 +108,11 @@ export function layoutBubbles(list, { W, H, margin = 6, size = Math.max(10, Math
     }
     // (a bubble beside someone stays above the bottom fifth, where a video's caption goes)
     const fits = (b) => b.x >= margin - 0.5 && b.x + b.w <= W - margin + 0.5 && b.y >= margin - 0.5 && b.y + b.h <= (b.side === 'bottom' ? H - margin : H * 0.8) + 0.5;
-    let best = tries.map((b) => ({ w, h, fit, ...b })).find((b) => fits(b) && !placed.some((o) => overlaps(b, o)));
+    // (above someone high up - the moon in the sky - only when it is not at the very top: the camera
+    // moving in on them would cut it off; beside them first)
+    const free = (b) => fits(b) && !placed.some((o) => overlaps(b, o));
+    const all = tries.map((b) => ({ w, h, fit, ...b }));
+    let best = all.find((b) => free(b) && (b.side !== 'bottom' || b.y >= H * 0.1)) ?? all.find(free);
     // Nowhere free: above the head as near as the picture allows
     if (!best) best = { x: clampX(x - w / 2), y: clampY(top - tail - h), w, h, fit, side: 'bottom' };
     placed.push(best);

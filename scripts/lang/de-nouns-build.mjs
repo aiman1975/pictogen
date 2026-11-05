@@ -51,9 +51,19 @@ for (const ns of Object.values(merged)) {
     if (!/[ns]$/.test(pl) && !singular.has(pl + 'n') && forms.has(pl + 'n')) plural[pl + 'n'] = 2;
   }
 }
+// The gender of each singular form ("Mond" m, "Eule" f, "Sternchen" n): a German story's "er",
+// "sie" and "es" are for the last one of that gender
+const gender = {};
+for (const ns of Object.values(merged)) {
+  for (const n of ns) {
+    const sg = low(n.sg);
+    if (!sg || !/^[mfn]$/.test(n.g ?? '') || !forms.has(sg)) continue;
+    for (const f of [sg, ...(n.g !== 'f' ? [sg + (/[sßxz]$/.test(sg) ? 'es' : 's')] : [])]) if (forms.has(f) && !plural[f]) gender[f] ??= n.g;
+  }
+}
 writeFileSync(`${D}/nouns.json`, JSON.stringify(nouns));
 const head = readFileSync(new URL('../../src/lang-de-nouns.js', import.meta.url), 'utf8').split('export default')[0];
-writeFileSync(new URL('../../src/lang-de-nouns.js', import.meta.url), `${head}export default ${JSON.stringify(nouns).replace(/,"/g, ',\n"')};\n\n// (the plural forms: see scripts/lang/de-nouns-build.mjs)\nexport const PLURAL = ${JSON.stringify(Object.fromEntries(Object.entries(plural).sort()))};\n`);
+writeFileSync(new URL('../../src/lang-de-nouns.js', import.meta.url), `${head}export default ${JSON.stringify(nouns).replace(/,"/g, ',\n"')};\n\n// (the plural forms: see scripts/lang/de-nouns-build.mjs)\nexport const PLURAL = ${JSON.stringify(Object.fromEntries(Object.entries(plural).sort()))};\n\n// (each singular form's gender)\nexport const GENDER = ${JSON.stringify(Object.fromEntries(Object.entries(gender).sort()))};\n`);
 console.log('plural forms', Object.keys(plural).length);
 console.log('pictures with an English word that draws them', Object.keys(english).length, 'of', Object.keys(merged).length);
 console.log('German forms', Object.keys(nouns).length, 'pictures covered', covered.size);

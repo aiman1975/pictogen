@@ -25,7 +25,7 @@ const SCENERY = new Set(['coral', 'sponge', 'seaweed', 'shell', 'spiral_shell', 
 const isCreature = (id) => !SCENERY.has(id) && (/^(people|animals|wildlife)/.test(getConcept(id)?.category ?? '') || BEINGS.has(id));
 const isAnimal = (id) => /^(animals|wildlife)/.test(getConcept(id)?.category ?? '');
 // (story friends and robots are "he", "she" or "it" as the story says, like animals)
-const ANY = new Set(['owl_teacher', 'baby_dragon', 'idea_buddy', 'robot']);
+const ANY = new Set(['owl_teacher', 'baby_dragon', 'idea_buddy', 'robot', 'moon_friend', 'star_friend', 'sun_friend', 'cloud_friend']);
 const genderOf = (id) => (FEMALE.has(id) ? 'f' : MALE.has(id) ? 'm' : isAnimal(id) || ANY.has(id) ? 'a' : 'n');
 
 // First names, to tell a girl from a boy when the story only says the name
@@ -44,6 +44,34 @@ for (const n of `mila emilia lina leni frieda ida marlene johanna matilda mathil
   amelie annika franziska lisa-marie mariechen gretel`.split(/\s+/)) GIRL_NAMES.add(n);
 /** True for a first name the reader knows (a girl's or a boy's) */
 export const isFirstName = (word) => GIRL_NAMES.has(String(word).toLowerCase()) || BOY_NAMES.has(String(word).toLowerCase());
+export const isGirlName = (word) => GIRL_NAMES.has(String(word).toLowerCase());
+
+// The moon, a star, the sun or a cloud that talks or does things is a character: a sky friend with a
+// face, arms and legs (src/concepts/alphabet.js); one that only shines stays the sky's
+const SKY = ['moon', 'star', 'sun', 'cloud'];
+const ACTS = 'says|said|asks|asked|shouts|shouted|cries|cried|calls|called|whispers|whispered|replies|replied|smiles|smiled|laughs|laughed|looks|looked|sees|saw|helps|helped|waves|waved|jumps|jumped|hops|hopped|sits|sat|sleeps|slept|lives|lived|talks|talked|thinks|thought|sends|sent|listens|listened|hears|heard|notices|noticed|finds|found|is sad|was sad|is happy|was happy|wakes|woke|dances|danced|walks|walked|runs|ran|hugs|hugged|misses|missed|is missing|was missing|feels|felt';
+function skyFriends(text) {
+  const low = text.toLowerCase();
+  return new Set(SKY.filter((w) => new RegExp(`\\b(?<!shooting )${w}\\s+(?:${ACTS})\\b|\\b(?:${ACTS})\\s+(?:the\\s+)?(?:little\\s+|small\\s+|tiny\\s+)?${w}\\b|\\b(?:a|the)\\s+(?:little|small|tiny|lost|sad|kind|friendly)\\s+${w}\\b|\\b${w}\\s+(?:and|with)\\s+(?:the\\s+)?[a-z]+\\s+(?:${ACTS})\\b`).test(low)));
+}
+let friendly = new Set(); // (the sky friends of the story being read)
+
+/**
+ * A story's title, when its first line is one: short, with no full stop, more lines after it - and
+ * a line under it that says what the story is ("A short bedtime story for ages 3-6"). The story
+ * without them.
+ */
+export function storyTitle(text) {
+  const lines = String(text ?? '').split(/\r?\n/);
+  const first = lines.findIndex((l) => l.trim());
+  const rest = lines.slice(first + 1).filter((l) => l.trim());
+  const t = (lines[first] ?? '').trim();
+  if (first < 0 || rest.length < 2 || /[.!?…:;,"“”„»]$/.test(t) || t.split(/\s+/).length > 12 || /^(#|-|\d+[.)])/.test(t)) return { title: null, subtitle: null, text };
+  let k = first + 1, subtitle = null;
+  const next = (lines[k] ?? '').trim();
+  if (next && /\b(geschichte|story|stories|tale|märchen|fabel|gutenacht|bedtime|für kinder|for (?:kids|children)|ages?\b|jahren|years)\b/i.test(next) && next.split(/\s+/).length <= 16) { subtitle = next; k++; }
+  return { title: t.replace(/\s*[\p{Extended_Pictographic}\uFE0F]+\s*$/u, '').trim(), subtitle, text: lines.slice(k).join('\n') };
+}
 // Titles that say what someone is: "Grandma Rose", "Mr Brown", "King Leo"
 const TITLES = {
   mr: 'man', mrs: 'woman', ms: 'woman', miss: 'woman', dr: 'doctor', doctor: 'doctor', grandma: 'old_woman', granny: 'old_woman',
@@ -61,7 +89,8 @@ const NOT_NAMES = new Set(`once one two three the a an and but then so suddenly 
   together outside inside upstairs downstairs far near long little big happy sad deep high under over behind across through
   along around beside inside poor dear sweet brave tiny huge old young her his their our my your its him them us me today
   monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october
-  november december spring summer autumn winter christmas easter weekend`.split(/\s+/));
+  november december spring summer autumn winter christmas easter weekend night day morning evening afternoon soon nothing
+  every sometimes because`.split(/\s+/));
 // Story verbs in the past, in the present the engine reads
 const PRESENT = {
   ran: 'runs', sat: 'sits', rode: 'rides', flew: 'flies', swam: 'swims', ate: 'eats', drank: 'drinks', held: 'holds', threw: 'throws',
@@ -125,6 +154,7 @@ const WEATHER = [
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7).toString(36).slice(0, 8);
 const kindOf = (word) => {
+  if (friendly.has(word)) return `${word}_friend`;
   const m = parseText(word).matches.find((x) => isCreature(x.id));
   return m ? m.id : null;
 };
@@ -162,7 +192,7 @@ function splitScenes(text) {
       for (let i = 0; i < parts.length; i += 2) out.push(parts.slice(i, i + 2).join(' '));
     } else out.push(...parts);
   }
-  return out.filter((s) => !/^the end[.!]*$/i.test(s.trim()));
+  return out.filter((s) => !/^(the end|ende|das ende)[.!]*$/i.test(s.trim()));
 }
 
 /**
@@ -170,6 +200,9 @@ function splitScenes(text) {
  * characters it names itself (as individuals with keys and looks) and the whole cast.
  */
 export function readStory(text, { individuals = [], adults = false, translate = null } = {}) {
+  // (a title line and what kind of story it is: not scenes)
+  const titled = storyTitle(text);
+  text = titled.text;
   // (a title's full stop is no sentence's end: "Dr. Lee" is "Dr Lee")
   const { text: safe, quotes } = protect(String(text ?? '').replace(/[’]/g, "'").replace(/\b(Dr|Mr|Mrs|Ms|Prof|St)\.(?=\s+[A-Z])/g, '$1'));
   const cast = [];
@@ -219,6 +252,7 @@ export function readStory(text, { individuals = [], adults = false, translate = 
   // written - src/lang-de.js germanStory)
   const read = translate ? all.map((raw) => translate(raw)) : all;
   const said = translate ? read.join('\n') : safe;
+  friendly = skyFriends(restore(said, quotes).replace(/“[^”]*”/g, ' '));
   for (const [n, written] of all.entries()) {
     const raw = read[n];
     offset = said.indexOf(raw, offset);
@@ -431,12 +465,15 @@ export function readStory(text, { individuals = [], adults = false, translate = 
         // A creature spoken of without a name ("a small puppy", "the puppy"): the same one each time
         const id = /^[a-z]+$/.test(low) && !NOT_NAMES.has(low) && !PRESENT[low] && kindOf(low);
         if (id && parseText(low).matches.length === 1 && parseText(low).matches[0].count === 1) {
-          let m = cast.find((c) => c.name && c.noun === low) ?? cast.find((c) => c.id === id && !c.name);
-          if (!m) { m = { id, noun: low, gender: genderOf(id), last: 0 }; cast.push(m); }
+          let m = cast.find((c) => c.name && c.noun === low) ?? cast.find((c) => c.id === id && (!c.name || c.friend));
+          // (a sky friend is one character all along: a key and a look of its own, "the moon")
+          if (!m) { m = { id, noun: low, gender: genderOf(id), last: 0, ...(friendly.has(low) ? { friend: true, name: `the ${low}`, key: `pgc${nextKey++}`, look: { seed: hash(low) } } : {}) }; cast.push(m); }
           mention(m);
           inScene.add(m);
           out.push(m.key ?? tok);
           if (m.key && ['a', 'an', 'the'].includes(out[out.length - 2]?.toLowerCase())) out.splice(out.length - 2, 1);
+          // (a sky friend is "the moon" all along: "a small moon" is it too)
+          else if (m.friend) while (/^(a|an|the|small|little|tiny|big|kleine?)$/i.test(out[out.length - 2] ?? '')) out.splice(out.length - 2, 1);
           continue;
         }
         out.push(PRESENT[low] ?? tok);
@@ -445,8 +482,11 @@ export function readStory(text, { individuals = [], adults = false, translate = 
     }
   }
 
+  friendly = new Set();
   return {
     scenes,
+    title: titled.title,
+    subtitle: titled.subtitle,
     individuals: cast.filter((m) => m.key && !m.saved).map((m) => ({ key: m.key, base: m.id, look: m.look })),
     cast: cast.map((m) => ({ name: m.name ?? null, key: m.key ?? null, id: m.id, noun: m.noun ?? null })),
   };

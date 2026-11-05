@@ -311,6 +311,21 @@ So what should you do? First, stop and do not click anything. Then, hover over t
     assert(/^man_teacher~/.test(braun.scenes[0].matches[0].id) && /Mr Braun writes/.test(braun.scenes[1].prompt) && braun.scenes[1].svg.includes('2 + 2 = 4') && braun.scenes[2].matches.some((m) => m.animation === 'cheer'),
       '"Herr Braun" is a man teacher (not brown), "er" is him, the board says what he wrote, the children cheer');
   }
+  // A story with the moon and a little star as its characters, a title line and what it is under it;
+  // German "er", "es", "sie" by the noun's gender (der Mond, das Sternchen, die Eule)
+  {
+    const moon = composeStory('Der kleine Mond und das verlorene Sternchen ⭐\nEine kurze Kindergeschichte für Kinder von 3–6 Jahren.\n\nEs war einmal ein kleiner Mond, der hoch oben am Himmel wohnte.\n\nEr schaute hinter die Wolken. Nichts.\n\nUnter einem großen Baum saß ein kleines Sternchen.\n\n„Ich habe mich verirrt“, schluchzte es.\n\nEine kleine Eule flog herbei und sagte: „Folge mir!“\n\nDas Sternchen hüpfte auf den Rücken der Eule. Gemeinsam flogen sie durch die Nacht.\n\nDer Mond lächelte.', { style: 'flat' });
+    const ids = (sc) => sc.matches.map((m) => m.id.split('~')[0] + (m.animation ? `:${m.animation}` : '') + (m.expression ? ` ${m.expression}` : ''));
+    const moonKey = moon.scenes[0].matches.find((m) => /^moon_friend~/.test(m.id))?.id;
+    assert(moon.title === 'Der kleine Mond und das verlorene Sternchen' && moon.scenes.length === 7 && !moon.scenes.some((sc) => /Kindergeschichte/.test(sc.caption)),
+      `the title line is the title, the line under it no scene (${moon.title}; ${moon.scenes.length} scenes)`);
+    assert(moonKey && moon.scenes[1].matches.some((m) => m.id === moonKey) && moon.scenes[6].matches.some((m) => m.id === moonKey && m.expression === 'happy'),
+      `the moon is a character, the same one all along: "Er schaute…", "Der Mond lächelte" (${moon.scenes.map((sc) => ids(sc).join(' ')).join(' | ')})`);
+    assert(ids(moon.scenes[2]).includes('star_friend:sit') && ids(moon.scenes[3]).some((x) => /^star_friend.* sad$/.test(x)) && ids(moon.scenes[4]).includes('owl:fly') && /the star and the owl fl/.test(moon.scenes[5].prompt.replace(/pgc\d+/g, 'the star')),
+      `the little star sits under the tree, "schluchzte es" is the star crying, the owl flies; "flogen sie" is the star and the owl (${moon.scenes[5].prompt})`);
+    const plain = gen('a girl looks at the moon at night', { style: 'flat' });
+    assert(plain.matches.some((m) => m.id === 'moon') && !plain.matches.some((m) => /_friend/.test(m.id)), 'a moon that only shines stays the sky\'s moon');
+  }
   // (and in English: "says … and waves" waves; "a boat and waves" stays the sea)
   assert(seen('a boy says "Hi!" and waves') === 'boy wave' && seen('a boat and waves') === 'boat, water_wavex3' && seen('a boy and a girl dance and jump') === 'boy dance, girl dance', '"and waves" after doing something is waving; after a thing, the sea');
 }
