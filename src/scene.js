@@ -379,8 +379,10 @@ function darkness(hex) {
 }
 
 // A city behind the horizon: buildings of all heights (windows lit at night), a pavement and a road
-function skyline(d, env, pal, rng, W, H, hY) {
+function skyline(d, env, pal, rng, W, H, hY, part = null) {
   const bg = { kind: 'bg' };
+  // (part: only the 'buildings' or only the 'street', when they go by at their own speeds)
+  if (part !== 'street') {
   const far = mix(pal.sky[2], env.night ? '#0b1430' : '#78909c', 0.55), near = mix(pal.sky[2], env.night ? '#16203f' : '#546e7a', 0.6);
   for (const [color, lo, hi, lit] of [[far, 0.18, 0.4, 0.25], [near, 0.1, 0.3, 0.4]]) {
     let x = -rng() * 20;
@@ -397,6 +399,8 @@ function skyline(d, env, pal, rng, W, H, hY) {
       x += bw + 2 + rng() * 6;
     }
   }
+  }
+  if (part === 'buildings') return;
   // Pavement, kerb and road
   const pave = env.night ? '#455a64' : '#cfd8dc', road = env.night ? '#263238' : '#78909c';
   d.rect(0, hY, W, H - hY, { ...bg, fill: pave });
@@ -499,6 +503,22 @@ function sketchPlace(d, env, W, H, rng) {
   }
 }
 
+// What streams past someone going up or down: clouds (stars at night or in space, bubbles under the sea)
+function streamBits(d, env, rng, W, H) {
+  for (let i = 0; i < 7; i++) {
+    const x = W * (0.06 + ((i * 0.37 + rng() * 0.2) % 0.9)), y = H * ((i + rng() * 0.6) / 7), s = 9 + rng() * 12;
+    if (env.underwater) {
+      d.circle(x, y, s * 0.35, { kind: 'line', stroke: '#e1f5fe', sw: 1.4, fill: 'none', opacity: 0.8 });
+      d.circle(x + s, y + s * 1.6, s * 0.2, { kind: 'line', stroke: '#e1f5fe', sw: 1.2, fill: 'none', opacity: 0.8 });
+    } else if (env.space || env.night) {
+      for (let k = 0; k < 4; k++) d.circle(rng() * W, y + (rng() - 0.5) * H * 0.14, 0.8 + rng() * 1.4, { kind: 'bg', fill: '#fff8e1' });
+    } else {
+      const c = env.rain ? '#cfd8dc' : env.sunset ? '#ffe0cc' : '#ffffff';
+      for (const [dx, dy, r] of [[-1.1, 0.25, 0.75], [0, 0, 1], [1.1, 0.2, 0.8], [0.5, 0.45, 0.7], [-0.5, 0.45, 0.7]]) d.circle(x + dx * s, y + dy * s, r * s, { kind: 'bg', fill: c, opacity: 0.92 });
+    }
+  }
+}
+
 function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
   const d = createKit();
   const bg = { kind: 'bg' };
@@ -585,8 +605,18 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
     return d.shapes;
   }
 
+  // On the way (src/scene.js travelOf): the place goes by in layers, the far ones slower
+  // (pg-travel-far / -mid / -near, tiled and scrolled by travelSvg); going up or down, the land
+  // slides away (pg-travel-land) and clouds, stars or bubbles stream past (pg-travel-stream)
+  const across = Boolean(env.travel?.x), upDown = env.travel?.y ?? 0;
+  const layer = (name, fn) => (across ? d.group({ class: `pg-travel-${name}` }, fn) : fn());
   if (env.underwater) {
-    d.group({ class: 'pg-place pg-place-underwater' }, () => underwater(d, env, pal, rng, W, H, hY));
+    if (upDown) {
+      // (the water itself stays: the seabed and all on it go by)
+      d.rect(0, 0, W, H, { ...bg, fill: env.night ? '#08213b' : '#1268a3' });
+      d.group({ class: 'pg-travel-land' }, () => underwater(d, env, pal, rng, W, H, hY));
+      d.group({ class: 'pg-travel-stream' }, () => streamBits(d, env, rng, W, H));
+    } else layer('mid', () => d.group({ class: 'pg-place pg-place-underwater' }, () => underwater(d, env, pal, rng, W, H, hY)));
     extras(d, env, rng, W, H, hY);
     return d.shapes;
   }
@@ -594,9 +624,12 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
   d.rect(0, 0, W, H, { ...bg, fill: skyColors[0] });
   d.rect(0, H * 0.3, W, hY - H * 0.3, { ...bg, fill: skyColors[1] });
   d.rect(0, H * 0.48, W, hY - H * 0.48, { ...bg, fill: skyColors[2] });
+  // (going up or down: sky below the horizon too, once the land has gone)
+  if (upDown) d.rect(0, hY - 1, W, H - hY + 1, { ...bg, fill: skyColors[2] });
+  if (upDown) d.group({ class: 'pg-travel-stream' }, () => streamBits(d, env, rng, W, H));
 
   if (env.space) {
-    d.group({ class: 'pg-place pg-place-space' }, () => space(d, env, pal, rng, W, H, hY));
+    layer('far', () => d.group({ class: 'pg-place pg-place-space' }, () => space(d, env, pal, rng, W, H, hY)));
     shootingStar(d, rng, W, H);
     extras(d, env, rng, W, H, hY);
     return d.shapes;
@@ -614,39 +647,63 @@ function background(W, H, hY, env, pal, rng, hasGroundItems, style = 'flat') {
 
   const waterTop = hY;
   const shoreTop = H * 0.84;
+  if (upDown) d.shapes.push({ type: 'g-start', class: 'pg-travel-land' });
   if (env.water) {
     d.rect(0, waterTop, W, H - waterTop, { ...bg, fill: pal.water[0] });
     d.rect(0, waterTop + (H - waterTop) * 0.45, W, (H - waterTop) * 0.55, { ...bg, fill: pal.water[1] });
-    d.group({ class: 'pg-env-wave' }, () => {
+    layer('near', () => d.group({ class: 'pg-env-wave' }, () => {
       for (let i = 0; i < 10; i++) {
         const x = rng() * W, y = waterTop + 8 + rng() * (H - waterTop - 16), s = 10 + rng() * 12;
         d.path(`M${x - s} ${y} q${s / 2} -${s / 3} ${s} 0 q${s / 2} -${s / 3} ${s} 0`, { kind: 'line', stroke: lighten(pal.water[0], 0.45), sw: 2 });
       }
-    });
+    }));
     if (hasGroundItems) {
       const shore = env.beach || !env.snow ? pal.sand : pal.ground[2];
-      d.path(`M0 ${shoreTop} Q${W * 0.5} ${shoreTop - H * 0.03} ${W} ${shoreTop} L${W} ${H} L0 ${H} Z`, { ...bg, fill: shore });
+      layer('near', () => d.path(`M0 ${shoreTop} Q${W * 0.5} ${shoreTop - H * 0.03} ${W} ${shoreTop} L${W} ${H} L0 ${H} Z`, { ...bg, fill: shore }));
     }
   } else if (env.city) {
-    d.group({ class: 'pg-place pg-place-city' }, () => skyline(d, env, pal, rng, W, H, hY));
+    if (across) {
+      layer('far', () => d.group({ class: 'pg-place pg-place-city' }, () => skyline(d, env, pal, rng, W, H, hY, 'buildings')));
+      layer('near', () => skyline(d, env, pal, rng, W, H, hY, 'street'));
+    } else d.group({ class: 'pg-place pg-place-city' }, () => skyline(d, env, pal, rng, W, H, hY));
   } else if (env.desert) {
-    if (env.mountains) d.group({ class: 'pg-place pg-place-mountains' }, () => mountains(d, env, pal, rng, W, H, hY));
-    d.group({ class: 'pg-place pg-place-desert' }, () => desert(d, env, pal, rng, W, H, hY));
+    if (env.mountains) layer('far', () => d.group({ class: 'pg-place pg-place-mountains' }, () => mountains(d, env, pal, rng, W, H, hY)));
+    layer('mid', () => d.group({ class: 'pg-place pg-place-desert' }, () => desert(d, env, pal, rng, W, H, hY)));
   } else {
-    if (env.mountains) d.group({ class: 'pg-place pg-place-mountains' }, () => mountains(d, env, pal, rng, W, H, hY));
-    if (env.castle) d.group({ class: 'pg-place pg-place-castle' }, () => castle(d, env, pal, rng, W, H, hY));
-    if (env.jungle) d.group({ class: 'pg-place pg-place-jungle' }, () => jungle(d, env, pal, rng, W, H, hY));
-    if (env.woods || env.park || (env.autumn && !env.farm && !env.castle && !env.jungle)) d.group({ class: `pg-place pg-place-${env.park ? 'park' : 'woods'}` }, () => treeLine(d, env, pal, rng, W, hY, H));
-    d.ellipse(W * 0.18, hY + H * 0.04, W * 0.38, H * 0.13, { ...bg, fill: pal.ground[0] });
-    d.ellipse(W * 0.82, hY + H * 0.05, W * 0.42, H * 0.11, { ...bg, fill: pal.ground[0] });
+    if (env.mountains) layer('far', () => d.group({ class: 'pg-place pg-place-mountains' }, () => mountains(d, env, pal, rng, W, H, hY)));
+    if (env.castle) layer('far', () => d.group({ class: 'pg-place pg-place-castle' }, () => castle(d, env, pal, rng, W, H, hY)));
+    if (env.jungle) layer('mid', () => d.group({ class: 'pg-place pg-place-jungle' }, () => jungle(d, env, pal, rng, W, H, hY)));
+    if (env.woods || env.park || (env.autumn && !env.farm && !env.castle && !env.jungle)) layer('mid', () => d.group({ class: `pg-place pg-place-${env.park ? 'park' : 'woods'}` }, () => treeLine(d, env, pal, rng, W, hY, H)));
+    layer('far', () => {
+      d.ellipse(W * 0.18, hY + H * 0.04, W * 0.38, H * 0.13, { ...bg, fill: pal.ground[0] });
+      d.ellipse(W * 0.82, hY + H * 0.05, W * 0.42, H * 0.11, { ...bg, fill: pal.ground[0] });
+    });
     d.rect(0, hY, W, H - hY, { ...bg, fill: pal.ground[1] });
     d.rect(0, H * 0.88, W, H * 0.12, { ...bg, fill: pal.ground[2] });
-    if (env.park) {
+    if (env.park && across) {
+      // (on the way: the path runs along under their feet, not off toward the horizon)
+      layer('near', () => {
+        d.rect(0, H * 0.855, W, H * 0.07, { ...bg, fill: mix(pal.sand, pal.ground[1], 0.25) });
+        for (let x = 6; x < W; x += 26 + rng() * 30) d.ellipse(x, H * (0.87 + rng() * 0.04), 2.2 + rng() * 2, 1.4 + rng(), { ...bg, fill: darken(pal.sand, 0.2) });
+      });
+    } else if (env.park) {
       // A sandy path winding off toward the horizon
       d.path(`M ${W * 0.36} ${H} C ${W * 0.42} ${H * 0.86} ${W * 0.62} ${H * 0.8} ${W * 0.56} ${hY + H * 0.02} L ${W * 0.6} ${hY + H * 0.02} C ${W * 0.7} ${H * 0.8} ${W * 0.56} ${H * 0.88} ${W * 0.64} ${H} Z`, { ...bg, fill: mix(pal.sand, pal.ground[1], 0.25) });
     }
-    if (env.farm) d.group({ class: 'pg-place pg-place-farm' }, () => farm(d, env, pal, rng, W, H, hY));
+    if (env.farm) layer('mid', () => d.group({ class: 'pg-place pg-place-farm' }, () => farm(d, env, pal, rng, W, H, hY)));
+    // (on the way: tufts of grass and stones near the front go by fastest)
+    if (across) {
+      layer('near', () => {
+        for (let x = 4; x < W; x += 30 + rng() * 40) {
+          const y = H * (0.9 + rng() * 0.08), g = darken(pal.ground[2], 0.18);
+          if (rng() < 0.6) d.path(`M${r2(x - 4)} ${r2(y)} l2 -7 l2 7 l2 -9 l2 9 l2 -6 l1 6`, { kind: 'line', stroke: g, sw: 1.6, fill: 'none' });
+          else d.ellipse(x, y, 3 + rng() * 3, 1.8 + rng() * 1.2, { ...bg, fill: darken(pal.ground[2], 0.25) });
+        }
+        for (let x = 10; x < W; x += 60 + rng() * 70) d.ellipse(x, hY + (H * 0.88 - hY) * (0.4 + rng() * 0.5), 2.5 + rng() * 2, 1.2 + rng(), { ...bg, fill: darken(pal.ground[1], 0.12) });
+      });
+    }
   }
+  if (upDown) d.shapes.push({ type: 'g-end' });
   if (env.autumn || env.extras?.has('leaves')) autumnLeaves(d, env, rng, W, H);
 
   if (env.parallax) {
@@ -690,8 +747,80 @@ const CLEAN_SOUND_STYLES = new Set(['stickman', 'whiteboard', 'editorial', 'blue
 const FLAT_BACKDROP_STYLES = ['editorial', 'stickman', 'cute2d', 'whiteboard', 'doodle', 'papercut', 'geometric'];
 // Motions that move the whole figure through the scene (the limbs walk in place inside).
 const TRAVEL_MOTIONS = ['walk-across', 'approach', 'recede'];
+// On the way: a walk, a run, a drive, a ride or a flight on the spot (nobody crossing the stage) -
+// the place goes by behind them; going up ("flies up into the sky", "the rocket lifts off", "climbs
+// up") or down ("falls", "dives", "sinks"), the land slides away and clouds stream past
+const ON_THE_WAY = { walk: 0.62, jog: 1, run: 1.35, ride: 1.7, drive: 2.4, fly: 1.2, swim: 0.6 };
+const GOING_UP = /\b(?:(?:flies|fly|flying|flew|floats?|floating|floated|climbs?|climbing|climbed|goes|going|went|rises?|rising|rose|jumps?|swims?|swimming|soars?|soaring|zooms?|zooming)\s+(?:up|upward|upwards|higher)|lifts? off|lifting off|blasts? off|blasting off|takes? off|taking off|launch(?:es|ed|ing)?|ascends?|ascending|into the sky|skyward)\b/;
+const GOING_DOWN = /\b(?:(?:flies|fly|flying|floats?|floating|climbs?|climbing|goes|going|went|swims?|swimming|zooms?)\s+(?:down|downward|downwards|deeper)|falls?(?! asleep| in love)|falling(?! asleep| in love)|fell(?! asleep| in love)|dives?|diving|dived|dove|sinks?|sinking|sank|parachut\w*|descends?|descending|plunges?|plunging)\b/;
+function travelOf(items, words) {
+  const text = ` ${words.join(' ')} `;
+  if (!items.length) return null;
+  const up = GOING_UP.test(text), down = !up && GOING_DOWN.test(text);
+  if (up || down) return { y: up ? 1 : -1 };
+  const movers = items.filter((it) => ON_THE_WAY[it.m.animation]);
+  if (!movers.length) return null;
+  // (something standing on the ground that isn't going along - a tree, a bench - would slide with them: no)
+  if (items.some((it) => !movers.includes(it) && (it.c.placement ?? 'ground') === 'ground')) return null;
+  return { x: 1, movers, pace: Math.min(...movers.map((it) => ON_THE_WAY[it.m.animation])) };
+}
+
+/**
+ * The background as markup, its travel layers (src/scene.js background) tiled and scrolling: across,
+ * each layer a picture, then the same mirrored, then the picture again (so it joins up both ways),
+ * sliding by two widths per loop; up or down, the land slides out of view (or in, landing) over the
+ * scene and the clouds stream past, tiled the same way upright.
+ */
+function travelSvg(shapes, style, travel, { W, H, T, uid, motionCss, speed }) {
+  let out = '', plain = [];
+  const flush = () => { if (plain.length) out += shapesToSvg(plain, style); plain = []; };
+  for (let i = 0; i < shapes.length; i++) {
+    const name = shapes[i].type === 'g-start' && /^pg-travel-(far|mid|near|land|stream)$/.exec(shapes[i].class ?? '')?.[1];
+    if (!name) { plain.push(shapes[i]); continue; }
+    let depth = 0, j = i;
+    for (; j < shapes.length; j++) {
+      if (shapes[j].type === 'g-start') depth++;
+      else if (shapes[j].type === 'g-end' && --depth === 0) break;
+    }
+    flush();
+    const inner = shapesToSvg(shapes.slice(i + 1, j), style);
+    const anim = `${uid}tr${name}`;
+    if (name === 'land') {
+      // Going up: the land drops away below; coming down: it rises into view, to land on
+      const frames = travel.y > 0
+        ? `0% { transform: translateY(0); animation-timing-function: ease-in; } ${pct(Math.min(0.45, 1.8 / T))} { transform: translateY(${r2(H * 1.05)}px); } 100% { transform: translateY(${r2(H * 1.05)}px); }`
+        : `0% { transform: translateY(${r2(H * 1.05)}px); } ${pct(Math.max(0.55, 1 - 1.8 / T))} { transform: translateY(${r2(H * 1.05)}px); animation-timing-function: ease-out; } 100% { transform: translateY(0); }`;
+      motionCss.push(`@keyframes ${anim} { ${frames} }`);
+      out += `<g class="pg-travel pg-travel-land" style="animation: ${anim} ${r2(T)}s linear infinite;">${inner}</g>`;
+    } else {
+      const v = name === 'far' ? 0.2 : name === 'mid' ? 0.45 : 1;
+      const vertical = name === 'stream';
+      const span = vertical ? 2 * H : 2 * W;
+      const dur = r2(span / Math.max(1, vertical ? H * 0.55 : speed * v));
+      // (moving right the place goes left; going up the clouds go down)
+      const [a, b] = vertical ? (travel.y > 0 ? [-span, 0] : [0, -span]) : (travel.x > 0 ? [0, -span] : [-span, 0]);
+      const axis = vertical ? 'Y' : 'X';
+      motionCss.push(`@keyframes ${anim} { 0% { transform: translate${axis}(${a}px); } 100% { transform: translate${axis}(${b}px); } }`);
+      const [mirror, next] = vertical ? [`translate(0 ${2 * H}) scale(1 -1)`, `translate(0 ${2 * H})`] : [`translate(${2 * W} 0) scale(-1 1)`, `translate(${2 * W} 0)`];
+      // (each tile's picture a little wider than the tile and cut to it a pixel over each edge, so
+      // where tiles meet both are solid: no hairline of what lies behind)
+      const E = 6, clip = `${uid}trclip${vertical ? 'y' : 'x'}`;
+      if (!out.includes(`id="${clip}"`)) out += `<defs><clipPath id="${clip}"><rect ${vertical ? `x="${-W}" y="-1" width="${3 * W}" height="${H + 2}"` : `x="-1" y="${-H}" width="${W + 2}" height="${3 * H}"`}/></clipPath></defs>`;
+      const tile = vertical
+        ? `<g clip-path="url(#${clip})"><g transform="translate(0 ${-E}) scale(1 ${r2((H + 2 * E) / H * 10000) / 10000})">${inner}</g></g>`
+        : `<g clip-path="url(#${clip})"><g transform="translate(${-E} 0) scale(${r2((W + 2 * E) / W * 10000) / 10000} 1)">${inner}</g></g>`;
+      out += `<g class="pg-travel pg-travel-${name}" style="animation: ${anim} ${dur}s linear infinite;"><g>${tile}</g><g transform="${mirror}">${tile}</g><g transform="${next}">${tile}</g></g>`;
+    }
+    i = j;
+  }
+  flush();
+  return out;
+}
+
 // How far away (in multiples of the front-row distance) an approaching/receding figure starts/ends.
 const FAR_DISTANCE = 4.5;
+// What a figure keeps doing while someone (or it) talks after: "they jump. “Hooray!” says the 7"
+const KEEPS_ON = new Set(['jump', 'dance', 'cheer', 'wave', 'clap', 'spin', 'sway', 'float', 'fly', 'swim', 'flap', 'wag']);
 
 const r2 = (v) => Math.round(v * 100) / 100;
 const pct = (v) => `${r2(v * 100)}%`;
@@ -758,7 +887,7 @@ const NEAR_K = 1.22; // "comes closer" from the front row: a step toward the cam
  * (x across the front row, k the depth scale: 1 front row, 1 / FAR_DISTANCE at the horizon)
  * with times in seconds.
  */
-function playTimeline(timeline, slots, props, W, minDuration = 0) {
+function playTimeline(timeline, slots, props, W, minDuration = 0, startAt = null) {
   const state = new Map();
   const tracks = new Map();
   for (const [key, slot] of slots) {
@@ -768,7 +897,9 @@ function playTimeline(timeline, slots, props, W, minDuration = 0) {
     // or a later "then a cat" popping up): "when the dog arrives, the boy jumps" - the boy is there all along
     const onStage = first >= 0 && !['enter', 'moveTo', 'approach'].includes(firstAction?.type) && !(first > 0 && firstAction?.type === 'appear');
     // x: place across the front row; k: depth as a scale (1 = front row, 1 / FAR_DISTANCE = horizon)
-    state.set(key, { x: slot.cx, k: 1, present: onStage, facing: 1, expression: slot.it.m.expression, isPerson: slot.it.c.category === 'people' });
+    // (in a clip, someone still here from the scene before starts where they were then, unless they come in anew)
+    const was = startAt?.[slot.id] && key.endsWith('#0') && !['enter', 'approach'].includes(firstAction?.type) ? startAt[slot.id] : null;
+    state.set(key, { x: was ? clamp(was.x * W, slot.w / 2, W - slot.w / 2) : slot.cx, k: 1, present: onStage || Boolean(was), facing: was?.facing ?? 1, expression: slot.it.m.expression, isPerson: slot.it.c.category === 'people' });
     tracks.set(key, []);
   }
   const keysOf = (id) => [...slots.keys()].filter((key) => slots.get(key).id === id);
@@ -827,6 +958,7 @@ function playTimeline(timeline, slots, props, W, minDuration = 0) {
   const beatTimes = []; // when each beat starts and ends (the studio's timeline view)
   const speeches = []; // who says what when: { key, start, text }
   const doings = []; // what each figure does when, for the sound: { key, t0, act }
+  let lastTalkOnly = false;
   for (const beat of timeline.beats) {
     if (beat.camera && !beat.actions.length) {
       // A camera beat: everyone holds still while the camera moves
@@ -850,6 +982,8 @@ function playTimeline(timeline, slots, props, W, minDuration = 0) {
       if (!st.present) st.k = 1; // (re)appearing figures start in the front row
       let move = null, d = 0, shown = null, words = null, then = null, dMove = 0;
       if (['approach', 'recede', 'enter', 'moveTo', 'exit'].includes(a.type)) { st.lookAt = null; st.seated = null; st.hugging = null; } // eyes on the way ahead
+      // (what it keeps doing - jumping, dancing - while someone talks: stopped by anything else it does)
+      if (a.type !== 'expr' && !(a.type === 'pose' && a.anim === 'talk')) st.doing = a.type === 'pose' && KEEPS_ON.has(a.anim) ? a.anim : null;
       if (a.lookAt) st.lookAt = a.lookAt; // "waves at her"
       if (a.type === 'approach' || a.type === 'recede') {
         // Toward the camera (from the horizon if not there yet, else a step closer) or away into the
@@ -938,7 +1072,8 @@ function playTimeline(timeline, slots, props, W, minDuration = 0) {
         st.present = true;
         if (a.anim !== 'talk') st.hugging = null;
         d = GESTURE_SECONDS[a.anim] ?? 2;
-        shown = pose(key, { anim: a.anim });
+        // (saying something while jumping or dancing: it keeps on, its lips moving with the words)
+        shown = pose(key, { anim: a.anim === 'talk' && st.doing ? st.doing : a.anim });
         // Saying something: the words ("says “Hello!”"), else a clip scene's caption when the figure
         // talks; the step lasts as long as the words take, lips in sync (src/speech.js)
         words = a.anim === 'talk' ? a.speech ?? timeline.caption : null;
@@ -980,6 +1115,10 @@ function playTimeline(timeline, slots, props, W, minDuration = 0) {
       if (shot) shot.t1 = t + (shot.t1 - t) * f;
       beatLen = beat.duration;
     }
+    // (while someone only talks, whoever was jumping or dancing keeps on)
+    const talkOnly = beat.actions.length > 0 && beat.actions.every((a) => a.type === 'pose' && a.anim === 'talk');
+    const idle = (id) => (talkOnly && state.get(id).doing ? pose(id, { anim: state.get(id).doing }) : pose(id));
+    lastTalkOnly = talkOnly;
     for (const [id, st] of state) {
       const act = acting.get(id);
       const track = tracks.get(id);
@@ -988,7 +1127,7 @@ function playTimeline(timeline, slots, props, W, minDuration = 0) {
       if (act?.shown) {
         const t0 = t + act.delay;
         const m = act.move;
-        if (act.delay && act.wasPresent) track.push({ t0: t, t1: t0, x0: m.x0, x1: m.x0, k0: m.k0, k1: m.k0, pose: pose(id) });
+        if (act.delay && act.wasPresent) track.push({ t0: t, t1: t0, x0: m.x0, x1: m.x0, k0: m.k0, k1: m.k0, pose: idle(id) });
         // A gesture lasts as long as the beat: the boy keeps waving while the dog runs up to him
         t1 = m ? t + act.d : t + beatLen;
         // (walking somewhere, then something there - sitting down, a hug - for the rest of the step)
@@ -999,14 +1138,14 @@ function playTimeline(timeline, slots, props, W, minDuration = 0) {
           t1 = t + beatLen;
         }
       }
-      if (st.present && t1 < t + beatLen) track.push({ t0: t1, t1: t + beatLen, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
+      if (st.present && t1 < t + beatLen) track.push({ t0: t1, t1: t + beatLen, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: idle(id) });
     }
     beatTimes.push({ t0: r2(t), t1: r2(t + beatLen) });
     t += beatLen;
   }
   // (in a clip, the last arrangement holds for as long as the scene is on: it loops only after that)
   const hold = Math.max(HOLD_SECONDS, minDuration - t);
-  for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + hold, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: pose(id) });
+  for (const [id, st] of state) if (st.present) tracks.get(id).push({ t0: t, t1: t + hold, x0: st.x, x1: st.x, k0: st.k, k1: st.k, pose: lastTalkOnly && st.doing ? pose(id, { anim: st.doing }) : pose(id) });
   return { T: t + hold, tracks, camera, beatTimes, speeches, doings };
 }
 
@@ -1232,6 +1371,14 @@ export function composeScene(matches, opts = {}) {
   // A figure walking toward or away from the camera, or a timeline where actors walk and stop:
   // the ground must not scroll sideways under them.
   if (timeline || items.some((it) => ['approach', 'recede'].includes(it.m.animation))) env.parallax = false;
+  // On the way (a still scene: walking, running, driving, flying on the spot; or going up or down): the place goes by
+  const travel = !timeline && !env.room && !FLAT_BACKDROP_STYLES.includes(style) && !items.some((it) => TRAVEL_MOTIONS.includes(it.m.animation)) ? travelOf(items, words) : null;
+  if (travel) {
+    env.travel = { ...(travel.x ? { x: travel.x } : { y: travel.y }) };
+    env.parallax = false;
+    // (all going the same way: the way the place goes by)
+    for (const it of travel.movers ?? []) it.noFlip = true;
+  }
   const pal = palette(env);
   // (a low or high camera chosen for the scene: the horizon drops or rises, figures loom or shrink)
   const angle = SHOT_ANGLES[shotChoice(opts.shot)?.kind] ?? null;
@@ -1771,7 +1918,13 @@ export function composeScene(matches, opts = {}) {
     }
   }
   if (timeline && actorSlots.size) {
-    const { T, tracks, camera: events, beatTimes, speeches, doings } = playTimeline(timeline, actorSlots, propsAt, W, opts.minDuration ?? 0);
+    const { T, tracks, camera: events, beatTimes, speeches, doings } = playTimeline(timeline, actorSlots, propsAt, W, opts.minDuration ?? 0, opts.startAt ?? null);
+    // (where everyone is at the end, for the next scene of a clip to start from)
+    opts.endAt = {};
+    for (const [key, slot] of actorSlots) {
+      const last = tracks.get(key)?.at(-1);
+      if (key.endsWith('#0') && last && last.x1 > 0 && last.x1 < W) opts.endAt[slot.id] = { x: Math.round(last.x1 / W * 1000) / 1000, facing: last.pose?.mirror ? -1 : 1 };
+    }
     opts.timelineSpeeches = speeches.filter((sp) => sp.quoted).map((sp) => ({ who: sp.key.split('#')[0], text: sp.text }));
     // (for the camera director: where everyone is when, and who speaks when)
     opts.timelineTracks = tracks;
@@ -1832,6 +1985,11 @@ export function composeScene(matches, opts = {}) {
   });
   // The camera director (src/director.js): the shots chosen on the scene card, else its own, when
   // the scene's words give no camera move
+  // (a still scene: where everyone stands, for the next scene of a clip to start from)
+  if (!opts.endAt) {
+    opts.endAt = {};
+    for (const it of items) if (it.aid && it.at && !opts.endAt[it.aid]) opts.endAt[it.aid] = { x: Math.round((it.at.x0 + 50 * it.at.s) / W * 1000) / 1000, facing: it.at.flip ? -1 : 1 };
+  }
   const choice = shotChoice(opts.shot);
   const sceneT = timeline?.duration || opts.minDuration || 6;
   let shaking = false, shots = null;
@@ -1879,10 +2037,23 @@ export function composeScene(matches, opts = {}) {
   const st = getStyle(style);
   const filterRef = st.filter ? `url(#${uid}-${st.filter})` : null;
   const fx = styleWrap(style, uid, out.join(''), { scale: W / 260, freq: 0.02, blur: W / 450, pixel: Math.round(W / 12) / 10, w: W, h: H, noFilter: st.wholeFilter });
-  let bgSvg = shapesToSvg(background(W, H, hY, env, pal, rng, hasGround, style), style);
+  const bgShapes = background(W, H, hY, env, pal, rng, hasGround, style);
+  let bgSvg = travel
+    ? travelSvg(bgShapes, style, travel, { W, H, T: sceneT, uid, motionCss, speed: travel.pace * Math.max(...(travel.movers ?? []).map((it) => it.h), H * 0.3) })
+    : shapesToSvg(bgShapes, style);
   if (st.bgFilter && filterRef) bgSvg = `<rect width="${W}" height="${H}" fill="${st.background || '#ffffff'}"/><g filter="${filterRef}">${bgSvg}</g>`;
   const decor = st.decor && !(st.outdoorDecor && env.room) ? st.decor(uid, W, H, hY) : '';
-  let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${decor}${fx.g}${speechBubbles(talkers, W, H, uid, motionCss, env.room && (env.roomKind === 'classroom' || env.boardText) ? [{ x: W * 0.22, y: H * 0.03, w: W * 0.56, h: H * 0.39 }] : [])}`;
+  // (up in the air: no shadows on the ground while the land is gone)
+  let figures = fx.g;
+  if (travel?.y) {
+    const gone = Math.min(0.45, 1.8 / sceneT), back = Math.max(0.55, 1 - 1.8 / sceneT);
+    motionCss.push(travel.y > 0
+      ? `@keyframes ${uid}air { 0% { fill-opacity: 1; } ${pct(gone * 0.5)} { fill-opacity: 0; } 100% { fill-opacity: 0; } }`
+      : `@keyframes ${uid}air { 0% { fill-opacity: 0; } ${pct(back + (1 - back) * 0.6)} { fill-opacity: 0; } 100% { fill-opacity: 1; } }`);
+    motionCss.push(`.${uid}air .pg-shadow, .${uid}air .pg-cast-shadow { animation: ${uid}air ${r2(sceneT)}s linear infinite; }`);
+    figures = `<g class="${uid}air">${figures}</g>`;
+  }
+  let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${decor}${figures}${speechBubbles(talkers, W, H, uid, motionCss, env.room && (env.roomKind === 'classroom' || env.boardText) ? [{ x: W * 0.22, y: H * 0.03, w: W * 0.56, h: H * 0.39 }] : [])}`;
   if (cam) {
     motionCss.push(`@keyframes ${uid}cam { ${cameraCss(cam.keys, cam.T, W, H)}}`);
     content = `<g class="pg-camera" style="animation: ${uid}cam ${r2(cam.T)}s linear infinite;">${content}</g>`;

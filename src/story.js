@@ -482,11 +482,12 @@ export function composeStory(storyInput, opts = {}) {
   // Recurring characters look the same in every scene: one seed for the whole clip, a named
   // character's own look, and a colour once said kept ("a girl in a purple dress", later "the girl")
   const carry = {};
+  let prevEnd = null; // (where everyone was at the end of the scene before: { id: { x, facing } })
   let prevPlace = null; // (the place of the scene before, for the camera director: a new place is shown wide first)
   const scenes = scenesRaw.map((sc, i) => {
     // (a look of its own for this scene, chosen on its card: a stickman moment in a flat clip)
     const sceneStyle = isStyle(opts.sceneStyles?.[sc.caption]) ? opts.sceneStyles[sc.caption] : style;
-    const result = generate(sc.prompt, {
+    const sceneOpts = {
       mode: 'scene',
       style: sceneStyle,
       width: dims.width,
@@ -509,10 +510,19 @@ export function composeStory(storyInput, opts = {}) {
       // (its shots: chosen on its card, else the director's, knowing where it is in the clip)
       ...(typeof opts.sceneShots?.[sc.caption] === 'string' ? { shot: opts.sceneShots[sc.caption] } : {}),
       shotContext: { index: i, first: i === 0, last: i === scenesRaw.length - 1, prevPlace },
+      // (whoever is still here from the scene before, in the same place, starts where they were)
+      ...(prevEnd ? { startAt: prevEnd } : {}),
       // A caption of its own (not the prompt repeated) is what a talking figure says, lip-synced
       ...(sc.caption && sc.caption.toLowerCase().replace(/[.!?\s]+$/, '') !== sc.prompt.toLowerCase().replace(/[.!?\s]+$/, '') ? { caption: sc.caption } : {}),
-    });
+    };
+    let result = generate(sc.prompt, sceneOpts);
+    // (somewhere new after all: everyone starts afresh there)
+    if (sceneOpts.startAt && prevPlace && result.card?.place && result.card.place.split(' · ')[0] !== prevPlace) {
+      delete sceneOpts.startAt;
+      result = generate(sc.prompt, sceneOpts);
+    }
 
+    prevEnd = result.endAt ?? null;
     prevPlace = result.card?.place ? result.card.place.split(' · ')[0] : prevPlace;
     for (const m of result.matches) {
       if (m.color || m.hair || m.features) {

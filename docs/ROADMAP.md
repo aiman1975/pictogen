@@ -102,7 +102,12 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [ ] Riding in timelines (riding across together), holding hands while walking, a hug back
 
 ### 3. Environment
-- [ ] Parallax layers (far hills, mid trees, near grass) that move with the camera
+- [x] Parallax layers (far hills, mid trees, near grass): someone walking, running, driving, riding,
+      flying or swimming on the spot - the place goes by behind them, far layers slower; going up
+      ("flies up into the sky", "lifts off") the land drops away and clouds stream past; coming down
+      ("falls", "dives deeper") the clouds or bubbles stream up and the ground arrives to land on
+      (`src/scene.js` travelOf, travelSvg)
+- [ ] Parallax in sequences: the camera tracking someone walking a long way
 - [x] Places: a classroom (chalkboard, clock, bunting), an office (a window onto the city, a chart,
       a shelf, a plant), a kitchen (cupboards, tiles, counter, oven), a bedroom (curtains, the moon at
       night, a rug), any other room (a window, a picture); a city skyline (windows lit at night,
@@ -276,8 +281,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       feeling (the mood list), action, message (`src/scene-card.js`); the place (place, time,
       weather, your places), the steps (who, what, to whom, order, together) and the message (who says
       what, lines added or removed, the board's words) editable per scene
+- [x] **In a clip, scene to scene:** someone still in the same place starts the next scene where they
+      stood; jumping or dancing keeps on while someone talks after it; letters and digits are never
+      drawn backwards, step and sing along when they dance
 
 ## Known issues to fix along the way
 - The bicycle drawing loses its wheels at small sizes
 - "shoes" and "glasses" match ballet shoes and clinking glasses
-- Walk-across figures also get a sideways-scrolling ground, so the motion counts twice

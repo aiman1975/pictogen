@@ -772,6 +772,16 @@ Remember: stop, look and check before you click.`, { style: 'stickman', genre: '
   // ...and dancing, it steps from foot to foot and sings along
   const dancer = generate('a red letter A dances', { style: 'cartoon' }).svg;
   check(/pg-rig-glyph pg-anim-dance/.test(dancer) && /\.pg-rig-glyph\.pg-anim-dance \.pg-leg-left \{ animation: pgStepL/.test(dancer) && /\.pg-rig-glyph\.pg-anim-dance \.pg-face-mouth/.test(dancer), 'a dancing letter steps its feet and moves its mouth');
+  // Jumping (or dancing) keeps on while someone talks after it
+  const hooray = composeStory('In the park, a red letter A and a blue number 7 walk in.\nThe letter A and the number 7 jump. "Hooray! We did it!" says the number 7.', { style: 'cartoon' }).scenes[1];
+  const jumps = (hooray.svg.match(/class="pg-anim-jump"|pg-rig-glyph pg-anim-jump/g) ?? []).length;
+  const stands = /pg-rig-glyph pg-anim-blink/.test(hooray.svg);
+  check(/Hooray/.test(hooray.svg) && jumps >= 2 && !stands, `they keep jumping while the 7 says “Hooray!” (${jumps} jumping poses, standing still: ${stands})`);
+  // A clip: someone still in the same place starts the next scene where they stood, not off the side
+  const startX = (svg) => +svg.match(/letter_a_0p \{ 0% \{ transform: translate\(([-\d.]+)px/)[1];
+  const stay = composeStory('In the park, a red letter A walks in, then a blue number 7 walks in. "Hi, A!" says the number 7.\nThe letter A walks to the number 7. "Let us dance!" says the letter A.', { style: 'cartoon' });
+  const moved = composeStory('In the park, a red letter A walks in, then a blue number 7 walks in. "Hi, A!" says the number 7.\nIn the city, the letter A walks to the number 7. "Let us dance!" says the letter A.', { style: 'cartoon' });
+  check(startX(stay.scenes[1].svg) > 0 && startX(moved.scenes[1].svg) < -100, `the next scene in the same place starts where they were (${startX(stay.scenes[1].svg)}); somewhere new, they come in anew (${startX(moved.scenes[1].svg)})`);
 }
 
 console.log(fails ? `\n${fails} timeline check(s) failed` : '\nTimeline test suite: ALL PASSED!');

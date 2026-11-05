@@ -836,7 +836,8 @@ export function shapesToSvg(shapes, styleName = 'flat', ctx = {}) {
     }
     const a = st.shape(s, c);
     if (!a) continue;
-    out += `<${s.type}${attrs({ ...s.attrs, ...a, transform: s.transform })}/>`;
+    // (a shadow cast on the ground is marked, so a scene can take it away: up in the air)
+    out += `<${s.type}${attrs({ ...s.attrs, ...a, transform: s.transform, ...(s.kind === 'shadow' ? { class: 'pg-cast-shadow' } : {}) })}/>`;
   }
   return out;
 }

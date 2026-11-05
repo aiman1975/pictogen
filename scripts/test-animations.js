@@ -44,5 +44,23 @@ const iconWink = renderIcon('girl', { expression: 'wink', animation: 'walk' });
 assert(iconWink.includes('pg-anim-walk'), 'Icon has walk animation');
 assert(!/NaN|undefined|\[object/.test(iconWink), 'Icon renders clean SVG');
 
+// On the way: the place goes by behind someone walking, running or driving on the spot; going up
+// or down, the land slides away and clouds stream past
+const tv = (t, o = {}) => generate(t, { style: 'cartoon', seed: 3, ...o }).svg;
+const across = tv('a boy runs in the forest by the mountains');
+assert(/pg-travel pg-travel-far/.test(across) && /pg-travel pg-travel-mid/.test(across) && /pg-travel pg-travel-near/.test(across), 'running: far, middle and near layers go by');
+const speeds = ['far', 'mid', 'near'].map((n) => +across.match(new RegExp(`pg-travel-${n}" style="animation: \\S+ ([\\d.]+)s`))[1]);
+assert(speeds[0] > speeds[1] && speeds[1] > speeds[2], `the far layer goes by slowest, the near one fastest (${speeds.join(' / ')} s per loop)`);
+assert(/translateX\(-1280px\)/.test(across), 'running right: the place slides left by two widths per loop (tiles join up)');
+assert(/pg-travel-near/.test(tv('a car drives in the city')), 'driving in the city: the street goes by');
+assert(!/pg-travel/.test(tv('a boy runs past a tree')), 'something standing by them (a tree): the place stays still');
+assert(!/pg-travel/.test(tv('a boy runs', { style: 'stickman' })), 'a plain canvas style: no travel');
+const up = tv('a rocket flies up into the sky');
+assert(/pg-travel pg-travel-land/.test(up) && /pg-travel pg-travel-stream/.test(up), 'flying up: the land drops away, clouds stream past');
+const down = tv('a diver dives deeper under the sea');
+assert(/pg-travel pg-travel-land/.test(down) && /pg-travel-stream/.test(down), 'diving: the seabed comes up, bubbles stream past');
+for (const still of ['a girl falls asleep', 'a boy looks up at the sky', 'a girl waves in the park']) assert(!/pg-travel/.test(tv(still)), `no travel: ${still}`);
+assert(!/pg-travel/.test(generate('In the park, a red letter A walks in, then a blue number 7 walks in.', { style: 'cartoon' }).svg), 'a sequence where they walk across: the place stays (they move, not it)');
+
 console.log(`\nAnimation & Mimics test suite: ${fails === 0 ? 'ALL PASSED!' : `${fails} FAILS`}`);
 process.exit(fails === 0 ? 0 : 1);
