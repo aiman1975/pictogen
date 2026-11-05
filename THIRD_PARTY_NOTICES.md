@@ -54,3 +54,15 @@ levelled and converted to MP3 on import; each file's original name is in
 `public/audio/pack/manifest.json`. License: Creative Commons Zero (CC0 1.0), public domain: no
 attribution required; credited here as a courtesy. License text:
 `public/audio/pack/licenses/kenney-interface-sounds.txt`.
+
+## Kenney audio packs — `public/audio/pack/effects/`
+
+Footsteps, impacts, doors, pages, coins, dice, clicks, ticks, chimes and short musical jingles from
+Kenney's free audio packs (https://kenney.nl/assets), downloaded from kenney.nl on 2026-11-05:
+**RPG Audio** (footsteps, a door, book pages, coins), **Impact Sounds** (footsteps on grass, concrete,
+wood, carpet and snow; soft thuds; metal and glass crashes), **Sci-fi Sounds** (booms), **Casino
+Audio** (dice), **Interface Sounds** (a tick, chimes), **UI Audio** (clicks) and **Music Jingles**
+(triumphant, sad, tense and mysterious flourishes). Trimmed, levelled and converted to MP3 on import;
+each file's pack is in `public/audio/pack/manifest.json`. License: Creative Commons Zero (CC0 1.0),
+public domain: commercial use allowed, no attribution required; credited here as a courtesy. License
+texts: `public/audio/pack/licenses/kenney-*.txt`.

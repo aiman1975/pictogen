@@ -131,7 +131,7 @@ lips (like the babble in Animal Crossing). Record or generate several takes of e
 
 | File name (+ .mp3, .wav...) | Have | What it is | Prompt for a sound generator |
 |---|---|---|---|
-| `steps` | — | ONE soft footstep (several files = variety; played in a walking rhythm) | One single soft footstep of a small cartoon character on grass, very short, cute. About 0.15 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `steps` | ✅ 10 | ONE soft footstep (several files = variety; played in a walking rhythm) | One single soft footstep of a small cartoon character on grass, very short, cute. About 0.15 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 | `pop` | ✅ 3 | something appears ("pop!") | A cute cartoon pop, like a bubble or a cork, very short. About 0.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 | `boing` | ✅ 2 | a jump (spring "boing") | A cartoon spring "boing" for a jump, bouncy. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 | `whoosh` | ✅ 2 | someone runs past (whoosh) | A quick soft cartoon whoosh, someone running past. About 0.5 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
@@ -143,6 +143,25 @@ lips (like the babble in Animal Crossing). Record or generate several takes of e
 | `whirl` | ✅ 2 | spinning around (whirl) | A cartoon whirl, spinning around quickly, rising. About 0.7 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 | `flutter` | — | flying / flapping wings | Small bird wings fluttering, flapping quickly. About 0.6 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 | `bubble` | ✅ 2 | swimming (bubbles) | A few small water bubbles rising, cute. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `steps-grass` | ✅ 5 | ONE footstep on grass or earth (outdoors) | One single footstep on grass, very short. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `steps-hard` | ✅ 5 | ONE footstep on stone or concrete (a city, a castle, a kitchen) | One single footstep on concrete, very short. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `steps-wood` | ✅ 5 | ONE footstep on a wooden floor (a classroom, a room) | One single footstep on a wooden floor, very short. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `steps-carpet` | ✅ 5 | ONE soft footstep on carpet (a bedroom, an office) | One single soft footstep on carpet, very short. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `steps-snow` | ✅ 5 | ONE footstep crunching in snow or sand | One single footstep crunching in snow, very short. About 0.45 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `thud` | ✅ 5 | a soft thud (landing, sitting down; the clean set's boing) | A soft dull thud of something landing on a cushion, short. About 0.4 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `crash` | ✅ 5 | a crash (a car crashed, something smashed, a bang) | A short cartoon crash of metal and glass, not too loud. About 1.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `boom` | ✅ 4 | a boom (an explosion, thunder) | A deep rumbling boom, an explosion far away, not scary. About 2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `door` | ✅ 2 | a door opening (someone comes into a room) | A wooden door opening with a soft creak. About 1.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `page` | ✅ 3 | a page turning (a book) | One book page turning, paper rustle. About 0.6 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `coins` | ✅ 2 | coins jingling (money) | A few coins jingling in a hand. About 1 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `dice` | ✅ 3 | dice rolling | Two dice rolling on a wooden table. About 1.2 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `tick` | ✅ 1 | ONE clock tick (played once a second) | One single clock tick, very short. About 0.15 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `click` | ✅ 5 | a soft click (the clean set's pop: a point appearing) | A soft user-interface click, very short. About 0.12 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `chime` | ✅ 4 | a soft chime (the clean set's jingle, a title appearing) | A soft, pleasant two-note confirmation chime. About 0.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `triumph` | ✅ 3 | a short triumphant flourish (a joyful scene) | A short bright triumphant musical flourish, one second. About 1.6 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `sorrow` | ✅ 3 | a short sad phrase (a sad scene) | A short sad descending musical phrase, one second. About 1.8 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `tension` | ✅ 3 | a short suspenseful sting (a tense scene) | A short suspenseful low musical sting, one second. About 1.6 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
+| `mystic` | ✅ 3 | a short mysterious motif (a mysterious scene) | A short curious, magical musical motif, one second. About 1.6 seconds. Dry studio recording, no music, no background noise, no reverb, no words unless given. |
 
 ## Music (per clip genre)
 

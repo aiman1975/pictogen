@@ -57,6 +57,28 @@ const EFFECT_SOUNDS = [
   ['whirl', 0.7, 'spinning around (whirl)', 'A cartoon whirl, spinning around quickly, rising.'],
   ['flutter', 0.6, 'flying / flapping wings', 'Small bird wings fluttering, flapping quickly.'],
   ['bubble', 0.4, 'swimming (bubbles)', 'A few small water bubbles rising, cute.'],
+  // Footsteps on the ground of the place (src/scene.js stepSurface): one step per file, as 'steps'
+  ['steps-grass', 0.4, 'ONE footstep on grass or earth (outdoors)', 'One single footstep on grass, very short.'],
+  ['steps-hard', 0.4, 'ONE footstep on stone or concrete (a city, a castle, a kitchen)', 'One single footstep on concrete, very short.'],
+  ['steps-wood', 0.4, 'ONE footstep on a wooden floor (a classroom, a room)', 'One single footstep on a wooden floor, very short.'],
+  ['steps-carpet', 0.4, 'ONE soft footstep on carpet (a bedroom, an office)', 'One single soft footstep on carpet, very short.'],
+  ['steps-snow', 0.45, 'ONE footstep crunching in snow or sand', 'One single footstep crunching in snow, very short.'],
+  // Things happening
+  ['thud', 0.4, 'a soft thud (landing, sitting down; the clean set\'s boing)', 'A soft dull thud of something landing on a cushion, short.'],
+  ['crash', 1.2, 'a crash (a car crashed, something smashed, a bang)', 'A short cartoon crash of metal and glass, not too loud.'],
+  ['boom', 2, 'a boom (an explosion, thunder)', 'A deep rumbling boom, an explosion far away, not scary.'],
+  ['door', 1.2, 'a door opening (someone comes into a room)', 'A wooden door opening with a soft creak.'],
+  ['page', 0.6, 'a page turning (a book)', 'One book page turning, paper rustle.'],
+  ['coins', 1, 'coins jingling (money)', 'A few coins jingling in a hand.'],
+  ['dice', 1.2, 'dice rolling', 'Two dice rolling on a wooden table.'],
+  ['tick', 0.15, 'ONE clock tick (played once a second)', 'One single clock tick, very short.'],
+  ['click', 0.12, 'a soft click (the clean set\'s pop: a point appearing)', 'A soft user-interface click, very short.'],
+  ['chime', 0.8, 'a soft chime (the clean set\'s jingle, a title appearing)', 'A soft, pleasant two-note confirmation chime.'],
+  // A scene's mood as it starts (src/mood.js MOOD_STINGS)
+  ['triumph', 1.6, 'a short triumphant flourish (a joyful scene)', 'A short bright triumphant musical flourish, one second.'],
+  ['sorrow', 1.8, 'a short sad phrase (a sad scene)', 'A short sad descending musical phrase, one second.'],
+  ['tension', 1.6, 'a short suspenseful sting (a tense scene)', 'A short suspenseful low musical sting, one second.'],
+  ['mystic', 1.6, 'a short mysterious motif (a mysterious scene)', 'A short curious, magical musical motif, one second.'],
 ];
 const MUSIC = [
   ['kids', 'Kids stories', 'Happy, playful instrumental children\'s music: ukulele, glockenspiel, light hand claps, 105 BPM, major key, bright and gentle'],
@@ -181,7 +203,11 @@ export function packForClip(sounds, { genre = null, dir = PACK_DIR, limit = 12e6
   const { files, problems } = readPack(dir);
   const bad = new Set(problems.map((p) => p.split(':')[0]));
   const want = new Set();
-  for (const s of sounds || []) for (const c of s?.cues || []) want.add(c.s === 'babble' ? 'syl' : c.s);
+  for (const s of sounds || []) for (const c of s?.cues || []) {
+    want.add(c.s === 'babble' ? 'syl' : c.s);
+    // (footsteps on the place's ground: its own files, with the plain ones to fall back on)
+    if (c.s === 'steps' && c.f) want.add(`steps-${c.f}`);
+  }
   let total = 0;
   const out = [];
   const pick = files.filter((e) => !bad.has(e.file) && (e.music ? e.music === genre : want.has(e.sound)))

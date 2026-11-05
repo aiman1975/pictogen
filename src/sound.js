@@ -30,14 +30,16 @@ export const SOUND_NAMES = [
   ...Object.keys(VOCAL), 'snore', 'pop', 'boing', 'whoosh', 'steps', 'jingle', 'ding', 'blip', 'twinkle', 'plop', 'whirl', 'flutter', 'bubble',
   ...Object.values(CALLS),
   // things in the scene, and the clean set's quieter ones
-  'ring', 'tick', 'typing', 'schoolbell', 'magic', 'applause', 'splash', 'thud', 'chime', 'click',
+  'ring', 'tick', 'typing', 'schoolbell', 'magic', 'applause', 'splash', 'thud', 'chime', 'click', 'page', 'coins', 'dice', 'door', 'crash', 'boom',
   // a scene's mood, as it starts (src/mood.js)
   'tension', 'triumph', 'sorrow', 'mystic',
 ];
 
 // Things in a scene that make a sound of their own, once as it starts: concept id -> sound
 const THING_SOUNDS = { phone: 'ring', mobile_phone: 'ring', telephone: 'ring', clock: 'tick', alarm_clock: 'tick', laptop: 'typing', computer: 'typing',
-  desktop_computer: 'typing', keyboard: 'typing', bell: 'schoolbell', wizard: 'magic', fairy: 'magic', genie: 'magic', unicorn: 'magic', witch: 'magic', magic_wand: 'magic' };
+  desktop_computer: 'typing', keyboard: 'typing', bell: 'schoolbell', wizard: 'magic', fairy: 'magic', genie: 'magic', unicorn: 'magic', witch: 'magic', magic_wand: 'magic',
+  book: 'page', books: 'page', open_book: 'page', closed_book: 'page', notebook: 'page', coin: 'coins', money_bag: 'coins', dollar_banknote: 'coins',
+  euro_banknote: 'coins', game_die: 'dice', door: 'door' };
 /** The sounds of a scene's things as it starts (a phone rings, a wizard's magic sparkles) */
 export function thingCues(ids, { classroom = false, cheering = 0 } = {}) {
   const out = [];
@@ -54,6 +56,20 @@ export function thingCues(ids, { classroom = false, cheering = 0 } = {}) {
   // (three or more cheering: applause)
   if (cheering >= 3) out.push({ t: 0.4, s: 'applause', d: 2.5 });
   return out;
+}
+
+/**
+ * What feet walk on in a place, for its footsteps (the pack's steps-<surface> files): grass
+ * outdoors, stone in a city, a castle, space or a kitchen, wood in a classroom or a room, carpet in
+ * a bedroom or an office, snow or sand crunching
+ */
+export function stepSurface(env) {
+  if (!env) return null;
+  if (env.snow || env.desert || env.beach) return 'snow';
+  if (env.room) return env.roomKind === 'bedroom' || env.roomKind === 'office' ? 'carpet' : env.roomKind === 'kitchen' ? 'hard' : 'wood';
+  if (env.city || env.castle || env.space) return 'hard';
+  if (env.underwater) return null;
+  return 'grass';
 }
 
 /**

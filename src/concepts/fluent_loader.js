@@ -28,7 +28,7 @@ const SETTING_LAST_WORDS = new Set(['night', 'rain', 'snow', 'water', 'sea', 'be
 // (and little words: "puts her phone away", "looks up")
 const VERB_LAST_WORDS = new Set(['stop', 'check', 'play', 'pause', 'record', 'repeat', 'shuffle', 'eject', 'away', 'up', 'down', 'out', 'off', 'back', 'over', 'around', 'here', 'there', 'now', 'again']);
 // Phrases for an icon that its name doesn't give ("a warning sign" is one sign, not two things)
-const EXTRA_ALIASES = { warning: ['warning sign', 'warning signs', 'danger sign'] };
+const EXTRA_ALIASES = { warning: ['warning sign', 'warning signs', 'danger sign'], 'game-die': ['dice'], 'money-bag': ['money', 'cash'] };
 
 const hasWord = (tokens, words) => words.some((w) => tokens.includes(w));
 

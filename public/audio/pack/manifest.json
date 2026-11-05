@@ -50,6 +50,38 @@
       "notes": "prepared from boing.wav (0.22 s after trimming silence, levelled, MP3); Kenney Interface Sounds, maximize_008.wav"
     },
     {
+      "file": "effects/boom-1.mp3",
+      "sound": "boom",
+      "source": "Kenney Sci-fi Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-sci-fi-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from boom-1.ogg (2.00 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/boom-2.mp3",
+      "sound": "boom",
+      "source": "Kenney Sci-fi Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-sci-fi-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from boom-2.ogg (1.00 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/boom-3.mp3",
+      "sound": "boom",
+      "source": "Kenney Sci-fi Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-sci-fi-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from boom-3.ogg (0.76 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/boom-4.mp3",
+      "sound": "boom",
+      "source": "Kenney Sci-fi Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-sci-fi-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from boom-4.ogg (1.36 s after trimming silence, levelled, MP3)"
+    },
+    {
       "file": "effects/bubble-1.mp3",
       "sound": "bubble",
       "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
@@ -66,6 +98,158 @@
       "notes": "prepared from bubble.wav (0.11 s after trimming silence, levelled, MP3); Kenney Interface Sounds, drop_001.wav"
     },
     {
+      "file": "effects/chime-1.mp3",
+      "sound": "chime",
+      "source": "Kenney Interface Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-interface-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from chime-1.ogg (0.29 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/chime-2.mp3",
+      "sound": "chime",
+      "source": "Kenney Interface Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-interface-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from chime-2.ogg (0.52 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/chime-3.mp3",
+      "sound": "chime",
+      "source": "Kenney Interface Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-interface-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from chime-3.ogg (0.32 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/chime-4.mp3",
+      "sound": "chime",
+      "source": "Kenney Interface Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-interface-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from chime-4.ogg (0.49 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/click-1.mp3",
+      "sound": "click",
+      "source": "Kenney UI Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-ui-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from click-1.ogg (0.05 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/click-2.mp3",
+      "sound": "click",
+      "source": "Kenney UI Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-ui-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from click-2.ogg (0.05 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/click-3.mp3",
+      "sound": "click",
+      "source": "Kenney UI Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-ui-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from click-3.ogg (0.06 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/click-4.mp3",
+      "sound": "click",
+      "source": "Kenney UI Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-ui-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from click-4.ogg (0.04 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/click-5.mp3",
+      "sound": "click",
+      "source": "Kenney UI Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-ui-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from click-5.ogg (0.03 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/coins-1.mp3",
+      "sound": "coins",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from coins-1.ogg (0.71 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/coins-2.mp3",
+      "sound": "coins",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from coins-2.ogg (0.23 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/crash-1.mp3",
+      "sound": "crash",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from crash-1.ogg (0.16 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/crash-2.mp3",
+      "sound": "crash",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from crash-2.ogg (0.36 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/crash-3.mp3",
+      "sound": "crash",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from crash-3.ogg (0.11 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/crash-4.mp3",
+      "sound": "crash",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from crash-4.ogg (0.24 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/crash-5.mp3",
+      "sound": "crash",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from crash-5.ogg (0.43 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/dice-1.mp3",
+      "sound": "dice",
+      "source": "Kenney Casino Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-casino-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from dice-1.ogg (0.51 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/dice-2.mp3",
+      "sound": "dice",
+      "source": "Kenney Casino Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-casino-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from dice-2.ogg (0.29 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/dice-3.mp3",
+      "sound": "dice",
+      "source": "Kenney Casino Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-casino-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from dice-3.ogg (0.58 s after trimming silence, levelled, MP3)"
+    },
+    {
       "file": "effects/ding-1.mp3",
       "sound": "ding",
       "source": "Kenney Interface Sounds 1.0 by Kenney (kenney.nl), via github.com/Calinou/kenney-interface-sounds",
@@ -80,6 +264,22 @@
       "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
       "made": "2026-10-18",
       "notes": "prepared from ding.wav (0.24 s after trimming silence, levelled, MP3); Kenney Interface Sounds, glass_001.wav"
+    },
+    {
+      "file": "effects/door-1.mp3",
+      "sound": "door",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from door-1.ogg (0.89 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/door-2.mp3",
+      "sound": "door",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from door-2.ogg (1.38 s after trimming silence, levelled, MP3)"
     },
     {
       "file": "effects/jingle-1.mp3",
@@ -104,6 +304,54 @@
       "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
       "made": "2026-10-18",
       "notes": "prepared from jingle.wav (0.29 s after trimming silence, levelled, MP3); Kenney Interface Sounds, confirmation_001.wav"
+    },
+    {
+      "file": "effects/mystic-1.mp3",
+      "sound": "mystic",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from mystic-1.ogg (0.91 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/mystic-2.mp3",
+      "sound": "mystic",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from mystic-2.ogg (1.15 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/mystic-3.mp3",
+      "sound": "mystic",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from mystic-3.ogg (0.79 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/page-1.mp3",
+      "sound": "page",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from page-1.ogg (0.63 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/page-2.mp3",
+      "sound": "page",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from page-2.ogg (0.37 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/page-3.mp3",
+      "sound": "page",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from page-3.ogg (0.19 s after trimming silence, levelled, MP3)"
     },
     {
       "file": "effects/plop-1.mp3",
@@ -136,6 +384,406 @@
       "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
       "made": "2026-10-18",
       "notes": "prepared from pop.wav (0.18 s after trimming silence, levelled, MP3); Kenney Interface Sounds, drop_002.wav"
+    },
+    {
+      "file": "effects/sorrow-1.mp3",
+      "sound": "sorrow",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from sorrow-1.ogg (1.55 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/sorrow-2.mp3",
+      "sound": "sorrow",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from sorrow-2.ogg (1.26 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/sorrow-3.mp3",
+      "sound": "sorrow",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from sorrow-3.ogg (0.79 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-1.mp3",
+      "sound": "steps",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-1.ogg (0.22 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-10.mp3",
+      "sound": "steps",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-9.ogg (0.22 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-2.mp3",
+      "sound": "steps",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-10.ogg (0.22 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-3.mp3",
+      "sound": "steps",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-2.ogg (0.23 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-4.mp3",
+      "sound": "steps",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-3.ogg (0.22 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-5.mp3",
+      "sound": "steps",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-4.ogg (0.26 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-6.mp3",
+      "sound": "steps",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-5.ogg (0.25 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-7.mp3",
+      "sound": "steps",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-6.ogg (0.22 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-8.mp3",
+      "sound": "steps",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-7.ogg (0.21 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-9.mp3",
+      "sound": "steps",
+      "source": "Kenney RPG Audio by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-rpg-audio.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-8.ogg (0.17 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-carpet-1.mp3",
+      "sound": "steps-carpet",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-carpet-1.ogg (0.14 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-carpet-2.mp3",
+      "sound": "steps-carpet",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-carpet-2.ogg (0.14 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-carpet-3.mp3",
+      "sound": "steps-carpet",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-carpet-3.ogg (0.14 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-carpet-4.mp3",
+      "sound": "steps-carpet",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-carpet-4.ogg (0.07 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-carpet-5.mp3",
+      "sound": "steps-carpet",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-carpet-5.ogg (0.07 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-grass-1.mp3",
+      "sound": "steps-grass",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-grass-1.ogg (0.12 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-grass-2.mp3",
+      "sound": "steps-grass",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-grass-2.ogg (0.14 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-grass-3.mp3",
+      "sound": "steps-grass",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-grass-3.ogg (0.14 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-grass-4.mp3",
+      "sound": "steps-grass",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-grass-4.ogg (0.10 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-grass-5.mp3",
+      "sound": "steps-grass",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-grass-5.ogg (0.11 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-hard-1.mp3",
+      "sound": "steps-hard",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-hard-1.ogg (0.10 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-hard-2.mp3",
+      "sound": "steps-hard",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-hard-2.ogg (0.10 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-hard-3.mp3",
+      "sound": "steps-hard",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-hard-3.ogg (0.11 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-hard-4.mp3",
+      "sound": "steps-hard",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-hard-4.ogg (0.11 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-hard-5.mp3",
+      "sound": "steps-hard",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-hard-5.ogg (0.11 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-snow-1.mp3",
+      "sound": "steps-snow",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-snow-1.ogg (0.17 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-snow-2.mp3",
+      "sound": "steps-snow",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-snow-2.ogg (0.18 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-snow-3.mp3",
+      "sound": "steps-snow",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-snow-3.ogg (0.18 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-snow-4.mp3",
+      "sound": "steps-snow",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-snow-4.ogg (0.17 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-snow-5.mp3",
+      "sound": "steps-snow",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-snow-5.ogg (0.18 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-wood-1.mp3",
+      "sound": "steps-wood",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-wood-1.ogg (0.26 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-wood-2.mp3",
+      "sound": "steps-wood",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-wood-2.ogg (0.25 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-wood-3.mp3",
+      "sound": "steps-wood",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-wood-3.ogg (0.25 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-wood-4.mp3",
+      "sound": "steps-wood",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-wood-4.ogg (0.25 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/steps-wood-5.mp3",
+      "sound": "steps-wood",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from steps-wood-5.ogg (0.25 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/tension-1.mp3",
+      "sound": "tension",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from tension-1.ogg (1.05 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/tension-2.mp3",
+      "sound": "tension",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from tension-2.ogg (0.81 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/tension-3.mp3",
+      "sound": "tension",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from tension-3.ogg (0.67 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/thud-1.mp3",
+      "sound": "thud",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from thud-1.ogg (0.12 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/thud-2.mp3",
+      "sound": "thud",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from thud-2.ogg (0.18 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/thud-3.mp3",
+      "sound": "thud",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from thud-3.ogg (0.13 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/thud-4.mp3",
+      "sound": "thud",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from thud-4.ogg (0.14 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/thud-5.mp3",
+      "sound": "thud",
+      "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from thud-5.ogg (0.14 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/tick-1.mp3",
+      "sound": "tick",
+      "source": "Kenney Interface Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-interface-sounds.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from tick-3.ogg (0.06 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/triumph-1.mp3",
+      "sound": "triumph",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from triumph-1.ogg (1.38 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/triumph-2.mp3",
+      "sound": "triumph",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from triumph-2.ogg (0.59 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/triumph-3.mp3",
+      "sound": "triumph",
+      "source": "Kenney Music Jingles by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-music-jingles.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from triumph-3.ogg (0.55 s after trimming silence, levelled, MP3)"
     },
     {
       "file": "effects/twinkle-1.mp3",

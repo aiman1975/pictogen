@@ -70,7 +70,7 @@ const repoPack = readPack();
 check(repoPack.files.filter((e) => /CC0/.test(e.license) && /Kenney/.test(e.source)).length >= 20 && existsSync(new URL('../public/audio/pack/licenses/kenney-interface-sounds.txt', import.meta.url)),
   'the shipped pack has Kenney\'s CC0 interface sounds, with their license text');
 check(!repoPack.problems.length, `the shipped sound pack is clean: every file listed with a source and a license${repoPack.problems.length ? ': ' + repoPack.problems.join('; ') : ''}`);
-check(CATALOGUE.length === 92 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') && CATALOGUE.some((c) => c.slot === 'music/documentary'), `the catalogue lists ${CATALOGUE.length} slots (voices, syllables, animals, effects, music)`);
+check(CATALOGUE.length === 111 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') && CATALOGUE.some((c) => c.slot === 'music/documentary'), `the catalogue lists ${CATALOGUE.length} slots (voices, syllables, animals, effects, music)`);
 // Footsteps by size, things that sound, places' sounds, the sound set of a clip
 {
   const snd = (t, o) => soundOf(generate(t, o).svg) || {};
@@ -101,6 +101,20 @@ check(CATALOGUE.length === 92 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') &
   check(cueOf('an excited girl').some((c) => c.s === 'wow') && cueOf('a scared boy').some((c) => c.s === 'ohno'), 'an excited figure says "wow!", a scared one "oh no!"');
   const files = readPack().files;
   check(['kid', 'woman', 'man'].every((v) => ['wow', 'ohno'].every((s) => files.some((e) => e.voice === v && e.sound === s)) && files.filter((e) => e.voice === v && e.sound === 'yay').length >= 2), 'each voice has its "wow" and "oh no", and two cheers');
+  // Kenney's CC0 packs: footsteps on the place's ground, a door, crashes and booms, things' sounds, mood jingles
+  const ground = (t) => cueOf(t).find((c) => c.s === 'steps')?.f;
+  check(ground('a boy walks in the park') === 'grass' && ground('a girl walks in the snow') === 'snow' && ground('a man walks in the city') === 'hard',
+    `footsteps on the place's ground (park: ${ground('a boy walks in the park')}, snow: ${ground('a girl walks in the snow')}, city: ${ground('a man walks in the city')})`);
+  check(cueOf('a car crashed into a tree').some((c) => c.s === 'crash') && cueOf('a big explosion in the city').some((c) => c.s === 'boom'), 'a crash or a boom when a scene jolts');
+  check(cueOf('a girl reads a book').some((c) => c.s === 'page') && cueOf('a boy and a dice').some((c) => c.s === 'dice') && cueOf('she saves money').some((c) => c.s === 'coins'), 'a book\'s page, dice, coins for money');
+  const entered = composeStory('In the classroom, a teacher walks in, then she waves.', { style: 'flat' }).scenes[0];
+  const ecues = sndOf(entered.svg).cues;
+  check(ecues[0].s === 'door' && ecues.some((c) => c.s === 'steps' && c.f === 'wood'), 'someone coming into a room: the door, then footsteps on its wooden floor');
+  const kenney = files.filter((e) => /Kenney/.test(e.source) && e.license.startsWith('CC0'));
+  const slots = ['steps', 'steps-grass', 'steps-hard', 'steps-wood', 'steps-carpet', 'steps-snow', 'thud', 'crash', 'boom', 'door', 'page', 'coins', 'dice', 'tick', 'click', 'chime', 'triumph', 'sorrow', 'tension', 'mystic'];
+  check(slots.every((sl) => kenney.some((e) => e.sound === sl)), `CC0 files for ${slots.length} sounds (${kenney.length} Kenney files in all)`);
+  const forClip = packForClip([{ cues: [{ s: 'steps', f: 'snow' }] }]);
+  check(forClip.some((e) => e.sound === 'steps-snow') && forClip.some((e) => e.sound === 'steps'), 'an exported clip carries the footsteps for its ground');
   check(packForClip([], { genre: 'sea' }).some((e) => e.music === 'sea') && !packForClip([], { genre: 'sea' }).some((e) => e.music === 'kids'), 'an exported clip carries only the tune it plays');
   const clip = composeStory('a fish swims under the sea | Splash!', { tune: 'sea' });
   const html = generateStoryHtml(clip);

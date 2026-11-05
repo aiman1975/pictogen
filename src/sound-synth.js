@@ -185,9 +185,18 @@ export function pgSound(ctx, dest, cue, when, bank) {
         return;
       }
     } else if (cue.s === 'steps') {
-      if (bank.pick('steps', null, null, 0)) {
+      // (on the place's ground - grass, stone, wood, carpet, snow - when the pack has it: cue.f)
+      const kind = cue.f && bank.pick('steps-' + cue.f, null, null, 0) ? 'steps-' + cue.f : 'steps';
+      if (bank.pick(kind, null, null, 0)) {
         const count = Math.max(1, Math.min(40, Math.floor((cue.d || 1) / stepGap)));
-        for (let i = 0; i < count; i++) play(bank.pick('steps', null, null, i), t0 + 0.05 + i * stepGap, Math.min(2, stepPitch) * (1 + (i % 2) * 0.04), { gain: (cue.g === 'run' ? 0.8 : 1) * Math.min(1.2, 0.5 + z * 0.5) });
+        for (let i = 0; i < count; i++) play(bank.pick(kind, null, null, i), t0 + 0.05 + i * stepGap, Math.min(2, stepPitch) * (1 + (i % 2) * 0.04), { gain: (cue.g === 'run' ? 0.8 : 1) * Math.min(1.2, 0.5 + z * 0.5) });
+        return;
+      }
+    } else if (cue.s === 'tick') {
+      // (a clock: one tick a second)
+      if (bank.pick('tick', null, null, 0)) {
+        const count = Math.max(1, Math.min(12, Math.round(cue.d || 3)));
+        for (let i = 0; i < count; i++) play(bank.pick('tick', null, null, i), t0 + i, i % 2 ? 0.9 : 1, { gain: 0.5 });
         return;
       }
     } else {
@@ -314,6 +323,28 @@ export function pgSound(ctx, dest, cue, when, bank) {
       break;
     }
     case 'splash': hiss(t0, 0.5, 'lowpass', [[0, 3500], [1, 700]], 0.8, 0.45); [0.1, 0.2].forEach((at, i) => blipTo(t0 + at, 'sine', 600 + i * 200, 1300, 0.06, 0.12)); break;
+    // (the pack has these as recordings; made here when it doesn't)
+    case 'page': hiss(t0, 0.35, 'bandpass', [[0, 1800], [0.5, 4200], [1, 2600]], 1.1, 0.22); break;
+    case 'coins': [2637, 3520, 2960, 3951, 3136].forEach((f, i) => bell(t0 + i * 0.06 + (i % 2) * 0.02, f, 0.07, 0.25)); break;
+    case 'dice': [0, 0.11, 0.19, 0.3, 0.36].forEach((at, i) => { blipTo(t0 + at, 'square', 900 - i * 60, 500, 0.02, 0.2, filter('bandpass', 1500, 1.5, out)); hiss(t0 + at, 0.03, 'bandpass', [[0, 2500], [1, 1500]], 2, 0.12); }); break;
+    case 'door': {
+      // A creak, then the latch
+      const g = gainAt(); env(g.gain, t0, 0.07, 0.05, 0.4, 0.2);
+      const o = tone('sawtooth', t0, t0 + 0.7, filter('bandpass', 900, 6, g)); curve(o.frequency, t0, 0.65, [[0, 140], [0.5, 190], [1, 120]]);
+      blipTo(t0 + 0.68, 'square', 1200, 600, 0.03, 0.18, filter('bandpass', 1400, 2, out));
+      break;
+    }
+    case 'crash':
+      hiss(t0, 0.7, 'highpass', [[0, 2500], [1, 5000]], 0.7, 0.35);
+      blipTo(t0, 'sine', 140, 45, 0.25, 0.45);
+      [0.08, 0.17, 0.29].forEach((at, i) => bell(t0 + at, 2900 + i * 650, 0.06, 0.25));
+      break;
+    case 'boom': {
+      const g = gainAt(); env(g.gain, t0, 0.5, 0.02, 0.15, 1.4);
+      const o = tone('sine', t0, t0 + 1.8, g); curve(o.frequency, t0, 1.6, [[0, 80], [1, 32]]);
+      hiss(t0, 1.2, 'lowpass', [[0, 900], [1, 120]], 0.7, 0.4);
+      break;
+    }
     // The clean set's quieter sounds
     case 'thud': blipTo(t0, 'sine', 160, 60, 0.12, 0.35); hiss(t0, 0.04, 'lowpass', [[0, 600], [1, 300]], 0.7, 0.15); break;
     case 'chime': bell(t0, 1319, 0.1, 0.6); bell(t0 + 0.12, 1760, 0.08, 0.7); break;

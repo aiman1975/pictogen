@@ -6,7 +6,7 @@ import { lipKeys, lipCss } from './speech.js';
 import { layoutBubbles } from './bubble.js';
 import { emote } from './emotes.js';
 import { HEIGHTS, mergeFeatures } from './looks.js';
-import { actionCues, stillCues, soundTrack, voiceOf, thingCues, ambienceOf } from './sound.js';
+import { actionCues, stillCues, soundTrack, voiceOf, thingCues, ambienceOf, stepSurface } from './sound.js';
 import { getConcept } from './concepts/index.js';
 import { detectMood, moodChoice, moodLight, moodCamera, MOOD_STINGS } from './mood.js';
 import { sceneCard, placeLabel } from './scene-card.js';
@@ -1931,8 +1931,11 @@ export function composeScene(matches, opts = {}) {
     opts.timelineSpeechTimes = speeches.filter((sp) => sp.quoted).map((sp) => ({ who: sp.key.split('#')[0], start: sp.start, end: sp.start + lipKeys(sp.text).duration, text: sp.text }));
     timeline.duration = r2(T);
     timeline.beatTimes = beatTimes;
+    let door = false;
     for (const { key, t0, act } of doings) {
       const { it } = actorSlots.get(key);
+      // (someone coming into a room: the door first)
+      if (env.room && act.type === 'enter' && !act.wasPresent && !door) { cues.push({ t: r2(Math.max(0, t0 - 0.25)), s: 'door' }); door = true; }
       cues.push(...actionCues({ ...act, z: footSize(it) }, t0, voiceOf(it.c.id, it.voice)));
     }
     soundLoop = r2(T); // (the animation's loop)
@@ -2075,6 +2078,11 @@ export function composeScene(matches, opts = {}) {
   // The sound goes with the picture, for the studio, the clip player and video export to play
   // ... with the sounds of its things and its place, under it all
   cues.push(...thingCues(items.flatMap((it) => [it.c.id, ...(it.holding ? [it.holding.c.id] : [])]), { classroom: env.roomKind === 'classroom', cheering: items.filter((it) => it.m.animation === 'cheer').reduce((n, it) => n + (it.m.count ?? 1), 0) }));
+  // Footsteps on the place's ground (grass, stone, wood, carpet, snow or sand); a crash or a boom
+  // with a jolt
+  const ground = stepSurface(env);
+  if (ground) for (const c of cues) if (c.s === 'steps') c.f = ground;
+  if (shaking) cues.push({ t: 0.05, s: /\b(boom|explosion|explodes|exploded|thunder)\b/i.test(`${opts.caption ?? ''} ${opts.text ?? ''}`) ? 'boom' : 'crash' });
   const amb = ambienceOf(env);
   if (cues.length || amb || mood) {
     opts.sound = soundTrack(cues, soundLoop, { amb, clean: CLEAN_SOUND_STYLES.has(style), mood });

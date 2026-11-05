@@ -273,6 +273,8 @@ export function renderSlide(card, opts = {}) {
     let g = `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r)}" fill="${accent}" opacity="0.13"/><circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r * 0.78)}" fill="${accent}" opacity="0.1"/>`;
     if (ids.length === 1) g += picture(ids[0], cx - r * 0.7, cy - r * 0.7, r * 1.4);
     else ids.slice(0, 2).forEach((id, i) => { g += picture(id, cx - r * 0.95 + i * r * 0.9, cy - r * 0.55 + (i ? r * 0.1 : -r * 0.1), r); });
+    // (money on a card jingles as it appears)
+    if (ids.some((id) => ['money_bag', 'coin', 'dollar_banknote'].includes(id))) cues.push({ t: r2(when + 0.1), s: 'coins' });
     return appear(g, { pop: true, at: when });
   };
   const pics = (s, n = 2) => picturesFor(s, n);
