@@ -2,7 +2,7 @@
 // an animated GIF or a video (MP4 where the browser can record it, otherwise WebM).
 //
 // Frames are exact, not a screen recording: every CSS animation in the SVG is paused and set to the
-// frame's time, the resulting state (transform, opacity) is copied onto a still copy of the SVG, and
+// frame's time, the resulting state (transform, opacity, fill-opacity) is copied onto a still copy of the SVG, and
 // that copy is drawn to a canvas. Clips (several scenes with captions) are rendered scene by scene.
 // Videos carry the scenes' sound (voices and effects) and a clip's music (public/js/scene-sound.js),
 // rendered ahead.
@@ -39,7 +39,7 @@ export async function renderFrames(svg, { duration, fps, ctx, box, onFrame, star
     const el = a.effect && a.effect.target;
     if (!el) continue;
     const props = animated.get(el) || new Set();
-    for (const k of a.effect.getKeyframes()) for (const prop of ['transform', 'opacity']) if (prop in k) props.add(prop);
+    for (const k of a.effect.getKeyframes()) for (const prop of ['transform', 'opacity', 'fillOpacity']) if (prop in k) props.add(prop);
     animated.set(el, props);
   }
   const targets = [...animated.keys()];
