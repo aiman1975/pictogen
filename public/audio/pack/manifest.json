@@ -186,6 +186,22 @@
       "notes": "prepared from coins-2.ogg (0.23 s after trimming silence, levelled, MP3)"
     },
     {
+      "file": "effects/correct-1.mp3",
+      "sound": "correct",
+      "source": "Kenney Voiceover Pack by Kenney (kenney.nl; voices: Giselle and Jeffrey M. Smith, per the pack's Credits.txt), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-voiceover-pack.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from correct-1.ogg (0.59 s after trimming silence, levelled, MP3)"
+    },
+    {
+      "file": "effects/correct-2.mp3",
+      "sound": "correct",
+      "source": "Kenney Voiceover Pack by Kenney (kenney.nl; voices: Giselle and Jeffrey M. Smith, per the pack's Credits.txt), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-voiceover-pack.txt",
+      "license": "CC0 1.0 Universal (public domain): commercial use allowed, no attribution required",
+      "made": "2026-11-05",
+      "notes": "prepared from correct-2.ogg (0.62 s after trimming silence, levelled, MP3)"
+    },
+    {
       "file": "effects/crash-1.mp3",
       "sound": "crash",
       "source": "Kenney Impact Sounds by Kenney (kenney.nl), downloaded from kenney.nl 2026-11-05; license text in licenses/kenney-impact-sounds.txt",

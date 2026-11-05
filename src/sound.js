@@ -30,7 +30,7 @@ export const SOUND_NAMES = [
   ...Object.keys(VOCAL), 'snore', 'pop', 'boing', 'whoosh', 'steps', 'jingle', 'ding', 'blip', 'twinkle', 'plop', 'whirl', 'flutter', 'bubble',
   ...Object.values(CALLS),
   // things in the scene, and the clean set's quieter ones
-  'ring', 'tick', 'typing', 'schoolbell', 'magic', 'applause', 'splash', 'thud', 'chime', 'click', 'page', 'coins', 'dice', 'door', 'crash', 'boom',
+  'ring', 'tick', 'typing', 'schoolbell', 'magic', 'applause', 'splash', 'thud', 'chime', 'click', 'page', 'coins', 'dice', 'door', 'crash', 'boom', 'correct',
   // a scene's mood, as it starts (src/mood.js)
   'tension', 'triumph', 'sorrow', 'mystic',
 ];

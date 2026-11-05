@@ -325,6 +325,16 @@
     .timeline-panel[hidden] { display: none; }
     .tl-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
     .story-review .tl-hint { font-size: 0.78rem; color: var(--text-muted); }
+    .cards-review .cr-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem; }
+    .cards-review .cr-kind, .cards-review .cr-new { font: inherit; font-size: 0.8rem; font-weight: 700; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+    .cards-review .cr-moves { display: inline-flex; gap: 0.25rem; }
+    .cards-review .cr-field { display: flex; gap: 0.5rem; align-items: flex-start; margin: 0.25rem 0; font-size: 0.8rem; }
+    .cards-review .cr-field > span { flex: 0 0 7.5rem; color: var(--text-muted); font-weight: 700; padding-top: 0.35rem; }
+    .cards-review .cr-in { flex: 1; min-width: 0; font: inherit; font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); resize: vertical; }
+    .cards-review .cr-foot { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.6rem; }
+    .cards-review .cr-apply { background: #10b981; color: #fff; border: none; padding: 6px 12px; font-weight: 800; }
+    .cards-review .cr-apply:disabled { opacity: 0.5; cursor: default; }
+    @media (max-width: 640px) { .cards-review .cr-field { flex-direction: column; gap: 0.15rem; } .cards-review .cr-field > span { flex: none; padding: 0; } }
     .sr-cast { display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; margin-bottom: 0.6rem; font-size: 0.88rem; }
     .sr-who { display: inline-flex; align-items: center; gap: 0.35rem; }
     .sr-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
@@ -1308,6 +1318,8 @@
         <div class="timeline-panel clip-tray" id="clip-tray" hidden></div>
         <!-- How the story box's story was read (public/js/story-review.js) -->
         <div class="timeline-panel story-review" id="story-review" hidden></div>
+        <!-- An explainer's cards, to change one by one (public/js/cards-review.js) -->
+        <div class="timeline-panel story-review cards-review" id="cards-review" hidden></div>
         <!-- Your characters: face photos on figures, called by name (public/js/characters.js) -->
         <div class="timeline-panel characters-panel" id="characters-panel" hidden></div>
         <!-- Your places: a place, a time, the weather and things that move, called by name (public/js/places.js) -->
@@ -1360,6 +1372,9 @@
             </select>
             <button class="btn-action" id="story-btn-book" style="background:#f59e0b; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="The clip as a picture book to print: a cover, a page for each scene with its caption, The End">📖 Picture Book</button>
             <button class="btn-action" id="story-btn-export-html" style="background:#10b981; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Export standalone offline animated player">💾 Export Clip (.html)</button>
+            <select id="story-transition" title="Between scenes in the video: a short cross-fade, or a cut" aria-label="Between scenes" style="font: inherit; font-size: 0.75rem; font-weight: 700; padding: 3px 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+              <option value="fade">🌫️ Fade</option><option value="cut">✂️ Cut</option>
+            </select>
             <button class="btn-action" id="story-btn-export-video" style="background:#6366f1; color:#fff; border:none; padding: 6px 12px; font-size: 0.78rem; font-weight: 800;" title="Render the whole clip, captions included, as a video">🎬 Export Video</button>
           </div>
         </div>
@@ -1784,7 +1799,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
       window.pictogenCharacters?.refresh();
       window.pictogenPlaces?.refresh();
       window.pictogenPuppets?.refresh();
-      window.pictogenStoryReview?.refresh();
+      window.pictogenStoryReview?.refresh(); window.pictogenCards?.refresh();
       syncUrl();
 
       if (state.mode === 'story') {
@@ -1871,7 +1886,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
             `).join('');
 
           renderStoryScene(0, false);
-          window.pictogenStoryReview?.refresh();
+          window.pictogenStoryReview?.refresh(); window.pictogenCards?.refresh();
           showToast(`Playing ${storyState.genre} clip: ${data.title}`);
         } catch (err) {
           svgViewport.innerHTML = `<div style="color: #ef4444; font-weight: 700;">Error: ${err.message}</div>`;
@@ -2512,7 +2527,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
 
       initMovableObjects();
       renderStoryDots();
-      window.pictogenStoryReview?.highlight(storyState.curIndex);
+      window.pictogenStoryReview?.highlight(storyState.curIndex); window.pictogenCards?.highlight(storyState.curIndex);
 
       if (withChime) playStoryChime();
       window.pictogenSound?.setClipKind(storyState.genre || 'kids');
@@ -2645,6 +2660,13 @@ Scene: a woman puts a coin in a jar | Every coin counts
       storyBtnMusic.style.color = on ? '#f59e0b' : '#64748b';
       storyBtnMusic.style.opacity = on ? '1' : '0.6';
     }
+    // Between scenes in a video: a short cross-fade (the default) or a cut, remembered
+    const storyTransition = document.getElementById('story-transition');
+    try { storyState.transition = localStorage.getItem('pictogen.transition.v1') || 'fade'; storyTransition.value = storyState.transition; } catch { storyState.transition = 'fade'; }
+    storyTransition.addEventListener('change', () => {
+      storyState.transition = storyTransition.value;
+      try { localStorage.setItem('pictogen.transition.v1', storyState.transition); } catch { /* not remembered */ }
+    });
     const storyTune = document.getElementById('story-tune');
     try { storyState.tune = localStorage.getItem('pictogen.tune.v1') || ''; storyTune.value = storyState.tune; } catch { /* not remembered */ }
     storyTune.addEventListener('change', () => {
@@ -3083,6 +3105,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
   <script type="module" src="/js/worksheet.js"></script>
   <script type="module" src="/js/book.js"></script>
   <script type="module" src="/js/story-review.js"></script>
+  <script type="module" src="/js/cards-review.js"></script>
   <script type="module">
     import { exportGif, exportVideo, videoFormat, mountOffscreen, download } from '/js/video-export.js';
     window.pictogenVideo = { exportGif, exportVideo, videoFormat, mountOffscreen };
@@ -3137,7 +3160,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
       try {
         const shots = story.scenes.map((sc, i) => ({ svg: mounted[i].svg, duration: sc.duration || 5, scene: sc }));
         // (an explainer from an outline starts with its own title card)
-        const blob = await exportVideo(shots, { fps: 30, title: story.slides ? undefined : story.title, genre: story.genre, tune: story.tune || story.clipTune, sound: story.sound, music: story.music, onProgress: progress });
+        const blob = await exportVideo(shots, { fps: 30, title: story.slides ? undefined : story.title, genre: story.genre, tune: story.tune || story.clipTune, transition: story.transition || 'fade', sound: story.sound, music: story.music, onProgress: progress });
         download(blob, `${slug(story.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
         studio.showToast(`Clip video saved (${Math.round(blob.size / 1024)} KB)`);
       } finally {

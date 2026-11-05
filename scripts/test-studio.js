@@ -557,7 +557,23 @@ try {
   check(await page.isVisible('#story-btn-read'), 'a button reads the story aloud');
   check(await page.evaluate(() => { const t = document.getElementById('story-tune'); t.value = 'sea'; t.dispatchEvent(new Event('change')); return window.pictogenStudio.getStory().tune === 'sea' && t.options.length === 21; }),
     'the clip\'s music: its genre\'s, or one of twenty tunes picked (here "Under the sea")');
+  check(await page.evaluate(() => { const t = document.getElementById('story-transition'); t.value = 'cut'; t.dispatchEvent(new Event('change')); const ok = window.pictogenStudio.getStory().transition === 'cut' && localStorage.getItem('pictogen.transition.v1') === 'cut'; t.value = 'fade'; t.dispatchEvent(new Event('change')); return ok; }),
+    'between scenes in a video: a cross-fade or a cut, picked and remembered');
   await page.evaluate(() => { const t = document.getElementById('story-tune'); t.value = ''; t.dispatchEvent(new Event('change')); });
+  // An explainer from an outline: its cards changed one by one in "Your cards", written back into the story box
+  await page.evaluate(() => document.querySelector('#story-genre-group .pill-btn[data-genre="howto"]').click());
+  await page.waitForSelector('.story-preset-btn[data-outline="saving"]');
+  await page.click('.story-preset-btn[data-outline="saving"]');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().slides === true && !document.getElementById('cards-review').hidden && document.getElementById('story-review').hidden, null, { timeout: 20000 });
+  await page.fill('#cards-review .cr-in[data-i="1"][data-f="headline"]', 'Pay yourself first, always');
+  await page.selectOption('#cards-review .cr-kind[data-i="2"]', 'quiz');
+  await page.click('#cards-review [data-down="1"]');
+  await page.click('#cards-review [data-apply]');
+  await page.waitForFunction(() => window.pictogenStudio.getStory().scenes[2]?.slide?.headline === 'Pay yourself first, always', null, { timeout: 20000 });
+  const edited = await page.evaluate(() => ({ kinds: window.pictogenStudio.getStory().scenes.map((sc) => sc.slide?.kind ?? 'scene'), box: document.getElementById('story-text').value }));
+  check(edited.kinds[1] === 'quiz' && /## Pay yourself first, always/.test(edited.box) && /- \[x\]/.test(edited.box) && edited.box.indexOf('Quiz:') < edited.box.indexOf('Pay yourself'),
+    `an explainer's cards: changed, turned into a quiz, moved - written back as the outline and made again (${edited.kinds.join(', ')})`);
+  await page.evaluate(() => document.querySelector('#story-genre-group .pill-btn[data-genre="kids"]').click());
   await page.evaluate(() => document.querySelector('#modes-group .pill-btn[data-mode="scene"]').click());
   await page.waitForFunction(() => window.pictogenStudio.getState().mode === 'scene');
   await clearClip();

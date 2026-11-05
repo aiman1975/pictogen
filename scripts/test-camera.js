@@ -104,6 +104,13 @@ check(true, 'camera scenes are well-formed in flat, cartoon, sketch, stickman an
   const sees = (sh, x) => sh.keys.every((k) => Math.abs(x - k.fx) + 110 * 0.4 <= 640 / k.z / 2 + 1);
   check(sees(near, 430) && sees(near, 260), 'director: a close shot on someone keeps a friend beside them whole');
   check(far.says === 'close on who speaks' && Math.max(...far.keys.map((k) => k.z)) > Math.max(...near.keys.map((k) => k.z)), 'director: a friend far off still lets the close shot come in close');
+  // Someone walking a long way before anyone speaks: the camera goes along with them
+  const walker = directShots({ T: 6, W: 640, H: 360, main: 'a', others: ['a', 'b'], speeches: [],
+    where: (id, t) => (id === 'a' ? { x: 120 + Math.min(1, t / 4) * 400, y: 230, h: 110 } : { x: 560, y: 230, h: 110 }) });
+  const fxs = walker.keys.filter((k) => k.t <= 4).map((k) => k.fx);
+  check(/going along with the walk/.test(walker.says) && fxs.at(-1) - fxs[0] > 100 && walker.keys.every((k) => k.z <= 1.31), `a long walk: the camera goes along (${walker.says}; ${fxs.map(Math.round).join(' → ')})`);
+  const stay = directShots({ T: 6, W: 640, H: 360, main: 'a', others: ['a'], speeches: [], where: () => ({ x: 300, y: 230, h: 110 }) });
+  check(!/walk/.test(stay?.says ?? ''), 'nobody walking: no going along');
   // Chosen
   const low = generate('a boy and a dog in the park', { style: 'flat', shot: 'low' }), high = generate('a boy and a dog in the park', { style: 'flat', shot: 'high' });
   const scaleOf = (svg) => +(svg.match(/data-id="boy"[^>]*scale\(([\d.]+)\)/)?.[1] ?? 0);

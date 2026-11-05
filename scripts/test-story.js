@@ -187,6 +187,18 @@ Scene: a teacher points at the board | Interest on interest
   const tall = composeStory(text, { style: 'flat', aspect: '9:16' });
   assert(tall.height > tall.width && /viewBox="0 0 \d+ \d+"/.test(tall.scenes[1].svg) && !/NaN|undefined/.test(tall.scenes.map((s) => s.svg).join('')), 'a tall clip lays its cards out too');
   assert(!/NaN|undefined|\[object/.test(st.scenes.map((s) => s.svg).join('')), 'cards draw clean SVG');
+  // A quiz card: answers one by one, time to think (a clock ticking), then the right one and "Correct!"
+  const q = readOutline('## Quiz: Which grows faster?\n- [ ] Money under the mattress\n- [x] Money earning interest').cards[0];
+  assert(q.kind === 'quiz' && q.headline === 'Which grows faster?' && q.points[1].right && !q.points[0].right && q.points[0].text === 'Money under the mattress', 'a quiz: its question, its answers, the right one');
+  const qs = composeStory('# Quiz time\n## Quiz: Which grows faster?\n- [ ] Money under the mattress\n- [x] Money earning interest', { style: 'flat' }).scenes[1];
+  const qc = JSON.parse(qs.svg.match(/<metadata class="pg-sound">([^<]*)</)[1].replace(/&quot;/g, '"')).cues;
+  const tick = qc.find((c) => c.s === 'tick'), correct = qc.find((c) => c.s === 'correct');
+  assert(tick && correct && correct.t - tick.t === 3 && qs.duration > correct.t + 2 && /#10b981/.test(qs.svg), `time to think (${tick?.t}s), then "Correct!" (${correct?.t}s) and the right answer in green`);
+  // Cards back as an outline (the studio's card editor): read, written, read again - the same
+  const { writeOutline } = await import('../src/slides.js');
+  const again = readOutline(writeOutline(o.cards));
+  assert(JSON.stringify(again.cards.map((c) => [c.kind, c.headline ?? c.quote ?? c.prompt, c.points.length])) === JSON.stringify(o.cards.map((c) => [c.kind, c.headline ?? c.quote ?? c.prompt, c.points.length])), 'cards written back as an outline read the same');
+  assert(/^- \[x\] Money earning interest$/m.test(writeOutline([q])) && /^## Quiz: Which grows faster\?$/m.test(writeOutline([q])), 'a quiz written back keeps its marker and its right answer');
 }
 
 console.log(`\nStory Engine test suite: ${fails === 0 ? 'ALL PASSED!' : `${fails} FAILS`}`);

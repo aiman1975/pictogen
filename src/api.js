@@ -2,6 +2,7 @@
 // running in the visitor's browser, scripts/build-web.js) answer the same requests the same way.
 
 import { cleanFeatures } from './looks.js';
+import { writeOutline } from './slides.js';
 import { generate, listConcepts, getConcept, drawConcept, shapesToSvg, renderIcon, STYLE_NAMES, isStyle, composeStory, STORY_TEMPLATES, ASPECT_RATIOS, generateStoryHtml } from './index.js';
 import { getShowcaseData } from './showcase.js';
 import { renderWorksheet } from './worksheet.js';
@@ -130,6 +131,12 @@ export function handleApi(method, url, payload = {}) {
   if (pathname === '/api/story/generate' && method === 'POST') {
     const scenes = clipScenes(payload);
     return json(composeStory(scenes.length ? scenes : payload.text || 'puppy-friend', storyOpts(payload)));
+  }
+
+  // An explainer's cards (as the studio's card editor has them) back as outline text (src/slides.js)
+  if (pathname === '/api/outline/write' && method === 'POST') {
+    const cards = Array.isArray(payload.cards) ? payload.cards.slice(0, 60) : [];
+    return json({ text: writeOutline(cards) });
   }
 
   // Export story as standalone offline HTML player

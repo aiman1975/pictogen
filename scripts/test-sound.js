@@ -70,7 +70,7 @@ const repoPack = readPack();
 check(repoPack.files.filter((e) => /CC0/.test(e.license) && /Kenney/.test(e.source)).length >= 20 && existsSync(new URL('../public/audio/pack/licenses/kenney-interface-sounds.txt', import.meta.url)),
   'the shipped pack has Kenney\'s CC0 interface sounds, with their license text');
 check(!repoPack.problems.length, `the shipped sound pack is clean: every file listed with a source and a license${repoPack.problems.length ? ': ' + repoPack.problems.join('; ') : ''}`);
-check(CATALOGUE.length === 111 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') && CATALOGUE.some((c) => c.slot === 'music/documentary'), `the catalogue lists ${CATALOGUE.length} slots (voices, syllables, animals, effects, music)`);
+check(CATALOGUE.length === 112 && CATALOGUE.some((c) => c.slot === 'kid/syl-a') && CATALOGUE.some((c) => c.slot === 'music/documentary'), `the catalogue lists ${CATALOGUE.length} slots (voices, syllables, animals, effects, music)`);
 // Footsteps by size, things that sound, places' sounds, the sound set of a clip
 {
   const snd = (t, o) => soundOf(generate(t, o).svg) || {};

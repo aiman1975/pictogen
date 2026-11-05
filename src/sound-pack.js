@@ -74,6 +74,7 @@ const EFFECT_SOUNDS = [
   ['tick', 0.15, 'ONE clock tick (played once a second)', 'One single clock tick, very short.'],
   ['click', 0.12, 'a soft click (the clean set\'s pop: a point appearing)', 'A soft user-interface click, very short.'],
   ['chime', 0.8, 'a soft chime (the clean set\'s jingle, a title appearing)', 'A soft, pleasant two-note confirmation chime.'],
+  ['correct', 0.9, 'an announcer saying "Correct!" (a quiz card\'s answer)', 'A friendly game-show announcer saying "Correct!".'],
   // A scene's mood as it starts (src/mood.js MOOD_STINGS)
   ['triumph', 1.6, 'a short triumphant flourish (a joyful scene)', 'A short bright triumphant musical flourish, one second.'],
   ['sorrow', 1.8, 'a short sad phrase (a sad scene)', 'A short sad descending musical phrase, one second.'],

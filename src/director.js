@@ -23,6 +23,7 @@
 //   - the clip's last scene: pulling back to the wide shot
 //   - a crash, a bang, thunder: a shake as the scene starts
 //   - otherwise, with no mood of its own: a gentle ease in or out (wide first at a new place)
+//   - and first, someone walking a long way before anyone speaks: the camera goes along with them
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -104,7 +105,45 @@ export function directShots({ T, W, H, where, main = null, speeches = [], mood =
   if (kind === 'shake') return { keys: hold(wide), says: 'a shake', shake: true };
   if (kind === 'follow') return { keys: null, says: 'following', follow: shot.target || main };
 
-  // Auto
+  // Auto: the director's own shots, then (if someone walks a long way first) the camera going along
+  const own = auto();
+  const pan = walkPan();
+  if (!pan) return own;
+  const after = (own?.keys ?? []).filter((k) => k.t > pan.t1 + 0.6);
+  const keys = [...pan.keys, ...(after.length ? after : [key(Math.min(T, pan.t1 + 1.2), wide), key(T, wide, 'linear')])];
+  return { ...(own ?? {}), keys, says: own?.says ? `going along with the walk, then ${own.says}` : 'going along with the walk' };
+
+  // Someone walking a long way across the scene before anyone speaks: a little closer, the camera
+  // going along with them (the place moves past), wide again after
+  function walkPan() {
+    if (crowd >= 4 || T < 2.5) return null;
+    const firstWords = speeches.filter((sp) => sp.who && sp.end > sp.start).reduce((a, sp) => Math.min(a, sp.start), T);
+    let best = null;
+    for (const id of [...new Set([main, ...others].filter(Boolean))]) {
+      let seg = null;
+      for (let t = 0; t <= Math.min(T, firstWords) + 1e-6; t += 0.1) {
+        const a = where(id, t), b = where(id, t + 0.1);
+        const moving = a && b && Math.abs(b.x - a.x) > W * 0.004;
+        if (moving && !seg) seg = { id, t0: t, x0: a.x };
+        if (seg && (!moving || t + 0.1 > Math.min(T, firstWords))) {
+          seg.t1 = t; seg.x1 = a?.x ?? seg.x0;
+          if (Math.abs(seg.x1 - seg.x0) > W * 0.35 && (!best || Math.abs(seg.x1 - seg.x0) > Math.abs(best.x1 - best.x0))) best = seg;
+          seg = null;
+        }
+      }
+    }
+    if (!best || best.t1 - best.t0 < 1) return null;
+    const z = context.newPlace ? 1.18 : 1.3, half = W / z / 2, halfH = H / z / 2;
+    const frame = (t) => {
+      const f = where(best.id, t);
+      return { z, fx: clamp(f.x, half, W - half), fy: clamp(f.y + f.h * 0.15, halfH, H - halfH) };
+    };
+    const a = frame(best.t0), b = frame(best.t1), m = frame((best.t0 + best.t1) / 2);
+    if (Math.abs(b.fx - a.fx) < W * 0.12) return null;
+    return { t1: best.t1, keys: [key(0, a), key(best.t0, a), key((best.t0 + best.t1) / 2, m, 'linear'), key(best.t1, b)] };
+  }
+
+  function auto() {
   const settle = context.newPlace ? SETTLE : 0.3;
   const shake = SHAKE_WORDS.test(text);
   const said = speeches.filter((s) => s.who && s.end > s.start).sort((a, b) => a.start - b.start);
@@ -161,6 +200,7 @@ export function directShots({ T, W, H, where, main = null, speeches = [], mood =
     }
   }
   return shake ? { keys: hold(wide), says: 'a shake', shake } : null;
+  }
 }
 
 /** A jolt as the scene starts (CSS for a wrapper), the way a bang or a crash feels */

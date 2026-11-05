@@ -107,7 +107,7 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       ("flies up into the sky", "lifts off") the land drops away and clouds stream past; coming down
       ("falls", "dives deeper") the clouds or bubbles stream up and the ground arrives to land on
       (`src/scene.js` travelOf, travelSvg)
-- [ ] Parallax in sequences: the camera tracking someone walking a long way
+- [x] Parallax in sequences: the camera going along with someone walking a long way (src/director.js walkPan)
 - [x] Places: a classroom (chalkboard, clock, bunting), an office (a window onto the city, a chart,
       a shelf, a plant), a kitchen (cupboards, tiles, counter, oven), a bedroom (curtains, the moon at
       night, a rug), any other room (a window, a picture); a city skyline (windows lit at night,
@@ -286,6 +286,8 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       statement) and `Scene:` lines acted scenes; points appear one by one with a soft sound, each
       card as long as it takes to read; a slow drift on each card, a progress bar, the clip style's
       look; videos cross-fade between scenes and embed the studio font
+- [x] Explainers: quiz cards (answers, time to think, the right one and the announcer's "Correct!");
+      "Your cards" in the studio (change, move, add cards; written back as the outline); fade or cut
 - [ ] Explainers, phase 2: a writer that turns notes or an article into that outline (rules: key
       sentences, headings, lists, numbers)
 - [ ] Explainers, phase 3: an optional local language model for the writer (a download, like the

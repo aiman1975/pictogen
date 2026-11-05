@@ -325,6 +325,7 @@ export function pgSound(ctx, dest, cue, when, bank) {
     case 'splash': hiss(t0, 0.5, 'lowpass', [[0, 3500], [1, 700]], 0.8, 0.45); [0.1, 0.2].forEach((at, i) => blipTo(t0 + at, 'sine', 600 + i * 200, 1300, 0.06, 0.12)); break;
     // (the pack has these as recordings; made here when it doesn't)
     case 'page': hiss(t0, 0.35, 'bandpass', [[0, 1800], [0.5, 4200], [1, 2600]], 1.1, 0.22); break;
+    case 'correct': [784, 1047, 1319].forEach((f, i) => bell(t0 + i * 0.1, f * 2, 0.16, 0.7)); break;
     case 'coins': [2637, 3520, 2960, 3951, 3136].forEach((f, i) => bell(t0 + i * 0.06 + (i % 2) * 0.02, f, 0.07, 0.25)); break;
     case 'dice': [0, 0.11, 0.19, 0.3, 0.36].forEach((at, i) => { blipTo(t0 + at, 'square', 900 - i * 60, 500, 0.02, 0.2, filter('bandpass', 1500, 1.5, out)); hiss(t0 + at, 0.03, 'bandpass', [[0, 2500], [1, 1500]], 2, 0.12); }); break;
     case 'door': {

@@ -35,6 +35,9 @@ const SCENE = /^(?:scene|🎬)\s*:?\s*(.+)$/i;
 const RECAP = /^(recap|summary|in summary|in short|key takeaways?|takeaways|to sum up|remember|what to remember)\b/i;
 const VERSUS = /\s+(?:vs\.?|versus)\s+/i;
 const STEPS = /^(how to|steps?\b|the steps|the process|in \d+ steps)/i;
+// A quiz: "## Quiz: question?" (or any headline) with "- [x] right" and "- [ ] wrong" answers
+const TICKBOX = /^\[( |x|X|✓)\]\s*/;
+const QUIZ = /^(quiz|question|q|test yourself|check yourself)\s*[:\-–—]\s*/i;
 // A number to show big: "7%", "$1.8T", "3x", "40 years", "1 in 4"
 const STAT = /^((?:[$€£¥]\s?)?\d[\d,.]*\s?(?:%|x|×|k|m|bn|t|million|billion|trillion|thousand|years?|months?|weeks?|days?|hours?|minutes?|seconds?|kg|km|percent)?(?:\s+in\s+\d+)?)(?=\s|$|[:–—-])\s*(?:[:–—|-]\s*)?(.*)$/i;
 
@@ -94,7 +97,11 @@ function classify(c) {
   const h = c.headline ?? '';
   const stat = STAT.exec(h);
   const plainCount = stat && /^\d+$/.test(stat[1].trim());
-  if (RECAP.test(h) && c.points.length) c.kind = 'recap';
+  if (c.points.length >= 2 && c.points.some((p) => TICKBOX.test(p.text))) {
+    c.kind = 'quiz';
+    c.headline = h.replace(QUIZ, '');
+    c.points = c.points.map((p) => ({ text: p.text.replace(TICKBOX, ''), ...(/^\[[xX✓]\]/.test(p.text) ? { right: true } : {}) }));
+  } else if (RECAP.test(h) && c.points.length) c.kind = 'recap';
   else if (VERSUS.test(h) && c.points.length) {
     c.kind = 'compare';
     [c.left, c.right] = h.split(VERSUS).map((s) => s.trim());
@@ -243,7 +250,12 @@ export function renderSlide(card, opts = {}) {
     t += clamp(0.7 + p.n / READ_WPS, i === 0 ? 0.9 : 1.1, 4);
   }
   const lastN = plan.at(-1)?.n ?? 0;
-  const T = r2(clamp(times.at(-1) + clamp(1.4 + lastN / READ_WPS, 2, 5) + 0.6, 3.5, 20));
+  // (a quiz: after its answers, time to think - a clock ticking - then the right one is shown)
+  const quiz = card.kind === 'quiz' && card.points.some((p) => p.right);
+  const thinkAt = quiz ? r2(times.at(-1) + clamp(0.7 + lastN / READ_WPS, 1.1, 4)) : null;
+  const revealAt = quiz ? r2(thinkAt + 3) : null;
+  if (quiz) cues.push({ t: thinkAt, s: 'tick', d: 3 }, { t: revealAt, s: 'correct' });
+  const T = r2(quiz ? revealAt + 3.4 : clamp(times.at(-1) + clamp(1.4 + lastN / READ_WPS, 2, 5) + 0.6, 3.5, 20));
   plan.forEach((p, i) => { if (p.sound) cues.push({ t: r2(times[i] + 0.05), s: p.sound }); });
 
   const pc = (s) => `${r2(clamp(s / T, 0, 1) * 100)}%`;
@@ -302,6 +314,42 @@ export function renderSlide(card, opts = {}) {
     const y = top + (ids.length ? 84 * u : 0);
     body += appear(text(f.lines, W / 2, y, f.size, { fill: th.ink, weight: 900, anchor: 'middle' }) + `<rect x="${r2(W / 2 - 34 * u)}" y="${r2(y + f.h + 10 * u)}" width="${r2(68 * u)}" height="${r2(6 * u)}" rx="${r2(3 * u)}" fill="${accent}"/>`);
     if (sub) body += appear(text(sub.lines, W / 2, y + f.h + 30 * u, sub.size, { fill: th.soft, weight: 700, anchor: 'middle' }));
+  } else if (card.kind === 'quiz') {
+    // The question, its answers (A, B, C...) one by one, a timer running down, then the right one
+    const ids = pics(card.show ?? card.headline, 1);
+    const art2 = ids.length ? ids : ['red_question_mark'];
+    const colW = wide ? W * 0.6 : W - 2 * M;
+    let y = headline(card.headline, { maxW: colW });
+    const rowH = Math.min(46 * u, (H - y - M) / card.points.length - 8 * u);
+    card.points.forEach((p, i) => {
+      const l = fit(p.text, { maxW: colW - 64 * u, size: Math.min(18 * u, rowH * 0.42), maxLines: 2 });
+      const color = ACCENTS[(index + i) % ACCENTS.length];
+      const box = `<rect x="${r2(M)}" y="${r2(y)}" width="${r2(colW)}" height="${r2(rowH)}" rx="${r2(rowH / 2)}" fill="${th.panel}" stroke="${th.line}" stroke-width="${r2(1.5 * u)}"/>`
+        + `<circle cx="${r2(M + rowH / 2)}" cy="${r2(y + rowH / 2)}" r="${r2(rowH * 0.34)}" fill="${color}"/>`
+        + `<text x="${r2(M + rowH / 2)}" y="${r2(y + rowH / 2 + rowH * 0.13)}" font-family="${FONT}" font-size="${r2(rowH * 0.36)}" font-weight="900" fill="#ffffff" text-anchor="middle">${String.fromCharCode(65 + i)}</text>`
+        + text(l.lines, M + rowH + 10 * u, y + (rowH - l.h) / 2, l.size, { fill: th.ink, weight: 800 });
+      body += appear(box);
+      if (quiz) {
+        // (at the answer: the right one turns green with a tick, the others fade)
+        const name = `${uid}q${i}`;
+        const to = p.right ? 1 : 0.62; // (the others only fade)
+        css.push(`@keyframes ${name} { 0%, ${pc(revealAt)} { opacity: 0; } ${pc(revealAt + 0.3)}, 100% { opacity: ${to}; } }`);
+        body += p.right
+          ? `<g style="animation: ${name} ${T}s linear infinite;"><rect x="${r2(M)}" y="${r2(y)}" width="${r2(colW)}" height="${r2(rowH)}" rx="${r2(rowH / 2)}" fill="#10b981"/>`
+            + `<circle cx="${r2(M + rowH / 2)}" cy="${r2(y + rowH / 2)}" r="${r2(rowH * 0.34)}" fill="#ffffff"/><path d="M${r2(M + rowH * 0.33)} ${r2(y + rowH * 0.5)} l${r2(rowH * 0.12)} ${r2(rowH * 0.12)} l${r2(rowH * 0.22)} ${r2(-rowH * 0.24)}" stroke="#10b981" stroke-width="${r2(3 * u)}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
+            + text(l.lines, M + rowH + 10 * u, y + (rowH - l.h) / 2, l.size, { fill: '#ffffff', weight: 900 }) + '</g>'
+          : `<rect x="${r2(M - 2)}" y="${r2(y - 2)}" width="${r2(colW + 4)}" height="${r2(rowH + 4)}" fill="${th.bg}" opacity="0" style="animation: ${name} ${T}s linear infinite;"/>`;
+      }
+      y += rowH + 8 * u;
+    });
+    if (quiz) {
+      // (the time to think: a bar running down under the answers)
+      const bar = `${uid}tb`;
+      css.push(`@keyframes ${bar} { 0%, ${pc(thinkAt)} { transform: scaleX(1); opacity: 0; } ${pc(thinkAt + 0.05)} { transform: scaleX(1); opacity: 1; } ${pc(revealAt)} { transform: scaleX(0); opacity: 1; } ${pc(revealAt + 0.05)}, 100% { transform: scaleX(0); opacity: 0; } }`);
+      body += `<rect x="${r2(M)}" y="${r2(y + 2 * u)}" width="${r2(colW)}" height="${r2(6 * u)}" rx="${r2(3 * u)}" fill="${accent}" style="transform-box: fill-box; transform-origin: left center; animation: ${bar} ${T}s linear infinite;"/>`;
+    }
+    colEnd = y + 12 * u;
+    if (wide) art += pictureSpot(art2, W * 0.83, H * 0.5, 54 * u);
   } else if (card.kind === 'quote') {
     const qf = fit(card.quote, { maxW: W - 2 * M - 60 * u, size: 26 * u, maxLines: 4 });
     const y = (H - qf.h - (card.by ? 40 * u : 0)) / 2;
@@ -439,4 +487,48 @@ export function renderSlide(card, opts = {}) {
   const content = `${page}<g class="pg-slide pg-slide-${card.kind}" data-kind="${card.kind}" style="transform-origin: ${W / 2}px ${H / 2}px; animation: ${kb} ${T}s linear infinite;">${body}</g>${progress}`
     + `<metadata class="pg-sound">${esc(JSON.stringify(soundTrack(cues, T, { clean: true })))}</metadata>`;
   return { svg: svgDoc({ width: W, height: H, viewBox: `0 0 ${W} ${H}`, defs: `<style><![CDATA[${css.join('\n')}]]></style>`, content }), duration: T };
+}
+
+/**
+ * Cards back as an outline (what readOutline reads): for the studio's card editor and for the
+ * writer that makes an outline from notes. cards: as readOutline gives them (kind, headline,
+ * subtitle, note, show, points [{ text, right? }], pairs, left, right, quote, by, prompt, caption)
+ */
+export function writeOutline(cards) {
+  const line = (s) => String(s ?? '').replace(/\s*\n\s*/g, ' ').trim();
+  const out = [];
+  let titled = false;
+  for (const c of cards ?? []) {
+    if (!c || typeof c !== 'object') continue;
+    const pts = (c.points ?? []).map((p) => line(typeof p === 'string' ? p : p?.text)).filter(Boolean);
+    if (out.length) out.push('');
+    if (c.kind === 'title' && !titled) {
+      titled = true;
+      out.push(`# ${line(c.headline) || 'Explainer'}`);
+      if (line(c.subtitle)) out.push(line(c.subtitle));
+      continue;
+    }
+    if (c.kind === 'scene') { out.push(`Scene: ${line(c.prompt)}${line(c.caption) ? ` | ${line(c.caption)}` : ''}`); continue; }
+    if (c.kind === 'quote') { out.push(`> ${line(c.quote)}${line(c.by) ? ` — ${line(c.by)}` : ''}`); continue; }
+    if (c.kind === 'compare') {
+      const left = line(c.left) || line(c.headline).split(/\s+(?:vs\.?|versus)\s+/i)[0] || 'This';
+      const right = line(c.right) || line(c.headline).split(/\s+(?:vs\.?|versus)\s+/i)[1] || 'That';
+      out.push(`## ${left} vs ${right}`);
+      const pairs = c.pairs?.length ? c.pairs : pts.map((p) => p.split('|').map((s) => s.trim()));
+      for (const [a = '', b = ''] of pairs) if (line(a) || line(b)) out.push(`- ${line(a)} | ${line(b)}`);
+      continue;
+    }
+    // (a quiz keeps its marker, so the headline is read as one)
+    out.push(`## ${c.kind === 'quiz' ? 'Quiz: ' : ''}${line(c.headline) || (c.kind === 'recap' ? 'Recap' : 'More')}`);
+    if (line(c.note)) out.push(line(c.note));
+    if (line(c.show)) out.push(`Show: ${line(c.show)}`);
+    (c.points ?? []).forEach((p, i) => {
+      const t = line(typeof p === 'string' ? p : p?.text);
+      if (!t) return;
+      if (c.kind === 'steps') out.push(`${i + 1}. ${t}`);
+      else if (c.kind === 'quiz') out.push(`- [${p?.right ? 'x' : ' '}] ${t}`);
+      else out.push(`- ${t}`);
+    });
+  }
+  return out.join('\n');
 }
