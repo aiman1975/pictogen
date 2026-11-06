@@ -136,6 +136,8 @@ export const GROUP_WORDS = {
   people: ['man', 'woman', 'boy', 'girl'], persons: ['woman', 'man', 'woman'], crowd: ['man', 'woman', 'girl', 'boy', 'woman'],
   friends: ['girl', 'boy', 'girl'], group: ['woman', 'man', 'girl'], everyone: ['man', 'woman', 'boy', 'girl'],
   team: ['woman', 'man', 'woman'], colleagues: ['man', 'woman', 'man'], coworkers: ['woman', 'man', 'woman'], staff: ['man', 'woman', 'man'],
+  // (animals: a few of the ones everyone knows)
+  animals: ['cat', 'dog', 'rabbit'], pets: ['dog', 'cat'],
   family: ['man', 'woman', 'girl', 'boy'], grandparents: ['old_man', 'old_woman'], parents: ['man', 'woman'], couple: ['man', 'woman'], adults: ['woman', 'man', 'woman'],
 };
 // Words with no drawing of their own, drawn as the nearest thing that has one (the first that exists)

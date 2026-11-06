@@ -456,7 +456,7 @@ export function readStory(text, { individuals = [], adults = false, translate = 
         // (the others of a sky friend: "the other stars" are star friends too)
         if (friendly.has(low.replace(/s$/, '')) && low.endsWith('s') && low !== 'sus') {
           if (['the', 'other', 'all'].includes(out[out.length - 1]?.toLowerCase())) while (['the', 'other', 'all'].includes(out[out.length - 1]?.toLowerCase())) out.pop();
-          out.push('three', `${low.slice(0, -1)} friends`);
+          out.push('two', `${low.slice(0, -1)} friends`);
           continue;
         }
         // A titled name ("Grandma_Rose")

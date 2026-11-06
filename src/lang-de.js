@@ -366,6 +366,8 @@ const NOUNS = { ...DRAFTED, ...w(`
 kaffee, kaffees = coffee
 tee, tees = tea
 milch = milk
+tiere, tieren = animals
+haustiere, haustieren = pets
 sternchen, sternlein = star
 eule, eulen = owl
 himmel, himmels = sky
@@ -469,6 +471,8 @@ export function bridgeGerman(text, { names = null, story = false } = {}) {
     .replace(/(^|[^\p{L}])heiße[nr]? schokolade(?![\p{L}])/giu, '$1kakao')
     .replace(/(^|[^\p{L}])(?:strahlt|strahlte|strahlten|lacht|lachte|lachten) vor freude(?![\p{L}])/giu, '$1lachtvorfreude')
     .replace(/(^|[^\p{L}])(?:zur|auf die|zu der) erde(?![\p{L}])/giu, '$1')
+    // ("von diesem Abend an": from then on, not an evening)
+    .replace(/(^|[^\p{L}])(?:und )?(?:von|seit) (?:diesem|jenem|dem|da) (?:abend|tag|morgen|moment|augenblick)? ?an(?![\p{L}])/giu, '$1dann')
     // ("vorbei an schlafenden Dörfern": what goes by, not who is there)
     .replace(/,?\s*vorbei an [^.,;!?]*/giu, '')
     // ("hüpfte auf den Rücken der Eule": rides the owl)

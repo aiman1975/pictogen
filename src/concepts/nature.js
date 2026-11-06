@@ -11,7 +11,8 @@ export default [
     baseline: 96,
     width: 0.8,
     colors: { main: '#43a047', trunk: '#795548', highlight: '#66bb6a' },
-    palettes: { main: ['#43a047', '#2e7d32', '#7cb342', '#f57c00', '#c62828'] },
+    // (greens: a red or orange tree is an autumn tree, said in words - "autumn", "a red tree")
+    palettes: { main: ['#43a047', '#2e7d32', '#7cb342', '#558b2f'] },
     draw(d, p) {
       const foliage = p.c('main');
       const trunk = p.c('trunk');

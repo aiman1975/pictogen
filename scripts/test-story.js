@@ -330,9 +330,13 @@ So what should you do? First, stop and do not click anything. Then, hover over t
     const lids = lost.scenes.map(ids);
     assert(!lids[1].some((x) => /^star/.test(x)) && !lids[2].some((x) => /^star/.test(x)) && !/mountain/.test(lost.scenes[4].prompt) && !/pg-place-mountains/.test(lost.scenes[4].svg) && !lids[4].some((x) => / sad$/.test(x)),
       `a missing star is not drawn (nor brought in to listen), looking over the mountains doesn't go there, hearing crying doesn't make the moon sad (${lids.map((x) => x.join(' ')).join(' | ')})`);
-    assert(lost.scenes[5].matches.some((m) => m.id === 'star_friend' && m.count === 3), `"die anderen Sterne" are three star friends (${lids[5]})`);
+    assert(lost.scenes[5].matches.some((m) => m.id === 'star_friend' && m.count === 2), `"die anderen Sterne" are two more star friends (${lids[5]})`);
     const over = composeStory('Es war einmal ein kleiner Mond am Himmel.\n\nJede Nacht leuchtete er über den kleinen Häusern.\n\nDoch eines Abends bemerkte er etwas Seltsames.\n\nDer Mond lächelte.', { style: 'flat' });
     assert(!over.scenes.some((sc) => /at home|pg-place-room/.test(sc.prompt + sc.svg)), `shining over the houses is not being at home (${over.scenes.map((sc) => sc.prompt).join(' | ')})`);
+    const animals = gen('the sleeping animals at night', { style: 'flat' }).matches;
+    assert(animals.map((m) => m.id).join() === 'cat,dog,rabbit' && animals.every((m) => m.animation === 'sleep'), 'sleeping animals are a cat, a dog and a rabbit asleep');
+    const fromThen = composeStory('Es war einmal ein kleiner Mond am Himmel.\n\nDer Mond lächelte.\n\nUnd von diesem Abend an leuchtete das kleine Sternchen jede Nacht besonders hell.', { style: 'flat' });
+    assert(!/sunset|evening/.test(fromThen.scenes.at(-1).prompt), `"von diesem Abend an" is from then on, not a sunset (${fromThen.scenes.at(-1).prompt})`);
     const front = gen('a moon friend shines over small houses and big trees at night', { style: 'flat' }).svg;
     assert(front.lastIndexOf('data-id="moon_friend"') > front.lastIndexOf('data-id="tree"'), 'the moon is drawn in front of the trees, not behind them');
     const plain = gen('a girl looks at the moon at night', { style: 'flat' });
