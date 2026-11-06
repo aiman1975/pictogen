@@ -3,6 +3,7 @@
 // arms and cartoon feet.
 import { INK } from '../core/styles.js';
 import { drawFacialExpression } from './people.js';
+import ARABIC from './arabic-letters-data.js';
 
 export const LETTER_PALETTES = {
   A: { main: '#ff4d6d', dark: '#e11d48', shadow: '#be123c', accent: '#ffe4e6' }, // Strawberry Coral
@@ -54,6 +55,8 @@ export const LETTER_PALETTES = {
   9: { main: '#a16207', dark: '#854d0e', shadow: '#713f12', accent: '#fef3c7' }, // Caramel
 };
 const DIGIT_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+// Arabic letters and digits: their colours in turn from the Latin letters' (A, B, C...)
+Object.keys(ARABIC).forEach((ch, i) => { LETTER_PALETTES[ch] = LETTER_PALETTES[String.fromCharCode(65 + (i * 7) % 26)]; });
 
 /**
  * Draws the glyph silhouette for a given letter A-Z.
@@ -68,6 +71,12 @@ function drawGlyphShape(d, letter, fill, stroke) {
     drawGlyphShape(d, UMLAUT[letter], fill, stroke);
     d.circle(39, 7, 5, o);
     d.circle(61, 7, 5, o);
+    return;
+  }
+
+  // Arabic letters and digits: their shape from the font (src/concepts/arabic-letters-data.js)
+  if (ARABIC[letter]) {
+    d.path(ARABIC[letter].d, o);
     return;
   }
 
@@ -371,7 +380,7 @@ export function drawLetterCreature(d, p, letter = 'A') {
   if (p.opts.seat) p.seatAt = 78;
   const animClass = anim ? `pg-anim-${anim}` : 'pg-anim-blink';
   const expr = p.opts.expression || p.expression || 'happy';
-  const [fcx, fcy] = FACE_ANCHORS[char] || [50, 46];
+  const [fcx, fcy] = FACE_ANCHORS[char] || ARABIC[char]?.face || [50, 46];
 
   // (pg-rig-glyph: how a letter or a digit dances and sings, src/core/render.js)
   d.group({ class: `pg-rig-glyph ${animClass}` }, () => {
@@ -494,6 +503,7 @@ for (const [letter, key, name] of EXTRA_LETTERS) {
 }
 /** The character a letter or number figure is ('letter_ae' -> 'Ä', 'letter_b' -> 'B', 'number_7' -> '7') */
 export const glyphOf = (id) => {
+  if (ARABIC_IDS[id]) return ARABIC_IDS[id];
   const k = String(id).replace(/^(letter|number)_/, '');
   return EXTRA_LETTERS.find(([, key]) => key === k)?.[0] ?? k.toUpperCase();
 };
@@ -524,6 +534,34 @@ for (let n = 0; n <= 9; n++) {
     colors: { main: pal.main, dark: pal.dark },
     draw(d, p) {
       drawLetterCreature(d, p, String(n));
+    },
+  });
+}
+
+// Arabic letters (letter_ar_alif ... letter_ar_ya, and the forms with a hamza, ta marbuta, alif
+// maqsura) and Arabic-Indic digits (number_ar_0 ... number_ar_9): "the letter alif", "ب", "٣"
+export const ARABIC_IDS = {};
+for (const [ch, { name }] of Object.entries(ARABIC)) {
+  const digit = /^\d$/.test(name);
+  const id = digit ? `number_ar_${name}` : `letter_ar_${name}`;
+  ARABIC_IDS[id] = ch;
+  const spoken = name.replace(/_/g, ' ');
+  alphabetConcepts.push({
+    id,
+    label: digit ? `Arabic number ${ch} (${name})` : `Arabic letter ${ch} (${spoken})`,
+    category: 'alphabet',
+    placement: 'ground',
+    scale: 0.85,
+    baseline: 94,
+    width: 0.8,
+    flippable: false,
+    aliases: digit
+      ? [ch, `arabic number ${name}`, `arabic digit ${name}`, `arabic ${DIGIT_WORDS[+name]}`]
+      : [ch, `letter ${spoken}`, `arabic letter ${spoken}`, `arabic ${spoken}`, `the letter ${spoken}`],
+    tags: ['alphabet', digit ? 'number' : 'letter', 'arabic', 'learning', 'kids', 'character', 'cute'],
+    colors: { main: LETTER_PALETTES[ch].main, dark: LETTER_PALETTES[ch].dark },
+    draw(d, p) {
+      drawLetterCreature(d, p, ch);
     },
   });
 }

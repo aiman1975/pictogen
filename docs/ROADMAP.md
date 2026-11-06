@@ -295,7 +295,10 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
 - [x] German scenes: picture words, plurals, sayings, diagram topics, letter modes (`src/lang-de.js`)
 - [x] The studio, landing page and help page in German: EN / DE switch (`public/js/i18n.js`)
 - [x] German stories: a cast kept across scenes, names, er/sie/ihn, places and times carried on
-- [ ] Languages next: Arabic (letters, right to left, a font), later Spanish
+- [x] Arabic step 1: the letters (28 letters, hamza forms, ta marbuta, alif maqsura, ٠-٩) as
+      figures from the Baloo Bhaijaan 2 font, words spelled right to left; the font for Arabic text
+- [ ] Arabic next: explainers in Arabic, Arabic picture words for scenes, the studio in Arabic (right
+      to left), Arabic stories; later Spanish
 - [ ] Explainers, phase 3: an optional local language model for the writer (a download, like the
       sound pack; its output checked, the rules as fallback; licence checked for sale)
 - [ ] Explainers, phase 4: the writer choosing which points become acted scenes

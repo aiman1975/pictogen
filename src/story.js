@@ -666,7 +666,7 @@ ${embeddedFontCss()}
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Nunito', -apple-system, sans-serif;
+      font-family: 'Nunito', 'Baloo Bhaijaan 2', -apple-system, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;

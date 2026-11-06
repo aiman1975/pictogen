@@ -24,7 +24,7 @@ import { LANGS, detectLanguage } from './lang.js';
 const r2 = (v) => Math.round(v * 100) / 100;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const words = (s) => String(s ?? '').split(/\s+/).filter(Boolean).length;
-const FONT = "'Nunito','Segoe UI','Helvetica Neue',Arial,sans-serif";
+const FONT = "'Nunito','Baloo Bhaijaan 2','Segoe UI','Helvetica Neue',Arial,sans-serif";
 /** Reading speed (words a second) a card's time is measured by */
 export const READ_WPS = 3.2;
 

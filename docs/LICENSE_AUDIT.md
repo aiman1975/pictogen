@@ -9,6 +9,7 @@ font, data file or dependency is added.
 | npm dependencies | `package.json` | none: zero dependencies | n/a | n/a | ✅ |
 | Fluent Emoji Flat (~3,170 icons) | `src/data/fluent-emoji-flat.json` | MIT, © Microsoft | Yes | Ship the MIT notice with the product (`THIRD_PARTY_NOTICES.md`) | ✅ notice added |
 | Nunito font | `public/fonts/`, embedded in exported clips | SIL OFL 1.1 | Yes | Ship `OFL-Nunito.txt`; can't sell the font on its own | ✅ self-hosted |
+| Baloo Bhaijaan 2 font (Arabic) | `public/fonts/`, embedded in exported clips; Arabic letter figures' outlines | SIL OFL 1.1 | Yes | Ship `OFL-BalooBhaijaan2.txt`; can't sell the font on its own; the figures are artwork made with it (allowed) | ✅ self-hosted |
 | JetBrains Mono font | `public/fonts/`, embedded in exported clips | SIL OFL 1.1 | Yes | Ship `OFL-JetBrainsMono.txt` | ✅ self-hosted |
 | Scene sound: voices and effects | `src/sound.js`, `src/sound-synth.js` | MIT (`LICENSE`): synthesized in code, no recordings or samples | Yes | none beyond PictoGen's own | ✅ |
 | Kenney Interface Sounds 1.0 (23 effects: pop, jingle, ding, twinkle, blip, whoosh, whirl, plop, boing, bubble, blub) | `public/audio/pack/effects/` | CC0 1.0 (`public/audio/pack/licenses/kenney-interface-sounds.txt`) | Yes | None (credited in `THIRD_PARTY_NOTICES.md` as a courtesy) | ✅ |

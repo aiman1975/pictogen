@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { generate, getConcept, renderIcon, STYLE_NAMES, DIAGRAMS, renderWorksheet, parseText, tokenize } from '../src/index.js';
 const await_import = { parseText, tokenize };
+import { ARABIC_IDS } from '../src/concepts/alphabet.js';
 import { fitText } from '../src/bubble.js';
 
 let fails = 0;
@@ -270,6 +271,26 @@ test('German letters: Ä Ö Ü ß are figures, spelled as they are (ß stays ß)
   const spelled = (t) => generate(t, { mode: 'alphabet' }).svg.match(/PALS • ([^<\n]*)/)?.[1]?.trim();
   if (spelled('Straße') !== 'STRAßE' || spelled('MÜNCHEN') !== 'MÜNCHEN') throw new Error(`spelled: ${spelled('Straße')} ${spelled('MÜNCHEN')}`);
   if (tokenize('Der Bär läuft über die Straße').join(' ') !== 'der bär läuft über die straße') throw new Error('words split at their letters');
+});
+
+// Arabic letters: the 28 letters, the forms with a hamza, ta marbuta, alif maqsura and the
+// Arabic-Indic digits as figures, from the Baloo Bhaijaan 2 font; words spelled right to left
+test('Arabic letters: figures for every letter and digit, words spelled right to left, vowel marks left out', () => {
+  const ids = Object.keys(ARABIC_IDS);
+  if (ids.length !== 46 || !ids.every((id) => getConcept(id))) throw new Error(`Arabic figures: ${ids.length}`);
+  const svg = generate('the letter ba', { style: 'flat' }).svg;
+  if (!/pg-rig-glyph/.test(svg) || parseText('ب').matches[0]?.id !== 'letter_ar_ba' || parseText('the letter alif waves').matches[0]?.animation !== 'wave') throw new Error('an Arabic letter by its name or its character, doing things');
+  // (قطة: ق on the right, then ط, then ة on the left)
+  const word = generate('قطة', { mode: 'alphabet' }).svg;
+  const tiles = [...word.matchAll(/translate\(([\d.]+), [\d.]+\)">\s*<rect[^>]*\/>\s*<text[^>]*>([^<]+)<\/text>/g)].map((m) => [m[2], +m[1]]);
+  const x = Object.fromEntries(tiles);
+  if (!(x['ق'] > x['ط'] && x['ط'] > x['ة'])) throw new Error(`right to left: ${JSON.stringify(tiles)}`);
+  if (!word.includes('قطة')) throw new Error('the word joined up on the banner');
+  const marks = generate('مَرْحَبًا', { mode: 'alphabet' }).svg;
+  if ([...marks.matchAll(/class="pg-rig-glyph/g)].length !== 5) throw new Error('vowel marks are no letters');
+  const digits = generate('١٢٣', { mode: 'alphabet' }).svg;
+  const dx = Object.fromEntries([...digits.matchAll(/translate\(([\d.]+), [\d.]+\)">\s*<rect[^>]*\/>\s*<text[^>]*>([^<]+)<\/text>/g)].map((m) => [m[2], +m[1]]));
+  if (!(dx['١'] < dx['٢'] && dx['٢'] < dx['٣'])) throw new Error(`numbers left to right: ${JSON.stringify(dx)}`);
 });
 
 console.log('\nAll Presentation Modes & Styles test suite: ALL PASSED!');

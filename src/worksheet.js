@@ -159,7 +159,7 @@ export function renderWorksheet(prompt, opts = {}) {
     }
     s += text(W / 2, H - M / 2, 'Made with PictoGen', { size: 10, weight: 600, fill: '#cbd5e1', anchor: 'middle' });
     // A worksheet is a still page: nothing moves, the fonts are inside
-    const css = `${embeddedFontCss('Nunito')}\n* { animation: none !important; transition: none !important; }`;
+    const css = `${embeddedFontCss('Nunito')}\n${embeddedFontCss('Baloo Bhaijaan 2')}\n* { animation: none !important; transition: none !important; }`;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><title>${esc(title)}</title><defs><style><![CDATA[${css}]]></style></defs>${s}</svg>`;
   };
 

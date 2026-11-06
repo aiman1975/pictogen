@@ -1074,7 +1074,10 @@ export function renderAlphabet(matches, opts = {}) {
   // "count to 5" -> 1 2 3 4 5; otherwise the letters and digits of the prompt
   const counting = text.match(/\bcount(?:ing)?\s+(?:from\s+(\d)\s+)?to\s+(\d)\b/i);
   // (German letters too: Ä Ö Ü and ß, which stays ß rather than becoming 'SS')
-  const cleanText = counting ? '' : [...text.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '')].map((c) => (c === 'ß' ? c : c.toUpperCase())).join('');
+  // (and Arabic: its letters and digits, without the vowel marks and the stretching line)
+  const cleanText = counting ? '' : [...text.replace(/[\u064B-\u065F\u0670\u0640]/g, '').replace(/[^a-zA-Z0-9äöüÄÖÜß\u0621-\u064A\u0660-\u0669]/g, '')].map((c) => (c === 'ß' ? c : c.toUpperCase())).join('');
+  // (an Arabic word is read right to left: its first letter stands on the right)
+  const rtl = /[\u0621-\u064A]/.test(cleanText);
 
   // Check if prompt is a phonics pair: e.g. "A is for Apple" or "C is for Cat"
   const isPhonics = !counting && (/^[A-ZÄÖÜ]\s+(is\s+for|for)\s+/i.test(text.trim()) ||
@@ -1203,7 +1206,7 @@ export function renderAlphabet(matches, opts = {}) {
     content += `<!-- Letterlings Row -->`;
 
     rawLetters.forEach((char, idx) => {
-      const cx = startX + idx * itemWidth;
+      const cx = startX + (rtl ? N - 1 - idx : idx) * itemWidth;
       const anim = animOptions[idx % animOptions.length];
       const expr = exprOptions[idx % exprOptions.length];
       const letterPal = LETTER_PALETTES[char] || LETTER_PALETTES.A;
@@ -1233,9 +1236,12 @@ export function renderAlphabet(matches, opts = {}) {
     content += `
       <g transform="translate(${W * 0.5}, 30)">
         <rect x="-100" y="-12" width="200" height="24" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
-        <text x="0" y="4" text-anchor="middle" font-family="${FONT}" font-size="11" font-weight="800" fill="#64748b" letter-spacing="0.1em">
-          ${rawLetters.every((c) => /\d/.test(c)) ? 'NUMBER PALS' : 'ALPHABET PALS'} • ${rawLetters.join('')}
-        </text>
+        ${rtl
+    // (Arabic: the word joined up as it is written - letter-spacing would pull its letters apart)
+    ? `<text x="0" y="4" text-anchor="middle" font-family="${FONT}" font-size="11" font-weight="800" fill="#64748b"><tspan letter-spacing="0.1em">ALPHABET PALS •</tspan> <tspan font-size="13">${esc(rawLetters.join(''))}</tspan></text>`
+    : `<text x="0" y="4" text-anchor="middle" font-family="${FONT}" font-size="11" font-weight="800" fill="#64748b" letter-spacing="0.1em">
+          ${rawLetters.every((c) => /[\d\u0660-\u0669]/.test(c)) ? 'NUMBER PALS' : 'ALPHABET PALS'} • ${rawLetters.join('')}
+        </text>`}
       </g>
     `;
   }

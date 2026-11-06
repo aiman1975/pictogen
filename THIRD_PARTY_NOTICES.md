@@ -34,6 +34,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
 ```
 
+## Baloo Bhaijaan 2 — `public/fonts/baloo-bhaijaan-arabic.woff2`, the Arabic letter figures
+
+Copyright 2019 The Baloo 2 Project Authors (https://github.com/EkType/Baloo2).
+Licensed under the SIL Open Font License 1.1 — full text in `public/fonts/OFL-BalooBhaijaan2.txt`.
+The studio's font for Arabic text (its Arabic subset, self-hosted), and the shapes of the Arabic
+letter and digit figures, drawn from its outlines (`src/concepts/arabic-letters-data.js`, made by
+`scripts/lang/ar-letters-build.py`). The font itself is not sold on its own.
+
 ## Nunito — `public/fonts/nunito-*.woff2`
 
 Copyright 2014 The Nunito Project Authors (https://github.com/googlefonts/nunito).

@@ -3352,6 +3352,14 @@ export default {
     "Nicht gezeichnet: $1"
    ],
    [
+    "Arabic letter (\\S+) \\((.+)\\)",
+    "Arabischer Buchstabe $1 ($2)"
+   ],
+   [
+    "Arabic number (\\S+) \\((.+)\\)",
+    "Arabische Zahl $1 ($2)"
+   ],
+   [
     "Painted shape with (.+)",
     "Form gefärbt mit $1"
    ],

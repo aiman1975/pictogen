@@ -7,7 +7,7 @@ a board stays in their own language.
 | Part | English | German | Arabic | Spanish |
 |---|---|---|---|---|
 | Words in any alphabet (no word split at "ß" or "ü") | ✅ | ✅ | ✅ | ✅ |
-| Letter figures | A-Z, 0-9 | + Ä Ö Ü ß | planned | planned (Ñ) |
+| Letter figures | A-Z, 0-9 | + Ä Ö Ü ß | ✅ 28 letters, ة ى ء أ إ آ ؤ ئ, ٠-٩; words right to left | planned (Ñ) |
 | Explainers: outline words, card pictures | ✅ | ✅ | planned | planned |
 | Notes → explainer | ✅ | ✅ | planned | planned |
 | Scenes from a prompt | ✅ | ✅ (word bridge, plurals) | planned | planned |
@@ -59,6 +59,20 @@ the pages show (collected in a browser with `pictogenI18n.keysOf`), informal "du
 help page's example links open the same prompts in German, each checked to draw what the English
 one draws. A native speaker should read it before a release: to change a word, change it in that
 file. A text added to a page later shows in English until it is added there.
+
+## The Arabic letters
+
+The Arabic letter figures (`letter_ar_alif` … `letter_ar_ya`, the forms with a hamza, ta marbuta,
+alif maqsura; `number_ar_0` … `number_ar_9`) take their shapes from the **Baloo Bhaijaan 2** font
+(Ek Type, SIL OFL 1.1 - round and friendly, like Nunito): `scripts/lang/ar-letters-build.py` draws
+each letter's isolated form at its boldest weight into a letter figure's body, stands its strokes on
+the legs (dots under it hang between the feet) and puts the face where the letter is thickest, toward
+its middle and never on a dot (`src/concepts/arabic-letters-data.js`). They have the Letterlings'
+faces, arms, legs and moves; "the letter ba", "ب" or "the letter alif waves" draw them. An Arabic
+word in letters mode is spelled right to left (its first letter on the right), its vowel marks left
+out, and shown joined up as it is written; Arabic-Indic numbers go left to right, as they are read.
+The font's Arabic part (`public/fonts/baloo-bhaijaan-arabic.woff2`) is the pages' font for Arabic
+text, offline, and goes into videos, clips and worksheets with Nunito.
 
 ## The German nouns
 

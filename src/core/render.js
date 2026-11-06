@@ -13,7 +13,8 @@ import { PLACE_CSS } from '../places.js';
 import { getConcept } from '../concepts/index.js';
 import { heldShape } from '../held.js';
 
-export const FONT = "'Nunito','Segoe UI',Roboto,Arial,sans-serif";
+// (Arabic letters from Baloo Bhaijaan 2: Nunito has none, the browser takes the next that has them)
+export const FONT = "'Nunito','Baloo Bhaijaan 2','Segoe UI',Roboto,Arial,sans-serif";
 
 let uidN = 0;
 /** Unique id prefix so several SVGs can live on one HTML page without filter-id clashes. */

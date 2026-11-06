@@ -191,4 +191,4 @@ npm test
 ## Roadmap & Licensing
 
 - **Roadmap:** [`docs/ROADMAP.md`](docs/ROADMAP.md): the text-to-clip plan (depth, characters, environments, timeline, video export).
-- **License:** PictoGen is MIT-licensed ([`LICENSE`](LICENSE)). Bundled third-party material (Microsoft Fluent Emoji, MIT; Nunito and JetBrains Mono fonts, SIL OFL 1.1) is listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), and the full audit is in [`docs/LICENSE_AUDIT.md`](docs/LICENSE_AUDIT.md).
+- **License:** PictoGen is MIT-licensed ([`LICENSE`](LICENSE)). Bundled third-party material (Microsoft Fluent Emoji, MIT; Nunito, JetBrains Mono and Baloo Bhaijaan 2 fonts, SIL OFL 1.1) is listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), and the full audit is in [`docs/LICENSE_AUDIT.md`](docs/LICENSE_AUDIT.md).

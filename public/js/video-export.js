@@ -21,7 +21,8 @@ async function frameFonts() {
   try {
     const base = new URL('../fonts/', import.meta.url);
     const css = await (await fetch(new URL('fonts.css', base))).text();
-    const rules = (css.match(/@font-face\s*\{[^}]*\}/g) || []).filter((r) => r.includes("'Nunito'"));
+    // (the studio's font, and its Arabic one)
+    const rules = (css.match(/@font-face\s*\{[^}]*\}/g) || []).filter((r) => r.includes("'Nunito'") || r.includes("'Baloo Bhaijaan 2'"));
     const out = [];
     for (const r of rules) {
       const file = /url\(([\w.-]+\.woff2)\)/.exec(r);
