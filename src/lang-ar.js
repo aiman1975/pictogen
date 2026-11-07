@@ -41,7 +41,8 @@ const GRAMMAR = w(`
 جدا = very
 معا = together
 ايضا = also
-هناك, يوجد, توجد =
+هناك, يوجد, توجد, بها, به, فيها, فيه =
+يرفع ابهامه, ترفع ابهامها, ابهام لاعلي = thumbsup
 الذي, التي, الذين =
 ان, انه, انها, قد, لقد, كان, كانت =
 `);
@@ -66,7 +67,10 @@ const VERBS = w(`
 ياكل, تاكل, اكلت = eats
 يشرب, تشرب, شرب, شربت = drinks
 يسبح, تسبح, سبح, سبحت = swims
-يطير, تطير, طار, طارت = flies
+يطير, تطير, طار, طارت, يحلق, تحلق, حلق, حلقت = flies
+يبتعد, تبتعد, ابتعد, ابتعدت = walks away
+يكتشف, تكتشف, اكتشف, اكتشفت = discovers
+يهز, تهز, هز, هزت = wags
 يقود, تقود, قاد, قادت = drives
 يركب, تركب, ركب, ركبت = rides
 يلعب, تلعب, لعب, لعبت = plays
@@ -154,6 +158,8 @@ const ADJ = w(`
 حار = hot
 مظلم = dark
 جميل = beautiful
+ساطع, مشرق = bright
+مشمس = sunny
 ودود = friendly
 `);
 // (feminine and plural: "صغيرة", "صغيرون", "صغيرات")
@@ -191,6 +197,9 @@ const PLACES = w(`
 مطبخ = kitchen
 غرفه النوم = bedroom
 غرفه = room
+مكتب, مكاتب = office
+تحت البحر, تحت الماء, قاع البحر = underwater
+ليله = night
 شارع, طريق = street
 ملعب = playground
 قلعه, قصر = castle
@@ -218,11 +227,19 @@ const OWN = w(`
 اصدقاء = friends
 حيوانات = animals
 ماء, مياه = water
+شجره تفاح, شجره التفاح = apple tree
+احادي القرن, يونيكورن = unicorn
+قهوه = coffee
+شاي = tea
+هاتف, هواتف = phone
+غواص = diver
+غواصه = woman diver
+فارس, فرسان = knight
 `);
 
 // First names: a girl or a boy in a scene (a story keeps them as characters)
 const GIRLS = 'سارة مريم فاطمة ليلى نور زينب هدى سلمى ريم آية ياسمين جنى لينا رنا دانة حلا مايا لمى سما رهف هند عائشة خديجة أمل منى ندى رغد جود تالا ميرا يارا'.split(' ').map(normalArabic);
-const BOYS = 'محمد أحمد علي عمر يوسف خالد آدم حسن حسين كريم رامي سامي زياد فارس مازن ياسر طارق إبراهيم مصطفى عبدالله حمزة سليم بلال أنس مروان نادر هادي وليد ماجد'.split(' ').map(normalArabic);
+const BOYS = 'محمد أحمد علي عمر يوسف خالد آدم حسن حسين كريم رامي سامي زياد مازن ياسر طارق إبراهيم مصطفى عبدالله حمزة سليم بلال أنس مروان نادر هادي وليد ماجد'.split(' ').map(normalArabic);
 export const NAMES = Object.fromEntries([...GIRLS.map((n) => [n, 'girl']), ...BOYS.map((n) => [n, 'boy'])]);
 
 // Titles before a name ("الجدة سلمى" is a grandmother called Salma) are nouns here
@@ -258,7 +275,8 @@ export function arabicWord(word) {
       // (a place is a place - "الشاطئ", "المدينة" - not the picture of one)
       const own = OWN[f] ?? (front.includes('the') && NOUNS[f] !== undefined && PLACES[f] === undefined ? NOUNS[f] : null);
       const en = own ?? KNOWN[f];
-      return { en, kind: own ? 'noun' : kindIn(f), front, ...(PLURAL[f] ? { plural: PLURAL[f] } : {}) };
+      // (a word written here says how many itself: "أطفال" is children)
+      return { en, kind: own ? 'noun' : kindIn(f), front, ...(PLURAL[f] && OWN[f] === undefined ? { plural: PLURAL[f] } : {}) };
     }
   }
   return null;
@@ -356,7 +374,7 @@ export function isArabicPrompt(text) {
 
 // Diagram topics named in Arabic ("دورة الماء", "أجزاء النبات")
 const ARABIC_TOPICS = {
-  plant: /(اجزاء (ال)?نب(ا|ت)ت|اجزاء الزهره)/,
+  plant: /(اجزاء (ال)?(نبات|نبته)|اجزاء الزهره)/,
   tree: /اجزاء (ال)?شجره/,
   body: /(جسم (ال)?انسان|اجزاء (ال)?جسم)/,
   water_cycle: /(دوره (ال)?ماء|(ال)?دوره (ال)?مائيه)/,

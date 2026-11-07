@@ -7,11 +7,13 @@
   <title>How to use PictoGen</title>
   <meta name="description" content="How to use PictoGen: write a sentence, change the picture, make cartoons, comics, labelled diagrams and worksheets, and save them." />
   <link rel="stylesheet" href="/fonts/fonts.css" />
+  <!-- (a page in Arabic is laid out right to left from the start, before public/js/i18n.js runs) -->
+  <script>try { var pl = localStorage.getItem('pictogen.lang.v1') || ((navigator.languages || [navigator.language])[0] || '').slice(0, 2).toLowerCase(); if (pl === 'ar') { document.documentElement.dir = 'rtl'; document.documentElement.lang = 'ar'; } } catch (e) { /* not remembered */ }</script>
   <style>
     :root { --ink: #1f2937; --muted: #5b6474; --brand: #2563eb; --brand2: #7c3aed; --line: #e5e7eb; --soft: #f8fafc; }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; scroll-padding-top: 76px; }
-    body { margin: 0; font-family: 'Nunito', 'Segoe UI', Roboto, Arial, sans-serif; color: var(--ink); background: #fff; line-height: 1.6; font-size: 17px; }
+    body { margin: 0; font-family: 'Nunito', 'Baloo Bhaijaan 2', 'Segoe UI', Roboto, Arial, sans-serif; color: var(--ink); background: #fff; line-height: 1.6; font-size: 17px; }
     a { color: var(--brand); }
     .bar { position: sticky; top: 0; z-index: 5; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
     .bar .in { max-width: 1120px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -27,15 +29,15 @@
     h1 { font-size: clamp(2rem, 4.5vw, 2.8rem); line-height: 1.15; margin: 16px 0 8px; }
     .intro { font-size: 1.15rem; color: var(--muted); margin: 0 0 20px; }
     h2 { font-size: 1.55rem; margin: 46px 0 10px; padding-top: 6px; border-top: 1px solid var(--line); }
-    h2 .n { color: var(--brand2); margin-right: 6px; }
+    h2 .n { color: var(--brand2); margin-inline-end: 6px; }
     h3 { font-size: 1.12rem; margin: 22px 0 6px; }
     p, li { max-width: 46em; }
-    ul { padding-left: 1.3rem; }
+    ul { padding-inline-start: 1.3rem; }
     li { margin: 4px 0; }
     .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 22px 0 8px; }
     .step { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 16px; }
     .step > b { display: block; font-size: 1.05rem; margin-bottom: 4px; }
-    .step .num { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 900; margin-right: 6px; }
+    .step .num { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 900; margin-inline-end: 6px; }
     .ex { display: inline-block; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 999px; padding: 2px 12px; margin: 3px 4px 3px 0; text-decoration: none; color: #3730a3; font-weight: 800; font-size: 0.93rem; }
     .ex:hover { background: #e0e7ff; }
     .ex::after { content: ' ↗'; opacity: 0.6; }
@@ -55,6 +57,8 @@
     }
   </style>
   <style>
+    /* (right to left, in Arabic: the drawings stay as drawn - their words are set by the engine) */
+    [dir="rtl"] svg { direction: ltr; }
     .lang-switch { display: inline-flex; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
     .lang-btn { font: inherit; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border: none; background: #fff; color: #64748b; cursor: pointer; }
     .lang-btn.on { background: #2563eb; color: #fff; }

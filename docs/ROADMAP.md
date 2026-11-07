@@ -301,7 +301,8 @@ Revisit 3D only for a specific premium style ("clay 3D") once the clip engine is
       -> outline by Arabic rules)
 - [x] Arabic step 3: scenes from Arabic prompts (word bridge, duals, nouns drafted), Arabic diagram
       topics, "ب مثل بطة"
-- [ ] Arabic next: the studio in Arabic (right to left), Arabic stories; later Spanish
+- [x] Arabic step 4: the studio, landing page and help page in Arabic, right to left (EN / DE / AR)
+- [ ] Arabic next: Arabic stories (a cast kept across lines); later Spanish
 - [ ] Explainers, phase 3: an optional local language model for the writer (a download, like the
       sound pack; its output checked, the rules as fallback; licence checked for sale)
 - [ ] Explainers, phase 4: the writer choosing which points become acted scenes

@@ -13,7 +13,7 @@ a board stays in their own language.
 | Scenes from a prompt | ✅ | ✅ (word bridge, plurals) | ✅ (word bridge, duals) | planned |
 | Diagram topics, letter modes ("K wie Katze", "zähle bis 5") | ✅ | ✅ | ✅ ("ب مثل بطة", "عد إلى ٥") | planned |
 | Stories (a cast kept across lines, names, pronouns) | ✅ | ✅ | a scene per line | planned |
-| The studio, landing page and help page in the language | ✅ | ✅ (EN / DE switch) | planned | planned |
+| The studio, landing page and help page in the language | ✅ | ✅ (EN / DE switch) | ✅ right to left (AR) | planned |
 
 ## Where each language lives
 
@@ -106,6 +106,18 @@ word in letters mode is spelled right to left (its first letter on the right), i
 out, and shown joined up as it is written; Arabic-Indic numbers go left to right, as they are read.
 The font's Arabic part (`public/fonts/baloo-bhaijaan-arabic.woff2`) is the pages' font for Arabic
 text, offline, and goes into videos, clips and worksheets with Nunito.
+
+## The pages in Arabic
+
+`public/js/i18n-ar.js` (the same 1,150 page texts, drafted with Gemini in Modern Standard Arabic with
+Arabic example prompts - each checked to draw what the English one does - and 2,119 picture names
+from the Arabic nouns) is chosen with **AR** in the switch or by an Arabic browser. An Arabic page is
+laid out right to left (`dir="rtl"`, set before the page is first shown, so nothing jumps): the
+studio's side panel on the right, rows and fields from the right, spacing written as logical
+properties (`margin-inline-start`…). The drawings (every `svg`), the picture's own area and the
+timeline stay left to right: the engine lays out their words itself, and the timeline runs by time.
+The pages' Arabic font is Baloo Bhaijaan 2. On a phone "All pictures" is just its icon, so the three
+languages fit.
 
 ## The German nouns
 

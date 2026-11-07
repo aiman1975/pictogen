@@ -49,6 +49,8 @@ for (const [id, nouns] of Object.entries(merged)) {
       add(`${stem}ان`, id, 2);
       add(`${stem}ين`, id, 2);
     }
+    // (a word in ة has a plural in ات too: "تفاحات" beside "تفاح")
+    if (/ه$/.test(sg) && !sg.includes(' ')) add(sg.replace(/ه$/, 'ات'), id, 1);
     // (the other case of a sound plural: "معلمون" / "معلمين")
     const pl = normalArabic(n.pl ?? '');
     if (/ون$/.test(pl)) add(pl.replace(/ون$/, 'ين'), id, 1);

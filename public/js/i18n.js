@@ -6,7 +6,10 @@
 // header), else the browser's, remembered in this browser.
 
 const KEY = 'pictogen.lang.v1';
-const LANGS = { de: () => import('./i18n-de.js') };
+const LANGS = { de: () => import('./i18n-de.js'), ar: () => import('./i18n-ar.js') };
+// (languages written right to left: the page is laid out from the right; drawings stay as drawn)
+const RTL = new Set(['ar']);
+const NAMES = { en: 'English', de: 'Deutsch', ar: 'العربية' };
 const INLINE = new Set(['B', 'STRONG', 'I', 'EM', 'A', 'CODE', 'SPAN', 'BR', 'KBD', 'SMALL', 'SUB', 'SUP', 'MARK', 'U']);
 const ATTRS = ['title', 'placeholder', 'aria-label', 'alt', 'data-prompt'];
 // (what people wrote, and drawings: never translated)
@@ -102,9 +105,10 @@ export function translate(root = document.body) {
 export async function start() {
   const lang = currentLang();
   document.documentElement.lang = lang;
+  document.documentElement.dir = RTL.has(lang) ? 'rtl' : 'ltr';
   // (the switch: EN / DE, wherever the page has a place for it)
   for (const box of document.querySelectorAll('[data-lang-switch]')) {
-    box.innerHTML = ['en', ...Object.keys(LANGS)].map((c) => `<button type="button" class="lang-btn${c === lang ? ' on' : ''}" data-lang="${c}" aria-pressed="${c === lang}" title="${c === 'de' ? 'Deutsch' : 'English'}">${c.toUpperCase()}</button>`).join('');
+    box.innerHTML = ['en', ...Object.keys(LANGS)].map((c) => `<button type="button" class="lang-btn${c === lang ? ' on' : ''}" data-lang="${c}" aria-pressed="${c === lang}" title="${NAMES[c] ?? c}">${c.toUpperCase()}</button>`).join('');
     box.addEventListener('click', (e) => { const b = e.target.closest('[data-lang]'); if (b && b.dataset.lang !== lang) setLang(b.dataset.lang); });
   }
   if (!LANGS[lang]) return;

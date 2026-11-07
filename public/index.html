@@ -6,6 +6,8 @@
   <title>PictoGen: type a sentence, get a picture</title>
   <meta name="description" content="Type a sentence and get a picture that moves: pictures, cartoons, comics, labelled diagrams and worksheets, drawn on your own device." />
   <link rel="stylesheet" href="/fonts/fonts.css" />
+  <!-- (a page in Arabic is laid out right to left from the start, before public/js/i18n.js runs) -->
+  <script>try { var pl = localStorage.getItem('pictogen.lang.v1') || ((navigator.languages || [navigator.language])[0] || '').slice(0, 2).toLowerCase(); if (pl === 'ar') { document.documentElement.dir = 'rtl'; document.documentElement.lang = 'ar'; } } catch (e) { /* not remembered */ }</script>
   <script>
     // Old links to the studio (/?text=...) still open the studio
     if (/[?&](text|mode|style)=/.test(location.search)) location.replace('/studio' + location.search);
@@ -17,7 +19,7 @@
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body { margin: 0; font-family: 'Nunito', 'Segoe UI', Roboto, Arial, sans-serif; color: var(--ink); background: linear-gradient(180deg, #fff7ed 0%, #ffffff 38%, #f5f3ff 100%); line-height: 1.5; }
+    body { margin: 0; font-family: 'Nunito', 'Baloo Bhaijaan 2', 'Segoe UI', Roboto, Arial, sans-serif; color: var(--ink); background: linear-gradient(180deg, #fff7ed 0%, #ffffff 38%, #f5f3ff 100%); line-height: 1.5; }
     a { color: inherit; }
     .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
 
@@ -48,7 +50,7 @@
     .demo-bar { display: flex; align-items: center; gap: 10px; background: #f3f4f6; border-radius: 12px; padding: 10px 14px; font-weight: 800; min-height: 48px; }
     .demo-bar .pen { font-size: 1.2rem; }
     .typed { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .caret { display: inline-block; width: 2px; height: 1.1em; background: var(--brand); vertical-align: -0.15em; margin-left: 1px; animation: blink 1s steps(1) infinite; }
+    .caret { display: inline-block; width: 2px; height: 1.1em; background: var(--brand); vertical-align: -0.15em; margin-inline-start: 1px; animation: blink 1s steps(1) infinite; }
     @keyframes blink { 50% { opacity: 0; } }
     .draw-btn { background: var(--brand); color: #fff; border-radius: 9px; padding: 5px 12px; font-size: 0.9rem; }
     .demo-pic { margin-top: 12px; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #f8fafc; display: grid; place-items: center; position: relative; }
@@ -89,7 +91,7 @@
     .private { background: #ecfdf5; border-radius: 26px; padding: 40px 32px; display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center; border: 1px solid #a7f3d0; }
     .private .big { font-size: 4rem; line-height: 1; }
     .private h2 { text-align: left; }
-    .private ul { margin: 10px 0 0; padding-left: 1.2rem; font-size: 1.05rem; }
+    .private ul { margin: 10px 0 0; padding-inline-start: 1.2rem; font-size: 1.05rem; }
     .private li { margin: 6px 0; }
 
     .end { text-align: center; padding: 56px 0 30px; }
@@ -110,6 +112,8 @@
     }
   </style>
   <style>
+    /* (right to left, in Arabic: the drawings stay as drawn - their words are set by the engine) */
+    [dir="rtl"] svg { direction: ltr; }
     .lang-switch { display: inline-flex; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
     .lang-btn { font: inherit; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border: none; background: #fff; color: #64748b; cursor: pointer; }
     .lang-btn.on { background: #2563eb; color: #fff; }
@@ -217,19 +221,20 @@
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // 1. The demo: a sentence typed, then drawn, one after another (in the page's language)
-    function pageLang() { try { const l = localStorage.getItem('pictogen.lang.v1'); if (l) return l; } catch { /* */ } return /^de/i.test(navigator.languages?.[0] ?? navigator.language ?? '') ? 'de' : 'en'; }
+    function pageLang() { try { const l = localStorage.getItem('pictogen.lang.v1'); if (l) return l; } catch { /* */ } const n = (navigator.languages?.[0] ?? navigator.language ?? '').slice(0, 2).toLowerCase(); return ['de', 'ar'].includes(n) ? n : 'en'; }
+    const inLang = (d) => (pageLang() === 'de' && d.de ? { ...d, text: d.de } : pageLang() === 'ar' && d.ar ? { ...d, text: d.ar } : d);
     const DEMOS = [
-      { text: 'a girl with a balloon walks in the park', de: 'ein Mädchen mit einem Luftballon läuft im Park', style: 'cartoon' },
-      { text: 'a boy says "Look, a rainbow!" to his dog', de: 'ein Junge sagt „Schau, ein Regenbogen!“ zu seinem Hund', style: 'flat' },
-      { text: 'a superhero flies over the city at night', de: 'ein Superheld fliegt nachts über die Stadt', style: 'comic' },
-      { text: 'the water cycle', de: 'der Wasserkreislauf', mode: 'diagram', style: 'flat' },
-      { text: 'grandma and grandpa read books in the kitchen', de: 'Oma und Opa lesen Bücher in der Küche', style: 'watercolor' },
-    ].map((d) => (pageLang() === 'de' ? { ...d, text: d.de } : d));
+      { text: 'a girl with a balloon walks in the park', de: 'ein Mädchen mit einem Luftballon läuft im Park', ar: 'فتاة مع بالون تمشي في الحديقة', style: 'cartoon' },
+      { text: 'a boy says "Look, a rainbow!" to his dog', de: 'ein Junge sagt „Schau, ein Regenbogen!“ zu seinem Hund', ar: 'ولد يقول «انظر، قوس قزح!» لكلبه', style: 'flat' },
+      { text: 'a superhero flies over the city at night', de: 'ein Superheld fliegt nachts über die Stadt', ar: 'بطل خارق يطير فوق المدينة ليلا', style: 'comic' },
+      { text: 'the water cycle', de: 'der Wasserkreislauf', ar: 'دورة الماء', mode: 'diagram', style: 'flat' },
+      { text: 'grandma and grandpa read books in the kitchen', de: 'Oma und Opa lesen Bücher in der Küche', ar: 'الجدة والجد يقرآن الكتب في المطبخ', style: 'watercolor' },
+    ].map(inLang);
     const typed = document.getElementById('typed'), pic = document.getElementById('demo-pic'), dots = document.getElementById('demo-dots');
     const cache = new Map();
     const svgOf = (d) => { if (!cache.has(d)) cache.set(d, draw(d.text, d)); return cache.get(d); };
     let at = 0, run = 0;
-    dots.innerHTML = DEMOS.map((d, i) => `<button aria-label="${pageLang() === 'de' ? 'Beispiel' : 'Example'} ${i + 1}: ${d.text.replace(/"/g, '&quot;')}"></button>`).join('');
+    dots.innerHTML = DEMOS.map((d, i) => `<button aria-label="${{ de: 'Beispiel', ar: 'مثال' }[pageLang()] ?? 'Example'} ${i + 1}: ${d.text.replace(/"/g, '&quot;')}"></button>`).join('');
     dots.querySelectorAll('button').forEach((b, i) => b.addEventListener('click', () => show(i)));
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     async function show(i) {
@@ -262,15 +267,15 @@
 
     // 2. You type -> you get
     const PAIRS = [
-      { text: 'a teacher reads a book to children in a classroom', de: 'eine Lehrerin liest den Kindern im Klassenzimmer ein Buch vor', style: 'flat', note: 'A picture for the lesson' },
-      { text: 'the parts of a plant', de: 'die Teile einer Pflanze', mode: 'diagram', style: 'flat', note: '…and a worksheet to print' },
-      { text: 'a cat finds a fish "Look, a fish!" "Yum!" "Best day ever!"', de: 'eine Katze findet einen Fisch „Schau, ein Fisch!“ „Lecker!“ „Bester Tag überhaupt!“', mode: 'comic', style: 'comic', note: 'A comic strip' },
-    ].map((d) => (pageLang() === 'de' ? { ...d, text: d.de } : d));
+      { text: 'a teacher reads a book to children in a classroom', de: 'eine Lehrerin liest den Kindern im Klassenzimmer ein Buch vor', ar: 'معلمة تقرأ كتابا للأطفال في الفصل', style: 'flat', note: 'A picture for the lesson' },
+      { text: 'the parts of a plant', de: 'die Teile einer Pflanze', ar: 'أجزاء النبات', mode: 'diagram', style: 'flat', note: '…and a worksheet to print' },
+      { text: 'a cat finds a fish "Look, a fish!" "Yum!" "Best day ever!"', de: 'eine Katze findet einen Fisch „Schau, ein Fisch!“ „Lecker!“ „Bester Tag überhaupt!“', ar: 'قطة تجد سمكة «انظر، سمكة!» «لذيذ!» «أجمل يوم!»', mode: 'comic', style: 'comic', note: 'A comic strip' },
+    ].map(inLang);
     const pairs = document.getElementById('pairs');
     const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     pairs.innerHTML = PAIRS.map((d, i) => `
       <a class="pair" href="${studioLink(d)}" style="text-decoration:none">
-        <div class="said"><small>${pageLang() === 'de' ? 'Du tippst' : 'You type'}</small><span class="no-i18n">“${esc(d.text)}”</span></div>
+        <div class="said"><small>${{ de: 'Du tippst', ar: 'تكتب' }[pageLang()] ?? 'You type'}</small><span class="no-i18n">${pageLang() === 'ar' ? `«${esc(d.text)}»` : `“${esc(d.text)}”`}</span></div>
         <div class="arrow" aria-hidden="true">↓</div>
         <div class="pic" id="pair-${i}"><span class="waiting">Drawing…</span></div>
         <div class="more"><span>${d.note}</span><span style="color:var(--brand);font-weight:900">Try this →</span></div>
@@ -280,7 +285,7 @@
     // 3. One sentence, six styles
     const STYLES = [['cartoon', 'Cartoon'], ['watercolor', 'Watercolour'], ['anime', 'Anime'], ['crayon', 'Crayon'], ['chalkboard', 'Chalkboard'], ['pixel', 'Pixel art']];
     const styles = document.getElementById('styles');
-    const STYLE_TEXT = pageLang() === 'de' ? 'ein fröhliches Mädchen und ihr Hund' : 'a happy girl and her dog';
+    const STYLE_TEXT = { de: 'ein fröhliches Mädchen und ihr Hund', ar: 'فتاة سعيدة وكلبها' }[pageLang()] ?? 'a happy girl and her dog';
     styles.innerHTML = STYLES.map(([s, name]) => `<a class="style" href="${studioLink({ text: STYLE_TEXT, style: s })}" style="text-decoration:none"><div class="pic" id="st-${s}"></div>${name}</a>`).join('');
     for (const [s] of STYLES) draw(STYLE_TEXT, { style: s, width: 360, height: 360 }).then((svg) => { document.getElementById(`st-${s}`).innerHTML = svg; });
   </script>

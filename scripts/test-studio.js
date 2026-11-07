@@ -815,6 +815,43 @@ try {
   check(/So nutzt du PictoGen/.test(help.h1) && /M%C3%A4dchen|Mädchen/.test(help.ex ?? ''), `the help page in German, its examples open German prompts (${help.h1})`);
   check(!deErrors.length, `no page errors in German${deErrors.length ? ': ' + deErrors.join('; ') : ''}`);
   await deCtx.close();
+
+  // The studio in Arabic: right to left, Arabic words, an Arabic first picture; the drawings and the
+  // timeline stay left to right; it fits a phone
+  const arCtx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'ar-SA' });
+  const arp = await arCtx.newPage();
+  const arErrors = [];
+  arp.on('pageerror', (e) => arErrors.push(e.message));
+  await arp.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
+  await arp.waitForFunction(() => document.querySelectorAll('#svg-viewport svg .movable-item').length >= 2, null, { timeout: 30000 });
+  const arStudio = await arp.evaluate(() => ({
+    dir: document.documentElement.dir,
+    draw: document.getElementById('btn-generate').textContent.trim(),
+    prompt: document.getElementById('prompt-input').value,
+    svgDir: getComputedStyle(document.querySelector('#svg-viewport svg')).direction,
+    timelineDir: document.getElementById('timeline-panel').getAttribute('dir'),
+    sideRight: document.querySelector('.controls-panel')?.getBoundingClientRect().left > window.innerWidth / 2,
+    on: document.querySelector('.lang-btn.on')?.dataset.lang,
+    chip: [...document.querySelectorAll('.chip[data-prompt]')].map((c) => c.dataset.prompt).includes('ق مثل قطة'),
+  }));
+  check(arStudio.dir === 'rtl' && /ارسم/.test(arStudio.draw) && arStudio.on === 'ar' && arStudio.sideRight, `an Arabic browser gets the studio in Arabic, right to left (${arStudio.draw}; side panel on the right: ${arStudio.sideRight})`);
+  check(/فتاة/.test(arStudio.prompt) && arStudio.chip, `the first picture from an Arabic prompt, the examples Arabic ("${arStudio.prompt}")`);
+  check(arStudio.svgDir === 'ltr' && arStudio.timelineDir === 'ltr', 'the drawings and the timeline stay left to right');
+  await arp.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
+  await arp.waitForFunction(() => (document.getElementById('typed')?.textContent ?? '').length > 8, null, { timeout: 15000 });
+  const arLanding = await arp.evaluate(() => ({ typed: document.getElementById('typed').textContent, h1: document.querySelector('h1').textContent, dir: document.documentElement.dir }));
+  check(/^فتاة/.test(arLanding.typed) && /جملة/.test(arLanding.h1) && arLanding.dir === 'rtl', `the landing page in Arabic, its demo typing Arabic prompts ("${arLanding.typed}…")`);
+  await arp.goto(`http://localhost:${port}/help`, { waitUntil: 'networkidle' });
+  const arHelp = await arp.evaluate(() => ({ h1: document.querySelector('h1').textContent, ex: decodeURIComponent(document.querySelector('a.ex')?.getAttribute('href') ?? '') }));
+  check(/PictoGen/.test(arHelp.h1) && /[\u0621-\u064A]/.test(arHelp.h1) && /[\u0621-\u064A]/.test(arHelp.ex), `the help page in Arabic, its examples open Arabic prompts (${arHelp.h1})`);
+  check(!arErrors.length, `no page errors in Arabic${arErrors.length ? ': ' + arErrors.join('; ') : ''}`);
+  await arCtx.close();
+  const arPhoneCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'ar-SA' });
+  const arPhone = await arPhoneCtx.newPage();
+  await arPhone.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
+  const arWidth = await arPhone.evaluate(() => document.documentElement.scrollWidth);
+  check(arWidth <= 390, `in Arabic on a phone nothing is wider than the screen (${arWidth}px)`);
+  await arPhoneCtx.close();
 } finally {
   if (browser) await browser.close();
   server.kill();
