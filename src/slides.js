@@ -385,17 +385,23 @@ export function renderSlide(card, opts = {}) {
   } else if (card.kind === 'number') {
     const ids = pics(card.show ?? `${card.label} ${card.points.map((p) => p.text).join(' ')}`, 1);
     const colW = wide && ids.length ? W * 0.58 : W - 2 * M;
-    const f = fit(card.number, { maxW: colW, size: 96 * u, maxLines: 1, min: 40 * u });
-    const y0 = H * 0.18;
+    // (smaller, when the number, its label and its points would run off the card)
+    let k = 1, f, lab, pf, y0 = H * 0.18;
+    for (k of [1, 0.86, 0.74, 0.64]) {
+      f = fit(card.number, { maxW: colW, size: 96 * u * k, maxLines: 1, min: 40 * u * k });
+      lab = card.label ? fit(card.label, { maxW: colW, size: 26 * u * k, maxLines: 2 }) : null;
+      pf = card.points.map((p) => fit(p.text, { maxW: colW, size: 17 * u * Math.max(k, 0.8), maxLines: 2 }));
+      y0 = H * (k < 1 ? 0.12 : 0.18);
+      const end = y0 + f.h + 6 * u + (lab ? lab.h + 14 * u : 0) + pf.reduce((a, l) => a + l.h + 8 * u, 0);
+      if (end <= H - 12 * u) break;
+    }
     body += appear(text(f.lines, M, y0, f.size, { fill: accent, weight: 900 }), { pop: true });
     let y = y0 + f.h + 6 * u;
-    if (card.label) {
-      const l = fit(card.label, { maxW: colW, size: 26 * u, maxLines: 2 });
-      body += appear(text(l.lines, M, y, l.size, { fill: th.ink, weight: 900 }));
-      y += l.h + 14 * u;
+    if (lab) {
+      body += appear(text(lab.lines, M, y, lab.size, { fill: th.ink, weight: 900 }));
+      y += lab.h + 14 * u;
     }
-    for (const p of card.points) {
-      const l = fit(p.text, { maxW: colW, size: 17 * u, maxLines: 2 });
+    for (const l of pf) {
       body += appear(text(l.lines, M, y, l.size, { fill: th.soft, weight: 700 }));
       y += l.h + 8 * u;
     }
