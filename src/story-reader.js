@@ -174,10 +174,14 @@ function protect(text) {
   const quotes = [];
   // (German quotes too: „Hallo!“)
   // (and Arabic ones: «مرحبا!»)
-  const out = text.replace(/["“„«]([^"“”„«»]*)["”“»]/g, (_, q) => `⟦${quotes.push(q) - 1}⟧`);
+  const marks = [];
+  const out = text.replace(/(["“„«])([^"“”„«»]*)(["”“»])/g, (_, a, q, b) => { marks.push([a, b]); return `⟦${quotes.push(q) - 1}⟧`; });
+  quotes.marks = marks;
   return { text: out, quotes };
 }
 const restore = (s, quotes) => s.replace(/⟦(\d+)⟧/g, (_, i) => `“${quotes[+i]}”`);
+// (a caption as written: its own quote marks - „…“, «…»)
+const restoreAsWritten = (s, quotes) => s.replace(/⟦(\d+)⟧/g, (_, i) => { const [a, b] = quotes.marks?.[+i] ?? ['“', '”']; return `${a}${quotes[+i]}${b}`; });
 
 /** The story's sentences (quotes kept whole) */
 // (after a quote, a new sentence starts - unless it says who said it: "“We did it!” Mia said.")
@@ -267,7 +271,7 @@ export function readStory(text, { individuals = [], adults = false, translate = 
   for (const [n, written] of all.entries()) {
     const raw = read[n];
     offset = said.indexOf(raw, offset);
-    const caption = `${opening}${restore(written, quotes)}`;
+    const caption = `${opening}${restoreAsWritten(written, quotes)}`;
     const inScene = new Set();
     const parts = sentences(raw).map((s) => readSentence(s).replace(/[\s.,;:!?]+$/, ''));
     let prompt = parts.filter(Boolean).join(', then ');

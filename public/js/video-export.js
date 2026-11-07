@@ -200,6 +200,9 @@ export async function recordFrames(frames, { fps, width, height, bitrate = 8e6, 
 // Captions and title cards for clips, drawn straight onto the canvas
 
 const GENRE_COLORS = { news: '#dc2626', documentary: '#0284c7', howto: '#10b981', kids: '#f59e0b' };
+const FONT = "Nunito, 'Baloo Bhaijaan 2', system-ui, sans-serif";
+// (an Arabic caption reads from the right: more Arabic letters in it than Latin ones)
+const isRtl = (t) => (String(t ?? '').match(/[\u0600-\u06FF]/g)?.length ?? 0) > (String(t ?? '').match(/[A-Za-z]/g)?.length ?? 0);
 
 function wrap(ctx, text, maxWidth) {
   const words = String(text || '').split(/\s+/).filter(Boolean);
@@ -217,7 +220,7 @@ function wrap(ctx, text, maxWidth) {
 function captionLayout(ctx, scene, W, H) {
   const u = Math.min(W, H) / 360; // type scale
   const pad = 14 * u;
-  ctx.font = `700 ${15 * u}px Nunito, system-ui, sans-serif`;
+  ctx.font = `700 ${15 * u}px ${FONT}`;
   const lines = wrap(ctx, scene.caption, W - pad * 4).slice(0, 3);
   const head = scene.headline ? 20 * u : 0;
   const tag = scene.tag ? 20 * u : 0;
@@ -230,7 +233,7 @@ function drawCaption(ctx, scene, genre, W, H) {
   ctx.fillRect(0, H - boxH, W, boxH);
   let y = H - boxH + pad;
   if (scene.tag) {
-    ctx.font = `900 ${11 * u}px Nunito, system-ui, sans-serif`;
+    ctx.font = `900 ${11 * u}px ${FONT}`;
     const tw = ctx.measureText(scene.tag.toUpperCase()).width + 12 * u;
     ctx.fillStyle = GENRE_COLORS[genre] || GENRE_COLORS.kids;
     ctx.fillRect(pad, y, tw, 16 * u);
@@ -240,15 +243,21 @@ function drawCaption(ctx, scene, genre, W, H) {
     y += tag;
   }
   ctx.textBaseline = 'top';
+  const rtl = isRtl(`${scene.headline ?? ''} ${scene.caption ?? ''}`);
+  const x = rtl ? W - pad : pad;
+  ctx.direction = rtl ? 'rtl' : 'ltr';
+  ctx.textAlign = rtl ? 'right' : 'left';
   if (scene.headline) {
-    ctx.font = `900 ${16 * u}px Nunito, system-ui, sans-serif`;
+    ctx.font = `900 ${16 * u}px ${FONT}`;
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(scene.headline, pad, y, W - pad * 2);
+    ctx.fillText(scene.headline, x, y, W - pad * 2);
     y += head;
   }
-  ctx.font = `700 ${15 * u}px Nunito, system-ui, sans-serif`;
+  ctx.font = `700 ${15 * u}px ${FONT}`;
   ctx.fillStyle = '#e2e8f0';
-  for (const l of lines) { ctx.fillText(l, pad, y); y += 20 * u; }
+  for (const l of lines) { ctx.fillText(l, x, y); y += 20 * u; }
+  ctx.direction = 'ltr';
+  ctx.textAlign = 'left';
 }
 
 function drawTitleCard(ctx, title, genre, W, H) {
@@ -260,9 +269,11 @@ function drawTitleCard(ctx, title, genre, W, H) {
   ctx.fillStyle = '#f8fafc';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `900 ${28 * u}px Nunito, system-ui, sans-serif`;
+  ctx.font = `900 ${28 * u}px ${FONT}`;
+  ctx.direction = isRtl(title) ? 'rtl' : 'ltr';
   wrap(ctx, title, W * 0.85).slice(0, 2).forEach((l, i, arr) => ctx.fillText(l, W / 2, H / 2 - (arr.length - 1 - i) * 34 * u));
   ctx.textAlign = 'left';
+  ctx.direction = 'ltr';
 }
 
 // ---------------------------------------------------------------------------------------------

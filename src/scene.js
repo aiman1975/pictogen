@@ -1168,14 +1168,16 @@ const CAMERA_SECONDS = { zoomIn: 1.6, zoomOut: 1.6, pan: 3, panTo: 2 };
  * Speech bubbles over the picture for whoever speaks (src/bubble.js): always there in a still scene;
  * in a timeline, each while its words last (and laid out clear of the bubbles shown with it).
  */
-function speechBubbles(talkers, W, H, uid, motionCss, keepClear = []) {
+function speechBubbles(talkers, W, H, uid, motionCss, keepClear = [], cam = null) {
   if (!talkers.length) return '';
   const shown = [];
   const svg = talkers.map((tk, i) => {
     const timed = tk.T != null;
     // (and never over what must stay readable: a board's words)
     const avoid = [...keepClear, ...shown.filter((o) => !timed || (o.from < tk.to && tk.from < o.to)).map((o) => o.box)];
-    const [b] = layoutBubbles([tk], { W, H, avoid });
+    // (while the camera is in close, the bubble stays in what it shows)
+    const view = timed && cam ? camView(cam, tk.from, tk.to, W, H) : null;
+    const [b] = layoutBubbles([tk], { W, H, avoid, ...(view ? { view } : {}) });
     shown.push({ ...tk, box: b.box });
     if (!timed) return `<g data-for="${tk.of}">${b.svg}</g>`;
     const pc = (t) => `${r2(Math.min(100, Math.max(0, (t / tk.T) * 100)))}%`;
@@ -1246,6 +1248,29 @@ function cameraKeys({ events, follow, T, W, H, focusAt, start }) {
     out.push({ t: Math.min(t, T), z: Math.max(1 + 0.45 * k, zAt(t)), fx, fy, ease: 'linear' });
   }
   return out;
+}
+
+/** The part of the picture the camera shows all through [t0, t1] (the closest view in it), or null when that is all of it */
+function camView(cam, t0, t1, W, H) {
+  const keys = cam.keys;
+  const at = (t) => {
+    let k = 0;
+    while (k < keys.length - 1 && keys[k + 1].t <= t) k++;
+    const a = keys[k], b = keys[k + 1] || a;
+    const u = b.t > a.t ? clamp((t - a.t) / (b.t - a.t), 0, 1) : 0;
+    const z = a.z + (b.z - a.z) * u, fx = a.fx + (b.fx - a.fx) * u, fy = a.fy + (b.fy - a.fy) * u;
+    const tx = clamp(W / 2 - z * fx, W - z * W, 0), ty = clamp(H / 2 - z * fy, H - z * H, 0);
+    return { x0: -tx / z, y0: -ty / z, x1: (-tx + W) / z, y1: (-ty + H) / z };
+  };
+  let v = { x0: 0, y0: 0, x1: W, y1: H };
+  for (let t = Math.max(0, t0); t <= Math.min(cam.T, t1) + 1e-6; t += 0.25) {
+    const c = at(t);
+    v = { x0: Math.max(v.x0, c.x0), y0: Math.max(v.y0, c.y0), x1: Math.min(v.x1, c.x1), y1: Math.min(v.y1, c.y1) };
+  }
+  // (a view too small to hold a bubble, or all of the picture: no view)
+  if (v.x1 - v.x0 < W * 0.3 || v.y1 - v.y0 < H * 0.3) return null;
+  if (v.x0 <= 0.5 && v.y0 <= 0.5 && v.x1 >= W - 0.5 && v.y1 >= H - 0.5) return null;
+  return { x: v.x0, y: v.y0, w: v.x1 - v.x0, h: v.y1 - v.y0 };
 }
 
 /** CSS @keyframes body for camera keys: translate + scale, clamped so the view stays inside the scene. */
@@ -2072,7 +2097,7 @@ export function composeScene(matches, opts = {}) {
     motionCss.push(`.${uid}air .pg-shadow, .${uid}air .pg-cast-shadow { animation: ${uid}air ${r2(sceneT)}s linear infinite; }`);
     figures = `<g class="${uid}air">${figures}</g>`;
   }
-  let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${decor}${figures}${speechBubbles(talkers, W, H, uid, motionCss, env.room && (env.roomKind === 'classroom' || env.boardText) ? [{ x: W * 0.22, y: H * 0.03, w: W * 0.56, h: H * 0.39 }] : [])}`;
+  let content = `<g stroke-linecap="round" stroke-linejoin="round">${bgSvg}</g>${decor}${figures}${speechBubbles(talkers, W, H, uid, motionCss, env.room && (env.roomKind === 'classroom' || env.boardText) ? [{ x: W * 0.22, y: H * 0.03, w: W * 0.56, h: H * 0.39 }] : [], cam)}`;
   if (cam) {
     motionCss.push(`@keyframes ${uid}cam { ${cameraCss(cam.keys, cam.T, W, H)}}`);
     content = `<g class="pg-camera" style="animation: ${uid}cam ${r2(cam.T)}s linear infinite;">${content}</g>`;

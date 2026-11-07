@@ -312,6 +312,12 @@ So what should you do? First, stop and do not click anything. Then, hover over t
   assert(moon.title === 'القمر الصغير والنجمة الضائعة' && moon.scenes.length === 7 && ids[0] === 'moon_friend' && ids[1] === 'moon_friend' && /star_friend/.test(ids[3]) && /owl/.test(ids[5]) && /owl/.test(ids[6]) && /star_friend/.test(ids[6]),
     `an Arabic story with friends in the sky: the subtitle left out, the missing star not drawn, "جاءت بومة" the owl coming: ${ids.join(' | ')}`);
   assert(moon.scenes.every((sc) => new Set(sc.matches.filter((m) => /^moon_friend/.test(m.id)).map((m) => m.id)).size <= 1) && !/the moon says the moon/.test(moon.scenes.map((sc) => sc.prompt ?? '').join(' ')), 'the moon is one moon, "قال القمر:" said once');
+  assert(moon.scenes[2].caption === '«يا إلهي!» صاح القمر. «أين نجمتي الصغيرة؟»' && composeStory('„Hallo!“, rief Mia.\nMia lacht.', { style: 'flat' }).scenes[0].caption === '„Hallo!“, rief Mia.',
+    'a caption keeps its own quote marks («…», „…“)');
+  const { layoutBubbles } = await import('../src/bubble.js');
+  const view = { x: 300, y: 0, w: 260, h: 180 };
+  const [vb] = layoutBubbles([{ x: 520, top: 40, text: 'أين نجمتي الصغيرة؟', room: 60 }], { W: 640, H: 360, view });
+  assert(vb.box.x >= view.x && vb.box.x + vb.box.w <= view.x + view.w && vb.box.y >= view.y && vb.box.y + vb.box.h <= view.y + view.h, `a bubble stays inside a camera close-up's view: ${JSON.stringify(vb.box)}`);
 }
 
 // German scenes (src/lang-de.js): a German prompt drawn from its German words

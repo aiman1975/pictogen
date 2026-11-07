@@ -73,34 +73,38 @@ function bubblePath({ x, y, w, h }, tip, side) {
  * Bubbles for people speaking, laid out together inside a W x H picture.
  *   list: [{ x, top, text, shout?, room? }] - x the speaker's middle, top the top of their head;
  *         room: how wide they are (the bubble may go beside them when there's no room above)
- *   opts: { W, H, margin, size (px), maxLines, maxWidth (of W), avoid: [{ x, y, w, h }] }
+ *   opts: { W, H, margin, size (px), maxLines, maxWidth (of W), avoid: [{ x, y, w, h }],
+ *           view: { x, y, w, h } - the part of the picture on screen (a camera close-up): bubbles stay in it }
  * -> [{ svg, box, tip }] in the list's order
  */
-export function layoutBubbles(list, { W, H, margin = 6, size = Math.max(10, Math.min(20, W / 34)), maxLines = 3, maxWidth = 0.44, avoid = [] } = {}) {
+export function layoutBubbles(list, { W, H, margin = 6, size = Math.max(10, Math.min(20, W / 34)), maxLines = 3, maxWidth = 0.44, avoid = [], view = null } = {}) {
   const placed = [...avoid];
+  // (the edges a bubble stays inside: the picture's, or the camera's view of it)
+  const L = view ? Math.max(0, view.x) : 0, U = view ? Math.max(0, view.y) : 0;
+  const R = view ? Math.min(W, view.x + view.w) : W, D = view ? Math.min(H, view.y + view.h) : H;
   return list.map(({ x, top, text: said, shout: loud, room = 40 }) => {
     // (a line quoted before "says Ana" ends in a comma in the story: not in the bubble)
     const text = String(said ?? '').replace(/\s*[,;:]\s*$/, '');
     const shout = loud ?? (/!/.test(text) && /[A-Z]{2}/.test(text) && text === text.toUpperCase());
     const padX = size * 0.75, padY = size * 0.5;
-    const maxW = Math.min(W * maxWidth, W - 2 * margin - 2 * padX);
+    const maxW = Math.min(W * maxWidth, R - L - 2 * margin - 2 * padX);
     const fit = fitText(text, { maxW, maxLines, size, minSize: Math.max(8, size * 0.7) });
     const w = fit.w + 2 * padX, h = fit.h + 2 * padY;
     const tail = Math.max(8, size * 0.8);
-    const clampX = (bx) => Math.min(W - margin - w, Math.max(margin, bx));
-    const clampY = (by) => Math.min(H - margin - h, Math.max(margin, by));
+    const clampX = (bx) => Math.min(R - margin - w, Math.max(L + margin, bx));
+    const clampY = (by) => Math.min(D - margin - h, Math.max(U + margin, by));
     // Above the head (centred, then leaning either way, then higher), then beside it
     const tries = [];
     for (const lift of [0, 1, 2]) {
       for (const lean of [0, 0.35, -0.35, 0.7, -0.7]) tries.push({ x: clampX(x - w / 2 + lean * w), y: top - tail - h - lift * (h + 6), side: 'bottom' });
     }
-    const beside = Math.max(top, margin);
+    const beside = Math.max(top, U + margin);
     // (beside the head, then a little lower: by the shoulders, when something must stay clear above)
     // (on the outer side first - away from the middle, where the others usually stand)
-    const outer = x < W / 2;
+    const outer = x < (L + R) / 2;
     // (and when the outer side is narrow, a narrower bubble there, in more lines)
-    const space = outer ? x - room / 2 - tail - margin : W - margin - (x + room / 2 + tail);
-    const slim = space >= W * 0.17 && space < w ? fitText(text, { maxW: space - 2 * padX, maxLines: 6, size, minSize: Math.max(8, size * 0.7) }) : null;
+    const space = outer ? x - room / 2 - tail - margin - L : R - margin - (x + room / 2 + tail);
+    const slim = space >= (R - L) * 0.17 && space < w ? fitText(text, { maxW: space - 2 * padX, maxLines: 6, size, minSize: Math.max(8, size * 0.7) }) : null;
     const sw = slim ? slim.w + 2 * padX : 0, sh = slim ? slim.h + 2 * padY : 0;
     for (const down of [0, 0.5, 1, 1.5]) {
       const right = { x: x + room / 2 + tail, y: beside + down * h, side: 'left' }, left = { x: x - room / 2 - tail - w, y: beside + down * h, side: 'right' };
@@ -108,12 +112,12 @@ export function layoutBubbles(list, { W, H, margin = 6, size = Math.max(10, Math
       tries.push(...(outer ? [left, right] : [right, left]));
     }
     // (a bubble beside someone stays above the bottom fifth, where a video's caption goes)
-    const fits = (b) => b.x >= margin - 0.5 && b.x + b.w <= W - margin + 0.5 && b.y >= margin - 0.5 && b.y + b.h <= (b.side === 'bottom' ? H - margin : H * 0.8) + 0.5;
+    const fits = (b) => b.x >= L + margin - 0.5 && b.x + b.w <= R - margin + 0.5 && b.y >= U + margin - 0.5 && b.y + b.h <= (b.side === 'bottom' ? D - margin : U + (D - U) * 0.8) + 0.5;
     // (above someone high up - the moon in the sky - only when it is not at the very top: the camera
     // moving in on them would cut it off; beside them first)
     const free = (b) => fits(b) && !placed.some((o) => overlaps(b, o));
     const all = tries.map((b) => ({ w, h, fit, ...b }));
-    let best = all.find((b) => free(b) && (b.side !== 'bottom' || b.y >= H * 0.1)) ?? all.find(free);
+    let best = all.find((b) => free(b) && (b.side !== 'bottom' || b.y >= U + (D - U) * 0.1)) ?? all.find(free);
     // Nowhere free: above the head as near as the picture allows
     if (!best) best = { x: clampX(x - w / 2), y: clampY(top - tail - h), w, h, fit, side: 'bottom' };
     placed.push(best);
