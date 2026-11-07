@@ -3,6 +3,7 @@
 import { isOutline, readOutline, renderSlide } from './slides.js';
 import { detectLanguage } from './lang.js';
 import { isGermanPrompt, germanStory } from './lang-de.js';
+import { isArabicPrompt } from './lang-ar.js';
 import { readStory } from './story-reader.js';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
@@ -452,7 +453,9 @@ export function composeStory(storyInput, opts = {}) {
   // (a story in German: read the same way, each scene in the engine's English words, its caption in
   // German as written - src/lang-de.js)
   const german = typeof storyInput === 'string' && isGermanPrompt(storyInput);
-  const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !storyInput.includes('|')
+  // (a story in Arabic: a scene per line for now, each drawn from its Arabic words - src/lang-ar.js)
+  const arabic = typeof storyInput === 'string' && isArabicPrompt(storyInput);
+  const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !arabic && !storyInput.includes('|')
     ? readStory(storyInput, { individuals: opts.individuals ?? [], adults: genre !== 'kids', ...(german ? { translate: germanStory(storyInput) } : {}) }) : null;
   // (a German story: the German words left out are what was not drawn)
   const germanLeftOut = german && read ? germanStory(storyInput).leftOut : null;

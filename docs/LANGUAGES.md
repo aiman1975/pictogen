@@ -10,9 +10,9 @@ a board stays in their own language.
 | Letter figures | A-Z, 0-9 | + Ä Ö Ü ß | ✅ 28 letters, ة ى ء أ إ آ ؤ ئ, ٠-٩; words right to left | planned (Ñ) |
 | Explainers: outline words, card pictures | ✅ | ✅ | ✅ cards right to left | planned |
 | Notes → explainer | ✅ | ✅ | ✅ | planned |
-| Scenes from a prompt | ✅ | ✅ (word bridge, plurals) | planned | planned |
-| Diagram topics, letter modes ("K wie Katze", "zähle bis 5") | ✅ | ✅ | planned | planned |
-| Stories (a cast kept across lines, names, pronouns) | ✅ | ✅ | planned | planned |
+| Scenes from a prompt | ✅ | ✅ (word bridge, plurals) | ✅ (word bridge, duals) | planned |
+| Diagram topics, letter modes ("K wie Katze", "zähle bis 5") | ✅ | ✅ | ✅ ("ب مثل بطة", "عد إلى ٥") | planned |
+| Stories (a cast kept across lines, names, pronouns) | ✅ | ✅ | a scene per line | planned |
 | The studio, landing page and help page in the language | ✅ | ✅ (EN / DE switch) | planned | planned |
 
 ## Where each language lives
@@ -59,6 +59,25 @@ the pages show (collected in a browser with `pictogenI18n.keysOf`), informal "du
 help page's example links open the same prompts in German, each checked to draw what the English
 one draws. A native speaker should read it before a release: to change a word, change it in that
 file. A text added to a page later shows in English until it is added there.
+
+## Arabic scenes
+
+`bridgeArabic` (`src/lang-ar.js`) reads an Arabic prompt into the engine's English words ("فتاة
+صغيرة تحمل بالونًا أحمر في الحديقة" → "small girl holds red balloon in the park"). A word is written
+the way it is looked up (`src/lang-ar-normal.js`: no vowel marks, أ إ آ as ا, ة as ه, ى as ي, ٠-٩ as
+0-9), looked up whole, then without the small words Arabic puts on its front (و، ف، ب، ل، ك، ال and
+their pairs: "وبالبالون") and "his/her" on its end ("كلبها"; a word in ة takes ت: "قطتها"). Small
+words, verbs (he/she, now and before, and the forms for two and more made from them), describing
+words (with their feminine and plurals; colours listed: أحمر/حمراء), numbers, places and times, and
+some first names (a girl or a boy) are written there by hand; nouns come from `src/lang-ar-nouns.js`
+(about 4,250 forms for 920 pictures: singular, plural, the two of something - "كلبان" is two dogs -
+drafted with Gemini by `scripts/lang/ar-nouns-draft.py`, built by `scripts/lang/ar-nouns-build.mjs`,
+each English word checked to draw). Describing words come after their noun in Arabic and go before it;
+a verb before who does it ("تمشي الفتاة") goes after them; a place is a place ("الشاطئ" is the beach,
+not its picture); with "the" a word is a thing ("الكتب" are books, "كتب" he wrote). What is said
+(«…») stays Arabic, in the bubble. Diagram topics in Arabic ("دورة الماء", "أجزاء النبات"…); in
+letters mode "ب مثل بطة" (the letter on the right, the Arabic word on the banner) and "عد إلى ٥".
+A native speaker should look over the words before a release.
 
 ## Arabic explainers
 

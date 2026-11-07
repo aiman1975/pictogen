@@ -1080,14 +1080,14 @@ export function renderAlphabet(matches, opts = {}) {
   const rtl = /[\u0621-\u064A]/.test(cleanText);
 
   // Check if prompt is a phonics pair: e.g. "A is for Apple" or "C is for Cat"
-  const isPhonics = !counting && (/^[A-ZÄÖÜ]\s+(is\s+for|for)\s+/i.test(text.trim()) ||
+  const isPhonics = !counting && (/^[A-ZÄÖÜ\u0621-\u064A]\s+(is\s+for|for)\s+/i.test(text.trim()) ||
                     (matches.length > 0 && matches.some(m => !pal(m.id))));
 
   let heroLetter = 'A';
   let phonicsConcept = null;
 
   if (isPhonics) {
-    const firstLetterMatch = text.match(/letter\s+([A-ZÄÖÜ])/i) || text.match(/^([A-ZÄÖÜ])/i);
+    const firstLetterMatch = text.match(/letter\s+([A-ZÄÖÜ])/i) || text.match(/^([A-ZÄÖÜ\u0621-\u064A])/i);
     heroLetter = firstLetterMatch ? firstLetterMatch[1].toUpperCase() : 'A';
     phonicsConcept = matches.find(m => !pal(m.id)) || { id: 'apple' };
   } else if (counting) {
@@ -1159,19 +1159,21 @@ export function renderAlphabet(matches, opts = {}) {
 
     const groundY = H * 0.72;
     const scale = Math.min(1.75, (H * 0.48) / 100);
+    // (Arabic is read from the right: the letter on the right, its word's picture on the left)
+    const [LX, RX] = opts.phonics?.rtl ? [0.68, 0.32] : [0.32, 0.68];
 
     content += `
       <!-- Ground Shadows -->
-      <ellipse cx="${W * 0.32}" cy="${groundY + 8}" rx="${48 * scale}" ry="8" fill="#000000" opacity="0.12"/>
-      <ellipse cx="${W * 0.68}" cy="${groundY + 8}" rx="${42 * scale}" ry="7" fill="#000000" opacity="0.12"/>
+      <ellipse cx="${W * LX}" cy="${groundY + 8}" rx="${48 * scale}" ry="8" fill="#000000" opacity="0.12"/>
+      <ellipse cx="${W * RX}" cy="${groundY + 8}" rx="${42 * scale}" ry="7" fill="#000000" opacity="0.12"/>
 
       <!-- Hero Letter Creature (Left) -->
-      <g transform="translate(${W * 0.32 - 50 * scale}, ${groundY - 94 * scale}) scale(${scale})">
+      <g transform="translate(${W * LX - 50 * scale}, ${groundY - 94 * scale}) scale(${scale})">
         ${letterSvg}
       </g>
 
       <!-- Showcase Concept Object (Right) -->
-      <g transform="translate(${W * 0.68 - 50 * scale}, ${groundY - 94 * scale}) scale(${scale})">
+      <g transform="translate(${W * RX - 50 * scale}, ${groundY - 94 * scale}) scale(${scale})">
         ${objSvg}
       </g>
 
@@ -1185,7 +1187,7 @@ export function renderAlphabet(matches, opts = {}) {
       <g transform="translate(${W * 0.5}, ${H - 26})">
         <rect x="-140" y="-20" width="280" height="34" rx="17" fill="${letterPal.main}" stroke="#ffffff" stroke-width="2"/>
         <text x="0" y="4" text-anchor="middle" font-family="${FONT}" font-size="17" font-weight="900" fill="#ffffff" letter-spacing="0.05em">
-          ${opts.phonics ? `${heroLetter} wie ${esc(opts.phonics.word)}` : `${heroLetter} is for ${(cObj.label || cObj.id).toUpperCase()}`}
+          ${opts.phonics ? (opts.phonics.rtl ? `<tspan direction="rtl" unicode-bidi="embed">${heroLetter} مثل ${esc(opts.phonics.word)}</tspan>` : `${heroLetter} wie ${esc(opts.phonics.word)}`) : `${heroLetter} is for ${(cObj.label || cObj.id).toUpperCase()}`}
         </text>
       </g>
     `;

@@ -22,6 +22,7 @@ import { getConcept } from './concepts/index.js';
 import { parseTimeline, extractCamera, editTimeline, lookRelations, speechRelations } from './timeline.js';
 import { takeQuotes } from './speech.js';
 import { findDiagram, findGermanDiagram, renderDiagram, renderLabelledPictures, DIAGRAMS } from './diagrams.js';
+import { bridgeArabic, isArabicPrompt, findArabicDiagram, normalArabic } from './lang-ar.js';
 import { conceptOf, individualNames, individualLooks } from './individuals.js';
 import { placeKeys, takePlace, cleanPlace } from './places.js';
 import { withPuppets } from './puppets.js';
@@ -76,6 +77,19 @@ export function generate(text, opts = {}) {
       phonicsDe = { join: 'WIE', word: ph[2].replace(/[^\p{L}\s-]/gu, '').trim().split(/\s+/).pop().toUpperCase() };
       text = `${ph[1].toUpperCase()} is for ${bridgeGerman(ph[2]).text}`;
     } else if (count && /zähl/i.test(text)) text = `count ${count[1] ? `from ${count[1]} ` : ''}to ${count[2]}`;
+    // (and in Arabic: "ب مثل بطة" - ba as in duck, its word on the banner; "عد إلى ٥" counts)
+    const phAr = text.trim().match(/^([\u0621-\u064A])\s+(?:مثل|كـ?)\s*(.+)$/u);
+    const countAr = normalArabic(text).match(/^عد\s+(?:من\s+(\d)\s+)?(?:الي|حتي)\s+(\d)/);
+    if (phAr) {
+      phonicsDe = { join: 'مثل', word: phAr[2].replace(/[^\p{L}\s\u064B-\u065F]/gu, '').trim().split(/\s+/).pop(), rtl: true };
+      text = `${phAr[1]} is for ${bridgeArabic(phAr[2]).text}`;
+    } else if (countAr) text = `count ${countAr[1] ? `from ${countAr[1]} ` : ''}to ${countAr[2]}`;
+  }
+  // An Arabic prompt: the same, from its Arabic words (src/lang-ar.js)
+  if (!spelling && (opts.lang === 'ar' || (!opts.lang && isArabicPrompt(text)))) {
+    const topic = findArabicDiagram(text);
+    if (topic) text = topic.replace(/_/g, ' ').replace('butterfly cycle', 'life cycle of a butterfly').replace(/^(plant|tree)$/, 'parts of a $1').replace(/^body$/, 'the human body').replace(/^earth$/, 'layers of the earth');
+    else ({ text, unknown: leftOut } = bridgeArabic(text));
   }
   if (!spelling && (opts.lang === 'de' || (!opts.lang && isGermanPrompt(text)))) {
     // (a diagram topic named in German: "der Wasserkreislauf" -> the water cycle)

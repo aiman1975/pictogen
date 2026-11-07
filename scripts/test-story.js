@@ -271,6 +271,37 @@ So what should you do? First, stop and do not click anything. Then, hover over t
   assert(/^> الأمان مسؤولية الجميع، وليس قسم تقنية المعلومات فقط\. — سارة أحمد$/m.test(a.text) && /^## الخلاصة$/m.test(a.text), 'an Arabic quote («…»، قالت …) with who said it, and the recap as "الخلاصة"');
 }
 
+// Arabic scenes (src/lang-ar.js): an Arabic prompt drawn from its Arabic words
+{
+  const { generate: gen } = await import('../src/index.js');
+  const { bridgeArabic, isArabicPrompt } = await import('../src/lang-ar.js');
+  const seen = (t, o = {}) => gen(t, { style: 'flat', ...o }).matches.map((m) => m.id + (m.color ? `:${m.color}` : '') + (m.count > 1 ? `x${m.count}` : '') + (m.animation ? ` ${m.animation}` : '')).join(', ');
+  assert(isArabicPrompt('فتاة تمشي في الحديقة') && !isArabicPrompt('a girl says "مرحبا"') && !isArabicPrompt('ein Hund läuft'), 'an Arabic prompt is told by its letters (what is said aside)');
+  for (const [t, want] of [
+    ['فتاة صغيرة تحمل بالونًا أحمر في الحديقة', 'girl hold, balloon:red'],
+    ['تمشي الفتاة مع كلبها في الحديقة', 'girl walk, dog'],
+    ['كلبان يركضان على الشاطئ', 'dogx2 run'],
+    ['ثلاثة قطط تنام تحت شجرة كبيرة', 'catx3 sleep, tree'],
+    ['بطل خارق يطير فوق المدينة ليلا', 'man_superhero fly'],
+    ['ذهبت سارة إلى الحديقة', 'girl walk'],
+  ]) assert(seen(t) === want, `Arabic: "${t}" -> ${seen(t)}`);
+  assert(bridgeArabic('فتاة صغيرة تمشي في الحديقة').text === 'small girl walks in the park' && bridgeArabic('تمشي الفتاة مع كلبها في الحديقة').text === 'the girl walks with dog in the park',
+    'describing words before their noun ("فتاة صغيرة"), a verb at the front after who does it ("تمشي الفتاة")');
+  assert(bridgeArabic('الجدة والجد يقرآن الكتب في المطبخ').text === 'the grandma and the grandpa reads the books in the kitchen' && bridgeArabic('وبالبالون').text === 'and with the balloon',
+    'small words on the front of a word ("والجد", "وبالبالون"), the two of them reading ("يقرآن"), "الكتب" books not "كتب" wrote');
+  const said = gen('ولد يقول «انظر، قوس قزح!» لكلبه', { style: 'flat' });
+  assert(said.svg.includes('انظر، قوس قزح!') && gen('قالت سارة «مرحبا يا قطة!»', { style: 'flat' }).svg.includes('مرحبا يا قطة!'), 'what is said stays Arabic, in the bubble');
+  for (const [t, topic] of [['دورة الماء', 'water_cycle'], ['أجزاء النبات', 'plant'], ['جسم الإنسان', 'body'], ['المجموعة الشمسية', 'solar_system'], ['البركان', 'volcano']]) {
+    assert(gen(t, { mode: 'diagram' }).diagram?.topic === topic, `a diagram named in Arabic: "${t}" -> ${topic}`);
+  }
+  const ph = gen('ب مثل بطة', { mode: 'alphabet' });
+  const count = gen('عد إلى ٥', { mode: 'alphabet' });
+  assert(ph.matches.map((m) => m.id).join() === 'letter_ar_ba,duck' && /ب مثل بطة/.test(ph.svg) && [...count.svg.matchAll(/>(\d)</g)].map((m) => m[1]).join('') === '12345',
+    'letters in Arabic: "ب مثل بطة" (its Arabic word on the banner), "عد إلى ٥"');
+  const st = composeStory('ذهبت سارة إلى الحديقة.\nهناك رأت قطة صغيرة تحت شجرة.', { style: 'flat' });
+  assert(st.scenes.length === 2 && st.scenes[0].caption === 'ذهبت سارة إلى الحديقة.' && st.scenes[1].matches.some((m) => m.id === 'cat'), 'an Arabic story: a scene per line, its caption as written');
+}
+
 // German scenes (src/lang-de.js): a German prompt drawn from its German words
 {
   const { generate: gen } = await import('../src/index.js');
