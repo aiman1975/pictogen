@@ -12,7 +12,7 @@ a board stays in their own language.
 | Notes → explainer | ✅ | ✅ | ✅ | planned |
 | Scenes from a prompt | ✅ | ✅ (word bridge, plurals) | ✅ (word bridge, duals) | planned |
 | Diagram topics, letter modes ("K wie Katze", "zähle bis 5") | ✅ | ✅ | ✅ ("ب مثل بطة", "عد إلى ٥") | planned |
-| Stories (a cast kept across lines, names, pronouns) | ✅ | ✅ | a scene per line | planned |
+| Stories (a cast kept across lines, names, pronouns) | ✅ | ✅ | ✅ | planned |
 | The studio, landing page and help page in the language | ✅ | ✅ (EN / DE switch) | ✅ right to left (AR) | planned |
 
 ## Where each language lives
@@ -78,6 +78,21 @@ not its picture); with "the" a word is a thing ("الكتب" are books, "كتب"
 («…») stays Arabic, in the bubble. Diagram topics in Arabic ("دورة الماء", "أجزاء النبات"…); in
 letters mode "ب مثل بطة" (the letter on the right, the Arabic word on the banner) and "عد إلى ٥".
 A native speaker should look over the words before a release.
+
+## Arabic stories
+
+`arabicStory` (`src/lang-ar.js`) gives the story reader each scene of an Arabic story in the engine's
+English words, the way `germanStory` does for German, so its cast is kept from scene to scene. Names:
+the first names the bridge knows, a word after "اسمها" / "اسمه" / "تدعى", or after "قالت" / "قال" when
+it is no word the bridge knows; the reader gets them in Latin letters (سارة as Sara, so it knows her
+for a girl) and the studio shows them in Arabic again. Arabic often leaves out who does something - the
+verb says it: "ذهبت إلى الحديقة" (she went), "نام" (he slept) - so the one of that gender who last did
+something is put back in (after "رأت قطة", "قالت" is still the girl, not the cat she saw); "هو", "هي"
+stand for the last one of their gender (a noun's gender comes with the drafted nouns, or from its ة),
+"هم" / "هما" for the last two spoken of. Someone right after the verb does it: "قال القمر:", "جاءت بومة
+صغيرة" (with a verb that takes nobody, someone not named before too). Also read: "مفقودة" / "ضائعة"
+(missing: not drawn), "لاحظ" / "رأى" (sees: not where the story goes), «…» quotes as speech, and a
+subtitle line under the title ("قصة قصيرة للأطفال…") left out. The captions stay as written.
 
 ## Arabic explainers
 

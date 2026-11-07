@@ -41,7 +41,9 @@ const BOY_NAMES = new Set(`tom max sam leo jack noah liam oliver ben finn harry 
   sebastian johannes matthias wolfgang jürgen uwe dieter bernd michi kai till lars sven jens`.split(/\s+/));
 for (const n of `mila emilia lina leni frieda ida marlene johanna matilda mathilda ute helga liesel anni lotta lotte merle pia nele jule
   luisa paula charlotte katharina susanne sabine monika ursula gisela ingrid birgit heike anja tanja jana svenja finja carla
-  amelie annika franziska lisa-marie mariechen gretel`.split(/\s+/)) GIRL_NAMES.add(n);
+  amelie annika franziska lisa-marie mariechen gretel
+  maryam zainab huda salma reem aya jana rana dana hala lama sama rahaf hind khadija amal mona nada raghad jood tala mira yara nour`.split(/\s+/)) GIRL_NAMES.add(n);
+for (const n of `mohammed ahmed khaled hassan hussein sami ziad mazen yasser tariq ibrahim mustafa abdullah salim bilal anas marwan nader hadi walid majed`.split(/\s+/)) BOY_NAMES.add(n);
 /** True for a first name the reader knows (a girl's or a boy's) */
 export const isFirstName = (word) => GIRL_NAMES.has(String(word).toLowerCase()) || BOY_NAMES.has(String(word).toLowerCase());
 export const isGirlName = (word) => GIRL_NAMES.has(String(word).toLowerCase());
@@ -69,7 +71,7 @@ export function storyTitle(text) {
   if (first < 0 || rest.length < 2 || /[.!?…:;,"“”„»]$/.test(t) || t.split(/\s+/).length > 12 || /^(#|-|\d+[.)])/.test(t)) return { title: null, subtitle: null, text };
   let k = first + 1, subtitle = null;
   const next = (lines[k] ?? '').trim();
-  if (next && /\b(geschichte|story|stories|tale|märchen|fabel|gutenacht|bedtime|für kinder|for (?:kids|children)|ages?\b|jahren|years)\b/i.test(next) && next.split(/\s+/).length <= 16) { subtitle = next; k++; }
+  if (next && /\b(geschichte|story|stories|tale|märchen|fabel|gutenacht|bedtime|für kinder|for (?:kids|children)|ages?\b|jahren|years)\b/i.test(next) && next.split(/\s+/).length <= 16 || /(?:^|\s)(?:قص[ةه]|قصص|حكاي[ةه]|حكايات|حدوت[ةه]|لل[أا]طفال|سنوات|سنين|للصغار)(?=[\s.،]|$)/.test(next) && next.split(/\s+/).length <= 16) { subtitle = next; k++; }
   return { title: t.replace(/\s*[\p{Extended_Pictographic}\uFE0F]+\s*$/u, '').trim(), subtitle, text: lines.slice(k).join('\n') };
 }
 // Titles that say what someone is: "Grandma Rose", "Mr Brown", "King Leo"
@@ -171,14 +173,15 @@ const kindOf = (word) => {
 function protect(text) {
   const quotes = [];
   // (German quotes too: „Hallo!“)
-  const out = text.replace(/["“„]([^"“”„]*)["”“]/g, (_, q) => `⟦${quotes.push(q) - 1}⟧`);
+  // (and Arabic ones: «مرحبا!»)
+  const out = text.replace(/["“„«]([^"“”„«»]*)["”“»]/g, (_, q) => `⟦${quotes.push(q) - 1}⟧`);
   return { text: out, quotes };
 }
 const restore = (s, quotes) => s.replace(/⟦(\d+)⟧/g, (_, i) => `“${quotes[+i]}”`);
 
 /** The story's sentences (quotes kept whole) */
 // (after a quote, a new sentence starts - unless it says who said it: "“We did it!” Mia said.")
-const SAID_AFTER = new RegExp(`(?<=[.!?…])\\s+(?=[A-Z⟦])|(?<=⟧)\\s+(?=[A-Z])(?!(?:[A-Z][a-z]+|He|She|They|The [a-z]+)\\s+(?:${SAY_VERBS})\\b)`);
+const SAID_AFTER = new RegExp(`(?<=[.!?…؟])\\s+(?=[A-Z⟦\u0621-\u064A])|(?<=⟧)\\s+(?=[A-Z])(?!(?:[A-Z][a-z]+|He|She|They|The [a-z]+)\\s+(?:${SAY_VERBS})\\b)`);
 function sentences(text) {
   return text.split(SAID_AFTER).map((s) => s.trim()).filter(Boolean);
 }

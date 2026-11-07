@@ -300,6 +300,18 @@ So what should you do? First, stop and do not click anything. Then, hover over t
     'letters in Arabic: "ب مثل بطة" (its Arabic word on the banner), "عد إلى ٥"');
   const st = composeStory('ذهبت سارة إلى الحديقة.\nهناك رأت قطة صغيرة تحت شجرة.', { style: 'flat' });
   assert(st.scenes.length === 2 && st.scenes[0].caption === 'ذهبت سارة إلى الحديقة.' && st.scenes[1].matches.some((m) => m.id === 'cat'), 'an Arabic story: a scene per line, its caption as written');
+  // Arabic stories (src/lang-ar.js arabicStory): one cast from scene to scene, names, dropped subjects
+  const sara = composeStory('سارة والقطة\n\nكان هناك فتاة صغيرة اسمها سارة.\n\nذهبت سارة إلى الحديقة مع كلبها.\n\nهناك رأت قطة صغيرة تحت شجرة.\n\nقالت «مرحبا يا قطة!»\n\nلعبت مع القطة والكلب.\n\nفي المساء عادت إلى البيت ونامت.', { style: 'flat' });
+  const girls = new Set(sara.scenes.flatMap((sc) => sc.matches.filter((m) => m.id.startsWith('girl')).map((m) => m.id)));
+  assert(sara.title === 'سارة والقطة' && sara.scenes.length === 6 && girls.size === 1 && sara.scenes.every((sc) => sc.matches.some((m) => m.id.startsWith('girl~'))),
+    `an Arabic story keeps one girl in every scene ("ذهبت"، "رأت"، "لعبت"، "نامت": she, without her name): ${[...girls]}`);
+  assert(sara.cast.some((c) => c.name === 'سارة' && c.id === 'girl') && sara.scenes[3].matches.some((m) => m.id === 'cat') && sara.scenes[2].matches.some((m) => m.id === 'cat'),
+    'her name shown in Arabic ("سارة"), the cat she saw in the scenes after');
+  const moon = composeStory('القمر الصغير والنجمة الضائعة\nقصة قصيرة للأطفال من ٣ إلى ٦ سنوات.\n\nكان هناك قمر صغير يعيش في السماء.\n\nفي إحدى الليالي لاحظ أن نجمة صغيرة مفقودة.\n\n«يا إلهي!» صاح القمر. «أين نجمتي الصغيرة؟»\n\nتحت شجرة كبيرة جلست نجمة صغيرة تبكي.\n\nقال القمر: «لا تخافي، سأساعدك!»\n\nجاءت بومة صغيرة وقالت: «اتبعيني!»\n\nطارت النجمة والبومة معًا في الليل.', { style: 'flat' });
+  const ids = moon.scenes.map((sc) => sc.matches.map((m) => m.id.split('~')[0]).sort().join());
+  assert(moon.title === 'القمر الصغير والنجمة الضائعة' && moon.scenes.length === 7 && ids[0] === 'moon_friend' && ids[1] === 'moon_friend' && /star_friend/.test(ids[3]) && /owl/.test(ids[5]) && /owl/.test(ids[6]) && /star_friend/.test(ids[6]),
+    `an Arabic story with friends in the sky: the subtitle left out, the missing star not drawn, "جاءت بومة" the owl coming: ${ids.join(' | ')}`);
+  assert(moon.scenes.every((sc) => new Set(sc.matches.filter((m) => /^moon_friend/.test(m.id)).map((m) => m.id)).size <= 1) && !/the moon says the moon/.test(moon.scenes.map((sc) => sc.prompt ?? '').join(' ')), 'the moon is one moon, "قال القمر:" said once');
 }
 
 // German scenes (src/lang-de.js): a German prompt drawn from its German words

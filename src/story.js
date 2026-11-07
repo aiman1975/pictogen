@@ -3,7 +3,7 @@
 import { isOutline, readOutline, renderSlide } from './slides.js';
 import { detectLanguage } from './lang.js';
 import { isGermanPrompt, germanStory } from './lang-de.js';
-import { isArabicPrompt } from './lang-ar.js';
+import { isArabicPrompt, arabicStory } from './lang-ar.js';
 import { readStory } from './story-reader.js';
 import { generate } from './index.js';
 import { FONT, esc } from './core/render.js';
@@ -453,12 +453,15 @@ export function composeStory(storyInput, opts = {}) {
   // (a story in German: read the same way, each scene in the engine's English words, its caption in
   // German as written - src/lang-de.js)
   const german = typeof storyInput === 'string' && isGermanPrompt(storyInput);
-  // (a story in Arabic: a scene per line for now, each drawn from its Arabic words - src/lang-ar.js)
+  // (and one in Arabic - src/lang-ar.js: who is left out of a sentence put back, names kept)
   const arabic = typeof storyInput === 'string' && isArabicPrompt(storyInput);
-  const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !arabic && !storyInput.includes('|')
-    ? readStory(storyInput, { individuals: opts.individuals ?? [], adults: genre !== 'kids', ...(german ? { translate: germanStory(storyInput) } : {}) }) : null;
+  const arTranslate = arabic ? arabicStory(storyInput) : null;
+  const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !storyInput.includes('|')
+    ? readStory(storyInput, { individuals: opts.individuals ?? [], adults: genre !== 'kids', ...(german ? { translate: germanStory(storyInput) } : arabic ? { translate: arTranslate } : {}) }) : null;
+  // (an Arabic story's names shown in Arabic again: "Sara" is سارة)
+  if (read && arabic) for (const c of read.cast) { const ar = c.name && arTranslate.arabicName(c.name); if (ar) c.name = ar; }
   // (a German story: the German words left out are what was not drawn)
-  const germanLeftOut = german && read ? germanStory(storyInput).leftOut : null;
+  const germanLeftOut = german && read ? germanStory(storyInput).leftOut : arabic && read ? arabicStory(storyInput).leftOut : null;
   // What the writer changed in "How I read your story" (opts.edits: their sentence -> what to draw
   // instead, the names as in the story)
   // (names in what is said stay names: "You look great, Anna!" is said, not drawn)
@@ -475,7 +478,7 @@ export function composeStory(storyInput, opts = {}) {
   // (a scene card with the story's names in it)
   const named = (card) => JSON.parse(shown(JSON.stringify(card)));
 
-  let title = opts.title ?? (read ? (read.title ?? (german ? 'Meine Geschichte' : 'My Story')) : undefined);
+  let title = opts.title ?? (read ? (read.title ?? (german ? 'Meine Geschichte' : arabic ? 'قصتي' : 'My Story')) : undefined);
   let detectedGenre = genre;
 
   if (typeof storyInput === 'string') {

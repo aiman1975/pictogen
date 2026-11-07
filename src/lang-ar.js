@@ -6,8 +6,10 @@
 // "وبالبالون") and "his/her" on the end ("كلبها"): a word is looked up whole first, then without
 // them. Describing words come after their noun ("فتاة صغيرة") and a verb often before who does it
 // ("تمشي الفتاة"): both are put the English way round.
-import NOUNS, { PLURAL } from './lang-ar-nouns.js';
+import NOUNS, { PLURAL, GENDER } from './lang-ar-nouns.js';
 import { normalArabic } from './lang-ar-normal.js';
+import { parseText } from './text/matcher.js';
+import { getConcept } from './concepts/index.js';
 
 export { normalArabic };
 const w = (pairs) => Object.fromEntries(pairs.trim().split(/\n/).flatMap((line) => {
@@ -44,13 +46,15 @@ const GRAMMAR = w(`
 هناك, يوجد, توجد, بها, به, فيها, فيه =
 يرفع ابهامه, ترفع ابهامها, ابهام لاعلي = thumbsup
 الذي, التي, الذين =
-ان, انه, انها, قد, لقد, كان, كانت =
+ان, انه, انها, قد, لقد, كان, كانت, احدي =
+ذات يوم, ذات مره, في يوم من الايام, يوما ما =
+مفقود, مفقوده, ضائع, ضائعه, ضايع, ضايعه = is missing
 `);
 
 // Doing: verb forms (he/she, now and before) -> what the engine animates; the forms for more than
 // one or two of them ("يمشون", "يمشيان") are made from these below
 const VERBS = w(`
-يمشي, تمشي, مشي, مشت, يسير, تسير, سار, سارت, يتمشي, تتمشي, يذهب, تذهب, ذهب, ذهبت, راح, راحت = walks
+يمشي, تمشي, مشي, مشت, يسير, تسير, سار, سارت, يتمشي, تتمشي, يذهب, تذهب, ذهب, ذهبت, راح, راحت, يعود, تعود, عاد, عادت, يرجع, ترجع, رجع, رجعت = walks
 يركض, تركض, ركض, ركضت, يجري, تجري, جري, جرت = runs
 يقفز, تقفز, قفز, قفزت, ينط, تنط = jumps
 يرقص, ترقص, رقص, رقصت = dances
@@ -83,14 +87,14 @@ const VERBS = w(`
 يرمي, ترمي, رمي, رمت = throws
 يتسلق, تتسلق, تسلق, تسلقت = climbs
 يسقط, تسقط, سقط, سقطت, يقع, تقع, وقع, وقعت = falls
-ياتي, تاتي, اتي, اتت, جاء, جاءت = comes
+ياتي, تاتي, اتي, اتت, جاء, جاءت, يظهر, تظهر, ظهر, ظهرت = comes
 يدخل, تدخل, دخل, دخلت = walks in
 يغادر, تغادر, غادر, غادرت = leaves
-ينظر, تنظر, نظر, نظرت, يشاهد, تشاهد, شاهد, شاهدت, يري, تري, راي, رات = looks
+ينظر, تنظر, نظر, نظرت, يشاهد, تشاهد, شاهد, شاهدت, يري, تري, راي, رات, يلاحظ, تلاحظ, لاحظ, لاحظت = looks
 يتكلم, تتكلم, تكلم, تكلمت, يتحدث, تتحدث, تحدث, تحدثت = talks
 يقول, تقول, قال, قالت = says
 يسال, تسال, سال, سالت = asks
-يصرخ, تصرخ, صرخ, صرخت, ينادي, تنادي, نادي, نادت = shouts
+يصرخ, تصرخ, صرخ, صرخت, يصيح, تصيح, صاح, صاحت, ينادي, تنادي, نادي, نادت = shouts
 يهمس, تهمس, همس, همست = whispers
 يعمل, تعمل, عمل, عملت = works
 يطبخ, تطبخ, طبخ, طبخت = cooks
@@ -204,7 +208,7 @@ const PLACES = w(`
 ملعب = playground
 قلعه, قصر = castle
 سماء = sky
-ليل, ليلا, الليل = night
+ليل, ليلا, الليل, ليالي, ليلة = night
 صباح, صباحا = morning
 مساء, مساءا = evening
 نهار, نهارا = day
@@ -276,7 +280,7 @@ export function arabicWord(word) {
       const own = OWN[f] ?? (front.includes('the') && NOUNS[f] !== undefined && PLACES[f] === undefined ? NOUNS[f] : null);
       const en = own ?? KNOWN[f];
       // (a word written here says how many itself: "أطفال" is children)
-      return { en, kind: own ? 'noun' : kindIn(f), front, ...(PLURAL[f] && OWN[f] === undefined ? { plural: PLURAL[f] } : {}) };
+      return { en, kind: own ? 'noun' : kindIn(f), front, stem: f, ...(PLURAL[f] && OWN[f] === undefined && (own || PLACES[f] === undefined) ? { plural: PLURAL[f] } : {}) };
     }
   }
   return null;
@@ -295,7 +299,7 @@ const pluralEn = (en) => {
  * is; so are punctuation and numbers. Describing words go before their noun, a verb at the front
  * after who does it. { text, unknown: [Arabic words left out] }
  */
-export function bridgeArabic(text) {
+export function bridgeArabic(text, { names = null, story = false } = {}) {
   const unknown = [];
   const parts = String(text ?? '').split(/(«[^»]*»|"[^"]*"|“[^”]*”|⟦\d+⟧)/);
   const out = parts.map((part, i) => {
@@ -314,8 +318,22 @@ export function bridgeArabic(text) {
         if (/^(ال)?حرف$/.test(normalArabic(word)) && /^\p{L}$/u.test(ws[n + 1] ?? '')) { toks.push({ en: `letter ${ws[++n]}`, kind: 'noun' }); continue; }
         if (/^(ال)?(رقم|عدد)$/.test(normalArabic(word)) && /^[0-9٠-٩]$/.test(ws[n + 1] ?? '')) { toks.push({ en: `number ${normalArabic(ws[++n])}`, kind: 'noun' }); continue; }
         if (/^[0-9٠-٩]+$/.test(word)) { toks.push({ en: normalArabic(word), kind: 'num' }); continue; }
+        // (words in Latin letters stay: a character's key "pgc21", a name)
+        if (/^[A-Za-z]/.test(word)) { toks.push({ en: word, kind: /^pgc\d+$|^[A-Z]/.test(word) ? 'noun' : 'other' }); continue; }
+        // (a story's names stay names: "سارة" is Sara, "وسارة" and Sara)
+        const nw = normalArabic(word);
+        const nm = names && (names.has(nw) ? [nw, ''] : /^[وف]/.test(nw) && names.has(nw.slice(1)) ? [nw.slice(1), nw[0] === 'و' ? 'and' : ''] : null);
+        if (nm) { if (nm[1]) toks.push({ en: nm[1], kind: 'other' }); toks.push({ en: names.get(nm[0]), kind: 'noun' }); continue; }
+        // (in a story: "اسمها", "تدعى" - what someone is called)
+        // ("فتاة صغيرة اسمها سارة": a small girl called Sara; on its own, "her name is")
+        if (story && /^(اسمها|اسمه)$/.test(nw)) { toks.push({ en: ['noun', 'adj'].includes(toks.at(-1)?.kind) ? 'called' : nw === 'اسمها' ? 'her name is' : 'his name is', kind: 'other' }); continue; }
+        if (story && /^(يدعي|تدعي|يسمي|تسمي|يدعا|تدعا)$/.test(nw)) { toks.push({ en: 'called', kind: 'other' }); continue; }
         const r = arabicWord(word);
         if (!r) { unknown.push(word); continue; }
+        // (someone missing matters to a story - they are not drawn - and to a picture not at all)
+        if (r.en === 'is missing' && !story) continue;
+        // (in a story, someone met without "the" is "a": "فتاة صغيرة" -> "a small girl", as the reader expects)
+        if (story && r.kind === 'noun' && !r.front.includes('the') && !r.plural && !['art', 'num'].includes(toks.at(-1)?.kind)) toks.push({ en: 'a', kind: 'art' });
         if (r.front && r.kind !== 'verb' && r.kind !== 'adj') for (const f of r.front.split(' ').filter(Boolean)) toks.push({ en: f, kind: f === 'the' ? 'art' : 'other' });
         // (two of them: "كلبان" -> "two dogs"; more: "كلاب" -> "dogs")
         if (r.plural === 2) toks.push({ en: 'two', kind: 'num' });
@@ -388,4 +406,133 @@ export function findArabicDiagram(text) {
   const t = normalArabic(text);
   for (const [id, re] of Object.entries(ARABIC_TOPICS)) if (re.test(t)) return id;
   return null;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Arabic stories, for the story reader (src/story-reader.js): who is named, and each scene in the
+// engine's English words, so a story is read like an English one - its cast kept from scene to scene.
+// Arabic often leaves out who does something - the verb says it: "ذهبت إلى الحديقة" (she went to the
+// park), "ذهب" (he went) - so the last one of that gender is put back in; "هو", "هي" and "هم" are who
+// they stand for. Names are kept as names (in Latin letters for the reader; shown in Arabic again).
+
+// The first names, in Latin letters (the reader knows them as a girl's or a boy's)
+const LATIN_GIRLS = 'Sara Maryam Fatima Layla Nour Zainab Huda Salma Reem Aya Yasmin Jana Lina Rana Dana Hala Maya Lama Sama Rahaf Hind Aisha Khadija Amal Mona Nada Raghad Jood Tala Mira Yara'.split(' ');
+const LATIN_BOYS = 'Mohammed Ahmed Ali Omar Yusuf Khaled Adam Hassan Hussein Karim Rami Sami Ziad Mazen Yasser Tariq Ibrahim Mustafa Abdullah Hamza Salim Bilal Anas Marwan Nader Hadi Walid Majed'.split(' ');
+const LATIN = Object.fromEntries([...GIRLS.map((n, i) => [n, LATIN_GIRLS[i]]), ...BOYS.map((n, i) => [n, LATIN_BOYS[i]])]);
+// (a name not in the lists: its letters in Latin ones, enough to tell it apart)
+const ROMAN = { ا: 'a', ب: 'b', ت: 't', ث: 'th', ج: 'j', ح: 'h', خ: 'kh', د: 'd', ذ: 'dh', ر: 'r', ز: 'z', س: 's', ش: 'sh', ص: 's', ض: 'd', ط: 't', ظ: 'z', ع: 'a', غ: 'gh', ف: 'f', ق: 'q', ك: 'k', ل: 'l', م: 'm', ن: 'n', ه: 'h', و: 'w', ي: 'y', ء: '', ئ: 'e', ؤ: 'o' };
+const latinOf = (n) => LATIN[n] ?? (([...n].map((c) => ROMAN[c] ?? '').join('') || 'Nameless').replace(/^./, (c) => c.toUpperCase()));
+
+// A verb's who: 'f' she, 'm' he, 'p' more than one ("تمشي"/"يمشي", "ذهبت"/"ذهب", "يمشون")
+const VERB_WHO = {};
+for (const k of Object.keys(VERBS)) {
+  if (/^ي/.test(k) && VERBS[`ت${k.slice(1)}`] !== undefined) { VERB_WHO[k] = 'm'; VERB_WHO[`ت${k.slice(1)}`] = 'f'; }
+  if (VERBS[`${k}ت`] !== undefined && !/^[يت]/.test(k)) { VERB_WHO[k] ??= 'm'; VERB_WHO[`${k}ت`] = 'f'; }
+}
+for (const k of Object.keys(VERBS)) if (/(ون|وا|ان)$/.test(k) && k.length > 4 && !VERB_WHO[k]) VERB_WHO[k] = 'p';
+// (the rest by their look: "تـ..." she now, "يـ..." he now, "...ت" she before - "رأت" - else he)
+for (const k of Object.keys(VERBS)) VERB_WHO[k] ??= /^ت/.test(k) ? 'f' : /^ي/.test(k) ? 'm' : /ت$/.test(k) ? 'f' : 'm';
+const INTRANSITIVE = /^(comes|walks|walks in|walks away|runs|flies|sits|sleeps|jumps|dances|cries|laughs|smiles|stands|swims|falls|leaves|shines)$/;
+const ARTICLE_FREE = new Set(['ثم', 'و', 'ف', 'فجاه', 'وفجاه', 'بعدها', 'عندها', 'هناك', 'هنا', 'بعد', 'ذلك', 'في', 'النهايه', 'اخيرا', 'وهنا']);
+const isCharacter = (en) => /^(moon|star|sun|cloud)$/.test(en) || (/^[A-Z]/.test(en) ? true : (() => { const m = parseText(en).matches; return m.length === 1 && /^(people|animals|wildlife)/.test(getConcept(m[0].id)?.category ?? ''); })());
+
+/** The names in an Arabic story: normalized Arabic -> { latin, g } */
+export function arabicStoryNames(text) {
+  const names = new Map();
+  const ws = String(text ?? '').replace(/«[^»]*»|"[^"]*"|“[^”]*”/g, ' ، ').match(/[ء-يً-ٰٟـ]+|[.,،؛!?؟]/gu) ?? [];
+  for (let i = 0; i < ws.length; i++) {
+    const w = normalArabic(ws[i]), prev = normalArabic(ws[i - 1] ?? '');
+    const bare = /^و/.test(w) && NAMES[w.slice(1)] ? w.slice(1) : w;
+    // (as written, for showing: "سارة", without "و")
+    const shown = ws[i].replace(/[\u064B-\u065F\u0670\u0640]/g, '').replace(bare !== w ? /^[وف]/ : /^$/, '');
+    if (NAMES[bare]) { if (!names.has(bare)) names.set(bare, { latin: latinOf(bare), g: NAMES[bare] === 'girl' ? 'f' : 'm', shown }); continue; }
+    // (after "اسمها", "تدعى"; after "قالت": a name, if it is no word the reader knows)
+    const naming = /^(اسمها|اسمه|يدعي|تدعي|يسمي|تسمي)$/.test(prev), saying = /^(قال|قالت|سال|سالت|صاح|صاحت|نادي|نادت)$/.test(prev);
+    if ((naming || saying) && !arabicWord(ws[i]) && /^[ء-ي]/.test(w)) {
+      const g = /^(اسمها|تدعي|تسمي|قالت|سالت|صاحت|نادت)$/.test(prev) ? 'f' : 'm';
+      if (!names.has(w)) names.set(w, { latin: latinOf(w), g, shown });
+    }
+  }
+  return names;
+}
+
+/** For readStory's `translate`: a scene of an Arabic story in the engine's English words */
+export function arabicStory(text) {
+  const found = arabicStoryNames(text);
+  const names = new Map([...found].map(([w, v]) => [w, v.latin]));
+  const refs = { m: null, f: null };
+  // (who last did something, of each gender: a story goes on with them - "قالت" after "رأت قطة" is
+  // still the girl, not the cat she saw)
+  const doers = { m: null, f: null };
+  const recent = [];
+  const said = (ref, g) => { if (g) refs[g] = ref; const at = recent.findIndex((r) => r.word === ref.word); if (at >= 0) recent.splice(at, 1); recent.push(ref); };
+  // A sentence with who is meant written in: "هو" -> the one it stands for, a verb with nobody before it
+  // -> the last one of its gender before it
+  const bareTok = (t) => t.replace(/^[«"“]+|[.,،؛:!?؟»"”]+$/g, '');
+  const who = (sentence) => {
+    const toks = sentence.split(/(\s+)/);
+    let subject = false; // (someone said since the last verb)
+    let last = null; // (the last one said since the last verb: who does the next one)
+    for (let i = 0; i < toks.length; i++) {
+      const t = toks[i];
+      if (!t.trim()) continue;
+      if (/^⟦\d+⟧$/.test(t) || /^[.,،؛:!?؟«»"“”]+$/.test(t)) { if (/[.,،؛!?؟]/.test(t)) subject = false; continue; }
+      const w = normalArabic(bareTok(t));
+      const bare = names.has(w) ? w : /^[وف]/.test(w) && names.has(w.slice(1)) ? w.slice(1) : null;
+      if (bare) { said({ word: bare }, found.get(bare).g); subject = true; last = [{ word: bare }, found.get(bare).g]; continue; }
+      if (/^(و|ف)?(هو|هي|هم|هما)$/.test(w)) {
+        const p = w.replace(/^[وف](?=ه)/, '');
+        const ref = p === 'هو' ? refs.m : p === 'هي' ? refs.f : null;
+        const two = p.length > 2 && recent.length >= 2 ? `${recent.at(-2).word} و${recent.at(-1).word}` : null;
+        if (ref || two) { toks[i] = t.replace(/(هو|هي|هما|هم)/, two ?? ref.word); subject = true; }
+        continue;
+      }
+      const r = arabicWord(bareTok(t));
+      if (!r) continue;
+      if (r.kind === 'noun' && isCharacter(r.en)) {
+        // (someone or an animal: who "هو" or "هي" may be next - by the word's gender)
+        const g = GENDER[r.stem] ?? (/ه$/.test(r.stem) ? 'f' : 'm');
+        if (!r.plural) { said({ word: `ال${r.stem}` }, g); last = [{ word: `ال${r.stem}` }, g]; }
+        subject = true;
+        continue;
+      }
+      if (r.kind !== 'verb') continue;
+      const g = VERB_WHO[r.stem];
+      // (who does it is right after the verb - "قالت سارة", "تمشي الفتاة" - or already said)
+      const next = toks.slice(i + 1).find((x) => x.trim());
+      const nextName = next && names.has(normalArabic(bareTok(next)));
+      const nr = next && !/^⟦/.test(next) ? arabicWord(bareTok(next)) : null;
+      // (someone after the verb does it: "قالت الفتاة"; one not named before too, when the verb takes
+      // nobody - "جاءت بومة صغيرة" - and is said of their gender)
+      const nounG = nr?.kind === 'noun' ? GENDER[nr.stem] ?? (/ه$/.test(nr.stem) ? 'f' : 'm') : null;
+      const alone = INTRANSITIVE.test(r.en) && nr?.kind === 'noun' && !nr.plural && nounG === g;
+      const nextSubject = nextName || (nr && nr.kind === 'noun' && (nr.front.includes('the') || alone) && isCharacter(nr.en)) || (nr && nr.kind === 'pron');
+      // (who does it: the one said before it, or the one after it)
+      if (subject && last) doers[last[1]] = last[0];
+      else if (nextSubject && nextName) { const n = normalArabic(bareTok(next)); doers[found.get(n).g] = { word: n }; }
+      else if (nextSubject && nr?.kind === 'noun') doers[nounG] = { word: `ال${nr.stem}` };
+      if (!subject && !nextSubject && g) {
+        const ref = g === 'p' ? (recent.length >= 2 ? { word: `${recent.at(-2).word} و${recent.at(-1).word}` } : null) : doers[g] ?? refs[g];
+        if (ref) {
+          // ("وذهبت": "و" stays in front, then who, then the verb)
+          const lead = /^[وف]/.test(normalArabic(t)) && !VERBS[normalArabic(t)] ? t[0] : '';
+          toks[i] = `${lead}${lead ? ' ' : ''}${ref.word} ${lead ? t.slice(1) : t}`;
+        }
+      }
+      subject = false;
+      last = null;
+    }
+    return toks.join('');
+  };
+  const translate = (scene) => {
+    const parts = String(scene ?? '').split(/(?<=[.!؟?])\s+/);
+    return parts.map((sentence) => bridgeArabic(who(sentence), { names, story: true }).text
+      // (seeing something is looking at it: "رأت قطة")
+      .replace(/\blooks (?=(?:a|an|the|two|three|many)\b|[A-Z])/g, 'sees ')
+      .replace(/^(\p{Ll})/u, (c) => c.toUpperCase())).join(' ');
+  };
+  // (the Arabic words left out, for "Not drawn"; and the names, back in Arabic, for showing)
+  translate.leftOut = (scene) => [...new Set(bridgeArabic(String(scene ?? ''), { names, story: true }).unknown)];
+  translate.arabicName = (latin) => [...found].find(([, v]) => v.latin === latin)?.[1].shown ?? null;
+  return translate;
 }
