@@ -7,7 +7,8 @@ import { FONT, esc } from './core/render.js';
 const r1 = (v) => Math.round(v * 10) / 10;
 
 // The width of a character in the studio's bold rounded font, in ems (near enough to lay out by)
-const charW = (ch) => (/\s/.test(ch) ? 0.28 : /[il.,:;'!|]/.test(ch) ? 0.3 : /[fjrt()]/.test(ch) ? 0.42 : /[mw]/.test(ch) ? 0.88
+// (Arabic: its letters joined up are about half an em, its vowel marks take no room)
+const charW = (ch) => (/\s/.test(ch) ? 0.28 : /[\u064B-\u065F\u0670]/.test(ch) ? 0 : /[\u0600-\u06FF]/.test(ch) ? 0.52 : /[il.,:;'!|]/.test(ch) ? 0.3 : /[fjrt()]/.test(ch) ? 0.42 : /[mw]/.test(ch) ? 0.88
   : /[MW@]/.test(ch) ? 0.95 : /[A-Z0-9?]/.test(ch) ? 0.68 : /[^\x00-\x7f]/.test(ch) ? 1.1 : 0.58);
 /** The width of a line of text at a font size (px), roughly */
 export const textWidth = (s, size) => [...String(s)].reduce((a, c) => a + charW(c), 0) * size;

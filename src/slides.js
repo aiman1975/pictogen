@@ -31,17 +31,18 @@ export const READ_WPS = 3.2;
 const HEADING = /^(#{1,3})\s+(.+)$/;
 const BULLET = /^(?:[-*•–]|(\d+)[.)])\s+(.+)$/;
 const QUOTE = /^>\s*(.+)$/;
-// (the outline's own words, in every language at once: English and German so far)
-const SHOW = /^(?:show|picture|image|visual|bild|zeige|zeigen)\s*:\s*(.+)$/i;
-const SCENE = /^(?:scene|szene|🎬)\s*:?\s*(.+)$/i;
-const RECAP = /^(recap|summary|in summary|in short|key takeaways?|takeaways|to sum up|remember|what to remember|zusammenfassung|fazit|kurz gesagt|das wichtigste|merke|auf einen blick)(?![\p{L}])/iu;
-const VERSUS = /\s+(?:vs\.?|versus|gegen|gegenüber)\s+/i;
-const STEPS = /^(how to|steps?\b|the steps|the process|in \d+ steps|so geht|anleitung|schritte|schritt für schritt|in \d+ schritten|wie du)/i;
+// (the outline's own words, in every language at once: English, German and Arabic so far)
+const SHOW = /^(?:show|picture|image|visual|bild|zeige|zeigen|صورة|اعرض|أظهر)\s*[:：]\s*(.+)$/iu;
+const SCENE = /^(?:scene|szene|مشهد|🎬)\s*[:：]?\s*(.+)$/iu;
+const RECAP = /^(recap|summary|in summary|in short|key takeaways?|takeaways|to sum up|remember|what to remember|zusammenfassung|fazit|kurz gesagt|das wichtigste|merke|auf einen blick|الخلاصة|خلاصة|ملخص|الملخص|باختصار|أهم النقاط|تذكر|تذكّر)(?![\p{L}])/iu;
+const VERSUS = /\s+(?:vs\.?|versus|gegen|gegenüber|مقابل|ضد|أم)\s+/iu;
+const STEPS = /^(how to|steps?\b|the steps|the process|in \d+ steps|so geht|anleitung|schritte|schritt für schritt|in \d+ schritten|wie du|كيف|خطوات|الخطوات|خطوة بخطوة|طريقة)/iu;
 // A quiz: "## Quiz: question?" (or any headline) with "- [x] right" and "- [ ] wrong" answers
 const TICKBOX = /^\[( |x|X|✓)\]\s*/;
-const QUIZ = /^(quiz|question|q|test yourself|check yourself|frage|quizfrage|teste dich)\s*[:\-–—]\s*/i;
+const QUIZ = /^(quiz|question|q|test yourself|check yourself|frage|quizfrage|teste dich|سؤال|اختبار|اختبر نفسك)\s*[:\-–—]\s*/iu;
 // A number to show big: "7%", "$1.8T", "3x", "40 years", "1 in 4"
-const STAT = /^((?:[$€£¥]\s?)?\d[\d,.]*(?:\s?[-–]\s?\d[\d,.]*)?\s?(?:%|x|×|k|m|bn|t|million|billion|trillion|thousand|years?|months?|weeks?|days?|hours?|minutes?|seconds?|kg|km|percent|prozent|mio\.?|mrd\.?|millionen|milliarden|billionen|tausend|mal|jahre?n?|monate?n?|wochen|tage?n?|stunden?|minuten|sekunden|euro)?(?:\s+(?:in|von)\s+\d+)?)(?=\s|$|[:–—-])\s*(?:[:–—|-]\s*)?(.*)$/i;
+// (Arabic too: its digits ٠-٩, ٪, and its units)
+const STAT = /^((?:[$€£¥]\s?)?[0-9٠-٩][0-9٠-٩,.٫٬]*(?:\s?[-–]\s?[0-9٠-٩][0-9٠-٩,.٫٬]*)?\s?(?:%|٪|x|×|k|m|bn|t|million|billion|trillion|thousand|years?|months?|weeks?|days?|hours?|minutes?|seconds?|kg|km|percent|prozent|mio\.?|mrd\.?|millionen|milliarden|billionen|tausend|mal|jahre?n?|monate?n?|wochen|tage?n?|stunden?|minuten|sekunden|euro|مليون|مليار|ألف|آلاف|مرة|مرات|سنوات|سنة|أعوام|عامًا|عاما|عام|أشهر|شهرًا|شهرا|شهر|أسابيع|أسبوع|أيام|يومًا|يوما|يوم|ساعات|ساعة|دقائق|دقيقة|دولار|يورو|ريال|درهم|جنيه|دينار)?(?:\s+(?:in|von|من)\s+[0-9٠-٩]+)?)(?=\s|$|[:–—-])\s*(?:[:–—|-]\s*)?(.*)$/iu;
 
 /** True when the text is an outline ("# Title", "## Headline", "- point") rather than a story */
 export function isOutline(text) {
@@ -98,7 +99,7 @@ function classify(c) {
   if (c.kind) return;
   const h = c.headline ?? '';
   const stat = STAT.exec(h);
-  const plainCount = stat && /^\d+$/.test(stat[1].trim());
+  const plainCount = stat && /^[0-9٠-٩]+$/.test(stat[1].trim());
   if (c.points.length >= 2 && c.points.some((p) => TICKBOX.test(p.text))) {
     c.kind = 'quiz';
     c.headline = h.replace(QUIZ, '');
@@ -290,7 +291,9 @@ export function renderSlide(card, opts = {}) {
     const shapes = drawConcept(c, { style, expression: 'happy', animation: anim ?? (person ? 'talk' : undefined) });
     const name = `${uid}b${k++}`;
     css.push(`@keyframes ${name} { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(${r2(-4 * u)}px); } }`);
-    return `<g transform="translate(${r2(x)} ${r2(y)}) scale(${r2(s / 100 * 1000) / 1000})"><g style="animation: ${name} 3.2s ease-in-out infinite;">${shapesToSvg(shapes, style, { olk: clamp(100 / s * 1.4, 0.4, 2) })}</g></g>`;
+    // (on a right-to-left card a picture keeps its own way round: a chart going up still goes up)
+    const art = shapesToSvg(shapes, style, { olk: clamp(100 / s * 1.4, 0.4, 2) });
+    return `<g transform="translate(${r2(x)} ${r2(y)}) scale(${r2(s / 100 * 1000) / 1000})"><g style="animation: ${name} 3.2s ease-in-out infinite;">${rtl ? `<g transform="matrix(-1 0 0 1 100 0)">${art}</g>` : art}</g></g>`;
   };
   // A soft round backdrop with pictures on it
   const pictureSpot = (ids, cx, cy, r, when = (times[0] ?? 0.35) + 0.3) => {
@@ -305,6 +308,8 @@ export function renderSlide(card, opts = {}) {
   // (the clip's language, else the card's own)
   const lang = opts.lang ?? detectLanguage([card.headline, card.subtitle, card.note, card.quote, card.label, ...(card.points ?? []).map((p) => p.text)].filter(Boolean).join(' '));
   const pics = (s, n = 2) => picturesFor(s, n, lang);
+  // (a language written right to left: the card laid out from the right, see the end)
+  const rtl = Boolean(LANGS[lang]?.rtl);
 
   const M = 34 * u; // margin
   let body = '';
@@ -341,7 +346,7 @@ export function renderSlide(card, opts = {}) {
       const color = ACCENTS[(index + i) % ACCENTS.length];
       const box = `<rect x="${r2(M)}" y="${r2(y)}" width="${r2(colW)}" height="${r2(rowH)}" rx="${r2(rowH / 2)}" fill="${th.panel}" stroke="${th.line}" stroke-width="${r2(1.5 * u)}"/>`
         + `<circle cx="${r2(M + rowH / 2)}" cy="${r2(y + rowH / 2)}" r="${r2(rowH * 0.34)}" fill="${color}"/>`
-        + `<text x="${r2(M + rowH / 2)}" y="${r2(y + rowH / 2 + rowH * 0.13)}" font-family="${FONT}" font-size="${r2(rowH * 0.36)}" font-weight="900" fill="#ffffff" text-anchor="middle">${String.fromCharCode(65 + i)}</text>`
+        + `<text x="${r2(M + rowH / 2)}" y="${r2(y + rowH / 2 + rowH * 0.13)}" font-family="${FONT}" font-size="${r2(rowH * 0.36)}" font-weight="900" fill="#ffffff" text-anchor="middle">${rtl ? 'أبجدهو'[i] : String.fromCharCode(65 + i)}</text>`
         + text(l.lines, M + rowH + 10 * u, y + (rowH - l.h) / 2, l.size, { fill: th.ink, weight: 800 });
       body += appear(box);
       if (quiz) {
@@ -499,7 +504,11 @@ export function renderSlide(card, opts = {}) {
   const kb = `${uid}kb`;
   const [z0, z1] = index % 2 ? [1.045, 1] : [1, 1.045];
   css.push(`@keyframes ${kb} { 0% { transform: scale(${z0}) translate(0px, 0px); } 100% { transform: scale(${z1}) translate(${r2((index % 2 ? 6 : -6) * u)}px, ${r2(-3 * u)}px); } }`);
-  const content = `${page}<g class="pg-slide pg-slide-${card.kind}" data-kind="${card.kind}" style="transform-origin: ${W / 2}px ${H / 2}px; animation: ${kb} ${T}s linear infinite;">${body}</g>${progress}`
+  // Right to left (Arabic): the whole card mirrored - the headline and the points from the right, the
+  // picture on the left, the bar filling from the right - and each line of words turned back to read
+  // as it should, from the right ("start" is the right edge in a right-to-left text)
+  const mirror = (svg) => (rtl ? `<g transform="matrix(-1 0 0 1 ${W} 0)">${svg.replace(/<text x="(-?[\d.]+)"([^>]*)>/g, (m, x, rest) => `<text x="${x}"${rest} direction="rtl" transform="matrix(-1 0 0 1 ${r2(2 * x)} 0)">`)}</g>` : svg);
+  const content = `${page}${mirror(`<g class="pg-slide pg-slide-${card.kind}" data-kind="${card.kind}" style="transform-origin: ${W / 2}px ${H / 2}px; animation: ${kb} ${T}s linear infinite;">${body}</g>${progress}`)}`
     + `<metadata class="pg-sound">${esc(JSON.stringify(soundTrack(cues, T, { clean: true })))}</metadata>`;
   return { svg: svgDoc({ width: W, height: H, viewBox: `0 0 ${W} ${H}`, defs: `<style><![CDATA[${css.join('\n')}]]></style>`, content }), duration: T };
 }

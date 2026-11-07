@@ -3,7 +3,7 @@
 // points, steps where the text goes step by step, a big number where a part rests on one, a quote
 // where someone is quoted, and a recap at the end. Rules, not a language model: it picks and
 // shortens the writer's own sentences (it never makes up facts), and the outline is there to check
-// and change before the clip is made. English and German (src/lang.js: a pack per language).
+// and change before the clip is made. English, German and Arabic (src/lang.js: a pack per language).
 import { writeOutline } from './slides.js';
 import { LANGS, detectLanguage, langPack } from './lang.js';
 
@@ -12,13 +12,15 @@ let L = LANGS.en;
 
 const words = (s) => String(s).toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}'%$€£.-]*/gu) ?? [];
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-const trimEnd = (s) => s.replace(/[\s,;:–—-]+$/, '').replace(/[.!?]+$/, '').trim();
+// (Arabic too: its comma ، semicolon ؛ and question mark ؟)
+const trimEnd = (s) => s.replace(/[\s,;:،؛–—-]+$/, '').replace(/[.!?؟]+$/, '').trim();
 
 /** The sentences of some text (abbreviations and decimals kept whole) */
 export function sentences(text, lang = null) {
   if (lang) L = langPack(lang);
   const kept = String(text).replace(L.abbr, (m) => m.replace(/\./g, '§')).replace(/(\d)\.(\d)/g, '$1§$2');
-  return kept.split(/(?<=[.!?])["”“']?\s+(?=["“„«(]?[\p{Lu}\p{N}])/u).map((s) => s.replace(/§/g, '.').replace(/\s+/g, ' ').trim()).filter((s) => words(s).length >= 3);
+  // (a new sentence starts with a capital, a number - or an Arabic letter: Arabic has no capitals)
+  return kept.split(/(?<=[.!?؟])["”“'»]?\s+(?=["“„«(]?[\p{Lu}\p{N}\u0621-\u064A])/u).map((s) => s.replace(/§/g, '.').replace(/\s+/g, ' ').trim()).filter((s) => words(s).length >= 3);
 }
 
 /**
@@ -32,7 +34,7 @@ export function shorten(sentence, max = 14, lang = null) {
   for (let k = 0; k < 3 && L.openers.test(s); k++) s = s.replace(L.openers, '');
   s = s.replace(/\s*\([^)]*\)/g, '').replace(/\s+[—–]\s+[^—–]*[—–]\s+/g, ' ').replace(/\s+/g, ' ');
   // (an example at the end goes: ", such as support@paypa1.com..." / ", zum Beispiel ...")
-  s = s.replace(/,\s*(such as|for example|for instance|e\.g\.|like|zum beispiel|z\.\s?b\.|beispielsweise|wie etwa|etwa)\s[^,;]*$/i, '');
+  s = s.replace(/[,،]\s*(such as|for example|for instance|e\.g\.|like|zum beispiel|z\.\s?b\.|beispielsweise|wie etwa|etwa|مثل|على سبيل المثال|مثلًا|مثلا)\s[^,;،؛]*$/iu, '');
   s = trimEnd(s);
   const w = s.split(' ');
   if (w.length <= max) return cap(s);
@@ -42,7 +44,7 @@ export function shorten(sentence, max = 14, lang = null) {
   const punct = [], words2 = [];
   w.forEach((x, i) => {
     if (i < 4 || i > max) return;
-    if (/[,;:]$/.test(w[i - 1])) punct.push(i);
+    if (/[,;:،؛]$/.test(w[i - 1])) punct.push(i);
     else if (L.breaks.test(x)) words2.push(i);
   });
   if (punct.length) return cap(trimEnd(w.slice(0, punct.at(-1)).join(' ')));
@@ -62,7 +64,7 @@ function imperative(step) {
 /** A short headline from a sentence: its main clause, at most `max` words */
 function headlineOf(sentence, max = 7) {
   // (its first clause, when that is short enough: "Phishing-Mails sind gefälschte Nachrichten, die...")
-  const first = String(sentence).replace(L.openers, '').split(/[,;:]/)[0].trim();
+  const first = String(sentence).replace(L.openers, '').split(/[,;:،؛]/)[0].trim();
   const n = first.split(/\s+/).length;
   if (n >= 3 && n <= max + 2 && first.length < String(sentence).trim().length - 2) return cap(trimEnd(first));
   return shorten(sentence, max).replace(/[.!?]$/, '');
@@ -70,10 +72,12 @@ function headlineOf(sentence, max = 7) {
 
 // Lines that look like headings: "# Title", "Title:", short lines with no full stop, ALL CAPS
 const isHeading = (l, next) => /^#{1,6}\s+\S/.test(l)
+  // (a short question over some text: "What to do?", "ماذا تفعل؟")
+  || (next !== undefined && next !== '' && /^[^.!?؟]{2,60}[?؟]$/.test(l) && l.split(/\s+/).length <= 6 && !/^([-*•]|\d+[.)])\s/.test(l) && (/^([-*•]|\d+[.)])\s/.test(next) || next.split(/\s+/).length > 6))
   || (/^[^.!?]{2,70}:$/.test(l) && !/^[-*•]/.test(l))
   || (/^[\p{Lu}0-9][\p{Lu}0-9 &'/,-]{3,60}$/u.test(l) && /\p{Lu}{3}/u.test(l))
-  || (next !== undefined && next !== '' && !/[.!?:,;]$/.test(l) && l.split(/\s+/).length <= 8 && !/^([-*•]|\d+[.)])\s/.test(l) && /^[\p{Lu}0-9"“„]/u.test(l) && (/^([-*•]|\d+[.)])\s/.test(next) || next.split(/\s+/).length > 8));
-const cleanHeading = (l) => cap(l.replace(/^#{1,6}\s+/, '').replace(/^(step\s+\d+|part\s+\d+|schritt\s+\d+|teil\s+\d+|\d+)[.):]?\s+/i, '').replace(/:$/, '').trim());
+  || (next !== undefined && next !== '' && !/[.!?:,;؟،؛]$/.test(l) && l.split(/\s+/).length <= 8 && !/^([-*•]|\d+[.)])\s/.test(l) && /^[\p{Lu}0-9"“„\u0621-\u064A]/u.test(l) && (/^([-*•]|\d+[.)])\s/.test(next) || next.split(/\s+/).length > 8));
+const cleanHeading = (l) => cap(l.replace(/^#{1,6}\s+/, '').replace(/^(step\s+\d+|part\s+\d+|schritt\s+\d+|teil\s+\d+|الخطوة\s+[0-9٠-٩]+|الجزء\s+[0-9٠-٩]+|\d+)[.):]?\s+/iu, '').replace(/:$/, '').trim());
 const BULLET = /^(?:[-*•–]|(\d+)[.)])\s+(.+)$/;
 
 /** The notes as parts: [{ heading, bullets: [{ text, n }], sentences: [...] }] */
@@ -113,7 +117,7 @@ export function outlineFromNotes(notes, opts = {}) {
   const top = lines.findIndex((l) => l.trim());
   if (!title && top >= 0) {
     const l = lines[top].trim();
-    if (/^#{1,2}\s+\S/.test(l) || (!/[.!?:;,]$/.test(l) && l.split(/\s+/).length <= 10 && !BULLET.test(l))) { title = cleanHeading(l); lines.splice(top, 1); }
+    if (/^#{1,2}\s+\S/.test(l) || (!/[.!?:;,؟،؛]$/.test(l) && l.split(/\s+/).length <= 10 && !BULLET.test(l))) { title = cleanHeading(l); lines.splice(top, 1); }
   }
   let parts = partsOf(lines.join('\n'));
   // A plain article (paragraphs, no headings): a part per paragraph, a long one in groups of three
@@ -153,12 +157,23 @@ export function outlineFromNotes(notes, opts = {}) {
     if (!keep.has(i)) return;
     const ranked = p.sentences.map((s, k) => ({ s, v: score(s, k), k })).sort((a, b) => b.v - a.v);
     // A quote: someone's words in quotation marks, with who said them
-    const quoteRe = new RegExp(`["“„«]([^"”“»]{12,160})["”“»][,.]?\\s*(?:${L.quoteVerbs}|—|–|-)\\s*(\\p{Lu}[\\p{L}.'-]*(?:\\s+\\p{Lu}[\\p{L}.'-]*){0,3})`, 'u');
-    const q = !quoted && p.sentences.map((s) => quoteRe.exec(s)).find(Boolean);
-    if (q) {
+    // (who: a name with capitals - or, in Arabic, which has none, the two or three words after "قال")
+    const who = L.code === 'ar' ? '([\\u0621-\\u064A][\\p{L}]*(?:\\s+[\\u0621-\\u064A][\\p{L}]*){0,2})' : "(\\p{Lu}[\\p{L}.'-]*(?:\\s+\\p{Lu}[\\p{L}.'-]*){0,3})";
+    // (the longer verbs first: "قالت" before "قال")
+    const verbs = L.quoteVerbs.split('|').sort((a, b) => b.length - a.length).join('|');
+    const quoteRe = new RegExp(`["“„«]([^"”“»]{12,160})["”“»][,.،]?\\s*(?:${verbs}|—|–|-)\\s*${who}`, 'u');
+    const qs = !quoted && p.sentences.find((s) => quoteRe.test(s));
+    if (qs) {
+      const q = quoteRe.exec(qs);
       quoted = true;
-      cards.push({ kind: 'quote', quote: trimEnd(q[1]) + '.', by: q[2].trim(), points: [] });
-      return;
+      // (who, without a small word after the name: "سارة أحمد من فريق..." -> "سارة أحمد")
+      const by = q[2].trim().split(/\s+/);
+      while (by.length > 1 && L.stop.has(by.at(-1).toLowerCase())) by.pop();
+      cards.push({ kind: 'quote', quote: trimEnd(q[1]) + '.', by: by.join(' '), points: [] });
+      // (and the rest of the part, when there is more to it than the quote)
+      p = { ...p, sentences: p.sentences.filter((x) => x !== qs) };
+      if (!p.bullets.length && p.sentences.length < 2) return;
+      ranked.splice(0, ranked.length, ...ranked.filter((r) => r.s !== qs));
     }
     // Steps: a numbered list, a part about how to do something, or sentences going first, then, next...
     const stepSentences = p.sentences.filter((s) => L.stepWords.test(s));
@@ -185,7 +200,7 @@ export function outlineFromNotes(notes, opts = {}) {
     // (a part with a heading of its own keeps it, unless its heading is the number)
     if (statLine && (!p.heading || L.stat.test(p.heading))) {
       const m = L.stat.exec(statLine);
-      const num = m[0].replace(/\s?(percent|per cent|prozent)\b/i, ' %').replace(/^(\d[\d.,]*) %$/, L.code === 'de' ? '$1 %' : '$1%').trim();
+      const num = m[0].replace(/\s?(percent|per cent|prozent)\b/i, ' %').replace(/\s?(في المئة|في المائة|بالمئة|بالمائة)/u, '٪').replace(/^(\d[\d.,]*) %$/, L.code === 'de' ? '$1 %' : '$1%').trim();
       const after = statLine.slice(m.index + m[0].length).trim();
       const label = after && words(after).length >= 2 && L.labelLead.test(after) ? shorten(after, 8) : null;
       const headline = label ? `${num} ${label.charAt(0).toLowerCase()}${label.slice(1)}` : `${num} ${headlineOf(statLine.replace(m[0], '').trim(), 6).replace(/^./, (c) => c.toLowerCase())}`;
@@ -199,7 +214,7 @@ export function outlineFromNotes(notes, opts = {}) {
     }
     // Points: its own list, else its best two or three sentences, in the order they were written
     // (a paragraph's first sentence is what it is about: its headline, when short enough to be one)
-    const topic = !p.heading && !p.bullets.length && p.sentences.length >= 2 && words(p.sentences[0]).length <= 12 ? p.sentences[0] : null;
+    const topic = !p.heading && !p.bullets.length && p.sentences.length >= 2 && words(p.sentences[0]).length <= (L.code === 'ar' ? 8 : 12) ? p.sentences[0] : null;
     const rest = topic ? ranked.filter((r) => r.k !== 0) : ranked;
     const chosen = p.bullets.length ? pointsFrom.slice(0, 4) : rest.slice(0, rest.length > 3 ? 3 : 2).sort((a, b) => a.k - b.k).map((r) => r.s);
     const points = [...new Set(chosen.map((x) => shorten(x)))].filter(Boolean);

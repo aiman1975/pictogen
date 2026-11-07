@@ -1038,13 +1038,13 @@
       <div class="prompt-box">
         <input
           type="text"
-          id="prompt-input"
+          id="prompt-input" dir="auto"
           class="prompt-input"
           placeholder="Type what you want to see, e.g. 'a girl with a balloon in the park'"
           value="a girl with a balloon and her dog in the park"
         />
         <!-- Clip Studio: a whole story, in lines or sentences (read by src/story-reader.js) -->
-        <textarea id="story-text" class="prompt-input story-text" rows="6" hidden aria-label="Your story"
+        <textarea id="story-text" dir="auto" class="prompt-input story-text" rows="6" hidden aria-label="Your story"
           placeholder="Write a story, one part per line (or just sentences), e.g.&#10;Once upon a time, a little girl called Mia lived near a big forest.&#10;One morning, she found a small puppy under a tree.&#10;At night, Mia hugged the puppy and fell asleep.&#10;&#10;Or an explainer as an outline: # Title, ## Headline, - point"></textarea>
         <button id="btn-generate" class="btn-generate">
           <span>✨ Draw</span>

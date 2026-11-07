@@ -8,8 +8,8 @@ a board stays in their own language.
 |---|---|---|---|---|
 | Words in any alphabet (no word split at "ß" or "ü") | ✅ | ✅ | ✅ | ✅ |
 | Letter figures | A-Z, 0-9 | + Ä Ö Ü ß | ✅ 28 letters, ة ى ء أ إ آ ؤ ئ, ٠-٩; words right to left | planned (Ñ) |
-| Explainers: outline words, card pictures | ✅ | ✅ | planned | planned |
-| Notes → explainer | ✅ | ✅ | planned | planned |
+| Explainers: outline words, card pictures | ✅ | ✅ | ✅ cards right to left | planned |
+| Notes → explainer | ✅ | ✅ | ✅ | planned |
 | Scenes from a prompt | ✅ | ✅ (word bridge, plurals) | planned | planned |
 | Diagram topics, letter modes ("K wie Katze", "zähle bis 5") | ✅ | ✅ | planned | planned |
 | Stories (a cast kept across lines, names, pronouns) | ✅ | ✅ | planned | planned |
@@ -59,6 +59,20 @@ the pages show (collected in a browser with `pictogenI18n.keysOf`), informal "du
 help page's example links open the same prompts in German, each checked to draw what the English
 one draws. A native speaker should read it before a release: to change a word, change it in that
 file. A text added to a page later shows in English until it is added there.
+
+## Arabic explainers
+
+The Arabic pack (`src/lang.js`, `ar`, marked `rtl`) has Arabic filler and step words (أولًا، ثم،
+بعد ذلك، أخيرًا), quote verbs (قال، قالت، بحسب), number units (٪، مليون، سنوات…) with Arabic-Indic
+digits, and picture words matched inside words (Arabic adds ال، و، ب، ل in front: "بالمال" is money).
+Outline words: `## الخلاصة` (recap), `صورة:` (picture), `مشهد:` (scene), `## سؤال:` (quiz),
+`## A مقابل B` (compare), `## كيف…` / `خطوات` (steps), `## ٧٪ سنويًا` (a big number). An Arabic
+card is laid out right to left (`renderSlide`): the whole card mirrored - the headline and points from
+the right, the picture on the left, steps numbered from the right, the bar filling from the right -
+with every line of words turned back and set right to left, and the pictures keeping their own way
+round (a chart going up still goes up); quiz answers are أ ب ج د. Notes → explainer reads Arabic notes
+by these rules: sentences end at . ! ؟, clauses at ، and ؛, headings need no capitals (Arabic has
+none), and a short question over some text ("ماذا تفعل؟") is a heading.
 
 ## The Arabic letters
 

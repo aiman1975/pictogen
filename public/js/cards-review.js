@@ -31,8 +31,8 @@ const linesOf = (c) => (c.kind === 'compare'
 
 function row(c, i) {
   const kind = `<select class="cr-kind" data-i="${i}" aria-label="What card ${i + 1} is">${KINDS.map(([k, l]) => `<option value="${k}"${k === c.kind ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
-  const head = (label, value, field = 'headline') => `<label class="cr-field"><span>${label}</span><input class="cr-in" data-i="${i}" data-f="${field}" maxlength="140" value="${esc(value)}"></label>`;
-  const area = (label, value, field, hint = '') => `<label class="cr-field"><span>${label}</span><textarea class="cr-in" data-i="${i}" data-f="${field}" rows="${Math.min(6, Math.max(2, String(value).split('\n').length))}" placeholder="${esc(hint)}">${esc(value)}</textarea></label>`;
+  const head = (label, value, field = 'headline') => `<label class="cr-field"><span>${label}</span><input class="cr-in" dir="auto" data-i="${i}" data-f="${field}" maxlength="140" value="${esc(value)}"></label>`;
+  const area = (label, value, field, hint = '') => `<label class="cr-field"><span>${label}</span><textarea class="cr-in" dir="auto" data-i="${i}" data-f="${field}" rows="${Math.min(6, Math.max(2, String(value).split('\n').length))}" placeholder="${esc(hint)}">${esc(value)}</textarea></label>`;
   let fields = '';
   if (c.kind === 'title') fields = head('Title', c.headline) + head('Subtitle', c.subtitle ?? '', 'subtitle');
   else if (c.kind === 'scene') fields = head('Draw', c.prompt ?? '', 'prompt') + head('Caption', c.caption ?? '', 'caption');

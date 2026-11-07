@@ -249,6 +249,28 @@ So what should you do? First, stop and do not click anything. Then, hover over t
   assert(/^> Sicherheit ist die Aufgabe aller, nicht nur der IT-Abteilung\. — Maria Lopez$/m.test(a.text), 'a German quote („…“, sagt …) with who said it');
 }
 
+// Arabic (src/lang.js): outlines in Arabic words, cards laid out right to left, Arabic notes
+{
+  const { outlineFromNotes } = await import('../src/writer.js');
+  const { readOutline: read, picturesFor, renderSlide } = await import('../src/slides.js');
+  const { detectLanguage } = await import('../src/lang.js');
+  const { readFileSync } = await import('node:fs');
+  assert(detectLanguage('الادخار يساعدك على بناء مستقبل آمن') === 'ar' && detectLanguage('Geld sparen ist wichtig für die Zukunft') === 'de', 'the language of some text: Arabic by its letters');
+  const ar = read('# الادخار للمستقبل\n## ٧٪ سنويًا\n- متوسط العائد\n## الادخار مقابل الإنفاق\n- ينمو مع الوقت | يختفي غدًا\n## كيف تبدأ\n1. افتح حسابًا\n2. ادخر كل شهر\n## سؤال: متى تبدأ؟\n- [ ] غدًا\n- [x] اليوم\n## الخلاصة\n- ابدأ مبكرًا\n- اصبر\nصورة: عملات');
+  assert(ar.cards.map((c) => c.kind).join() === 'title,number,compare,steps,quiz,recap' && ar.cards[1].number === '٧٪' && ar.cards[2].left === 'الادخار' && ar.cards[5].show === 'عملات',
+    `an outline in Arabic words (مقابل, كيف, سؤال:, الخلاصة, صورة:, ٧٪): ${ar.cards.map((c) => c.kind)}`);
+  assert(picturesFor('كلمة المرور')[0] === 'locked' && picturesFor('المال ينمو')[0] === 'money_bag' && picturesFor('احذر الاحتيال')[0] === 'warning' && picturesFor('نمو الاستثمار')[0] === 'chart_increasing', 'pictures for Arabic words');
+  const card = renderSlide(ar.cards[4], { style: 'flat', lang: 'ar' }).svg, en = renderSlide({ kind: 'quiz', headline: 'When?', points: [{ text: 'Now', right: true }, { text: 'Later' }] }, { style: 'flat' }).svg;
+  assert(/matrix\(-1 0 0 1 \d+ 0\)/.test(card) && /direction="rtl"/.test(card) && />أ<\/text>/.test(card) && />ب<\/text>/.test(card) && !/direction="rtl"/.test(en) && />A<\/text>/.test(en),
+    'an Arabic card is laid out right to left, its answers أ ب (an English one left to right, A B)');
+  const a = outlineFromNotes(readFileSync(new URL('./fixtures/phishing-ar.txt', import.meta.url), 'utf8'));
+  const kinds = read(a.text).cards.map((c) => c.kind);
+  assert(a.title === 'رسائل التصيد الاحتيالي' && kinds.join() === 'title,bullets,number,bullets,quote,steps,recap', `an Arabic article -> ${a.title}: ${kinds}`);
+  assert(/^## ٩٠٪ من الاختراقات برسالة تصيد واحدة$/m.test(a.text) && /^## ماذا تفعل؟$/m.test(a.text) && /^1\. لا تضغط على أي رابط في الرسالة$/m.test(a.text) && /^4\. احذف الرسالة من صندوق الوارد$/m.test(a.text),
+    'a big number in Arabic (٩٠٪), a question as a heading, أولًا، ثم، بعد ذلك، أخيرًا -> steps');
+  assert(/^> الأمان مسؤولية الجميع، وليس قسم تقنية المعلومات فقط\. — سارة أحمد$/m.test(a.text) && /^## الخلاصة$/m.test(a.text), 'an Arabic quote («…»، قالت …) with who said it, and the recap as "الخلاصة"');
+}
+
 // German scenes (src/lang-de.js): a German prompt drawn from its German words
 {
   const { generate: gen } = await import('../src/index.js');
