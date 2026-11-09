@@ -4,6 +4,10 @@
 // To change a word: change it here.
 export default {
   texts: {
+   "See it in action": "So sieht es aus",
+   "Short videos for the way you work.": "Kurze Videos für deine Arbeit.",
+   "For teachers": "Für Lehrkräfte",
+   "Diagrams, worksheets with answer keys, quiz cards": "Diagramme, Arbeitsblätter mit Lösungen, Quizkarten",
    "Toonaro in 45 seconds": "Toonaro in 45 Sekunden",
    "For the classroom, presentations and stories - in English, German and Arabic.": "Für den Unterricht, Präsentationen und Geschichten – auf Englisch, Deutsch und Arabisch.",
    "· How to use": "· Anleitung",

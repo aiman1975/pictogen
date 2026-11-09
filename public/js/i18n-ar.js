@@ -5,6 +5,10 @@
 // to left (dir="rtl"). To change a word: change it here.
 export default {
   texts: {
+   "See it in action": "شاهده أثناء العمل",
+   "Short videos for the way you work.": "مقاطع قصيرة تناسب طريقة عملك.",
+   "For teachers": "للمعلمين",
+   "Diagrams, worksheets with answer keys, quiz cards": "مخططات، أوراق عمل مع الإجابات، بطاقات اختبار",
    "Toonaro in 45 seconds": "تونارو في 45 ثانية",
    "For the classroom, presentations and stories - in English, German and Arabic.": "للصف والعروض التقديمية والقصص – بالإنجليزية والألمانية والعربية.",
    "· How to use": "· كيفية الاستخدام",
