@@ -153,6 +153,22 @@ h1.big { font-size: 66px; }
 .card.deck { left: 250px; top: 196px; width: 780px; }
 .deckdots { position: absolute; left: 0; right: 0; top: 650px; display: flex; justify-content: center; gap: 10px; }
 .deckdots i { width: 12px; height: 12px; border-radius: 50%; background: #fdba74; }
+/* "Toonaro for families" (families.js) */
+.grid4.portraits { left: 190px; width: 900px; gap: 26px; }
+.steps.fsteps li { font-size: 19px; padding: 10px 14px; margin-bottom: 9px; }
+.bcover { position: absolute; left: 120px; top: 196px; width: 330px; height: 440px; border-radius: 6px 16px 16px 6px; background: linear-gradient(160deg, #1e3a8a, #312e81);
+  box-shadow: 0 26px 60px rgb(0 0 0 / .5), inset 10px 0 0 rgb(0 0 0 / .18); padding: 26px 22px; text-align: center; transform: rotate(-3deg); }
+.btitle { font-weight: 900; font-size: 30px; line-height: 1.15; color: #fde68a; }
+.bpic { margin-top: 18px; border-radius: 10px; overflow: hidden; background: #fff; }
+.bpic svg { display: block; width: 100%; height: auto; }
+.bby { margin-top: 16px; color: #c7d2fe; font-weight: 700; font-size: 16px; font-style: italic; }
+.spread { position: absolute; left: 500px; top: 220px; width: 680px; height: 400px; display: grid; grid-template-columns: 1fr 1fr; background: #fffdf7; border-radius: 8px;
+  box-shadow: 0 26px 60px rgb(0 0 0 / .5); overflow: hidden; }
+.spread::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 26px; margin-left: -13px; background: linear-gradient(90deg, transparent, rgb(0 0 0 / .1), transparent); }
+.bpage { position: relative; padding: 28px 22px; display: flex; align-items: center; justify-content: center; }
+.bpage .bpic { margin: 0; width: 100%; box-shadow: 0 2px 8px rgb(0 0 0 / .12); }
+.btext p { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 27px; line-height: 1.45; color: #1f2937; text-align: center; }
+.btext span { position: absolute; bottom: 16px; left: 0; right: 0; text-align: center; color: #94a3b8; font-size: 14px; font-weight: 700; }
 .formatrow { position: absolute; left: 0; right: 0; top: 214px; display: flex; justify-content: center; align-items: flex-end; gap: 40px; }
 `;
 
