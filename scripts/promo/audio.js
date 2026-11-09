@@ -213,13 +213,13 @@ function reverb(L, R, wet) {
  *   events: [{ t, type: 'whoosh'|'pop'|'click'|'chime'|'ding'|'tick'|'twinkle'|'blip', gain?, pitch?, pan? }]
  *   groove: when the drums and bass play (seconds); outro: when the music resolves to its last chord
  */
-export function renderAudio({ duration, events = [], groove = [0, duration], outro = duration - 5 }) {
+export function renderAudio({ duration, events = [], groove = [0, duration], outro = duration - 5, music: withMusic = true }) {
   const n = Math.ceil((duration + 0.5) * SR);
   const music = new Bus(n), drums = new Bus(n), fx = new Bus(n);
   const kicks = [];
 
-  // Music, bar by bar
-  for (let bar = 0; bar * BAR < outro; bar++) {
+  // Music, bar by bar (none when the video brings its own: sound effects only)
+  for (let bar = 0; withMusic && bar * BAR < outro; bar++) {
     const t0 = bar * BAR, chord = CHORDS[bar % 4];
     const inGroove = t0 + BAR > groove[0] && t0 < groove[1];
     for (const m of chord.notes) pad(music, t0, BAR, midi(m), 0.018);
@@ -245,9 +245,11 @@ export function renderAudio({ duration, events = [], groove = [0, duration], out
     }
   }
   // Outro: the last chord rings out
-  for (const m of FINAL.notes) pad(music, outro, duration - outro, midi(m), 0.02);
-  bass(music, outro, midi(FINAL.bass), 0.12, 2.5);
-  FINAL.notes.forEach((m, i) => pluck(music, outro + i * 0.12, midi(m + 12), 0.05, (i % 2 ? 0.3 : -0.3), 0.6));
+  if (withMusic) {
+    for (const m of FINAL.notes) pad(music, outro, duration - outro, midi(m), 0.02);
+    bass(music, outro, midi(FINAL.bass), 0.12, 2.5);
+    FINAL.notes.forEach((m, i) => pluck(music, outro + i * 0.12, midi(m + 12), 0.05, (i % 2 ? 0.3 : -0.3), 0.6));
+  }
 
   // Sidechain: the music ducks under each kick, which gives the groove its pump
   for (let k = 0; k < n; k++) {

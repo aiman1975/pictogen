@@ -5,8 +5,9 @@ import { ANIMATION_CSS } from '../../src/core/render.js';
 
 const CSS = `
 @font-face { font-family: 'Nunito'; src: url('FONT_URL') format('woff2'); font-weight: 200 1000; }
+@font-face { font-family: 'Baloo Bhaijaan 2'; src: url('baloo.woff2') format('woff2'); font-weight: 400 800; }
 * { box-sizing: border-box; }
-html, body { margin: 0; width: 1280px; height: 720px; overflow: hidden; background: #0b1020; color: #fff; font-family: 'Nunito', sans-serif; }
+html, body { margin: 0; width: 1280px; height: 720px; overflow: hidden; background: #0b1020; color: #fff; font-family: 'Nunito', 'Baloo Bhaijaan 2', sans-serif; }
 #bg { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(1300px 760px at 50% 115%, #1e1b4b 0%, #0b1020 62%); }
 .blob { position: absolute; width: 640px; height: 640px; border-radius: 50%; filter: blur(90px); opacity: .42; }
 .slide { position: absolute; inset: 0; display: none; }
@@ -108,6 +109,32 @@ h1 { margin: 8px 0 0; font-weight: 900; font-size: 50px; line-height: 1.08; lett
 .url { margin: 18px 0 0; font-size: 30px; font-weight: 900; padding: 10px 28px; border-radius: 999px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
 .facts.static { position: static; margin-top: 28px; width: auto; }
 .facts span { padding: 12px 20px; border-radius: 999px; background: rgb(253 230 138 / .12); border: 1px solid rgb(253 230 138 / .35); color: #fde68a; font-weight: 800; font-size: 20px; }
+/* "Toonaro in 45 seconds" (hero.js) */
+.hmascot { width: 210px; height: auto; display: block; margin: 0 auto -6px; }
+.hword { height: 72px; width: auto; display: block; margin: 6px auto 0; }
+.hicon { width: 92px; height: 92px; filter: drop-shadow(0 14px 30px rgb(244 63 94 / .45)); }
+.kicker.hk { color: #fdba74; }
+.go.hgo { background: linear-gradient(135deg, #fb923c, #f43f5e); }
+.card.rel { position: relative; }
+.paper { position: absolute; transform: rotate(-3deg); border-radius: 6px; overflow: hidden; background: #fff; box-shadow: 0 24px 60px rgb(0 0 0 / .5); }
+.paper.back { transform: rotate(4deg); filter: brightness(.96); }
+.paper svg { display: block; width: 100%; height: auto; }
+.film { position: absolute; left: 64px; top: 262px; width: 1152px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.frame .label { font-size: 17px; line-height: 1.3; margin-top: 10px; }
+.langq { margin-bottom: 10px; font-size: 19px; font-weight: 800; color: #fde68a; min-height: 50px; line-height: 1.3; }
+.langq b { display: block; color: #fdba74; font-size: 14px; letter-spacing: .18em; text-transform: uppercase; }
+h1.big { font-size: 66px; }
+.whys { display: grid; grid-template-columns: repeat(3, 300px); gap: 26px; margin-top: 40px; }
+.why { padding: 26px 18px; border-radius: 22px; background: linear-gradient(160deg, rgb(255 255 255 / .12), rgb(255 255 255 / .04)); border: 1px solid rgb(255 255 255 / .16);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.why .ic { font-size: 46px; line-height: 1; }
+.why b { font-size: 26px; font-weight: 900; color: #fff; }
+.why span:last-child { font-size: 17px; font-weight: 700; color: #cbd5e1; }
+.outrorow { display: flex; align-items: center; gap: 30px; }
+.outrorow .hmascot { width: 190px; margin: 0; }
+.outrobrand { display: flex; align-items: center; gap: 22px; }
+.outrobrand .hword { margin: 0; height: 84px; }
+.url.ho { background: linear-gradient(135deg, #fb923c, #f43f5e); }
 `;
 
 const RUNTIME = `
