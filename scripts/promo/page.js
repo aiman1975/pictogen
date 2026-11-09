@@ -141,6 +141,19 @@ h1.big { font-size: 66px; }
 .kinds { position: absolute; left: 980px; top: 330px; width: 240px; display: flex; flex-direction: column; gap: 12px; }
 .kinds span { padding: 10px 18px; border-radius: 999px; background: rgb(253 230 138 / .12); border: 1px solid rgb(253 230 138 / .35); color: #fde68a; font-weight: 800; font-size: 19px; }
 .center .kicker { margin-top: 6px; }
+/* "Toonaro for presentations" (presentations.js) */
+.notes { position: absolute; left: 64px; top: 210px; width: 470px; padding: 20px 24px; border-radius: 16px; background: #fffef5; color: #334155; font-size: 18px; line-height: 1.55; font-weight: 600; box-shadow: 0 20px 50px rgb(0 0 0 / .4); transform: rotate(-1.5deg); }
+.notes b { display: block; margin-bottom: 8px; color: #b45309; font-size: 14px; letter-spacing: .16em; text-transform: uppercase; }
+.arrow { position: absolute; left: 560px; top: 330px; font-size: 64px; font-weight: 900; color: #fdba74; }
+.outline { position: absolute; left: 650px; top: 214px; width: 566px; display: flex; flex-direction: column; gap: 10px; }
+.ol { padding: 10px 18px; border-radius: 12px; background: rgb(255 255 255 / .08); border: 1px solid rgb(255 255 255 / .14); font-weight: 800; color: #e2e8f0; font-size: 19px; }
+.ol.h1 { background: linear-gradient(135deg, #fb923c, #f43f5e); color: #fff; font-size: 24px; border: 0; }
+.ol.h2 { color: #fde68a; }
+.ol.pt { margin-left: 28px; font-weight: 700; color: #cbd5e1; }
+.card.deck { left: 250px; top: 196px; width: 780px; }
+.deckdots { position: absolute; left: 0; right: 0; top: 650px; display: flex; justify-content: center; gap: 10px; }
+.deckdots i { width: 12px; height: 12px; border-radius: 50%; background: #fdba74; }
+.formatrow { position: absolute; left: 0; right: 0; top: 214px; display: flex; justify-content: center; align-items: flex-end; gap: 40px; }
 `;
 
 const RUNTIME = `
@@ -247,8 +260,9 @@ window.seek = async (t) => {
     for (const part of el.querySelectorAll('[data-at]')) part.style.visibility = local >= +part.dataset.at ? 'visible' : 'hidden';
     for (const a of el.getAnimations({ subtree: true })) {
       const target = a.effect && a.effect.target;
-      const holder = target && target.closest && target.closest('[data-at]');
-      const off = holder && el.contains(holder) ? +holder.dataset.at : 0;
+      // (a part shown at data-at starts its own animations then - or at data-off, to begin partway in)
+      const holder = target && target.closest && target.closest('[data-off],[data-at]');
+      const off = holder && el.contains(holder) ? +(holder.dataset.off ?? holder.dataset.at) : 0;
       a.pause();
       a.currentTime = Math.max(0, local - off) * 1000;
     }

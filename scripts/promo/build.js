@@ -22,6 +22,7 @@ import { buildStoryboard } from './storyboard.js';
 import { buildExplainer } from './explainer.js';
 import { buildHero } from './hero.js';
 import { buildTeachers } from './teachers.js';
+import { buildPresentations } from './presentations.js';
 import { NARRATION } from './narration.js';
 import { promoPage } from './page.js';
 import { renderAudio } from './audio.js';
@@ -37,6 +38,7 @@ const explainer = flag('--explainer');
 const VIDEOS = {
   hero: { build: buildHero, music: 'explainer-1.mp3', file: 'toonaro-in-45-seconds.mp4', poster: ['hintro', 2.4] },
   teachers: { build: buildTeachers, music: 'focus-1.mp3', file: 'toonaro-for-teachers.mp4', poster: ['tintro', 2.2] },
+  presentations: { build: buildPresentations, music: 'documentary-1.mp3', file: 'toonaro-for-presentations.mp4', poster: ['pintro', 2.2] },
 };
 const videoName = flag('--hero') ? 'hero' : flag('--video');
 if (videoName && !VIDEOS[videoName]) { console.error(`No video "${videoName}": ${Object.keys(VIDEOS).join(', ')}`); process.exit(1); }
