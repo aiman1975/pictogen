@@ -151,6 +151,14 @@ if (chromium) {
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
     await page.waitForSelector('#svg-viewport svg .tn-demo-mark', { timeout: 60000 });
+    // (a story longer than the demo takes is stopped, without using a try)
+    await page.click('#modes-group .pill-btn[data-mode="story"]');
+    await page.fill('#story-text', 'Mia found a puppy. '.repeat(20));
+    await page.click('#btn-generate');
+    await page.waitForTimeout(500);
+    const long = await page.evaluate(() => ({ msg: !!document.querySelector('.tn-demo-long'), left: document.querySelector('.tn-demo-left')?.textContent, max: document.getElementById('prompt-input').maxLength }));
+    check(long.msg && /3 free tries/.test(long.left) && long.max === 120, `the demo keeps texts short: a long story is stopped without using a try, a picture's line takes 120 characters (${JSON.stringify(long)})`);
+    await page.click('#modes-group .pill-btn[data-mode="scene"]');
     const tries = [];
     for (const words of ['a cat on a sofa', 'a red car', 'a dragon over a castle', 'a boy reads a book']) {
       await page.fill('#prompt-input', words);

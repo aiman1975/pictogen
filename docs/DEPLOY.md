@@ -72,7 +72,11 @@ accounts on an allow-list) in front of the studio.
 
 `npm run web:demo` builds the public demo into `dist-demo/`: the landing page, the help page, the
 show and the studio, where every visitor can make **3 pictures or clips** (`DEMO_TRIES` in
-`scripts/build-web.js`). Everything the studio draws carries the mark "Toonaro · demo", on screen
+`scripts/build-web.js`), from short texts: a picture from up to 120 characters, a clip (or
+"Notes → explainer") from up to 300 (`DEMO_MAX_PROMPT`, `DEMO_MAX_STORY`); a longer text is stopped
+with a note and costs no try. It costs nothing per visitor: everything is drawn in the visitor's
+browser, the web space only sends the files (about 24 MB, once per visitor). No login: it would need
+a server, consent texts and more privacy rules, for little gain. Everything the studio draws carries the mark "Toonaro · demo", on screen
 and so in every download, print and video. After the free tries, Toonaro shows how to get the full
 version (the address in `DEMO_CONTACT`). The tries are counted in the visitor's browser: a visitor
 who clears their browser data gets new ones. That's enough for a demo; nothing more is possible

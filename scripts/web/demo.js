@@ -1,9 +1,13 @@
 // The Toonaro demo (scripts/build-web.js --demo copies this to /web/demo.js): anyone can try the
 // studio in the browser a few times. Everything the studio draws carries the mark "Toonaro · demo" -
 // on screen, so in downloads, prints and videos too; after the free tries (counted in this browser),
-// Toonaro says how to get the full version. Settings: window.__toonaroDemo = { tries, contact }.
+// Toonaro says how to get the full version. What a visitor types is kept short: a picture from up to
+// maxPrompt characters, a clip from up to maxStory.
+// Settings: window.__toonaroDemo = { tries, contact, maxPrompt, maxStory }.
 (function () {
   var cfg = window.__toonaroDemo || { tries: 3, contact: '' };
+  cfg.maxPrompt = cfg.maxPrompt || 120;
+  cfg.maxStory = cfg.maxStory || 300;
   var KEY = 'toonaro.demo.v1';
   var studio = /^\/studio/.test(location.pathname);
   var used = function () { try { return Math.max(0, parseInt(localStorage.getItem(KEY) || '0', 10) || 0); } catch (e) { return 0; } };
@@ -18,7 +22,8 @@
       text: 'The full version of Toonaro draws without a watermark, as often as you like, and works offline on your own device.',
       contact: 'Interested? Write to us:',
       close: 'Back to my pictures',
-      note: function (n) { return 'Try it free in your browser: ' + n + ' pictures or clips, with a "demo" watermark.'; },
+      note: function (n) { return 'Try it free in your browser: ' + n + ' pictures or clips (a story of up to ' + cfg.maxStory + ' characters), with a "demo" watermark.'; },
+      long: function (n, m) { return 'The demo draws from up to ' + n + ' characters (yours: ' + m + '). Make it a little shorter - the full version has no limit.'; },
     },
     de: {
       left: function (n) { return n === 0 ? 'Keine kostenlosen Versuche mehr' : n === 1 ? 'Noch 1 kostenloser Versuch' : 'Noch ' + n + ' kostenlose Versuche'; },
@@ -26,7 +31,8 @@
       text: 'Die Vollversion von Toonaro malt ohne Wasserzeichen, so oft du willst, und läuft offline auf deinem eigenen Gerät.',
       contact: 'Interesse? Schreib uns:',
       close: 'Zurück zu meinen Bildern',
-      note: function (n) { return 'Kostenlos im Browser ausprobieren: ' + n + ' Bilder oder Clips, mit „Demo“-Wasserzeichen.'; },
+      note: function (n) { return 'Kostenlos im Browser ausprobieren: ' + n + ' Bilder oder Clips (eine Geschichte mit bis zu ' + cfg.maxStory + ' Zeichen), mit „Demo“-Wasserzeichen.'; },
+      long: function (n, m) { return 'Die Demo malt aus bis zu ' + n + ' Zeichen (deine: ' + m + '). Kürze den Text etwas – die Vollversion hat keine Grenze.'; },
     },
     ar: {
       left: function (n) { return n === 0 ? 'لا توجد محاولات مجانية متبقية' : n === 1 ? 'محاولة مجانية واحدة متبقية' : n === 2 ? 'محاولتان مجانيتان متبقيتان' : n + ' محاولات مجانية متبقية'; },
@@ -34,7 +40,8 @@
       text: 'النسخة الكاملة من تونارو ترسم بدون علامة مائية، بقدر ما تشاء، وتعمل دون إنترنت على جهازك.',
       contact: 'مهتم؟ راسلنا:',
       close: 'العودة إلى رسوماتي',
-      note: function (n) { return 'جرّبه مجانًا في المتصفح: ' + n + ' صور أو مقاطع، مع علامة «تجريبي».'; },
+      note: function (n) { return 'جرّبه مجانًا في المتصفح: ' + n + ' صور أو مقاطع (قصة حتى ' + cfg.maxStory + ' حرف)، مع علامة «تجريبي».'; },
+      long: function (n, m) { return 'النسخة التجريبية ترسم من ' + n + ' حرف كحد أقصى (نصك: ' + m + '). اختصره قليلًا، فالنسخة الكاملة بلا حدود.'; },
     },
   };
   var t = function (k) { return T[lang()][k]; };
@@ -76,7 +83,9 @@
     + '.tn-demo-end img{width:130px;height:auto;margin:-6px auto 4px;display:block}'
     + '.tn-demo-end h2{margin:0 0 8px;font-size:1.4rem;font-weight:900}.tn-demo-end p{margin:0 0 12px;line-height:1.5;font-weight:600;color:#475569}'
     + '.tn-demo-end a.mail{font-weight:900;color:#ea580c;text-decoration:none}.tn-demo-end button{margin-top:6px;border:0;border-radius:999px;padding:10px 20px;font-weight:900;font-size:1rem;font-family:inherit;color:#fff;background:linear-gradient(135deg,#fb923c,#f43f5e);cursor:pointer}'
-    + '.tn-demo-note{margin:10px 0 0;font-weight:800;color:#c2410c;font-size:.95rem}';
+    + '.tn-demo-note{margin:10px 0 0;font-weight:800;color:#c2410c;font-size:.95rem}'
+    + '.tn-demo-count{font:700 .8rem Nunito,"Baloo Bhaijaan 2",sans-serif;color:#64748b;margin:4px 0 0}.tn-demo-count.over{color:#b91c1c;font-weight:900}'
+    + '.tn-demo-long{margin:8px 0 0;padding:8px 12px;border-radius:12px;background:#fef2f2;color:#b91c1c;font:800 .9rem Nunito,"Baloo Bhaijaan 2",sans-serif}';
   var addCss = function () { var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); };
 
   var badge = null;
@@ -124,19 +133,38 @@
         window.addEventListener('load', function () { setTimeout(showEnd, 600); });
       }
     }
-    var gate = function (e) {
-      if (left() > 0) { setUsed(used() + 1); showLeft(); return; }
-      e.preventDefault();
-      e.stopImmediatePropagation();
+    var stop = function (e) { e.preventDefault(); e.stopImmediatePropagation(); };
+    // (what the visitor typed, and how long it may be: the story box when it shows, else the line)
+    var typed = function () {
+      var story = document.getElementById('story-text');
+      if (story && !story.hidden) return { len: story.value.trim().length, max: cfg.maxStory };
+      var line = document.getElementById('prompt-input');
+      return { len: line ? line.value.trim().length : 0, max: cfg.maxPrompt };
+    };
+    var sayLong = function (w) {
+      var box = document.querySelector('.tn-demo-long');
+      if (!w) { if (box) box.remove(); return; }
+      if (!box && badge && badge.parentElement) { box = document.createElement('div'); box.className = 'tn-demo-long'; box.setAttribute('role', 'alert'); badge.parentElement.insertBefore(box, badge.nextSibling); }
+      if (box) box.textContent = t('long')(w.max, w.len);
+    };
+    // own: the visitor's words (Draw, Enter, Notes -> explainer); else Toonaro's own examples
+    var gate = function (e, own) {
+      if (left() <= 0) { stop(e); showLeft(); showEnd(); return; }
+      if (own) {
+        var w = typed();
+        if (w.len > w.max) { stop(e); sayLong(w); return; }
+      }
+      sayLong(null);
+      setUsed(used() + 1);
       showLeft();
-      showEnd();
     };
     document.addEventListener('click', function (e) {
-      if (e.target.closest && e.target.closest('#btn-generate, .chip')) gate(e);
+      var el = e.target.closest && e.target.closest('#btn-generate, #btn-notes-outline, .chip, .story-preset-btn');
+      if (el) gate(e, el.id === 'btn-generate' || el.id === 'btn-notes-outline');
     }, true);
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Enter' || !e.target) return;
-      if (e.target.id === 'prompt-input' || (e.target.id === 'story-text' && (e.ctrlKey || e.metaKey))) gate(e);
+      if (e.target.id === 'prompt-input' || (e.target.id === 'story-text' && (e.ctrlKey || e.metaKey))) gate(e, true);
     }, true);
   }
 
@@ -149,6 +177,26 @@
         badge.setAttribute('aria-live', 'polite');
         btn.parentElement.parentElement.insertBefore(badge, btn.parentElement.nextSibling);
         showLeft();
+      }
+      var line = document.getElementById('prompt-input');
+      if (line) line.maxLength = cfg.maxPrompt;
+      // (the story box: how many characters, of how many)
+      var story = document.getElementById('story-text');
+      if (story && badge) {
+        var count = document.createElement('div');
+        count.className = 'tn-demo-count';
+        badge.parentElement.insertBefore(count, badge);
+        var tick = function () {
+          var n = story.value.trim().length;
+          count.hidden = story.hidden;
+          count.textContent = n + ' / ' + cfg.maxStory;
+          count.className = 'tn-demo-count' + (n > cfg.maxStory ? ' over' : '');
+          if (n <= cfg.maxStory) sayLong(null);
+        };
+        story.addEventListener('input', tick);
+        new MutationObserver(tick).observe(story, { attributes: true, attributeFilter: ['hidden'] });
+        setInterval(tick, 1000); // (the studio also fills the box itself)
+        tick();
       }
     } else if (location.pathname === '/' || /index\.html$/.test(location.pathname)) {
       // (the landing page: what the demo is, under the buttons)

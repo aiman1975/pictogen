@@ -8,7 +8,7 @@
 //   npm run web:demo                     (the public demo for toonaro.com, in dist-demo/: see below)
 //
 // The demo (--demo): the same studio for anyone to try in the browser, a few times (DEMO_TRIES
-// pictures or clips), everything it draws marked "Toonaro · demo" (on screen, in downloads and
+// pictures or clips, from short texts: DEMO_MAX_PROMPT / DEMO_MAX_STORY characters), everything it draws marked "Toonaro · demo" (on screen, in downloads and
 // videos), then a note on how to get the full version. Not installable as an app; open to search
 // engines; with an .htaccess for Apache hosts (STRATO) so /studio and /help open their pages.
 //
@@ -29,6 +29,9 @@ const out = resolve(args.find((a) => !a.startsWith('--')) || join(root, demo ? '
 // The demo's settings: how many pictures or clips a visitor may make, and where to ask for more
 const DEMO_TRIES = 3;
 const DEMO_CONTACT = 'info@toonaro.com';
+// (and how much a visitor may type: a picture from up to 120 characters, a clip from up to 300)
+const DEMO_MAX_PROMPT = 120, DEMO_MAX_STORY = 300;
+const demoCfg = { tries: DEMO_TRIES, contact: DEMO_CONTACT, maxPrompt: DEMO_MAX_PROMPT, maxStory: DEMO_MAX_STORY };
 const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((x) => (x.isDirectory() ? walk(join(d, x.name)) : [join(d, x.name)]));
 
 rmSync(out, { recursive: true, force: true });
@@ -132,7 +135,7 @@ import { handleApi } from '/src/api.js';
 window.__pictogenApi((method, url, payload) => handleApi(method, url, payload));
 `);
 
-const head = `${demo ? `<script>window.__toonaroDemo = ${JSON.stringify({ tries: DEMO_TRIES, contact: DEMO_CONTACT })};</script>\n<script src="/web/demo.js"></script>\n` : ''}<script type="importmap">{"imports":{"node:fs":"/web/fs.js","node:path":"/web/path.js","node:url":"/web/url.js"}}</script>
+const head = `${demo ? `<script>window.__toonaroDemo = ${JSON.stringify(demoCfg)};</script>\n<script src="/web/demo.js"></script>\n` : ''}<script type="importmap">{"imports":{"node:fs":"/web/fs.js","node:path":"/web/path.js","node:url":"/web/url.js"}}</script>
 ${demo ? '' : '<meta name="robots" content="noindex, nofollow">\n'}<script>
 // The studio's /api/ requests are answered in this page by the engine (/web/engine.js), which
 // starts once its data is loaded; requests made before then wait for it. Pictures pointing at
@@ -210,7 +213,7 @@ if (demo) {
   // (the help page too: its example links count as tries; the studio, the landing page and the show have it with the engine)
   for (const page of ['help.html']) {
     const f = join(out, page);
-    writeFileSync(f, readFileSync(f, 'utf8').replace(/<\/head>/i, '<script>window.__toonaroDemo = ' + JSON.stringify({ tries: DEMO_TRIES, contact: DEMO_CONTACT }) + ';</script>\n<script src="/web/demo.js"></script>\n</head>'));
+    writeFileSync(f, readFileSync(f, 'utf8').replace(/<\/head>/i, '<script>window.__toonaroDemo = ' + JSON.stringify(demoCfg) + ';</script>\n<script src="/web/demo.js"></script>\n</head>'));
   }
   // (open to search engines; the landing page's footer with the legal pages)
   for (const page of ['index.html', 'studio.html', 'showcase.html', 'help.html']) {
