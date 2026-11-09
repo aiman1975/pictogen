@@ -5,6 +5,8 @@
 // to left (dir="rtl"). To change a word: change it here.
 export default {
   texts: {
+   "For families": "للعائلات",
+   "Bedtime stories become cartoons and picture books": "قصص ما قبل النوم تصبح رسومًا متحركة وكتبًا مصورة",
    "For presentations": "للعروض التقديمية",
    "Notes become an explainer video - offline, confidential": "ملاحظاتك تصبح فيديو شرح – دون إنترنت وبسرية تامة",
    "See it in action": "شاهده أثناء العمل",

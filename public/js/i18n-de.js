@@ -4,6 +4,8 @@
 // To change a word: change it here.
 export default {
   texts: {
+   "For families": "Für Familien",
+   "Bedtime stories become cartoons and picture books": "Gutenachtgeschichten werden zu Cartoons und Bilderbüchern",
    "For presentations": "Für Präsentationen",
    "Notes become an explainer video - offline, confidential": "Notizen werden zum Erklärvideo – offline, vertraulich",
    "See it in action": "So sieht es aus",
