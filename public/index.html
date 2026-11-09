@@ -80,6 +80,7 @@
 
     /* You type -> you get */
     .pairs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    .watch video.film { display: block; width: 100%; max-width: 980px; height: auto; aspect-ratio: 16 / 9; margin: 0 auto; border-radius: 20px; background: #0b1020; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25); }
     .pair { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--line); }
     .pair .said { padding: 16px 18px 12px; font-weight: 800; }
     .pair .said small { display: block; color: var(--muted); font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
@@ -158,6 +159,17 @@
       </div>
     </header>
   </div>
+
+  <!-- The video: on this site, not YouTube (no data to Google, no cookie banner); it loads only when played -->
+  <section class="watch">
+    <div class="wrap">
+      <h2>Toonaro in 45 seconds</h2>
+      <p class="sub">For the classroom, presentations and stories - in English, German and Arabic.</p>
+      <video class="film" controls playsinline preload="none" poster="/video/toonaro-in-45-seconds.jpg" width="1280" height="720">
+        <source src="/video/toonaro-in-45-seconds.mp4" type="video/mp4">
+      </video>
+    </div>
+  </section>
 
   <section>
     <div class="wrap">

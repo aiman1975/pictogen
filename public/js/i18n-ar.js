@@ -5,6 +5,8 @@
 // to left (dir="rtl"). To change a word: change it here.
 export default {
   texts: {
+   "Toonaro in 45 seconds": "تونارو في 45 ثانية",
+   "For the classroom, presentations and stories - in English, German and Arabic.": "للصف والعروض التقديمية والقصص – بالإنجليزية والألمانية والعربية.",
    "· How to use": "· كيفية الاستخدام",
    "Hi, I'm Toonaro! Tell me what to draw.": "مرحبا، أنا تونارو! قل لي ماذا أرسم.",
    "Toonaro, the toon-maker, waving": "تونارو، صانع الرسوم، يلوّح",

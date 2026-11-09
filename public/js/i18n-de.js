@@ -4,6 +4,8 @@
 // To change a word: change it here.
 export default {
   texts: {
+   "Toonaro in 45 seconds": "Toonaro in 45 Sekunden",
+   "For the classroom, presentations and stories - in English, German and Arabic.": "Für den Unterricht, Präsentationen und Geschichten – auf Englisch, Deutsch und Arabisch.",
    "· How to use": "· Anleitung",
    "Hi, I'm Toonaro! Tell me what to draw.": "Hallo, ich bin Toonaro! Sag mir, was ich malen soll.",
    "Toonaro, the toon-maker, waving": "Toonaro, der Bildermacher, winkt",
