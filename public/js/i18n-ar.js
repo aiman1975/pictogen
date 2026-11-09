@@ -5,6 +5,8 @@
 // to left (dir="rtl"). To change a word: change it here.
 export default {
   texts: {
+   "For presentations": "للعروض التقديمية",
+   "Notes become an explainer video - offline, confidential": "ملاحظاتك تصبح فيديو شرح – دون إنترنت وبسرية تامة",
    "See it in action": "شاهده أثناء العمل",
    "Short videos for the way you work.": "مقاطع قصيرة تناسب طريقة عملك.",
    "For teachers": "للمعلمين",

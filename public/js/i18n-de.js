@@ -4,6 +4,8 @@
 // To change a word: change it here.
 export default {
   texts: {
+   "For presentations": "Für Präsentationen",
+   "Notes become an explainer video - offline, confidential": "Notizen werden zum Erklärvideo – offline, vertraulich",
    "See it in action": "So sieht es aus",
    "Short videos for the way you work.": "Kurze Videos für deine Arbeit.",
    "For teachers": "Für Lehrkräfte",
