@@ -3,11 +3,18 @@
 # toonaro.com -> Run workflow). The SFTP password is the repository secret STRATO_SFTP_PASSWORD
 # (Settings -> Secrets and variables -> Actions); without it the site is built but not uploaded.
 # The server and user name are the access under "Datenbanken und Webspace -> SFTP & SSH" at STRATO
-# (repository variables STRATO_SFTP_HOST / STRATO_SFTP_USER, these defaults otherwise).
+# (repository variables STRATO_SFTP_HOST / STRATO_SFTP_USER, these defaults otherwise). The site goes
+# into the web space folder /toonaro (STRATO points a domain at a folder, not at the main folder:
+# Domains -> toonaro.com -> Umleitung einrichten -> Intern -> toonaro).
 name: Publish toonaro.com
 
 on:
   workflow_dispatch:
+    inputs:
+      clean_main_folder:
+        description: 'Also remove the site files from the web space main folder (where the first upload put them)'
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -49,5 +56,16 @@ jobs:
           # (every file of the site, the hidden .htaccess too; the password from LFTP_PASSWORD, never on the command line)
           lftp -c "set sftp:auto-confirm yes; set net:max-retries 3; set net:timeout 30; \
             open --env-password -u \"$SFTP_USER\" sftp://$SFTP_HOST; \
-            mirror --reverse --only-newer --parallel=4 --verbose=1 dist-demo/ /"
+            mirror --reverse --only-newer --parallel=4 --verbose=1 dist-demo/ /toonaro"
           echo "Published: https://toonaro.com"
+      - name: Remove the copy in the main folder
+        if: env.HAS_PASSWORD == 'true' && inputs.clean_main_folder
+        env:
+          LFTP_PASSWORD: ${{ secrets.STRATO_SFTP_PASSWORD }}
+        run: |
+          # (only what the site itself has at its top: the first upload went to the main folder)
+          cmds=""
+          for f in $(ls -A dist-demo); do cmds="$cmds rm -r -f \"/$f\";"; done
+          lftp -c "set sftp:auto-confirm yes; set net:max-retries 3; set net:timeout 30; \
+            open --env-password -u \"$SFTP_USER\" sftp://$SFTP_HOST; $cmds"
+          echo "Removed the old copy from the main folder"

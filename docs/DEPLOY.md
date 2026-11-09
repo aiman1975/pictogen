@@ -93,7 +93,7 @@ Before the first upload:
    which the privacy page mentions, and switch on SSL for toonaro.com.
 
 To publish: `npm run web:demo`, then upload **everything inside** `dist-demo/` (including the
-hidden `.htaccess`) to the web space's main folder by SFTP, e.g. with FileZilla: the server,
+hidden `.htaccess`) to the web space folder `toonaro` by SFTP, e.g. with FileZilla: the server,
 port and user name are under *Datenbanken und Webspace → SFTP & SSH* in the STRATO customer
 area (an access whose start folder is `/`). The `.htaccess` makes
 `/studio`, `/help`, `/impressum` and `/datenschutz` open their pages on STRATO's Apache servers.
@@ -105,5 +105,6 @@ to `main` that changes the website or the engine, and by hand (*Actions → Publ
 Run workflow*). One-time setup: save the SFTP access's password as the repository secret
 **`STRATO_SFTP_PASSWORD`** (*Settings → Secrets and variables → Actions → New repository secret*).
 The server and user name default to the access made for Toonaro; repository variables
-`STRATO_SFTP_HOST` / `STRATO_SFTP_USER` change them. In STRATO, toonaro.com must show the web space
-(*Domains → toonaro.com → ⚙ → Umleitung einrichten → Intern*, the main folder), not the placeholder.
+`STRATO_SFTP_HOST` / `STRATO_SFTP_USER` change them. The site goes into the web space folder
+`/toonaro`: STRATO points a domain at a folder, not at the main folder (*Domains → toonaro.com → ⚙ →
+Umleitung einrichten → Intern → toonaro*).
