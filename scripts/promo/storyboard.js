@@ -1,4 +1,4 @@
-// The promo's slides: what each one says and shows, in order. Every picture is drawn by PictoGen
+// The promo's slides: what each one says and shows, in order. Every picture is drawn by Toonaro
 // (scenes, icons, characters); the slides only add titles, captions and layout.
 //   slide: { id, dur (s), html, sfx: [{ t (s, from the slide's start), type, ... }], data? }
 import { generate, renderIcon, drawConcept, shapesToSvg, parseTimeline } from '../../src/index.js';
@@ -33,7 +33,7 @@ export function buildStoryboard({ studio }) {
   {
     const floaters = [['sun', 90, 80], ['rocket', 1100, 90], ['rainbow', 140, 540], ['cat', 1060, 520], ['musical_note', 330, 140], ['balloon', 900, 170], ['party_popper', 250, 400], ['sparkles', 980, 360], ['star', 560, 600], ['movie_camera', 760, 590]];
     const icons = floaters.map(([id, x, y], i) => `<div class="floater pop" style="left:${x}px;top:${y}px;--d:${0.15 + i * 0.09}s"><div class="bob" style="animation-delay:-${i * 0.7}s">${renderIcon(id, { size: 84 })}</div></div>`).join('');
-    const word = [...'PictoGen'].map((c, i) => `<span class="pop" style="--d:${0.75 + i * 0.06}s">${c}</span>`).join('');
+    const word = [...'Toonaro'].map((c, i) => `<span class="pop" style="--d:${0.75 + i * 0.06}s">${c}</span>`).join('');
     slides.push({
       id: 'intro', dur: 5.4,
       html: `${icons}<div class="center">
@@ -43,7 +43,7 @@ export function buildStoryboard({ studio }) {
         <p class="sub rise" style="--d:2.5s">Animated vector scenes from plain English, in 20 illustration styles</p>
       </div>`,
       sfx: [{ t: 0.05, type: 'whoosh', gain: 0.22 }, ...pops(0.15, 10, 0.09, 0.9), { t: 0.3, type: 'pop', pitch: 0.8, gain: 0.25 },
-        ...[...'PictoGen'].map((_, i) => ({ t: 0.75 + i * 0.06, type: 'pop', pitch: 1.1 + i * 0.07, gain: 0.12 })), { t: 1.75, type: 'chime' }],
+        ...[...'Toonaro'].map((_, i) => ({ t: 0.75 + i * 0.06, type: 'pop', pitch: 1.1 + i * 0.07, gain: 0.12 })), { t: 1.75, type: 'chime' }],
     });
   }
 
@@ -170,7 +170,7 @@ export function buildStoryboard({ studio }) {
           </ul>
         </div>
         <div class="browser pop" style="--d:.35s;left:600px;top:52px;width:${w}px">
-          <div class="bar"><i></i><i></i><i></i><span>PictoGen Studio</span></div>
+          <div class="bar"><i></i><i></i><i></i><span>Toonaro Studio</span></div>
           <div class="screen" style="height:${Math.min(h, 590)}px"><div class="zoomer" style="width:${w}px;height:${h}px">
             <img class="shot" alt="">
             <div class="dropdown"><div>walks in</div><div>waves</div><div>jumps</div><div>dances</div><div>cheers</div></div>
@@ -220,9 +220,9 @@ export function buildStoryboard({ studio }) {
       id: 'outro', dur: 6,
       html: `<div class="center">
           <div class="pop" style="--d:.2s">${LOGO}</div>
-          <div class="brand pop" style="--d:.45s">PictoGen</div>
+          <div class="brand pop" style="--d:.45s">Toonaro</div>
           <p class="tagline rise" style="--d:.9s">Text to clip.</p>
-          <p class="sub rise" style="--d:1.4s">Every picture in this video was drawn by PictoGen.</p>
+          <p class="sub rise" style="--d:1.4s">Every picture in this video was drawn by Toonaro.</p>
         </div>
         <div class="parade">${parade.map(([id, o], i) => `<svg class="walker" style="animation-delay:-${i * 1.6}s" viewBox="-8 -12 116 118">${figure(id, o)}</svg>`).join('')}</div>`,
       sfx: [{ t: 0, type: 'whoosh' }, { t: 0.2, type: 'pop', pitch: 0.8, gain: 0.22 }, { t: 0.45, type: 'chime', pitch: 784 }, { t: 0.9, type: 'chime', pitch: 1046.5, gain: 0.12 }],

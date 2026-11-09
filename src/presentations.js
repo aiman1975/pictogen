@@ -1,4 +1,4 @@
-// PictoGen Presentations Engine: Technical Callouts, Studio Knolling,
+// Toonaro Presentations Engine: Technical Callouts, Studio Knolling,
 // Before-vs-After Split, 2.5D Isometric Diorama, Waffle/Isotype Infographics, and Coloring Book.
 
 import { getConcept } from './concepts/index.js';
@@ -252,7 +252,7 @@ export function renderKnolling(matches, opts = {}) {
     ${itemsSvg}
   `;
 
-  return svgDoc({ width: W, height: H, viewBox: `0 0 ${W} ${H}`, defs, content, title: 'PictoGen Studio Knolling' });
+  return svgDoc({ width: W, height: H, viewBox: `0 0 ${W} ${H}`, defs, content, title: 'Toonaro Studio Knolling' });
 }
 
 /**
@@ -534,7 +534,7 @@ export function renderColoringBook(matches, opts = {}) {
     <rect x="18" y="18" width="${W - 36}" height="${H - 36}" rx="6" fill="none" stroke="#e2e8f0" stroke-width="1"/>
 
     <!-- Title Banner -->
-    <text x="${W * 0.5}" y="42" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="900" fill="#0f172a" letter-spacing="0.06em">🖍 PICTOGEN COLORING PAGE: ${(c.label || c.id).toUpperCase()}</text>
+    <text x="${W * 0.5}" y="42" text-anchor="middle" font-family="${FONT}" font-size="14" font-weight="900" fill="#0f172a" letter-spacing="0.06em">🖍 TOONARO COLORING PAGE: ${(c.label || c.id).toUpperCase()}</text>
     <text x="${W * 0.5}" y="58" text-anchor="middle" font-family="${FONT}" font-size="9" font-weight="700" fill="#64748b">Click on shapes in the studio to color them, or download &amp; print!</text>
 
     <!-- Centered Thick Outline Art with clickable regions -->
@@ -1021,7 +1021,7 @@ export function renderComicStrip(matches, opts = {}) {
   const zap = `<path d="M ${fmt(sx)} ${fmt(sy + 14)} l -12 -8 M ${fmt(sx + 2)} ${fmt(sy + 2)} l -9 -13 M ${fmt(sx + 12)} ${fmt(sy - 6)} l -4 -14" stroke="#111827" stroke-width="2.5" stroke-linecap="round"/>`;
 
   // The title fits the banner's right side, cut short with "…" when long
-  const brand = '📰 THE PICTOGEN CHRONICLES';
+  const brand = '📰 THE TOONARO CHRONICLES';
   const titleRoom = W - 48 - textWidth(brand, 12) - 24;
   // (a named character's key is written as its kind, "GIRL", marked with data-who: the studio puts
   // the name there, on the user's own machine)
@@ -1040,7 +1040,7 @@ export function renderComicStrip(matches, opts = {}) {
     titleSvg = titleSvg.slice(0, at) + tag + titleSvg.slice(at + kindOf.get(k).length);
     from = at + tag.length;
   }
-  const footer = fitText('MADE WITH PICTOGEN', { maxW: W - 24, maxLines: 1, size: 9.5, minSize: 7 });
+  const footer = fitText('MADE WITH TOONARO', { maxW: W - 24, maxLines: 1, size: 9.5, minSize: 7 });
 
   const content = `
     <rect width="${W}" height="${H}" fill="#fbf9f4"/>

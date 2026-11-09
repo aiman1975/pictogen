@@ -1,4 +1,4 @@
-// PictoGen Alphabet Pals / Letterlings: Cute anthropomorphic letter creatures (A-Z), and
+// Toonaro Alphabet Pals / Letterlings: Cute anthropomorphic letter creatures (A-Z), and
 // Numberlings (0-9), with big glossy kawaii eyes, sweet smiles, rosy blush cheeks, rigged noodle
 // arms and cartoon feet.
 import { INK } from '../core/styles.js';

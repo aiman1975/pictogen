@@ -27,4 +27,4 @@ http.createServer((req, res) => {
   if (!ok) { res.writeHead(404, { 'Content-Type': 'text/plain' }); res.end('Not Found'); return; }
   res.writeHead(200, { 'Content-Type': TYPES[extname(file)] || 'application/octet-stream' });
   res.end(readFileSync(file));
-}).listen(port, () => console.log(`PictoGen web build at http://localhost:${port} (static, the engine runs in the browser)`));
+}).listen(port, () => console.log(`Toonaro web build at http://localhost:${port} (static, the engine runs in the browser)`));

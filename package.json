@@ -1,10 +1,11 @@
 {
-  "name": "pictogen",
+  "name": "toonaro",
   "version": "0.1.0",
   "description": "Offline text-to-vector image generator: procedural SVG concepts, switchable styles, scene composition.",
   "type": "module",
   "main": "src/index.js",
   "bin": {
+    "toonaro": "cli.js",
     "pictogen": "cli.js"
   },
   "scripts": {

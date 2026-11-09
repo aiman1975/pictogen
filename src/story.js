@@ -1,4 +1,4 @@
-// PictoGen Story & Clip Engine: Multi-scene animated clips for Kids Stories,
+// Toonaro Story & Clip Engine: Multi-scene animated clips for Kids Stories,
 // Science Documentaries, News & Editorial Briefs, and How-To Explainer Guides.
 import { isOutline, readOutline, renderSlide } from './slides.js';
 import { detectLanguage } from './lang.js';
@@ -640,7 +640,7 @@ export function generateStoryHtml(story, opts = {}) {
   // \u003c keeps user captions like "</script>" from closing the inline <script> block. The markers
   // around it let the studio add photo faces to the scenes on the user's own machine before saving.
   const scenesJson = JSON.stringify(story.scenes).replace(/</g, '\\u003c');
-  const title = esc(story.title || 'PictoGen Animated Clip');
+  const title = esc(story.title || 'Toonaro Animated Clip');
   const genre = story.genre || 'kids';
   // The sound pack's files this clip uses (public/audio/pack), carried inside the file
   const tune = TUNES.some(([k]) => k === story.tune) ? story.tune : genre;
@@ -656,7 +656,7 @@ export function generateStoryHtml(story, opts = {}) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title} — PictoGen Vector Clip</title>
+  <title>${title} — Toonaro Vector Clip</title>
   <style>
 ${embeddedFontCss()}
     :root {

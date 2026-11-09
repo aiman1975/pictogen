@@ -1,15 +1,15 @@
-// PictoGen Showcase Video Engine: 7-scene comprehensive feature tour with natural voice narration.
+// Toonaro Showcase Video Engine: 7-scene comprehensive feature tour with natural voice narration.
 import { generate, composeStory } from './index.js';
 
 export const SHOWCASE_SCENES = [
   {
     num: 1,
-    title: 'Welcome to PictoGen',
+    title: 'Welcome to Toonaro',
     tag: 'OFFLINE VECTOR ENGINE',
     mode: 'scene',
     style: 'cartoon',
     prompt: 'a happy boy walking across the slide with a blue bike under the sun and tree',
-    narration: 'Welcome to PictoGen, a zero-dependency vector engine that creates illustrations and animated clips completely offline.',
+    narration: 'Welcome to Toonaro, a zero-dependency vector engine that creates illustrations and animated clips completely offline.',
     duration: 5.5,
   },
   {
@@ -69,7 +69,7 @@ export const SHOWCASE_SCENES = [
     mode: 'story',
     style: 'flat',
     prompt: 'renewable-boom',
-    narration: 'From animated documentaries and news bulletins with lower thirds, to interactive coloring books, PictoGen creates it all offline. 100% open source and commercial friendly.',
+    narration: 'From animated documentaries and news bulletins with lower thirds, to interactive coloring books, Toonaro creates it all offline. 100% open source and commercial friendly.',
     duration: 7.2,
   },
 ];
@@ -101,7 +101,7 @@ export function getShowcaseData() {
     };
   });
   cachedShowcase = {
-    title: 'PictoGen Vector Engine — Feature Showcase Video',
+    title: 'Toonaro Vector Engine — Feature Showcase Video',
     scenes,
   };
   return cachedShowcase;

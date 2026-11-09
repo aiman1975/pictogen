@@ -1,4 +1,4 @@
-// Minimal zero-dependency HTTP server for PictoGen Web Studio.
+// Minimal zero-dependency HTTP server for Toonaro Web Studio.
 import http from 'node:http';
 import { readFileSync, statSync } from 'node:fs';
 import { resolve, extname, sep } from 'node:path';
@@ -113,5 +113,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`PictoGen Web Studio running at: http://localhost:${PORT}`);
+  console.log(`Toonaro Web Studio running at: http://localhost:${PORT}`);
 });

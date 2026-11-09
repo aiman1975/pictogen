@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-// Builds the PictoGen promo video:  node scripts/promo/build.js [out-dir]   (default: out/promo)
+// Builds the Toonaro promo video:  node scripts/promo/build.js [out-dir]   (default: out/promo)
 //
 // 1. films the real studio (capture-studio.js), 2. lays out the slides (storyboard.js) on one page
 // (page.js), 3. renders every frame by seeking that page in Chromium, 4. synthesizes the music and
 // sound effects (audio.js), 5. puts it together with ffmpeg as an MP4 (H.264, AAC).
-// Needs Playwright (Chromium) and ffmpeg; nothing else. Every picture is drawn by PictoGen.
+// Needs Playwright (Chromium) and ffmpeg; nothing else. Every picture is drawn by Toonaro.
 //   --preview "t1,t2,..."   only render these moments (seconds) as preview-<t>.jpg, no video
 //   --reuse-studio          use the studio frames filmed by an earlier build
 //   --explainer             the narrated explainer instead (explainer.js; voices in media/promo-voice,
-//                           made by the "Promo voice" workflow): out/explainer/pictogen-explainer.mp4
+//                           made by the "Promo voice" workflow): out/explainer/toonaro-explainer.mp4
 import { execFileSync, execSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { mkdirSync, rmSync, writeFileSync, copyFileSync, existsSync, readFileSync } from 'node:fs';
@@ -136,7 +136,7 @@ if (explainer) {
 }
 
 log('Encoding the video');
-const mp4 = join(OUT, explainer ? 'pictogen-explainer.mp4' : 'pictogen-promo.mp4');
+const mp4 = join(OUT, explainer ? 'toonaro-explainer.mp4' : 'toonaro-promo.mp4');
 execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(frames, 'f%05d.jpg'), '-i', soundtrack,
   '-c:v', 'libx264', '-preset', 'slow', '-crf', '19', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', mp4]);
 execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(slide(explainer ? 'looks' : 'styles').start + 5), '-i', mp4, '-frames:v', '1', join(OUT, 'poster.jpg')]);

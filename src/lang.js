@@ -1,4 +1,4 @@
-// Language packs: the words PictoGen reads text by, one pack per language - English, German and
+// Language packs: the words Toonaro reads text by, one pack per language - English, German and
 // Arabic so far (Spanish next); rtl: written right to left. The outline's own words ("## Recap", "## Zusammenfassung",
 // "Show:", "Bild:") are read in every language at once (src/slides.js); the writer (src/writer.js)
 // reads notes by the pack of the language they are written in (detectLanguage).

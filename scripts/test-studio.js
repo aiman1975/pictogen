@@ -812,7 +812,7 @@ try {
   check(/^ein Mädchen/.test(landing.typed) && /Satz/.test(landing.h1), `the landing page in German, its demo typing German prompts ("${landing.typed}…")`);
   await de.goto(`http://localhost:${port}/help`, { waitUntil: 'networkidle' });
   const help = await de.evaluate(() => ({ h1: document.querySelector('h1').textContent, ex: document.querySelector('a.ex')?.getAttribute('href') }));
-  check(/So nutzt du PictoGen/.test(help.h1) && /M%C3%A4dchen|Mädchen/.test(help.ex ?? ''), `the help page in German, its examples open German prompts (${help.h1})`);
+  check(/So nutzt du Toonaro/.test(help.h1) && /M%C3%A4dchen|Mädchen/.test(help.ex ?? ''), `the help page in German, its examples open German prompts (${help.h1})`);
   check(!deErrors.length, `no page errors in German${deErrors.length ? ': ' + deErrors.join('; ') : ''}`);
   await deCtx.close();
 
@@ -843,7 +843,7 @@ try {
   check(/^فتاة/.test(arLanding.typed) && /جملة/.test(arLanding.h1) && arLanding.dir === 'rtl', `the landing page in Arabic, its demo typing Arabic prompts ("${arLanding.typed}…")`);
   await arp.goto(`http://localhost:${port}/help`, { waitUntil: 'networkidle' });
   const arHelp = await arp.evaluate(() => ({ h1: document.querySelector('h1').textContent, ex: decodeURIComponent(document.querySelector('a.ex')?.getAttribute('href') ?? '') }));
-  check(/PictoGen/.test(arHelp.h1) && /[\u0621-\u064A]/.test(arHelp.h1) && /[\u0621-\u064A]/.test(arHelp.ex), `the help page in Arabic, its examples open Arabic prompts (${arHelp.h1})`);
+  check(/Toonaro/.test(arHelp.h1) && /[\u0621-\u064A]/.test(arHelp.h1) && /[\u0621-\u064A]/.test(arHelp.ex), `the help page in Arabic, its examples open Arabic prompts (${arHelp.h1})`);
   check(!arErrors.length, `no page errors in Arabic${arErrors.length ? ': ' + arErrors.join('; ') : ''}`);
   await arCtx.close();
   const arPhoneCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'ar-SA' });

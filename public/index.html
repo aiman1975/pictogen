@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PictoGen: type a sentence, get a picture</title>
+  <title>Toonaro: type a sentence, get a picture</title>
   <meta name="description" content="Type a sentence and get a picture that moves: pictures, cartoons, comics, labelled diagrams and worksheets, drawn on your own device." />
   <link rel="stylesheet" href="/fonts/fonts.css" />
   <!-- (a page in Arabic is laid out right to left from the start, before public/js/i18n.js runs) -->
@@ -122,8 +122,8 @@
 </head>
 <body>
   <div class="wrap">
-    <nav class="top" aria-label="PictoGen">
-      <a class="brand" href="/"><span class="logo">P</span>PictoGen</a>
+    <nav class="top" aria-label="Toonaro">
+      <a class="brand" href="/"><span class="logo">T</span>Toonaro</a>
       <span style="display:flex;gap:8px;align-items:center"><span class="lang-switch" data-lang-switch></span><button class="btn btn-soft btn-small" data-install hidden>⬇ <span class="long">Install </span>app</button><a class="btn btn-soft btn-small" href="/help">❓ <span class="long">How to use</span><span class="short">Help</span></a><a class="btn btn-soft btn-small" href="/studio">✏️ <span class="long">Open the </span>studio</a></span>
     </nav>
 
@@ -137,7 +137,7 @@
         </div>
         <p class="promise">🔒 Free to try · no sign-up · nothing you make leaves your device</p>
       </div>
-      <div class="demo" aria-label="PictoGen drawing examples, one after another">
+      <div class="demo" aria-label="Toonaro drawing examples, one after another">
         <div class="demo-bar"><span class="pen">✏️</span><span class="typed no-i18n" id="typed"></span><span class="caret" aria-hidden="true"></span><span class="draw-btn">Draw</span></div>
         <div class="demo-pic" id="demo-pic"><span class="waiting">Getting the pencils ready…</span></div>
         <div class="demo-dots" id="demo-dots" role="group" aria-label="Examples"></div>
@@ -147,7 +147,7 @@
 
   <section>
     <div class="wrap">
-      <h2>You type it. PictoGen draws it.</h2>
+      <h2>You type it. Toonaro draws it.</h2>
       <p class="sub">Three things people made in a few seconds. Tap one to try it yourself.</p>
       <div class="pairs" id="pairs"></div>
     </div>
@@ -162,7 +162,7 @@
         <div><b>Press Draw</b>The picture appears in a second. Move things around, pick a style, change a face.</div>
         <div><b>Save, print or share</b>As a picture, a video, a comic, or a worksheet to print, with an answer key.</div>
       </div>
-      <p class="sub" style="margin-top:22px;margin-bottom:0"><a href="/help" style="color:var(--brand);font-weight:900">📖 Read the full guide: how to use PictoGen →</a></p>
+      <p class="sub" style="margin-top:22px;margin-bottom:0"><a href="/help" style="color:var(--brand);font-weight:900">📖 Read the full guide: how to use Toonaro →</a></p>
     </div>
   </section>
 
@@ -191,7 +191,7 @@
           <ul>
             <li>Everything is drawn <strong>on your own device</strong>. What you type and make is never sent anywhere.</li>
             <li>No account, no tracking, no advertising.</li>
-            <li>No AI service in the cloud: every picture is drawn by PictoGen itself, so you can use what you make.</li>
+            <li>No AI service in the cloud: every picture is drawn by Toonaro itself, so you can use what you make.</li>
             <li>Photos for your own characters stay in your browser.</li>
           </ul>
         </div>
@@ -206,13 +206,13 @@
   </div>
 
   <footer class="wrap">
-    PictoGen · a preview for friends and family ·
+    Toonaro · a preview for friends and family ·
     <a href="/studio">Studio</a> · <a href="/help">How to use</a> · <a href="/showcase">Show</a><br>
     Icons from Fluent Emoji (MIT licence) · sounds from Kenney (CC0)
   </footer>
 
   <script type="module">
-    // The pictures on this page are drawn live by PictoGen (the same engine as the studio)
+    // The pictures on this page are drawn live by Toonaro (the same engine as the studio)
     const draw = async (text, { mode = 'scene', style = 'flat', width = 640, height = 360 } = {}) => {
       const res = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, mode, style, width, height }) });
       return (await res.json()).svg;

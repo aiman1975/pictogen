@@ -1,6 +1,6 @@
 // The explainer video's slides (npm run promo:explainer): a narrated tour with cute examples. Each
 // slide lasts as long as what is said over it (narration.js, spoken into media/promo-voice/), with
-// subtitles, so it also works with the sound off. Every picture is drawn by PictoGen.
+// subtitles, so it also works with the sound off. Every picture is drawn by Toonaro.
 //   slide: { id, dur, html, sfx, say: [{ id, t }] (voice lines, s from the slide's start), data? }
 import { generate, renderIcon, drawConcept, shapesToSvg, parseTimeline, renderWorksheet } from '../../src/index.js';
 import { buildStoryboard } from './storyboard.js';
@@ -47,7 +47,7 @@ export function buildExplainer({ studio, voices = {} }) {
     const floaters = [['sun', 90, 80], ['rainbow', 1080, 70], ['balloon', 150, 520], ['cat', 1060, 520], ['musical_note', 330, 130], ['dog', 900, 160],
       ['party_popper', 250, 380], ['sparkles', 980, 360], ['star', 560, 610], ['teddy_bear', 760, 590]];
     const icons = floaters.map(([id, x, y], i) => `<div class="floater pop" style="left:${x}px;top:${y}px;--d:${0.15 + i * 0.09}s"><div class="bob" style="animation-delay:-${i * 0.7}s">${renderIcon(id, { size: 84 })}</div></div>`).join('');
-    const word = [...'PictoGen'].map((c, i) => `<span class="pop" style="--d:${0.75 + i * 0.06}s">${c}</span>`).join('');
+    const word = [...'Toonaro'].map((c, i) => `<span class="pop" style="--d:${0.75 + i * 0.06}s">${c}</span>`).join('');
     add({
       id: 'intro', min: 5.5,
       html: `${icons}<div class="center">
@@ -56,7 +56,7 @@ export function buildExplainer({ studio, voices = {} }) {
         <p class="tagline rise" style="--d:1.75s">Type a sentence. Get a picture that moves.</p>
       </div>`,
       sfx: [{ t: 0.05, type: 'whoosh', gain: 0.2 }, ...pops(0.15, 10, 0.09, 0.9), { t: 0.3, type: 'pop', pitch: 0.8, gain: 0.22 },
-        ...[...'PictoGen'].map((_, i) => ({ t: 0.75 + i * 0.06, type: 'pop', pitch: 1.1 + i * 0.07, gain: 0.1 })), { t: 1.75, type: 'chime' }],
+        ...[...'Toonaro'].map((_, i) => ({ t: 0.75 + i * 0.06, type: 'pop', pitch: 1.1 + i * 0.07, gain: 0.1 })), { t: 1.75, type: 'chime' }],
     }, 1.0);
   }
 
@@ -211,10 +211,10 @@ export function buildExplainer({ studio, voices = {} }) {
       id: 'outro', min: 7,
       html: `<div class="center">
           <div class="pop" style="--d:.2s">${LOGO}</div>
-          <div class="brand pop" style="--d:.45s">PictoGen</div>
+          <div class="brand pop" style="--d:.45s">Toonaro</div>
           <p class="tagline rise" style="--d:.9s">Type a sentence. Watch it come to life.</p>
           <p class="url rise" style="--d:1.5s">manostudio-app.web.app</p>
-          <p class="sub rise" style="--d:2.2s">Every picture in this video was drawn by PictoGen.</p>
+          <p class="sub rise" style="--d:2.2s">Every picture in this video was drawn by Toonaro.</p>
         </div>
         <div class="parade">${parade.map(([id, o], i) => `<svg class="walker" style="animation-delay:-${i * 1.6}s" viewBox="-8 -12 116 118">${figure(id, o)}</svg>`).join('')}</div>`,
       subtitle: false,

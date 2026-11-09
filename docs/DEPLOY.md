@@ -5,10 +5,10 @@
 The project's first address, https://pictogen-daab2.web.app, is taken offline by the same
 workflow once the new one is live.
 
-- `/`: the welcome page (`public/index.html`): what PictoGen does, shown with pictures it draws
+- `/`: the welcome page (`public/index.html`): what Toonaro does, shown with pictures it draws
   live in the visitor's browser, and a "Try it" button. Share this link.
 - `/studio`: the studio (`public/studio.html`). Old links to the studio (`/?text=...`) still open it.
-- `/help`: how to use PictoGen, with examples that open in the studio.
+- `/help`: how to use Toonaro, with examples that open in the studio.
 - `/showcase`: the narrated show.
 
 ### The address
@@ -34,9 +34,9 @@ key is allowed to).
 ## One-time setup (about 10 minutes, all in the browser)
 
 1. **Create the Firebase project.** Open https://console.firebase.google.com, choose **Create a
-   project**, name it *PictoGen*. Under the name, click the project ID and set it to `pictogen`
-   (the site will be **https://pictogen.web.app**). If `pictogen` is taken, pick another, e.g.
-   `pictogen-family`; the site is then `https://pictogen-family.web.app`. Google Analytics is not
+   project**, name it *Toonaro*. Under the name, click the project ID and set it to `toonaro`
+   (the site will be **https://toonaro.web.app**). If `toonaro` is taken, pick another, e.g.
+   `toonaro-family`; the site is then `https://toonaro-family.web.app`. Google Analytics is not
    needed. The free plan is enough.
 2. **Turn on Hosting.** In the project: **Build → Hosting → Get started**, and click through the
    steps (you don't need to run the commands it shows).
@@ -45,14 +45,14 @@ key is allowed to).
    send it by chat or email.
 4. **Give the key to GitHub.** In the repository on github.com: **Settings → Secrets and variables
    → Actions → New repository secret**. Name: `FIREBASE_SERVICE_ACCOUNT`; value: the whole content
-   of the `.json` file. If your project ID is not `pictogen`, also open the **Variables** tab and
+   of the `.json` file. If your project ID is not `toonaro`, also open the **Variables** tab and
    add `FIREBASE_PROJECT_ID` with your project ID.
 5. **Publish.** **Actions → Deploy web studio → Run workflow**. After a couple of minutes the site is
    live. From then on, every push to `main` publishes the latest version automatically
    (`.github/workflows/deploy-web.yml`).
 
 From a computer instead: `npx firebase-tools login`, then `npm run deploy` (uses `.firebaserc`;
-change the project ID there if it isn't `pictogen`).
+change the project ID there if it isn't `toonaro`).
 
 ## Who can see it
 

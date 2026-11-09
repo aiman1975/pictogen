@@ -1,6 +1,6 @@
 # Sound pack
 
-Recorded or generated audio that replaces PictoGen's synthesized sounds one by one. Files come in
+Recorded or generated audio that replaces Toonaro's synthesized sounds one by one. Files come in
 only through the tool, so each has a source and a license on record in `manifest.json`:
 
     npm run sound-pack -- import <folder> --source "..." --license "..."   # files named by slot

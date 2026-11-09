@@ -13,7 +13,7 @@ if (!engine) {
 const dir = mkdtempSync(join(tmpdir(), 'pictogen-tts-'));
 try {
   const file = join(dir, 'test.wav');
-  speakToWav(`Welcome to PictoGen. It's a zero-dependency "vector" engine running completely offline.`, file);
+  speakToWav(`Welcome to Toonaro. It's a zero-dependency "vector" engine running completely offline.`, file);
   const size = statSync(file).size;
   if (size < 1000) throw new Error(`WAV file is only ${size} bytes`);
   console.log(`✓ PASS: ${engine} generated a ${size}-byte WAV file`);

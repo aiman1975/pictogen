@@ -131,7 +131,7 @@ export function drawConcept(conceptOrId, opts = {}) {
 }
 
 export const ANIMATION_CSS = `
-/* PictoGen Rigged Limb & Expression Keyframes */
+/* Toonaro Rigged Limb & Expression Keyframes */
 .pg-leg-left, .pg-leg-right, .pg-arm-left, .pg-arm-right, .pg-body-torso, .pg-face-eyes, .pg-face-mouth {
   transform-box: fill-box;
 }

@@ -1,23 +1,23 @@
 # License Audit
 
-Status of everything PictoGen ships, as of October 2026. Re-check this list whenever an asset,
+Status of everything Toonaro ships, as of October 2026. Re-check this list whenever an asset,
 font, data file or dependency is added.
 
 | Component | Where | License | Commercial use | Obligations | Status |
 |---|---|---|---|---|---|
-| PictoGen code and hand-drawn concepts | `src/`, `cli.js`, `serve.js`, `public/*.html` | MIT (`LICENSE`) | Yes | Keep the copyright notice | ✅ |
+| Toonaro code and hand-drawn concepts | `src/`, `cli.js`, `serve.js`, `public/*.html` | MIT (`LICENSE`) | Yes | Keep the copyright notice | ✅ |
 | npm dependencies | `package.json` | none: zero dependencies | n/a | n/a | ✅ |
 | Fluent Emoji Flat (~3,170 icons) | `src/data/fluent-emoji-flat.json` | MIT, © Microsoft | Yes | Ship the MIT notice with the product (`THIRD_PARTY_NOTICES.md`) | ✅ notice added |
 | Nunito font | `public/fonts/`, embedded in exported clips | SIL OFL 1.1 | Yes | Ship `OFL-Nunito.txt`; can't sell the font on its own | ✅ self-hosted |
 | Baloo Bhaijaan 2 font (Arabic) | `public/fonts/`, embedded in exported clips; Arabic letter figures' outlines | SIL OFL 1.1 | Yes | Ship `OFL-BalooBhaijaan2.txt`; can't sell the font on its own; the figures are artwork made with it (allowed) | ✅ self-hosted |
 | JetBrains Mono font | `public/fonts/`, embedded in exported clips | SIL OFL 1.1 | Yes | Ship `OFL-JetBrainsMono.txt` | ✅ self-hosted |
-| Scene sound: voices and effects | `src/sound.js`, `src/sound-synth.js` | MIT (`LICENSE`): synthesized in code, no recordings or samples | Yes | none beyond PictoGen's own | ✅ |
+| Scene sound: voices and effects | `src/sound.js`, `src/sound-synth.js` | MIT (`LICENSE`): synthesized in code, no recordings or samples | Yes | none beyond Toonaro's own | ✅ |
 | Kenney Interface Sounds 1.0 (23 effects: pop, jingle, ding, twinkle, blip, whoosh, whirl, plop, boing, bubble, blub) | `public/audio/pack/effects/` | CC0 1.0 (`public/audio/pack/licenses/kenney-interface-sounds.txt`) | Yes | None (credited in `THIRD_PARTY_NOTICES.md` as a courtesy) | ✅ |
 | Kenney RPG Audio, Impact Sounds, Sci-fi Sounds, Casino Audio, Interface Sounds, UI Audio, Music Jingles (81 files, 2026-11-05: footsteps on five grounds, thuds, crashes, booms, a door, pages, coins, dice, a tick, clicks, chimes, mood jingles) | `public/audio/pack/effects/` | CC0 1.0 (`public/audio/pack/licenses/kenney-*.txt`, the text that came with each pack) | Yes | None (credited in `THIRD_PARTY_NOTICES.md` as a courtesy) | ✅ |
 | Sound pack (recorded / generated audio) | `public/audio/pack/` | Per file, recorded in `manifest.json` (source, license, date) | Only files whose license allows it | Keep the generator's terms and the prompt for each file | ✅ checked by `npm run sound-pack -- check` and `npm test`; ten tunes made with Lyria 3 (see 8) |
-| Sea animals (octopus, sea turtle, seahorse, crab, whale, starfish) | `src/concepts/sea.js` | MIT (`LICENSE`): drawn in code | Yes | none beyond PictoGen's own | ✅ see below (7) |
-| Fantasy friends (unicorn, monster, ghost; knight, mermaid, genie costumes) | `src/concepts/fantasy.js`, `src/concepts/characters.js` | MIT (`LICENSE`): drawn in code | Yes | none beyond PictoGen's own | ✅ see below (7) |
-| First animals, redrawn (dog, cat, bird, fish, duck, rabbit, lion, elephant, penguin) | `src/concepts/animals.js`, `src/concepts/wildlife.js` | MIT (`LICENSE`): drawn in code | Yes | none beyond PictoGen's own | ✅ see below (7) |
+| Sea animals (octopus, sea turtle, seahorse, crab, whale, starfish) | `src/concepts/sea.js` | MIT (`LICENSE`): drawn in code | Yes | none beyond Toonaro's own | ✅ see below (7) |
+| Fantasy friends (unicorn, monster, ghost; knight, mermaid, genie costumes) | `src/concepts/fantasy.js`, `src/concepts/characters.js` | MIT (`LICENSE`): drawn in code | Yes | none beyond Toonaro's own | ✅ see below (7) |
+| First animals, redrawn (dog, cat, bird, fish, duck, rabbit, lion, elephant, penguin) | `src/concepts/animals.js`, `src/concepts/wildlife.js` | MIT (`LICENSE`): drawn in code | Yes | none beyond Toonaro's own | ✅ see below (7) |
 | Showcase narration audio | `public/audio/showcase-*.wav` | Recorded with the Windows "Microsoft Zira" desktop voice | **Unclear** | See below | ⚠️ decide before release |
 
 ## Findings and what was done
@@ -84,7 +84,7 @@ font, data file or dependency is added.
 
 - Prefer MIT, BSD, Apache-2.0, ISC, CC0, CC-BY, or OFL (for fonts). Add each one to
   `THIRD_PARTY_NOTICES.md` in the same change that adds it.
-- Avoid GPL/AGPL code in anything that ships (copyleft would apply to PictoGen itself), and
+- Avoid GPL/AGPL code in anything that ships (copyleft would apply to Toonaro itself), and
   avoid CC-BY-NC / CC-BY-ND or "free for personal use" assets (no commercial use, or no edits).
 - Don't use assets from a CDN at runtime. Bundle them so the product stays offline and doesn't
   share visitor data.

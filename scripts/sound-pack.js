@@ -112,7 +112,7 @@ function addFile(m, file, c, extraNotes) {
 
 const newManifest = () => {
   const m = loadManifest();
-  m.about ??= 'PictoGen sound pack: each file with its source and license (docs/SOUND_PACK.md, docs/LICENSE_AUDIT.md)';
+  m.about ??= 'Toonaro sound pack: each file with its source and license (docs/SOUND_PACK.md, docs/LICENSE_AUDIT.md)';
   return m;
 };
 
@@ -218,7 +218,7 @@ function boardHtml(pack) {
       + mine.map(([d, i]) => `<button class="file" data-file="${i}" title="${esc(`${d.notes}\n${d.source}\n${d.license}`)}">▶ ${esc(d.file.split('/').pop())}</button>`).join('')
       + `</div></div>`;
   }).join('')).join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PictoGen Sound Board</title>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Toonaro Sound Board</title>
 <style>
 :root{--bg:#f8fafc;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--btn:#e0e7ff;--btn2:#dcfce7}
 @media (prefers-color-scheme:dark){:root{--bg:#0b1120;--card:#111827;--ink:#e2e8f0;--muted:#94a3b8;--line:#1f2937;--btn:#312e81;--btn2:#14532d}}
@@ -234,7 +234,7 @@ button.file{background:var(--btn2)}button.on{outline:2px solid #f59e0b}
 #stop{position:sticky;top:8px;float:right;background:#f59e0b;color:#111}
 </style></head><body><main>
 <button id="stop">■ Stop</button>
-<h1>PictoGen sound board</h1>
+<h1>Toonaro sound board</h1>
 <p>Every sound slot: <b>▶ built-in</b> is the synthesized sound; green buttons are the sound pack's files (hover for source and license). Missing a green button means the built-in sound plays.</p>
 ${rows}
 </main><script>

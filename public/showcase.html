@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PictoGen — Video Feature Showcase (Natural English Narration)</title>
+  <title>Toonaro — Video Feature Showcase (Natural English Narration)</title>
   <link href="/fonts/fonts.css" rel="stylesheet">
   <style>
     :root {
@@ -626,10 +626,10 @@
   <!-- Top Navbar -->
   <header>
     <div class="brand-wrap">
-      <div class="brand-logo">P</div>
+      <div class="brand-logo">T</div>
       <div class="brand-titles">
         <div class="brand-title">
-          PictoGen Showcase
+          Toonaro Showcase
           <span class="badge-video">HD Video Clip</span>
         </div>
         <div class="brand-sub">7-Scene Feature Tour • Natural English Voice Narration</div>
@@ -666,9 +666,9 @@
         <!-- Lower Third Narration & Titles -->
         <div class="lower-third">
           <div class="lt-tag" id="lt-tag">OFFLINE VECTOR ENGINE</div>
-          <div class="lt-title" id="lt-title">Welcome to PictoGen</div>
+          <div class="lt-title" id="lt-title">Welcome to Toonaro</div>
           <div class="lt-narration" id="lt-narration">
-            Welcome to PictoGen, a zero-dependency vector engine that creates illustrations and animated clips completely offline.
+            Welcome to Toonaro, a zero-dependency vector engine that creates illustrations and animated clips completely offline.
           </div>
         </div>
 
@@ -769,16 +769,16 @@
 
     // Fallback static data in case of offline/direct file access
     const FALLBACK_DATA = {
-      title: "PictoGen Vector Engine — Feature Showcase Video",
+      title: "Toonaro Vector Engine — Feature Showcase Video",
       scenes: [
         {
           num: 1,
-          title: "Welcome to PictoGen",
+          title: "Welcome to Toonaro",
           tag: "OFFLINE VECTOR ENGINE",
           mode: "scene",
           style: "cartoon",
           prompt: "a happy boy walking across the slide with a blue bike under the sun and tree",
-          narration: "Welcome to PictoGen, a zero-dependency vector engine that creates illustrations and animated clips completely offline.",
+          narration: "Welcome to Toonaro, a zero-dependency vector engine that creates illustrations and animated clips completely offline.",
           duration: 5.5,
           audioUrl: "/audio/showcase-1.wav"
         },
@@ -844,7 +844,7 @@
           mode: "scene",
           style: "flat",
           prompt: "renewable-boom",
-          narration: "From animated documentaries and news bulletins with lower thirds, to interactive coloring books, PictoGen creates it all offline. 100% open source and commercial friendly.",
+          narration: "From animated documentaries and news bulletins with lower thirds, to interactive coloring books, Toonaro creates it all offline. 100% open source and commercial friendly.",
           duration: 7.2,
           audioUrl: "/audio/showcase-7.wav"
         }
@@ -1194,7 +1194,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `pictogen-scene-${sc.num}-${(sc.mode || 'art')}.svg`;
+        a.download = `toonaro-scene-${sc.num}-${(sc.mode || 'art')}.svg`;
         a.click();
         URL.revokeObjectURL(url);
         showToast(`Saved Scene ${sc.num} SVG!`);
@@ -1217,7 +1217,7 @@
           const pngUrl = canvas.toDataURL('image/png');
           const a = document.createElement('a');
           a.href = pngUrl;
-          a.download = `pictogen-scene-${sc.num}.png`;
+          a.download = `toonaro-scene-${sc.num}.png`;
           a.click();
           URL.revokeObjectURL(url);
           showToast(`Saved Scene ${sc.num} as HD PNG!`);
@@ -1285,10 +1285,10 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'PictoGen-Showcase-Video.webm';
+        a.download = 'Toonaro-Showcase-Video.webm';
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 10000);
-        showToast('✅ Showcase video saved as PictoGen-Showcase-Video.webm!');
+        showToast('✅ Showcase video saved as Toonaro-Showcase-Video.webm!');
         btnRecordVideo.classList.remove('recording');
         btnRecordVideo.innerHTML = '<span>🎥 Record & Download Video</span>';
         isRecording = false;

@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-PictoGen itself is MIT-licensed (see `LICENSE`). It bundles the following third-party material.
+Toonaro itself is MIT-licensed (see `LICENSE`). It bundles the following third-party material.
 
 ## Fluent Emoji (Flat) — `src/data/fluent-emoji-flat.json`
 

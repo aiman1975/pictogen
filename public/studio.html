@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PictoGen — Offline Vector Image & Slide Generator</title>
+  <title>Toonaro — Offline Vector Image & Slide Generator</title>
   <link href="/fonts/fonts.css" rel="stylesheet">
   <!-- (a page in Arabic is laid out right to left from the start, before public/js/i18n.js runs) -->
   <script>try { var pl = localStorage.getItem('pictogen.lang.v1') || ((navigator.languages || [navigator.language])[0] || '').slice(0, 2).toLowerCase(); if (pl === 'ar') { document.documentElement.dir = 'rtl'; document.documentElement.lang = 'ar'; } } catch (e) { /* not remembered */ }</script>
@@ -1017,21 +1017,21 @@
 <body>
 
   <header>
-    <a href="/" class="brand" title="PictoGen home">
-      <div class="brand-logo">P</div>
+    <a href="/" class="brand" title="Toonaro home">
+      <div class="brand-logo">T</div>
       <div>
-        <div class="brand-title">PictoGen</div>
+        <div class="brand-title">Toonaro</div>
       </div>
       <span class="brand-badge">Pictures from words</span>
     </a>
     <div class="header-links">
       <!-- English / Deutsch (public/js/i18n.js) -->
       <span class="lang-switch" data-lang-switch></span>
-      <button class="btn-link" data-install hidden title="Install PictoGen as an app on this device: it opens in its own window and works offline">⬇ <span class="hide-phone">Install app</span></button>
+      <button class="btn-link" data-install hidden title="Install Toonaro as an app on this device: it opens in its own window and works offline">⬇ <span class="hide-phone">Install app</span></button>
       <a href="/showcase" target="_blank" class="btn-link" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-weight: 800; box-shadow: 0 2px 6px rgba(37,99,235,0.3); transition: transform 0.15s, opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
         🎬 <span class="hide-phone">Watch the </span>Show
       </a>
-      <a href="/help" target="_blank" rel="noopener" class="btn-link" title="How to use PictoGen (opens in a new tab)" style="text-decoration: none;">❓ <span class="hide-phone">How to use</span></a>
+      <a href="/help" target="_blank" rel="noopener" class="btn-link" title="How to use Toonaro (opens in a new tab)" style="text-decoration: none;">❓ <span class="hide-phone">How to use</span></a>
       <button class="btn-link" onclick="document.getElementById('dictionary').scrollIntoView({ behavior: 'smooth' })">
         📚 <span class="hide-phone">All pictures (</span><span id="concept-count">37</span><span class="hide-phone">)</span>
       </button>
@@ -1255,7 +1255,7 @@
             <button class="btn-action" id="btn-worksheet" title="A printable A4 worksheet of this picture, as a PDF">🖨 Worksheet</button>
             <button class="btn-action" id="btn-download-gif" title="Animated GIF of this scene">🎞 GIF</button>
             <button class="btn-action" id="btn-download-video" title="Video of this scene (MP4 where your browser can record it, otherwise WebM)">🎬 Video</button>
-            <button class="btn-action" id="btn-sound" title="Sound on or off: voices and effects, made by PictoGen itself">🔊 Sound</button>
+            <button class="btn-action" id="btn-sound" title="Sound on or off: voices and effects, made by Toonaro itself">🔊 Sound</button>
             <select id="sound-set" class="btn-action" title="Which sounds: playful (cartoon) or clean (subtle, for explainers and presentations); Auto picks by the style and the kind of clip" aria-label="Sound set" style="padding: 4px 6px;">
               <option value="auto">🎚 Auto</option><option value="playful">🎈 Playful</option><option value="clean">🎧 Clean</option>
             </select>
@@ -1438,7 +1438,7 @@
     <section class="dictionary-section" id="dictionary">
       <div class="dict-header">
         <div>
-          <h2 style="font-weight: 800; font-size: 1.25rem;">All the pictures PictoGen can draw</h2>
+          <h2 style="font-weight: 800; font-size: 1.25rem;">All the pictures Toonaro can draw</h2>
           <p style="font-size: 0.85rem; color: var(--text-muted);">Click one to add it to your picture. They're shown in the style you picked.</p>
         </div>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -1449,7 +1449,7 @@
       <div class="dict-toolbar">
         <div class="segmented" id="source-filter" role="group" aria-label="Concept source">
           <button class="active" data-source="all">All</button>
-          <button data-source="handmade" title="Drawn by PictoGen: they move, change colour and show feelings">✋ Moving figures</button>
+          <button data-source="handmade" title="Drawn by Toonaro: they move, change colour and show feelings">✋ Moving figures</button>
           <button data-source="library" title="Fluent Emoji icons (they keep their colours)">📦 Icons</button>
         </div>
         <label class="toggle-label" title="Most people &amp; gesture icons come in 5 skin tones">
@@ -2781,7 +2781,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
         const a = document.createElement('a');
         a.href = url;
         const aspectTag = (state.aspect || '16-9').replace(':', 'x');
-        a.download = `pictogen-${state.genre || 'clip'}-${aspectTag}.html`;
+        a.download = `toonaro-${state.genre || 'clip'}-${aspectTag}.html`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -3097,7 +3097,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `pictogen-custom-${Date.now()}.svg`;
+      a.download = `toonaro-custom-${Date.now()}.svg`;
       a.click();
       URL.revokeObjectURL(url);
       showToast('Saving the SVG file…');
@@ -3130,7 +3130,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
           const pngUrl = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = pngUrl;
-          a.download = `pictogen-custom-${Date.now()}.png`;
+          a.download = `toonaro-custom-${Date.now()}.png`;
           a.click();
           URL.revokeObjectURL(pngUrl);
           showToast('Saving the picture…');
@@ -3166,7 +3166,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
     import { exportGif, exportVideo, videoFormat, mountOffscreen, download } from '/js/video-export.js';
     window.pictogenVideo = { exportGif, exportVideo, videoFormat, mountOffscreen };
     const studio = window.pictogenStudio;
-    const slug = (s) => String(s || 'pictogen').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'pictogen';
+    const slug = (s) => String(s || 'toonaro').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'toonaro';
 
     // Runs one export with progress on its button; one at a time
     let busy = false;

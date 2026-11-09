@@ -228,7 +228,7 @@ window.seek = async (t) => {
 export function promoPage({ slides }, { fontUrl }) {
   const data = Object.fromEntries(slides.filter((s) => s.data).map((s) => [s.id, s.data]));
   const meta = slides.map(({ id, start, dur, first, last }) => ({ id, start, dur, first, last }));
-  return `<!doctype html><html><head><meta charset="utf-8"><title>PictoGen promo</title>
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Toonaro promo</title>
 <style>${CSS.replace('FONT_URL', fontUrl)}</style>
 <style>${ANIMATION_CSS}</style></head><body>
 <div id="bg"><div class="blob" style="background:#3b82f6"></div><div class="blob" style="background:#8b5cf6"></div><div class="blob" style="background:#ec4899;opacity:.22"></div></div>

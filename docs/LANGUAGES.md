@@ -1,6 +1,6 @@
 # Languages
 
-PictoGen draws from words. Its pictures, colours, counts, feelings, actions, places and times are
+Toonaro draws from words. Its pictures, colours, counts, feelings, actions, places and times are
 known by English words; other languages are read into those words, and what people say or write on
 a board stays in their own language.
 

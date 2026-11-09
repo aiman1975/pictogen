@@ -31,7 +31,7 @@ export function jpegPdf(pages, { title = 'Worksheet', landscape = false } = {}) 
   obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
   obj(2, `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pages.length} >>`);
   const safe = String(title).replace(/[\\()]/g, '\\$&').replace(/[^\x20-\x7e]/g, '?').slice(0, 120);
-  obj(3, `<< /Title (${safe}) /Producer (PictoGen) >>`);
+  obj(3, `<< /Title (${safe}) /Producer (Toonaro) >>`);
   pages.forEach((pg, i) => {
     const id = pageIds[i];
     const draw = `q ${A.w} 0 0 ${A.h} 0 0 cm /Im${i} Do Q`;

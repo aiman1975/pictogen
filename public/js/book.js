@@ -245,7 +245,7 @@ function endPage(book) {
   ctx.fillText('♥', W / 2, H / 2 + 120);
   ctx.globalAlpha = 0.55;
   ctx.font = `700 24px ${FONT}`;
-  ctx.fillText('Made with PictoGen', W / 2, H - 90);
+  ctx.fillText('Made with Toonaro', W / 2, H - 90);
   ctx.globalAlpha = 1;
   return canvas;
 }

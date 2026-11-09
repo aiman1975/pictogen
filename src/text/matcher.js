@@ -538,7 +538,7 @@ function fuzzyLookup(w, idx) {
 }
 
 /**
- * Words close to an unknown one that PictoGen can draw (near spellings, longer or shorter forms of
+ * Words close to an unknown one that Toonaro can draw (near spellings, longer or shorter forms of
  * the same word): suggestWords('elefant') -> ['elephant']. At most `limit`, closest first.
  */
 export function suggestWords(word, limit = 3) {

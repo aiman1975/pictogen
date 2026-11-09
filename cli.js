@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PictoGen CLI: Generate vector illustrations from text directly from your terminal.
+// Toonaro CLI: Generate vector illustrations from text directly from your terminal.
 // Examples:
 //   node cli.js "a boy riding a bike under the sun" -o scene.svg
 //   node cli.js "apple" --mode card --style cartoon -o apple.svg
@@ -40,7 +40,7 @@ if (shortHelp) args.splice(hIndex, 1);
 
 if (hasFlag('--help') || shortHelp || args.length === 0) {
   console.log(`
-PictoGen - Offline Text-to-Vector Image Generator
+Toonaro - Offline Text-to-Vector Image Generator
 
 Usage:
   node cli.js "<prompt>" [options]

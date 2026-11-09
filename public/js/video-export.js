@@ -1,4 +1,4 @@
-// Video export for the studio: renders an animated PictoGen SVG frame by frame and encodes it as
+// Video export for the studio: renders an animated Toonaro SVG frame by frame and encodes it as
 // an animated GIF or a video (MP4 where the browser can record it, otherwise WebM).
 //
 // Frames are exact, not a screen recording: every CSS animation in the SVG is paused and set to the

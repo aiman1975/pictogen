@@ -1,6 +1,6 @@
 {
-  "name": "PictoGen",
-  "short_name": "PictoGen",
+  "name": "Toonaro",
+  "short_name": "Toonaro",
   "description": "Type a sentence, get a picture that moves. Works offline, on your own device.",
   "start_url": "/studio",
   "scope": "/",

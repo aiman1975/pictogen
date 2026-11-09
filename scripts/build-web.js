@@ -174,14 +174,14 @@ writeFileSync(join(out, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
 cpSync(join(out, 'icons', 'apple-touch-icon.png'), join(out, 'apple-touch-icon.png'));
 
 // The installable app: every page gets the app's manifest, icons and /js/app.js, and the offline
-// worker (/sw.js) keeps every file of the site on the device once it is first opened, so PictoGen
+// worker (/sw.js) keeps every file of the site on the device once it is first opened, so Toonaro
 // works with no internet. Its cache is named after the files' contents: a new build replaces it.
 const app = `<link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#4f46e5">
 <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="PictoGen">
+<meta name="apple-mobile-web-app-title" content="Toonaro">
 <script type="module" src="/js/app.js"></script>`;
 for (const page of ['index.html', 'studio.html', 'showcase.html', 'help.html']) {
   const f = join(out, page);
@@ -194,7 +194,7 @@ for (const f of files) version.update(f).update(readFileSync(join(out, f)));
 // (the pages by their own addresses too: /studio, /help...)
 const pages = { '/': '/index.html', '/studio': '/studio.html', '/help': '/help.html', '/showcase': '/showcase.html' };
 writeFileSync(join(out, 'sw.js'), `// The offline worker (made by scripts/build-web.js): keeps every file of the site on this device,
-// so PictoGen opens and works with no internet. Files come from the device first; a new version of
+// so Toonaro opens and works with no internet. Files come from the device first; a new version of
 // the site (a new build) replaces them all.
 const CACHE = 'pictogen-${version.digest('hex').slice(0, 12)}';
 const FILES = ${JSON.stringify(files)};

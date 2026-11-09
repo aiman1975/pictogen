@@ -1,4 +1,4 @@
-// PictoGen public API – offline text-to-vector image generator.
+// Toonaro public API – offline text-to-vector image generator.
 
 import { parseText, suggestWords } from './text/matcher.js';
 import { bridgeGerman, isGermanPrompt } from './lang-de.js';

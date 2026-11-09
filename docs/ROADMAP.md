@@ -24,7 +24,7 @@ visual styles. It should run offline and export as SVG, HTML or video.
 
 - **True 3D** (three.js/WebGL with 3D models) gets real rotation and lighting. But it needs a 3D
   asset for every concept and a GPU, and it gives up the 20 flat illustration styles that make
-  PictoGen distinctive.
+  Toonaro distinctive.
 - **2.5D** keeps every style and the vector output, and gets most of what viewers read as depth:
   - perspective scaling along a path (done for approach/recede)
   - occlusion order
