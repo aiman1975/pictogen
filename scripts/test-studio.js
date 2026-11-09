@@ -779,6 +779,12 @@ try {
   check(sheet.figureAbove, 'the page scrolls so the figure shows above the sheet');
   await phone.tap('#tb-done');
   check((await phone.evaluate(() => getComputedStyle(document.getElementById('object-toolbar')).display)) === 'none' && !phoneErrors.length, `"Done" closes the sheet${phoneErrors.length ? '; errors: ' + phoneErrors.join('; ') : ''}`);
+  // (the landing and help pages fit a phone too, the Toonaro logo, name and mascot shown)
+  for (const [path, name] of [['/', 'landing'], ['/help', 'help']]) {
+    await phone.goto(`http://localhost:${port}${path}`, { waitUntil: 'networkidle' });
+    const page = await phone.evaluate(() => ({ width: document.documentElement.scrollWidth, brand: [...document.querySelectorAll('img.logo, img.wordmark, img.mascot')].map((i) => i.complete && i.naturalWidth > 0) }));
+    check(page.width <= 390 && page.brand.length >= 2 && page.brand.every(Boolean), `on a phone the ${name} page fits the screen (${page.width}px), its logo and name shown (${page.brand})`);
+  }
   await phoneCtx.close();
 
   // The studio in German (public/js/i18n.js): a German browser gets German words, German example

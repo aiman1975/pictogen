@@ -5,7 +5,9 @@
 // to left (dir="rtl"). To change a word: change it here.
 export default {
   texts: {
-   "<span class=\"logo\">T</span>Toonaro": "<span class=\"logo\">T</span>Toonaro",
+   "· How to use": "· كيفية الاستخدام",
+   "Hi, I'm Toonaro! Tell me what to draw.": "مرحبا، أنا تونارو! قل لي ماذا أرسم.",
+   "Toonaro, the toon-maker, waving": "تونارو، صانع الرسوم، يلوّح",
    "⬇ <span class=\"long\">Install </span>app": "⬇ <span class=\"long\">تثبيت </span>التطبيق",
    "❓ <span class=\"long\">How to use</span><span class=\"short\">Help</span>": "❓ <span class=\"long\">كيفية الاستخدام</span><span class=\"short\">مساعدة</span>",
    "✏️ <span class=\"long\">Open the </span>studio": "✏️ <span class=\"long\">افتح </span>الاستوديو",
@@ -981,7 +983,6 @@ export default {
    "Sent to back": "إرسال إلى الخلف",
    "That file is not a picture this browser can open": "هذا الملف ليس صورة يمكن لهذا المتصفح فتحها",
    "This figure follows the timeline: change its steps in the timeline below": "تتبع هذه الشخصية الشريط الزمني: غير خطواتها في الشريط الزمني أدناه",
-   "<span class=\"logo\">T</span>Toonaro<span class=\"hide-phone\" style=\"font-weight:700;color:var(--muted)\">&nbsp;· How to use</span>": "<span class=\"logo\">T</span>Toonaro<span class=\"hide-phone\" style=\"font-weight:700;color:var(--muted)\">&nbsp;· كيفية الاستخدام</span>",
    "<strong>Contents</strong> <a href=\"#start\">Getting started</a> <a href=\"#words\">Writing a good sentence</a> <a href=\"#people\">People and characters</a> <a href=\"#moving\">Pictures that move</a> <a href=\"#edit\">Changing the picture</a> <a href=\"#make\">What to make</a> <a href=\"#styles\">Drawing styles</a> <a href=\"#school\">Diagrams and quizzes</a> <a href=\"#worksheets\">Worksheets</a> <a href=\"#stories\">Story clips</a> <a href=\"#mine\">Your own characters</a> <a href=\"#save\">Saving and sharing</a> <a href=\"#phone\">On a phone</a> <a href=\"#private\">Your privacy</a> <a href=\"#limits\">Good to know</a>": "<strong>المحتويات</strong> <a href=\"#start\">البداية</a> <a href=\"#words\">كتابة جملة جيدة</a> <a href=\"#people\">الأشخاص والشخصيات</a> <a href=\"#moving\">صور متحركة</a> <a href=\"#edit\">تعديل الصورة</a> <a href=\"#make\">ماذا تنشئ</a> <a href=\"#styles\">أنماط الرسم</a> <a href=\"#school\">المخططات والاختبارات</a> <a href=\"#worksheets\">أوراق العمل</a> <a href=\"#stories\">مقاطع القصص</a> <a href=\"#mine\">شخصياتك الخاصة</a> <a href=\"#save\">الحفظ والمشاركة</a> <a href=\"#phone\">على الهاتف</a> <a href=\"#private\">خصوصيتك</a> <a href=\"#limits\">معلومات مفيدة</a>",
    "<span class=\"n\">1</span>Getting started": "<span class=\"n\">1</span>البداية",
    "<b><span class=\"num\">1</span>Type</b>Write what you want to see in the box at the top, like you would tell a friend.": "<b><span class=\"num\">1</span>اكتب</b>اكتب ما تريد رؤيته في المربع بالأعلى، كما تحدث صديقا.",

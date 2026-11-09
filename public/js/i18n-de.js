@@ -4,7 +4,9 @@
 // To change a word: change it here.
 export default {
   texts: {
-   "<span class=\"logo\">T</span>Toonaro": "<span class=\"logo\">T</span>Toonaro",
+   "· How to use": "· Anleitung",
+   "Hi, I'm Toonaro! Tell me what to draw.": "Hallo, ich bin Toonaro! Sag mir, was ich malen soll.",
+   "Toonaro, the toon-maker, waving": "Toonaro, der Bildermacher, winkt",
    "⬇ <span class=\"long\">Install </span>app": "⬇ <span class=\"long\">App </span>installieren",
    "❓ <span class=\"long\">How to use</span><span class=\"short\">Help</span>": "❓ <span class=\"long\">Anleitung</span><span class=\"short\">Hilfe</span>",
    "✏️ <span class=\"long\">Open the </span>studio": "✏️ <span class=\"long\">Ins </span>Studio",
@@ -964,7 +966,6 @@ export default {
    "Write the cards into the story box and make the clip again": "Schreibe die Karten in das Story-Feld und erstelle den Clip neu",
    "💡 <strong>Tip:</strong> Pick a story above, or write your own in the box: one part per line (or just sentences). Name your characters (“a little girl called Mia”) and they stay the same all the way through. <strong>Ctrl + Enter</strong> makes the clip.": "💡 <strong>Tipp:</strong> Wähle oben eine Geschichte oder schreibe deine eigene in das Feld: ein Teil pro Zeile (oder einfach Sätze). Benenne deine Figuren („ein kleines Mädchen namens Mia“) und sie bleiben die ganze Zeit gleich. <strong>Strg + Enter</strong> erstelle den Clip.",
    "🐶 The Boy & Puppy": "🐶 Der Junge & der Welpe",
-   "<span class=\"logo\">T</span>Toonaro<span class=\"hide-phone\" style=\"font-weight:700;color:var(--muted)\">&nbsp;· How to use</span>": "<span class=\"logo\">T</span>Toonaro<span class=\"hide-phone\" style=\"font-weight:700;color:var(--muted)\">&nbsp;· Anleitung</span>",
    "<strong>Contents</strong> <a href=\"#start\">Getting started</a> <a href=\"#words\">Writing a good sentence</a> <a href=\"#people\">People and characters</a> <a href=\"#moving\">Pictures that move</a> <a href=\"#edit\">Changing the picture</a> <a href=\"#make\">What to make</a> <a href=\"#styles\">Drawing styles</a> <a href=\"#school\">Diagrams and quizzes</a> <a href=\"#worksheets\">Worksheets</a> <a href=\"#stories\">Story clips</a> <a href=\"#mine\">Your own characters</a> <a href=\"#save\">Saving and sharing</a> <a href=\"#phone\">On a phone</a> <a href=\"#private\">Your privacy</a> <a href=\"#limits\">Good to know</a>": "<strong>Inhalt</strong> <a href=\"#start\">Erste Schritte</a> <a href=\"#words\">Gute Sätze schreiben</a> <a href=\"#people\">Personen und Figuren</a> <a href=\"#moving\">Bilder, die sich bewegen</a> <a href=\"#edit\">Das Bild anpassen</a> <a href=\"#make\">Was du erstellen kannst</a> <a href=\"#styles\">Zeichenstile</a> <a href=\"#school\">Diagramme und Quizze</a> <a href=\"#worksheets\">Arbeitsblätter</a> <a href=\"#stories\">Geschichten-Clips</a> <a href=\"#mine\">Eigene Figuren</a> <a href=\"#save\">Speichern und Teilen</a> <a href=\"#phone\">Auf dem Smartphone</a> <a href=\"#private\">Datenschutz</a> <a href=\"#limits\">Gut zu wissen</a>",
    "<span class=\"n\">1</span>Getting started": "<span class=\"n\">1</span>Erste Schritte",
    "<b><span class=\"num\">1</span>Type</b>Write what you want to see in the box at the top, like you would tell a friend.": "<b><span class=\"num\">1</span>Eingeben</b>Schreib oben in das Feld, was du sehen möchtest – genau so, wie du es jemandem erzählen würdest.",

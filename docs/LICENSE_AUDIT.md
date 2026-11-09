@@ -6,6 +6,7 @@ font, data file or dependency is added.
 | Component | Where | License | Commercial use | Obligations | Status |
 |---|---|---|---|---|---|
 | Toonaro code and hand-drawn concepts | `src/`, `cli.js`, `serve.js`, `public/*.html` | MIT (`LICENSE`) | Yes | Keep the copyright notice | ✅ |
+| Toonaro name, logo and mascot | `public/brand/`, `public/icons/` (drawn in code: `scripts/brand/`) | Own artwork, **not** under the MIT license: the name is the product's brand (trademark to be filed) | Yes (the owner's) | The wordmark's letters are outlines of Nunito (OFL 1.1 allows artwork made with the font, such as a logo) | ✅ see `public/brand/README.md` |
 | npm dependencies | `package.json` | none: zero dependencies | n/a | n/a | ✅ |
 | Fluent Emoji Flat (~3,170 icons) | `src/data/fluent-emoji-flat.json` | MIT, © Microsoft | Yes | Ship the MIT notice with the product (`THIRD_PARTY_NOTICES.md`) | ✅ notice added |
 | Nunito font | `public/fonts/`, embedded in exported clips | SIL OFL 1.1 | Yes | Ship `OFL-Nunito.txt`; can't sell the font on its own | ✅ self-hosted |

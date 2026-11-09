@@ -56,16 +56,16 @@
     .brand-logo {
       width: 36px;
       height: 36px;
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
       border-radius: 10px;
-      display: flex;
+      display: block;
       align-items: center;
       justify-content: center;
       color: #fff;
       font-weight: 900;
       font-size: 1.25rem;
-      box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+      box-shadow: 0 2px 8px rgba(244,63,94,0.25);
     }
+    .brand-title .wordmark { height: 21px; width: auto; display: block; }
     .brand-title {
       font-weight: 800;
       font-size: 1.25rem;
@@ -936,6 +936,7 @@
       .brand { gap: 0.5rem; }
       .brand-logo { width: 30px; height: 30px; font-size: 1rem; border-radius: 8px; }
       .brand-title { font-size: 1.05rem; }
+      .brand-title .wordmark { height: 15px; }
       .header-links { gap: 0.25rem; }
       .header-links .btn-link { font-size: 0.82rem; white-space: nowrap; }
       .lang-btn { padding: 4px 6px; }
@@ -1018,9 +1019,9 @@
 
   <header>
     <a href="/" class="brand" title="Toonaro home">
-      <div class="brand-logo">T</div>
+      <img class="brand-logo" src="/icons/icon.svg" alt="">
       <div>
-        <div class="brand-title">Toonaro</div>
+        <div class="brand-title"><img class="wordmark" src="/brand/toonaro-wordmark.svg" alt="Toonaro"></div>
       </div>
       <span class="brand-badge">Pictures from words</span>
     </a>

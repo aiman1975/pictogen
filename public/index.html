@@ -26,7 +26,19 @@
     /* Top bar */
     .top { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
     .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 900; font-size: 1.25rem; }
-    .logo { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: #fff; font-weight: 900; background: linear-gradient(135deg, var(--brand), var(--brand2)); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); }
+    .logo { width: 40px; height: 40px; border-radius: 12px; display: block; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3); }
+    .wordmark { height: 25px; width: auto; display: block; }
+    /* Toonaro, the mascot, saying hello above the headline */
+    .hello { display: flex; align-items: center; gap: 6px; margin: -6px 0 6px; }
+    .mascot { width: 128px; height: auto; flex: none; }
+    .hello-bubble { position: relative; background: #fff; border-radius: 18px; padding: 10px 16px; font-weight: 800; font-size: 1.02rem; color: var(--ink, #1e293b); box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08); }
+    .hello-bubble::before { content: ''; position: absolute; inset-inline-start: -8px; top: 50%; margin-top: -8px; border: 8px solid transparent; border-inline-start: 0; border-inline-end-color: #fff; }
+    @media (max-width: 860px) { .mascot { width: 96px; } .hello-bubble { font-size: .95rem; } }
+    @media (max-width: 560px) {
+      .logo { width: 34px; height: 34px; border-radius: 10px; } .wordmark { height: 17px; } .brand { gap: 7px; }
+      /* (the header buttons wrap onto a second line rather than run off the screen) */
+      .top { flex-wrap: wrap; gap: 10px; padding: 14px 0 6px; } .top > span { flex-wrap: wrap; } .btn-small { padding: 7px 12px; font-size: 0.9rem; }
+    }
     .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 999px; font: inherit; font-weight: 900; text-decoration: none; border: 0; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
     .btn:hover { transform: translateY(-2px); }
     .btn-main { color: #fff; background: linear-gradient(135deg, var(--brand), var(--brand2)); box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35); font-size: 1.1rem; padding: 15px 30px; }
@@ -41,6 +53,7 @@
 
     /* Hero: what it is, and it doing it */
     .hero { display: grid; grid-template-columns: 1fr 1.15fr; gap: 40px; align-items: center; padding: 28px 0 56px; }
+    .hero > * { min-width: 0; }
     h1 { font-size: clamp(2.1rem, 5vw, 3.4rem); line-height: 1.08; margin: 0 0 18px; letter-spacing: -0.02em; }
     h1 .hl { background: linear-gradient(135deg, var(--brand), var(--brand2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .lead { font-size: 1.2rem; color: var(--muted); margin: 0 0 26px; max-width: 34em; }
@@ -123,12 +136,13 @@
 <body>
   <div class="wrap">
     <nav class="top" aria-label="Toonaro">
-      <a class="brand" href="/"><span class="logo">T</span>Toonaro</a>
+      <a class="brand" href="/"><img class="logo" src="/icons/icon.svg" alt=""><img class="wordmark" src="/brand/toonaro-wordmark.svg" alt="Toonaro"></a>
       <span style="display:flex;gap:8px;align-items:center"><span class="lang-switch" data-lang-switch></span><button class="btn btn-soft btn-small" data-install hidden>⬇ <span class="long">Install </span>app</button><a class="btn btn-soft btn-small" href="/help">❓ <span class="long">How to use</span><span class="short">Help</span></a><a class="btn btn-soft btn-small" href="/studio">✏️ <span class="long">Open the </span>studio</a></span>
     </nav>
 
     <header class="hero">
       <div>
+        <div class="hello"><img class="mascot" src="/brand/toonaro-mascot.svg" alt="Toonaro, the toon-maker, waving"><span class="hello-bubble">Hi, I'm Toonaro! Tell me what to draw.</span></div>
         <h1>Type a sentence.<br><span class="hl">Get a picture that moves.</span></h1>
         <p class="lead">Pictures, little cartoons, comic strips, labelled diagrams and worksheets for school and home. Drawn in seconds, right here on your device.</p>
         <div class="ctas">

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 0 250 235" role="img" aria-label="Toonaro, the toon-maker, waving with his pencil">
+<title>Toonaro</title>
+<!-- Toonaro, the toon-maker: the brand's mascot. Round and orange, an artist's beret, the pencil held up
+     like a wand; his eyes are the logo's (white, the pupils looking right). It moves by itself (waves,
+     bobs, blinks, the sparkles twinkle), also as an <img>; still when the viewer asks for less motion. -->
+<style>
+ .bob { animation: bob 2.6s ease-in-out infinite; }
+ .wave { transform-origin: 44px 128px; animation: wave 1.5s ease-in-out infinite; }
+ .lid { transform-box: fill-box; transform-origin: center; animation: blink 4.2s infinite; }
+ .tw { transform-box: fill-box; transform-origin: center; animation: tw 1.8s ease-in-out infinite; }
+ .tw2 { animation-delay: .6s; } .tw3 { animation-delay: 1.2s; }
+ @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+ @keyframes wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-22deg); } }
+ @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+ @keyframes tw { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.55); opacity: .55; } }
+ @media (prefers-reduced-motion: reduce) { .bob, .wave, .lid, .tw { animation: none; } }
+</style>
+<defs><radialGradient id="tbody" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fdba74"/><stop offset=".6" stop-color="#fb923c"/><stop offset="1" stop-color="#ea580c"/></radialGradient></defs>
+<ellipse cx="100" cy="222" rx="50" ry="7" fill="#0f172a" opacity=".12"/>
+<g class="bob">
+ <path d="M84 178 L80 208 M116 178 L120 208" fill="none" stroke="#263238" stroke-width="6" stroke-linecap="round"/>
+ <ellipse cx="76" cy="210" rx="12" ry="7" fill="#2563eb"/><ellipse cx="124" cy="210" rx="12" ry="7" fill="#2563eb"/>
+ <g class="wave"><path d="M44 128 Q30 118 22 98" fill="none" stroke="#263238" stroke-width="6" stroke-linecap="round"/><circle cx="20" cy="94" r="9" fill="#fff" stroke="#e2e8f0" stroke-width="2"/></g>
+ <circle cx="100" cy="125" r="62" fill="url(#tbody)"/>
+ <ellipse cx="78" cy="98" rx="20" ry="11" fill="#fff" opacity=".22" transform="rotate(-25 78 98)"/>
+ <g transform="rotate(-14 92 74)"><ellipse cx="92" cy="75" rx="50" ry="17" fill="#3b82f6"/><ellipse cx="92" cy="81" rx="44" ry="7" fill="#2563eb"/><circle cx="92" cy="57" r="6" fill="#1d4ed8"/><ellipse cx="78" cy="69" rx="16" ry="5" fill="#fff" opacity=".25"/></g>
+ <g class="lid"><circle cx="80" cy="117" r="14" fill="#fff"/><circle cx="119" cy="117" r="14" fill="#fff"/><circle cx="85" cy="119" r="7" fill="#1e1b4b"/><circle cx="124" cy="119" r="7" fill="#1e1b4b"/><circle cx="87" cy="116" r="2.5" fill="#fff"/><circle cx="126" cy="116" r="2.5" fill="#fff"/></g>
+ <ellipse cx="64" cy="141" rx="9" ry="5.4" fill="#ff8da1" opacity=".85"/><ellipse cx="135" cy="141" rx="9" ry="5.4" fill="#ff8da1" opacity=".85"/>
+ <path d="M84 143 Q100 165 116 143 Q100 149 84 143Z" fill="#9f1239"/><ellipse cx="100" cy="155" rx="7" ry="3.4" fill="#ff758c"/>
+ <path d="M156 128 Q168 116 174 98" fill="none" stroke="#263238" stroke-width="6" stroke-linecap="round"/>
+ <g transform="translate(176,94) rotate(-40)"><rect x="-26" y="-6.5" width="10" height="13" rx="4" fill="#f472b6"/><rect x="-17" y="-6.5" width="7" height="13" fill="#cbd5e1"/><rect x="-11" y="-6.5" width="52" height="13" fill="#facc15"/><rect x="-11" y="-6.5" width="52" height="4.3" fill="#fde047"/><polygon points="41,-6.5 41,6.5 58,0" fill="#fde7c2"/><polygon points="52,-2.6 52,2.6 58,0" fill="#263238"/></g>
+ <circle cx="176" cy="94" r="9" fill="#fff" stroke="#e2e8f0" stroke-width="2"/>
+</g>
+<path class="tw" d="M222 37 Q224 46 233 48 Q224 50 222 59 Q220 50 211 48 Q220 46 222 37Z" fill="#fde68a"/>
+<path class="tw tw2" d="M236 66 Q237 71 242 72 Q237 73 236 78 Q235 73 230 72 Q235 71 236 66Z" fill="#93c5fd"/>
+<circle class="tw tw3" cx="206" cy="30" r="3.5" fill="#fca5a5"/>
+</svg>
