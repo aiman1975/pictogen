@@ -93,6 +93,7 @@ Before the first upload:
    which the privacy page mentions, and switch on SSL for toonaro.com.
 
 To publish: `npm run web:demo`, then upload **everything inside** `dist-demo/` (including the
-hidden `.htaccess`) to the web space's main folder, with STRATO's file manager or by SFTP
-(*Hosting → SFTP/SSH*: host `ssh.strato.de`, your domain as user name). The `.htaccess` makes
+hidden `.htaccess`) to the web space's main folder by SFTP, e.g. with FileZilla: the server,
+port and user name are under *Datenbanken und Webspace → SFTP & SSH* in the STRATO customer
+area (an access whose start folder is `/`). The `.htaccess` makes
 `/studio`, `/help`, `/impressum` and `/datenschutz` open their pages on STRATO's Apache servers.
