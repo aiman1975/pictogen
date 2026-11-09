@@ -134,5 +134,38 @@ else {
 }
 rmSync(dir, { recursive: true, force: true });
 
+// The public demo (--demo, for toonaro.com): a few tries, every picture marked, then the way to the full version
+const demoDir = mkdtempSync(join(tmpdir(), 'toonaro-demo-'));
+execSync(`node scripts/build-web.js "${demoDir}" --demo`, { cwd: root, stdio: 'pipe' });
+const demoStudio = readFileSync(join(demoDir, 'studio.html'), 'utf8');
+check(/__toonaroDemo/.test(demoStudio) && existsSync(join(demoDir, 'web', 'demo.js')) && !/noindex/.test(demoStudio) && /Allow: \//.test(readFileSync(join(demoDir, 'robots.txt'), 'utf8')), 'the demo build: the demo script in the pages, open to search engines');
+check(!existsSync(join(demoDir, 'sw.js')) && !/manifest\.webmanifest/.test(demoStudio) && /RewriteRule/.test(readFileSync(join(demoDir, '.htaccess'), 'utf8')) && /impressum/.test(readFileSync(join(demoDir, 'index.html'), 'utf8')), 'the demo is a website, not an app to install; an .htaccess for Apache hosts; the legal pages linked');
+if (chromium) {
+  const port = await new Promise((done) => { const s = createServer().listen(0, () => { const p = s.address().port; s.close(() => done(p)); }); });
+  const server = spawn(process.execPath, ['scripts/preview-web.js', demoDir, String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
+  await new Promise((done) => server.stdout.on('data', (d) => { if (String(d).includes('http://')) done(); }));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('#svg-viewport svg .tn-demo-mark', { timeout: 60000 });
+    const tries = [];
+    for (const words of ['a cat on a sofa', 'a red car', 'a dragon over a castle', 'a boy reads a book']) {
+      await page.fill('#prompt-input', words);
+      await page.click('#btn-generate');
+      await page.waitForTimeout(1500);
+      tries.push(await page.evaluate(() => ({ left: document.querySelector('.tn-demo-left')?.textContent, marked: !!document.querySelector('#svg-viewport svg .tn-demo-mark'), end: !!document.querySelector('.tn-demo-end') })));
+    }
+    check(tries.slice(0, 3).every((t) => t.marked && !t.end) && /No free tries/.test(tries[2].left) && tries[3].end, `the demo: every picture marked, ${tries.length - 1} free tries counted down, then Toonaro says how to get the full version (${JSON.stringify(tries.map((t) => t.left))})`);
+    check(!errors.length, `no page errors in the demo${errors.length ? ': ' + errors.join('; ') : ''}`);
+  } finally {
+    await browser.close();
+    server.kill();
+  }
+}
+rmSync(demoDir, { recursive: true, force: true });
+
 console.log(fails ? `\n${fails} web build check(s) failed` : '\nWeb build test suite: ALL PASSED!');
 process.exit(fails ? 1 : 0);

@@ -21,6 +21,8 @@ http.createServer((req, res) => {
   if (path === '/studio') path = '/studio.html';
   if (path === '/help') path = '/help.html';
   if (path === '/showcase') path = '/showcase.html';
+  if (path === '/impressum') path = '/impressum.html';
+  if (path === '/datenschutz') path = '/datenschutz.html';
   const file = resolve(dir, '.' + path);
   let ok = false;
   try { ok = file.startsWith(dir + sep) && statSync(file).isFile(); } catch { /* missing */ }

@@ -5,6 +5,12 @@
 //
 //   npm run web:build [-- <out dir>]     (default: dist/)
 //   npm run web:preview                  (build, then serve it at http://localhost:5050)
+//   npm run web:demo                     (the public demo for toonaro.com, in dist-demo/: see below)
+//
+// The demo (--demo): the same studio for anyone to try in the browser, a few times (DEMO_TRIES
+// pictures or clips), everything it draws marked "Toonaro · demo" (on screen, in downloads and
+// videos), then a note on how to get the full version. Not installable as an app; open to search
+// engines; with an .htaccess for Apache hosts (STRATO) so /studio and /help open their pages.
 //
 // How: the site is public/ plus the engine (src/) and three small stand-ins for the Node modules
 // the engine uses (node:fs, node:path, node:url; the files it reads are fetched once at start).
@@ -17,7 +23,12 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const out = resolve(process.argv[2] || join(root, 'dist'));
+const args = process.argv.slice(2);
+const demo = args.includes('--demo');
+const out = resolve(args.find((a) => !a.startsWith('--')) || join(root, demo ? 'dist-demo' : 'dist'));
+// The demo's settings: how many pictures or clips a visitor may make, and where to ask for more
+const DEMO_TRIES = 3;
+const DEMO_CONTACT = 'info@toonaro.com';
 const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((x) => (x.isDirectory() ? walk(join(d, x.name)) : [join(d, x.name)]));
 
 rmSync(out, { recursive: true, force: true });
@@ -121,9 +132,8 @@ import { handleApi } from '/src/api.js';
 window.__pictogenApi((method, url, payload) => handleApi(method, url, payload));
 `);
 
-const head = `<script type="importmap">{"imports":{"node:fs":"/web/fs.js","node:path":"/web/path.js","node:url":"/web/url.js"}}</script>
-<meta name="robots" content="noindex, nofollow">
-<script>
+const head = `${demo ? `<script>window.__toonaroDemo = ${JSON.stringify({ tries: DEMO_TRIES, contact: DEMO_CONTACT })};</script>\n<script src="/web/demo.js"></script>\n` : ''}<script type="importmap">{"imports":{"node:fs":"/web/fs.js","node:path":"/web/path.js","node:url":"/web/url.js"}}</script>
+${demo ? '' : '<meta name="robots" content="noindex, nofollow">\n'}<script>
 // The studio's /api/ requests are answered in this page by the engine (/web/engine.js), which
 // starts once its data is loaded; requests made before then wait for it. Pictures pointing at
 // /api/ (the dictionary's icons) are drawn the same way.
@@ -134,6 +144,10 @@ const head = `<script type="importmap">{"imports":{"node:fs":"/web/fs.js","node:
     var out;
     try { out = handle(method, url, payload); } catch (e) { out = { status: 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: e.message }) }; }
     if (!out) out = { status: 404, headers: { 'Content-Type': 'application/json' }, body: '{"error":"Not found"}' };
+    // (the demo: every picture the engine draws carries the demo mark - /web/demo.js)
+    if (window.__toonaroMark && /json/.test((out.headers && out.headers['Content-Type']) || '')) {
+      try { out = Object.assign({}, out, { body: JSON.stringify(window.__toonaroMark(JSON.parse(out.body))) }); } catch (e) { /* (as it is) */ }
+    }
     return new Response(out.body, { status: out.status, headers: out.headers });
   }
   window.fetch = function (input, init) {
@@ -169,7 +183,7 @@ for (const page of ['index.html', 'studio.html', 'showcase.html']) {
   const html = readFileSync(f, 'utf8').replace(/<img([^>]*?) src="\/api\//g, '<img$1 data-api-src="/api/');
   writeFileSync(f, html.replace(/<head>/i, `<head>\n${head}`));
 }
-writeFileSync(join(out, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
+writeFileSync(join(out, 'robots.txt'), demo ? 'User-agent: *\nAllow: /\n' : 'User-agent: *\nDisallow: /\n');
 // (only when a page asks: an apple-touch-icon.png at the root, as some phones look for it there)
 cpSync(join(out, 'icons', 'apple-touch-icon.png'), join(out, 'apple-touch-icon.png'));
 
@@ -183,17 +197,52 @@ const app = `<link rel="manifest" href="/manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Toonaro">
 <script type="module" src="/js/app.js"></script>`;
-for (const page of ['index.html', 'studio.html', 'showcase.html', 'help.html']) {
+// (the demo is a website, not an app to install: the icons only, no offline worker)
+const icons = `<link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>[data-install] { display: none !important; }</style>`;
+for (const page of ['index.html', 'studio.html', 'showcase.html', 'help.html', 'impressum.html', 'datenschutz.html']) {
   const f = join(out, page);
-  if (existsSync(f)) writeFileSync(f, readFileSync(f, 'utf8').replace(/<head>/i, `<head>\n${app}`));
+  if (existsSync(f)) writeFileSync(f, readFileSync(f, 'utf8').replace(/<head>/i, `<head>\n${demo ? icons : app}`));
+}
+if (demo) {
+  cpSync(join(root, 'scripts', 'web', 'demo.js'), join(out, 'web', 'demo.js'));
+  // (the help page too: its example links count as tries; the studio, the landing page and the show have it with the engine)
+  for (const page of ['help.html']) {
+    const f = join(out, page);
+    writeFileSync(f, readFileSync(f, 'utf8').replace(/<\/head>/i, '<script>window.__toonaroDemo = ' + JSON.stringify({ tries: DEMO_TRIES, contact: DEMO_CONTACT }) + ';</script>\n<script src="/web/demo.js"></script>\n</head>'));
+  }
+  // (open to search engines; the landing page's footer with the legal pages)
+  for (const page of ['index.html', 'studio.html', 'showcase.html', 'help.html']) {
+    const f = join(out, page);
+    if (existsSync(f)) writeFileSync(f, readFileSync(f, 'utf8').replace(/<meta name="robots" content="noindex, nofollow"\s*\/?>\n?/g, ''));
+  }
+  const home = join(out, 'index.html');
+  writeFileSync(home, readFileSync(home, 'utf8').replace('Toonaro · a preview for friends and family ·', 'Toonaro · <a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz / Privacy</a> ·'));
+  // Apache (STRATO): /studio opens studio.html, the manifest has its type
+  writeFileSync(join(out, '.htaccess'), `# Toonaro demo (scripts/build-web.js --demo): pages by their short addresses
+Options -MultiViews
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+?)/?$ $1.html [L]
+AddType application/manifest+json .webmanifest
+AddType application/javascript .js .mjs
+AddType font/woff2 .woff2
+`);
+  // (the legal pages must be filled in before the site goes public)
+  for (const page of ['impressum.html', 'datenschutz.html']) {
+    const f = join(out, page);
+    if (existsSync(f) && /\[[A-ZÄÖÜa-zäöüß ,/]+\]/.test(readFileSync(f, 'utf8'))) console.warn(`⚠️  ${page}: fill in the [placeholders] before publishing`);
+  }
 }
 const files = walk(out).map((f) => '/' + relative(out, f).split('\\').join('/'))
-  .filter((f) => !['/sw.js', '/robots.txt'].includes(f)).sort();
+  .filter((f) => !['/sw.js', '/robots.txt', '/.htaccess'].includes(f)).sort();
 const version = createHash('sha1');
 for (const f of files) version.update(f).update(readFileSync(join(out, f)));
 // (the pages by their own addresses too: /studio, /help...)
 const pages = { '/': '/index.html', '/studio': '/studio.html', '/help': '/help.html', '/showcase': '/showcase.html' };
-writeFileSync(join(out, 'sw.js'), `// The offline worker (made by scripts/build-web.js): keeps every file of the site on this device,
+if (!demo) writeFileSync(join(out, 'sw.js'), `// The offline worker (made by scripts/build-web.js): keeps every file of the site on this device,
 // so Toonaro opens and works with no internet. Files come from the device first; a new version of
 // the site (a new build) replaces them all.
 const CACHE = 'pictogen-${version.digest('hex').slice(0, 12)}';

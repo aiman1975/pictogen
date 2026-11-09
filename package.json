@@ -18,6 +18,7 @@
     "sound-pack": "node scripts/sound-pack.js",
     "web:build": "node scripts/build-web.js",
     "web:preview": "node scripts/build-web.js && node scripts/preview-web.js",
+    "web:demo": "node scripts/build-web.js --demo",
     "deploy": "node scripts/build-web.js && npx firebase-tools deploy --only hosting"
   },
   "engines": {

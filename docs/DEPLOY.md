@@ -67,3 +67,28 @@ change the project ID there if it isn't `toonaro`).
 
 To limit it to invited people later, Firebase Authentication can put a sign-in (e.g. Google
 accounts on an allow-list) in front of the studio.
+
+## The public demo on toonaro.com (STRATO)
+
+`npm run web:demo` builds the public demo into `dist-demo/`: the landing page, the help page, the
+show and the studio, where every visitor can make **3 pictures or clips** (`DEMO_TRIES` in
+`scripts/build-web.js`). Everything the studio draws carries the mark "Toonaro · demo", on screen
+and so in every download, print and video. After the free tries, Toonaro shows how to get the full
+version (the address in `DEMO_CONTACT`). The tries are counted in the visitor's browser: a visitor
+who clears their browser data gets new ones. That's enough for a demo; nothing more is possible
+without accounts. The demo is a website: it can't be installed as an app, search engines may list it,
+and `/impressum` and `/datenschutz` are linked at the bottom of the landing page.
+
+Before the first upload:
+
+1. Fill in the `[placeholders]` in `public/impressum.html` and `public/datenschutz.html` (the build
+   warns while any are left), and have the privacy page checked.
+2. Create the mailbox `info@toonaro.com` in the STRATO customer area (or change `DEMO_CONTACT`
+   and the two pages).
+3. In the STRATO customer area, sign the data processing agreement (*Auftragsverarbeitung, AVV*),
+   which the privacy page mentions, and switch on SSL for toonaro.com.
+
+To publish: `npm run web:demo`, then upload **everything inside** `dist-demo/` (including the
+hidden `.htaccess`) to the web space's main folder, with STRATO's file manager or by SFTP
+(*Hosting → SFTP/SSH*: host `ssh.strato.de`, your domain as user name). The `.htaccess` makes
+`/studio`, `/help`, `/impressum` and `/datenschutz` open their pages on STRATO's Apache servers.
