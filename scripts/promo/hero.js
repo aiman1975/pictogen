@@ -11,10 +11,13 @@ import { renderWorksheet } from '../../src/worksheet.js';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const scene = (text, opts = {}) => generate(text, { style: 'flat', ...opts });
-const pops = (t0, n, gap, pitch = 1) => Array.from({ length: n }, (_, i) => ({ t: t0 + i * gap, type: 'pop', pitch: pitch + (i % 5) * 0.06, gain: 0.14, pan: ((i % 4) - 1.5) * 0.3 }));
-const header = (kicker, title, sub) => `
+export const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// A printed page (a worksheet) as a picture of its own: its print CSS ("* { animation: none }") must not
+// reach the rest of the video page
+export const asImage = (svg) => `<img alt="" src="data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}">`;
+export const scene = (text, opts = {}) => generate(text, { style: 'flat', ...opts });
+export const pops = (t0, n, gap, pitch = 1) => Array.from({ length: n }, (_, i) => ({ t: t0 + i * gap, type: 'pop', pitch: pitch + (i % 5) * 0.06, gain: 0.14, pan: ((i % 4) - 1.5) * 0.3 }));
+export const header = (kicker, title, sub) => `
   <div class="head">
     <div class="kicker hk rise" style="--d:.15s">${kicker}</div>
     <h1 class="rise" style="--d:.28s">${title}</h1>
@@ -22,13 +25,13 @@ const header = (kicker, title, sub) => `
   </div>`;
 // The brand: the icon, the name (its o's are eyes) and Toonaro himself, his own animations renamed so
 // they keep to themselves on the page
-const ICON = read('public/icons/icon.svg').replace('<svg ', '<svg class="hicon" ');
-const WORDMARK = read('public/brand/toonaro-wordmark-white.svg').replace('<svg ', '<svg class="hword" ');
+export const ICON = read('public/icons/icon.svg').replace('<svg ', '<svg class="hicon" ');
+export const WORDMARK = read('public/brand/toonaro-wordmark-white.svg').replace('<svg ', '<svg class="hword" ');
 const MASCOT_SVG = read('public/brand/toonaro-mascot.svg').replace(/<title>[^<]*<\/title>/, '')
   .replace(/\b(bob|wave|lid|tw2|tw3|tw|blink)\b/g, 'tn-$1').replace('<svg ', '<svg class="hmascot" ');
 // (each copy with its own gradient name: a hidden copy's would leave the others without their colour)
 let copies = 0;
-const mascot = () => { copies++; return MASCOT_SVG.replace(/tbody/g, `tbody${copies}`); };
+export const mascot = () => { copies++; return MASCOT_SVG.replace(/tbody/g, `tbody${copies}`); };
 
 export function buildHero() {
   const slides = [];
@@ -71,8 +74,8 @@ export function buildHero() {
       html: `${header('For the classroom', 'Diagrams, worksheets, quizzes.')}
         <div class="card" style="left:64px;top:214px;width:600px"><div class="pop" style="--d:.5s">${d.svg}</div></div>
         <div class="caption rise" style="left:64px;top:566px;width:600px;--d:.9s">Labels on, or off for a quiz</div>
-        <div class="paper back pop" style="--d:1.5s;left:930px;top:200px;width:250px">${ws.pages[1] || ws.pages[0]}</div>
-        <div class="paper pop" style="--d:1.1s;left:720px;top:186px;width:270px">${ws.pages[0]}</div>
+        <div class="paper back pop" style="--d:1.5s;left:930px;top:200px;width:250px">${asImage(ws.pages[1] || ws.pages[0])}</div>
+        <div class="paper pop" style="--d:1.1s;left:720px;top:186px;width:270px">${asImage(ws.pages[0])}</div>
         <div class="tag rise" style="--d:1.9s;left:1030px;top:618px">✓ Answer key</div>
         <div class="caption rise" style="left:710px;top:604px;width:280px;--d:1.4s">Print it, A4</div>`,
       sfx: [{ t: 0, type: 'whoosh' }, { t: 0.5, type: 'pop', gain: 0.18 }, { t: 1.1, type: 'pop', pitch: 1.1, gain: 0.16 }, { t: 1.5, type: 'pop', pitch: 1.25, gain: 0.14 }, { t: 1.9, type: 'tick', gain: 0.1 }],
@@ -155,7 +158,11 @@ export function buildHero() {
     sfx: [{ t: 0, type: 'whoosh' }, { t: 0.2, type: 'pop', pitch: 0.8, gain: 0.22 }, { t: 0.8, type: 'chime', pitch: 784 }, { t: 1.2, type: 'chime', pitch: 1046.5, gain: 0.12 }],
   });
 
-  // Timing: each slide starts as the previous one fades (0.45s overlap)
+  return timeline(slides);
+}
+
+/** Timing: each slide starts as the previous one fades (0.45s overlap); the sound effects placed */
+export function timeline(slides) {
   let t = 0;
   for (const [i, s] of slides.entries()) {
     s.start = +t.toFixed(3);

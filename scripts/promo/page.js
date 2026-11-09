@@ -118,7 +118,7 @@ h1 { margin: 8px 0 0; font-weight: 900; font-size: 50px; line-height: 1.08; lett
 .card.rel { position: relative; }
 .paper { position: absolute; transform: rotate(-3deg); border-radius: 6px; overflow: hidden; background: #fff; box-shadow: 0 24px 60px rgb(0 0 0 / .5); }
 .paper.back { transform: rotate(4deg); filter: brightness(.96); }
-.paper svg { display: block; width: 100%; height: auto; }
+.paper svg, .paper img { display: block; width: 100%; height: auto; }
 .film { position: absolute; left: 64px; top: 262px; width: 1152px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 .frame .label { font-size: 17px; line-height: 1.3; margin-top: 10px; }
 .langq { margin-bottom: 10px; font-size: 19px; font-weight: 800; color: #fde68a; min-height: 50px; line-height: 1.3; }
@@ -135,6 +135,9 @@ h1.big { font-size: 66px; }
 .outrobrand { display: flex; align-items: center; gap: 22px; }
 .outrobrand .hword { margin: 0; height: 84px; }
 .url.ho { background: linear-gradient(135deg, #fb923c, #f43f5e); }
+.kinds { position: absolute; left: 980px; top: 330px; width: 240px; display: flex; flex-direction: column; gap: 12px; }
+.kinds span { padding: 10px 18px; border-radius: 999px; background: rgb(253 230 138 / .12); border: 1px solid rgb(253 230 138 / .35); color: #fde68a; font-weight: 800; font-size: 19px; }
+.center .kicker { margin-top: 6px; }
 `;
 
 const RUNTIME = `

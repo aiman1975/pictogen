@@ -7,8 +7,9 @@
 // Needs Playwright (Chromium) and ffmpeg; nothing else. Every picture is drawn by Toonaro.
 //   --preview "t1,t2,..."   only render these moments (seconds) as preview-<t>.jpg, no video
 //   --reuse-studio          use the studio frames filmed by an earlier build
-//   --hero                  "Toonaro in 45 seconds", the landing page's video (hero.js): music from the
-//                           sound pack (Lyria) and captions, no narrator: out/hero/toonaro-in-45-seconds.mp4
+//   --video <name>          one of the website's videos (VIDEOS below: music from the sound pack (Lyria) and
+//                           captions, no narrator), e.g. --video teachers: out/teachers/toonaro-for-teachers.mp4
+//   --hero                  the same as --video hero: "Toonaro in 45 seconds", the landing page's video
 //   --explainer             the narrated explainer instead (explainer.js; voices in media/promo-voice,
 //                           made by the "Promo voice" workflow): out/explainer/toonaro-explainer.mp4
 import { execFileSync, execSync } from 'node:child_process';
@@ -20,20 +21,29 @@ import { captureStudio } from './capture-studio.js';
 import { buildStoryboard } from './storyboard.js';
 import { buildExplainer } from './explainer.js';
 import { buildHero } from './hero.js';
+import { buildTeachers } from './teachers.js';
 import { NARRATION } from './narration.js';
 import { promoPage } from './page.js';
 import { renderAudio } from './audio.js';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const args = process.argv.slice(2);
-const flag = (name) => { const i = args.indexOf(name); return i < 0 ? null : args.splice(i, name === '--preview' ? 2 : 1).slice(1)[0] ?? true; };
+const flag = (name) => { const i = args.indexOf(name); return i < 0 ? null : args.splice(i, ['--preview', '--video'].includes(name) ? 2 : 1).slice(1)[0] ?? true; };
 const preview = flag('--preview');
 const reuse = flag('--reuse-studio');
 const explainer = flag('--explainer');
-const hero = flag('--hero');
-const OUT = resolve(args[0] || join(ROOT, 'out', hero ? 'hero' : explainer ? 'explainer' : 'promo'));
-// (the hero's music: a tune from the sound pack, looped to the video's length)
-const HERO_MUSIC = join(ROOT, 'public', 'audio', 'pack', 'music', 'explainer-1.mp3');
+// The website's videos: their slides, their tune from the sound pack (looped to the video's length),
+// their file, and the moment for the still shown before they play
+const VIDEOS = {
+  hero: { build: buildHero, music: 'explainer-1.mp3', file: 'toonaro-in-45-seconds.mp4', poster: ['hintro', 2.4] },
+  teachers: { build: buildTeachers, music: 'focus-1.mp3', file: 'toonaro-for-teachers.mp4', poster: ['tintro', 2.2] },
+};
+const videoName = flag('--hero') ? 'hero' : flag('--video');
+if (videoName && !VIDEOS[videoName]) { console.error(`No video "${videoName}": ${Object.keys(VIDEOS).join(', ')}`); process.exit(1); }
+const VIDEO = videoName ? VIDEOS[videoName] : null;
+const hero = !!VIDEO;
+const OUT = resolve(args[0] || join(ROOT, 'out', videoName || (explainer ? 'explainer' : 'promo')));
+const HERO_MUSIC = VIDEO && join(ROOT, 'public', 'audio', 'pack', 'music', VIDEO.music);
 const VOICES = join(ROOT, 'media', 'promo-voice');
 const FPS = 30, WORKERS = 3;
 
@@ -70,7 +80,7 @@ if (explainer) {
     voiceLen[l.id] = +execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim();
   }
 }
-const board = hero ? buildHero() : explainer ? buildExplainer({ studio, voices: voiceLen }) : buildStoryboard({ studio });
+const board = hero ? VIDEO.build() : explainer ? buildExplainer({ studio, voices: voiceLen }) : buildStoryboard({ studio });
 copyFileSync(join(ROOT, 'public/fonts/nunito-latin.woff2'), join(OUT, 'nunito.woff2'));
 copyFileSync(join(ROOT, 'public/fonts/baloo-bhaijaan-arabic.woff2'), join(OUT, 'baloo.woff2'));
 writeFileSync(join(OUT, 'promo.html'), promoPage(board, { fontUrl: 'nunito.woff2' }));
@@ -155,8 +165,8 @@ if (explainer) {
 }
 
 log('Encoding the video');
-const mp4 = join(OUT, hero ? 'toonaro-in-45-seconds.mp4' : explainer ? 'toonaro-explainer.mp4' : 'toonaro-promo.mp4');
+const mp4 = join(OUT, hero ? VIDEO.file : explainer ? 'toonaro-explainer.mp4' : 'toonaro-promo.mp4');
 execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(frames, 'f%05d.jpg'), '-i', soundtrack,
   '-c:v', 'libx264', '-preset', 'slow', '-crf', '19', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', mp4]);
-execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(hero ? slide('hintro').start + 2.4 : slide(explainer ? 'looks' : 'styles').start + 5), '-i', mp4, '-frames:v', '1', join(OUT, 'poster.jpg')]);
+execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', String(hero ? slide(VIDEO.poster[0]).start + VIDEO.poster[1] : slide(explainer ? 'looks' : 'styles').start + 5), '-i', mp4, '-frames:v', '1', join(OUT, 'poster.jpg')]);
 log(`Done: ${mp4}`);
