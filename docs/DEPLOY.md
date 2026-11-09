@@ -97,3 +97,13 @@ hidden `.htaccess`) to the web space's main folder by SFTP, e.g. with FileZilla:
 port and user name are under *Datenbanken und Webspace → SFTP & SSH* in the STRATO customer
 area (an access whose start folder is `/`). The `.htaccess` makes
 `/studio`, `/help`, `/impressum` and `/datenschutz` open their pages on STRATO's Apache servers.
+
+### Publishing automatically (GitHub Actions)
+
+`.github/workflows/deploy-strato.yml` builds the demo and uploads it to STRATO by SFTP on every push
+to `main` that changes the website or the engine, and by hand (*Actions → Publish toonaro.com →
+Run workflow*). One-time setup: save the SFTP access's password as the repository secret
+**`STRATO_SFTP_PASSWORD`** (*Settings → Secrets and variables → Actions → New repository secret*).
+The server and user name default to the access made for Toonaro; repository variables
+`STRATO_SFTP_HOST` / `STRATO_SFTP_USER` change them. In STRATO, toonaro.com must show the web space
+(*Domains → toonaro.com → ⚙ → Umleitung einrichten → Intern*, the main folder), not the placeholder.

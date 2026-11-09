@@ -1,0 +1,53 @@
+# Publishes the public demo (npm run web:demo, docs/DEPLOY.md) to toonaro.com on STRATO, by SFTP:
+# on every push to main that changes the website or the engine, and by hand (Actions -> Publish
+# toonaro.com -> Run workflow). The SFTP password is the repository secret STRATO_SFTP_PASSWORD
+# (Settings -> Secrets and variables -> Actions); without it the site is built but not uploaded.
+# The server and user name are the access under "Datenbanken und Webspace -> SFTP & SSH" at STRATO
+# (repository variables STRATO_SFTP_HOST / STRATO_SFTP_USER, these defaults otherwise).
+name: Publish toonaro.com
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'src/**'
+      - 'scripts/build-web.js'
+      - 'scripts/web/**'
+      - '.github/workflows/deploy-strato.yml'
+
+concurrency:
+  group: publish-toonaro
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      HAS_PASSWORD: ${{ secrets.STRATO_SFTP_PASSWORD != '' }}
+      SFTP_HOST: ${{ vars.STRATO_SFTP_HOST || '5021872463.ssh.w2.strato.hosting' }}
+      SFTP_USER: ${{ vars.STRATO_SFTP_USER || 'su1950617' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Quick checks
+        run: node scripts/smoke-test.js && node scripts/test-timeline.js && node scripts/test-styles.js
+      - name: Build the demo website
+        run: node scripts/build-web.js dist-demo --demo
+      - name: No password saved yet
+        if: env.HAS_PASSWORD != 'true'
+        run: echo "::warning::The website was built but not uploaded - save the STRATO SFTP password as the repository secret STRATO_SFTP_PASSWORD (docs/DEPLOY.md)."
+      - name: Upload to STRATO
+        if: env.HAS_PASSWORD == 'true'
+        env:
+          LFTP_PASSWORD: ${{ secrets.STRATO_SFTP_PASSWORD }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp > /dev/null
+          # (every file of the site, the hidden .htaccess too; the password from LFTP_PASSWORD, never on the command line)
+          lftp -c "set sftp:auto-confirm yes; set net:max-retries 3; set net:timeout 30; \
+            open --env-password -u \"$SFTP_USER\" sftp://$SFTP_HOST; \
+            mirror --reverse --only-newer --parallel=4 --verbose=1 dist-demo/ /"
+          echo "Published: https://toonaro.com"
