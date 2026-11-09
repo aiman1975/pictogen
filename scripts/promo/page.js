@@ -116,6 +116,9 @@ h1 { margin: 8px 0 0; font-weight: 900; font-size: 50px; line-height: 1.08; lett
 .kicker.hk { color: #fdba74; }
 .go.hgo { background: linear-gradient(135deg, #fb923c, #f43f5e); }
 .card.rel { position: relative; }
+/* (a card whose picture pops in: the white card pops in with it, no empty box before) */
+.card:has(> .pop) { background: transparent; box-shadow: none; overflow: visible; }
+.card > .pop { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgb(0 0 0 / .45), 0 0 0 1px rgb(255 255 255 / .1); }
 .paper { position: absolute; transform: rotate(-3deg); border-radius: 6px; overflow: hidden; background: #fff; box-shadow: 0 24px 60px rgb(0 0 0 / .5); }
 .paper.back { transform: rotate(4deg); filter: brightness(.96); }
 .paper svg, .paper img { display: block; width: 100%; height: auto; }
