@@ -78,7 +78,9 @@ with a note. It costs nothing per visitor: everything is drawn in the visitor's
 browser, the web space only sends the files (about 24 MB, once per visitor). No login: it would need
 a server, consent texts and more privacy rules, for little gain. Everything the studio draws carries the mark "Toonaro · demo", on screen
 and so in every download, print and video. A small note in the studio shows how to get the full
-version, without the mark (the address in `DEMO_CONTACT`). (With a number of tries, they are counted
+version, without the mark (the address in `DEMO_CONTACT`). Words Toonaro did not know are listed under the
+picture, with a link that opens the visitor's own mail app with them filled in (nothing is sent by
+itself, nothing is logged): the list of what to teach Toonaro next. (With a number of tries, they are counted
 in the visitor's browser: a visitor who clears their browser data gets new ones.) The demo is a website: it can't be installed as an app, search engines may list it,
 and `/impressum` and `/datenschutz` are linked at the bottom of the landing page.
 

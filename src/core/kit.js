@@ -33,6 +33,15 @@ export function createKit() {
     rect(x, y, width, height, o = {}) { add('rect', { x, y, width, height, rx: o.rx }, o); },
     path(d, o) { add('path', { d }, o); },
     poly(points, o) { add('polygon', { points: pts(points) }, o); },
+    /**
+     * A bar from (x1, y1) to (x2, y2), w wide, with round ends: a filled shape (o.fill, kind 'body' by
+     * default), so it shows in every style - a bike's frame, a swing's legs, a ladder's rungs.
+     */
+    bar(x1, y1, x2, y2, w, o = {}) {
+      const len = Math.hypot(x2 - x1, y2 - y1) || 1, r = w / 2;
+      const nx = (-(y2 - y1) / len) * r, ny = ((x2 - x1) / len) * r;
+      add('path', { d: `M${r2(x1 + nx)} ${r2(y1 + ny)} L${r2(x2 + nx)} ${r2(y2 + ny)} A${r2(r)} ${r2(r)} 0 0 0 ${r2(x2 - nx)} ${r2(y2 - ny)} L${r2(x1 - nx)} ${r2(y1 - ny)} A${r2(r)} ${r2(r)} 0 0 0 ${r2(x1 + nx)} ${r2(y1 + ny)} Z` }, o);
+    },
     line(x1, y1, x2, y2, o) { add('line', { x1, y1, x2, y2 }, o, 'line'); },
     polyline(points, o) { add('polyline', { points: pts(points) }, o, 'line'); },
     raw(svgMarkup, o = {}) {

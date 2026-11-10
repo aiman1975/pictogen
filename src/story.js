@@ -1,5 +1,6 @@
 // Toonaro Story & Clip Engine: Multi-scene animated clips for Kids Stories,
 // Science Documentaries, News & Editorial Briefs, and How-To Explainer Guides.
+import { quoteSpeech } from './said.js';
 import { isOutline, readOutline, renderSlide } from './slides.js';
 import { detectLanguage } from './lang.js';
 import { isGermanPrompt, germanStory } from './lang-de.js';
@@ -455,9 +456,13 @@ export function composeStory(storyInput, opts = {}) {
   const german = typeof storyInput === 'string' && isGermanPrompt(storyInput);
   // (and one in Arabic - src/lang-ar.js: who is left out of a sentence put back, names kept)
   const arabic = typeof storyInput === 'string' && isArabicPrompt(storyInput);
+  // (what is said without quote marks - "Mia says look, a swing" - in quotes: src/said.js)
+  if (typeof storyInput === 'string' && !isTemplate) storyInput = quoteSpeech(storyInput, arabic ? 'ar' : german ? 'de' : 'en');
   const arTranslate = arabic ? arabicStory(storyInput) : null;
   const read = typeof storyInput === 'string' && storyInput.trim() && !isTemplate && !storyInput.includes('|')
     ? readStory(storyInput, { individuals: opts.individuals ?? [], adults: genre !== 'kids', ...(german ? { translate: germanStory(storyInput) } : arabic ? { translate: arTranslate } : {}) }) : null;
+  // (a caption as written: without the mark on what is said - src/said.js)
+  if (read) for (const sc of read.scenes) if (typeof sc.caption === 'string') sc.caption = sc.caption.replace(/\u2060/g, '');
   // (an Arabic story's names shown in Arabic again: "Sara" is سارة)
   if (read && arabic) for (const c of read.cast) { const ar = c.name && arTranslate.arabicName(c.name); if (ar) c.name = ar; }
   // (a German story: the German words left out are what was not drawn)

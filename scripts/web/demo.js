@@ -2,7 +2,8 @@
 // studio in the browser a few times. Everything the studio draws carries the mark "Toonaro · demo" -
 // on screen, so in downloads, prints and videos too; after the free tries (counted in this browser),
 // Toonaro says how to get the full version. What a visitor types is kept short: a picture from up to
-// maxPrompt characters, a clip from up to maxStory.
+// maxPrompt characters, a clip from up to maxStory. Words Toonaro did not know are listed under the
+// picture, with an e-mail to send them to us (only if the visitor wants to: their own mail app opens).
 // Settings: window.__toonaroDemo = { tries, contact, maxPrompt, maxStory }.
 (function () {
   var cfg = window.__toonaroDemo || { tries: 3, contact: '' };
@@ -28,6 +29,11 @@
       long: function (n, m) { return 'The demo draws from up to ' + n + ' characters (yours: ' + m + '). Make it a little shorter - the full version has no limit.'; },
       free: 'Free demo, with a watermark. The full version, without it:',
       noteFree: function () { return 'Try it free in your browser, as often as you like - with a "demo" watermark, stories of up to ' + cfg.maxStory + ' characters.'; },
+      missing: 'Toonaro doesn\'t know these words yet:',
+      tell: 'Tell us, and we\'ll teach it',
+      mailSubject: 'Toonaro: words to learn',
+      mailWords: 'Words Toonaro did not know:',
+      mailText: 'What I typed:',
     },
     de: {
       left: function (n) { return n === 0 ? 'Keine kostenlosen Versuche mehr' : n === 1 ? 'Noch 1 kostenloser Versuch' : 'Noch ' + n + ' kostenlose Versuche'; },
@@ -39,6 +45,11 @@
       long: function (n, m) { return 'Die Demo malt aus bis zu ' + n + ' Zeichen (deine: ' + m + '). Kürze den Text etwas – die Vollversion hat keine Grenze.'; },
       free: 'Kostenlose Demo, mit Wasserzeichen. Die Vollversion, ohne:',
       noteFree: function () { return 'Kostenlos im Browser ausprobieren, so oft du willst – mit „Demo“-Wasserzeichen, Geschichten bis ' + cfg.maxStory + ' Zeichen.'; },
+      missing: 'Diese Wörter kennt Toonaro noch nicht:',
+      tell: 'Sag es uns – wir bringen sie ihm bei',
+      mailSubject: 'Toonaro: Wörter zum Lernen',
+      mailWords: 'Wörter, die Toonaro nicht kannte:',
+      mailText: 'Mein Text:',
     },
     ar: {
       left: function (n) { return n === 0 ? 'لا توجد محاولات مجانية متبقية' : n === 1 ? 'محاولة مجانية واحدة متبقية' : n === 2 ? 'محاولتان مجانيتان متبقيتان' : n + ' محاولات مجانية متبقية'; },
@@ -50,6 +61,11 @@
       long: function (n, m) { return 'النسخة التجريبية ترسم من ' + n + ' حرف كحد أقصى (نصك: ' + m + '). اختصره قليلًا، فالنسخة الكاملة بلا حدود.'; },
       free: 'نسخة تجريبية مجانية بعلامة مائية. النسخة الكاملة بدونها:',
       noteFree: function () { return 'جرّبه مجانًا في المتصفح بقدر ما تشاء – مع علامة «تجريبي» وقصص حتى ' + cfg.maxStory + ' حرف.'; },
+      missing: 'تونارو لا يعرف هذه الكلمات بعد:',
+      tell: 'أخبرنا وسنعلّمه إياها',
+      mailSubject: 'تونارو: كلمات ليتعلمها',
+      mailWords: 'كلمات لم يعرفها تونارو:',
+      mailText: 'ما كتبته:',
     },
   };
   var t = function (k) { return T[lang()][k]; };
@@ -81,7 +97,15 @@
     if (v && typeof v === 'object') for (var k in v) if (Object.prototype.hasOwnProperty.call(v, k)) v[k] = markAll(v[k]);
     return v;
   };
-  if (studio) window.__toonaroMark = markAll;
+  // (and the words it could not draw, for "tell us" under the picture: a single picture's)
+  var missing = [];
+  var SMALL = /^(a|an|the|and|or|but|with|without|in|on|at|of|to|for|from|by|is|are|was|were|be|it|he|she|they|his|her|their|its|this|that|then|so|very|too|also|just|some|there|here|out|up|down|says|said|shouts|calls|ein|eine|einen|der|die|das|und|mit|im|in|auf|zu|ist|sind|sie|er|es|dann)$/i;
+  var catchMissing = function (v) {
+    if (!v || typeof v !== 'object' || Array.isArray(v) || !Array.isArray(v.unknown) || typeof v.svg !== 'string') return;
+    missing = v.unknown.filter(function (w, i, all) { return typeof w === 'string' && w.length > 2 && !SMALL.test(w) && !/^pg[cp]\d+$/i.test(w) && all.indexOf(w) === i; }).slice(0, 8);
+    setTimeout(showMissing, 0);
+  };
+  if (studio) window.__toonaroMark = function (v) { catchMissing(v); return markAll(v); };
 
   // ---- Looks: the tries badge and the last word
   var css = '.tn-demo-left{display:inline-flex;align-items:center;gap:6px;margin:8px 0 0;padding:4px 12px;border-radius:999px;background:#fff7ed;color:#c2410c;font:800 .85rem Nunito,"Baloo Bhaijaan 2",sans-serif;border:1px solid #fed7aa}'
@@ -93,6 +117,7 @@
     + '.tn-demo-end a.mail{font-weight:900;color:#ea580c;text-decoration:none}.tn-demo-end button{margin-top:6px;border:0;border-radius:999px;padding:10px 20px;font-weight:900;font-size:1rem;font-family:inherit;color:#fff;background:linear-gradient(135deg,#fb923c,#f43f5e);cursor:pointer}'
     + '.tn-demo-note{margin:10px 0 0;font-weight:800;color:#c2410c;font-size:.95rem}'
     + '.tn-demo-count{font:700 .8rem Nunito,"Baloo Bhaijaan 2",sans-serif;color:#64748b;margin:4px 0 0}.tn-demo-count.over{color:#b91c1c;font-weight:900}'
+    + '.tn-demo-missing{color:#475569}.tn-demo-missing b{color:#b91c1c}.tn-demo-tell{font-weight:900;color:#ea580c;text-decoration:none;white-space:nowrap}.tn-demo-tell:hover{text-decoration:underline}'
     + '.tn-demo-long{margin:8px 0 0;padding:8px 12px;border-radius:12px;background:#fef2f2;color:#b91c1c;font:800 .9rem Nunito,"Baloo Bhaijaan 2",sans-serif}';
   var addCss = function () { var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); };
 
@@ -115,6 +140,28 @@
     var n = left();
     badge.textContent = '✨ ' + t('left')(n);
     badge.className = 'tn-demo-left' + (n ? '' : ' none');
+  };
+  // Under the picture, words Toonaro did not know - and an e-mail to send them, if the visitor likes
+  // (nothing is sent by itself: the visitor's own mail app opens, with the words in it)
+  var showMissing = function () {
+    var help = document.getElementById('word-help');
+    if (!help) return;
+    var row = help.querySelector('.tn-demo-missing');
+    if (!missing.length || !cfg.contact) { if (row) row.remove(); return; }
+    if (!row) { row = document.createElement('span'); row.className = 'wh-row tn-demo-missing'; help.appendChild(row); }
+    help.classList.add('show');
+    var line = document.getElementById('prompt-input');
+    var body = t('mailWords') + ' ' + missing.join(', ') + '\n' + t('mailText') + ' ' + (line ? line.value.trim() : '') + '\n';
+    row.textContent = '💡 ' + t('missing') + ' ';
+    var b = document.createElement('b');
+    b.textContent = missing.join(', ');
+    row.appendChild(b);
+    row.appendChild(document.createTextNode(' — '));
+    var a = document.createElement('a');
+    a.textContent = '✉️ ' + t('tell');
+    a.href = 'mailto:' + cfg.contact + '?subject=' + encodeURIComponent(t('mailSubject')) + '&body=' + encodeURIComponent(body);
+    a.className = 'tn-demo-tell';
+    row.appendChild(a);
   };
   var showEnd = function () {
     if (document.querySelector('.tn-demo-end')) return;
@@ -202,6 +249,9 @@
       }
       var line = document.getElementById('prompt-input');
       if (line) line.maxLength = cfg.maxPrompt;
+      // (the studio writes its own word hints anew with each picture: the "tell us" row after them)
+      var help = document.getElementById('word-help');
+      if (help) new MutationObserver(function () { if (!help.querySelector('.tn-demo-missing') && missing.length) showMissing(); }).observe(help, { childList: true });
       // (the story box: how many characters, of how many)
       var story = document.getElementById('story-text');
       if (story && badge) {
@@ -234,6 +284,6 @@
       }
     }
     // (the words follow the language switch)
-    new MutationObserver(showLeft).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+    new MutationObserver(function () { showLeft(); showMissing(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
   });
 })();

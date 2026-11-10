@@ -107,7 +107,7 @@ const LOOK_VERBS = new Set(['look', 'looks', 'looking', 'looked', 'watch', 'watc
 // Hugging someone: walking up to them and holding them ("then hugs her grandma")
 const HUG_VERBS = new Set(['hug', 'hugs', 'hugging', 'hugged', 'cuddle', 'cuddles', 'cuddling', 'embrace', 'embraces', 'embracing']);
 // What can be sat on ("then sits on the bench": walks to it and sits there)
-const SEAT_IDS = new Set(['chair', 'bench', 'sofa']);
+const SEAT_IDS = new Set(['chair', 'bench', 'sofa', 'swing', 'seesaw', 'hammock']);
 const REACH_VERBS = new Set(['reach', 'reaches', 'reached', 'reaching', 'join', 'joins', 'joined', 'meet', 'meets', 'met']);
 const EXPRESSION_VERBS = { smile: 'happy', smiles: 'happy', grin: 'happy', grins: 'happy', frown: 'sad', frowns: 'sad', cries: 'sad', laughs: 'laugh' };
 const DETERMINERS = new Set(['a', 'an', 'the', 'this', 'that', 'his', 'her', 'their', 'its', 'my', 'your', 'our']);

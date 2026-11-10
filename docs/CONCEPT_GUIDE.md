@@ -59,6 +59,8 @@ d.poly([[x,y], ...], o)          // closed polygon
 d.line(x1, y1, x2, y2, o)        // kind 'line' by default
 d.polyline([[x,y], ...], o)      // kind 'line' by default
 d.group('rotate(20 50 50)', () => { ...shapes... })   // transform a set of shapes
+d.bar(x1, y1, x2, y2, w, o)      // a bar w wide with round ends, filled (o.fill): frames, legs, rungs
+d.joint(cls, [x, y], () => {...}) // shapes that turn around a pivot (a swing's seat: class pg-swinging)
 ```
 Options `o`: `{ fill, stroke, sw (stroke width for lines), opacity, kind, transform }`
 
@@ -72,8 +74,12 @@ Options `o`: `{ fill, stroke, sw (stroke width for lines), opacity, kind, transf
 | `highlight` | white shine | hidden in outline/silhouette/sketch/neon |
 | `shadow`    | soft dark patch | hidden except flat/cartoon |
 
+Seats and rides: `seatTop` (the seat's top, someone sits there with their hips on it), `seats: [x, ...]` (where each
+sitter goes; else spread along `seatSpan`), `saddle: [x, y]` (ridden, like the bike and the tricycle). `sway: { pivot,
+motion }` makes the seat and whoever sits on it move together (a swing swings, a seesaw rocks).
+
 Rules of thumb:
-- Limbs, thick parts → filled `body` shapes (rects/paths), **not** thick lines (thick lines become heavy black bars in outline style).
+- Limbs, thick parts → filled `body` shapes (rects/paths, `d.bar`), **not** thick lines (a thick line drawn as `body` disappears in the flat style and becomes a heavy black bar in outline).
 - Draw back-to-front (painter's order). Overlaps are fine; in outline style white fills hide what's behind.
 - Use `import { INK } from '../core/styles.js'` (#263238) for eyes/mouths.
 - Faces: friendly & simple (dot eyes `detail`, smile `line` sw≈1.8, cheeks `accent`).

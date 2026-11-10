@@ -145,6 +145,11 @@ export const ANIMATION_CSS = `
 /* An idea buddy's glow pulses */
 @keyframes pgGlow { 0%, 100% { opacity: 0.75; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1.04); } }
 .pg-glow { transform-box: fill-box; transform-origin: center; animation: pgGlow 2.2s ease-in-out infinite; }
+/* A swing swings, a seesaw rocks: the moving part around its pivot, and whoever sits on it (src/concepts/playground.js) */
+@keyframes pgSwinging { 0% { transform: rotate(-16deg); } 100% { transform: rotate(16deg); } }
+.pg-swinging { animation: pgSwinging 1.5s ease-in-out infinite alternate; }
+@keyframes pgSeesawing { 0% { transform: rotate(-8deg); } 100% { transform: rotate(8deg); } }
+.pg-seesawing { animation: pgSeesawing 2.2s ease-in-out infinite alternate; }
 ${EMOTE_CSS}
 ${PLACE_CSS}
 ${GEAR_CSS}
@@ -886,7 +891,11 @@ export function renderIcon(id, opts = {}) {
   const c = lookup(id);
   const st = getStyle(style);
   const uid = newUid();
-  const w = styleWrap(style, uid, shapesToSvg(drawConcept(c, opts), style), ICON_FX);
+  // (a wide thing - a bench, a seesaw, a fence - drawn wider than its box: shrunk to fit, on its baseline)
+  let inner = shapesToSvg(drawConcept(c, opts), style);
+  const k = (c.width ?? 0.8) > 1.15 ? Math.round((1.05 / c.width) * 1000) / 1000 : 1;
+  if (k < 1) inner = `<g transform="translate(${Math.round((50 - 50 * k) * 100) / 100} ${Math.round(((c.baseline ?? 96) - (c.baseline ?? 96) * k) * 100) / 100}) scale(${k})">${inner}</g>`;
+  const w = styleWrap(style, uid, inner, ICON_FX);
   const text = label === true ? c.label : label || '';
   const H = text ? 122 : 100;
   const bg = background ?? st.background;

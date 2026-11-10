@@ -65,6 +65,7 @@ const VERBS = w(`
 يبكي, تبكي, بكي, بكت = cries
 ينام, تنام, نام, نامت = sleeps
 يجلس, تجلس, جلس, جلست = sits
+يتارجح, تتارجح, تارجح, تارجحت, يتمرجح, تتمرجح, تمرجح, تمرجحت = swings
 يقف, تقف, وقف, وقفت = stands
 يقرا, تقرا, قرا, قرات = reads
 يكتب, تكتب = writes
@@ -205,7 +206,8 @@ const PLACES = w(`
 تحت البحر, تحت الماء, قاع البحر = underwater
 ليله = night
 شارع, طريق = street
-ملعب = playground
+نهر, انهار = river
+ملعب, ملاعب, ملعب الاطفال, حديقه الالعاب, مدينه الالعاب = playground
 قلعه, قصر = castle
 سماء = sky
 ليل, ليلا, الليل, ليالي, ليلة = night
@@ -239,6 +241,49 @@ const OWN = w(`
 غواص = diver
 غواصه = woman diver
 فارس, فرسان = knight
+ارجوحه, ارجوحات, اراجيح, مرجيحه, مراجيح, مرجوحه = swing
+سي سو, سيسو, ارجوحه التوازن, ارجوحه الميزان, ميزان الاطفال = seesaw
+صندوق رمل, صندوق الرمل, حوض رمل, حوض الرمل = sandbox
+هيكل التسلق, لعبه التسلق, جهاز التسلق, برج التسلق = climbing frame
+دواره, دوامه الالعاب, الدواره = roundabout
+ترامبولين, ترامبولينات, نطاطه = trampoline
+ارجوحه شبكيه, شبكه النوم, هاماك = hammock
+سياج, سور, اسوار, سياجات = fence
+بوابه, بوابات, باب الحديقه = gate
+اشاره المرور, اشارات المرور, اشاره ضوئيه, اشاره مرور = traffic light
+فانوس, فوانيس = lantern
+عمود اناره, عمود الاناره, مصباح الشارع, اعمده الاناره = street lamp
+ممر المشاه, خطوط المشاه = crosswalk
+لعبه, العاب = toy
+دميه, دمي, عروسه = doll
+طباشير, طبشوره = chalk
+مجرفه, رفش, مجارف = spade
+دراجه ثلاثيه, دراجه بثلاث = tricycle
+حقيبه مدرسيه, حقيبه المدرسه, شنطه المدرسه = backpack
+شوكه = fork
+قدر, طنجره, حله = pot
+عصير = juice
+مصباح, لمبه, اباجوره, ابجوره, مصابيح = lamp
+درج, سلالم, درجات = stairs
+سجاده, سجاجيد, بساط = rug
+وساده, مخده, وسائد, مخدات = cushion
+بطانيه, لحاف, بطانيات = blanket
+خزانه, دولاب, خزانه الملابس = wardrobe
+منشفه, مناشف, فوطه = towel
+كنز, كنوز, صندوق الكنز = treasure chest
+شجيره, شجيرات = bush
+كهف, كهوف, مغاره = cave
+برج, ابراج = tower
+رافعه, رافعات, ونش = crane
+حفاره, جرافه, بلدوزر, حفارات = digger
+سله المهملات, صندوق القمامه, حاويه, سله القمامه = bin
+عربه يد, عربه اليد = wheelbarrow
+مرشه, ابريق الري, رشاش الماء = watering can
+سنجاب, سناجب = squirrel
+جسر, جسور, كوبري = bridge
+ساعه حائط, ساعه الحائط = clock
+عربه اطفال, عربه الاطفال = stroller
+خروف, خراف, غنم = sheep
 `);
 
 // First names: a girl or a boy in a scene (a story keeps them as characters)
@@ -314,6 +359,13 @@ export function bridgeArabic(text, { names = null, story = false } = {}) {
         // (two words that are one thing: "كرة قدم", "غرفة النوم")
         const two = n + 1 < ws.length ? normalArabic(`${word} ${ws[n + 1]}`) : null;
         if (two && KNOWN[two] !== undefined) { toks.push({ en: KNOWN[two], kind: kindIn(two) }); n++; continue; }
+        // (and with small words on the front of the first: "السي سو", "وأرجوحة شبكية")
+        const front2 = two && FRONT.find(([f]) => two.startsWith(f) && KNOWN[two.slice(f.length)] !== undefined && two.indexOf(' ') - f.length >= 2);
+        if (front2) {
+          if (front2[1].startsWith('and')) toks.push({ en: 'and', kind: 'other' });
+          const rest = two.slice(front2[0].length);
+          toks.push({ en: KNOWN[rest], kind: kindIn(rest) }); n++; continue;
+        }
         // ("الحرف ب", "حرف الباء": a letter figure; "الرقم ٣": a number figure)
         if (/^(ال)?حرف$/.test(normalArabic(word)) && /^\p{L}$/u.test(ws[n + 1] ?? '')) { toks.push({ en: `letter ${ws[++n]}`, kind: 'noun' }); continue; }
         if (/^(ال)?(رقم|عدد)$/.test(normalArabic(word)) && /^[0-9٠-٩]$/.test(ws[n + 1] ?? '')) { toks.push({ en: `number ${normalArabic(ws[++n])}`, kind: 'noun' }); continue; }

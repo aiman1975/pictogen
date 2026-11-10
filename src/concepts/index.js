@@ -13,6 +13,8 @@ import wildlife from './wildlife.js';
 import vehicles from './vehicles.js';
 import food from './food.js';
 import objects from './objects.js';
+import playground from './playground.js';
+import everyday from './everyday.js';
 import alphabet from './alphabet.js';
 import { loadFluentConcepts } from './fluent_loader.js';
 
@@ -41,7 +43,7 @@ export function registerConcept(def) {
 }
 
 // 1. Primary core concepts (custom handcrafted parametric SVG)
-for (const list of [sky, nature, people, characters, friends, seaAnimals, fantasy, animals, wildlife, vehicles, food, objects, alphabet]) {
+for (const list of [sky, nature, people, characters, friends, seaAnimals, fantasy, animals, wildlife, vehicles, food, objects, playground, everyday, alphabet]) {
   for (const def of list) registerConcept(def);
 }
 

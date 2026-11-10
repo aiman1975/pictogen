@@ -2,6 +2,7 @@
 
 import { parseText, suggestWords } from './text/matcher.js';
 import { bridgeGerman, isGermanPrompt } from './lang-de.js';
+import { quoteSpeech, markedSaying } from './said.js';
 import { composeScene, ENV_WORDS, DESK_RE, IN_BED_RE } from './scene.js';
 
 // Words that set the scene's backdrop (night, rain, beach...) rather than draw an object.
@@ -9,6 +10,9 @@ const SETTING_WORDS = new Set(Object.values(ENV_WORDS).flat());
 // Time-of-day / weather words: in a scene the backdrop already shows them, so a library icon
 // they happen to match ("sunset" -> city-at-sunset emoji) would be a stray object on the ground.
 const ATMOSPHERE_WORDS = new Set([...ENV_WORDS.night, ...ENV_WORDS.sunset, ...ENV_WORDS.snow, ...ENV_WORDS.rain]);
+const SAY_WORDS = /^(says|said|say|shouts|shouted|shout|yells|yelled|asks|asked|whispers|whispered|replies|replied|answers|answered|exclaims|exclaimed|calls|called|call|cries|cried|screams|screamed|out)$/;
+// (what a playground has)
+const PLAYGROUND = new Set(['swing', 'seesaw', 'sandbox', 'climbing_frame', 'roundabout', 'trampoline', 'playground_slide']);
 const PLACE_WORDS = new Set(['forest', 'woods', 'jungle', 'park', 'garden', 'home', 'coral', 'reef']);
 // (and these are always the backdrop in a scene, drawn by src/places.js: dunes and cacti, snowy
 // peaks, a castle on a hill, a barn and fields)
@@ -85,6 +89,8 @@ export function generate(text, opts = {}) {
       text = `${phAr[1]} is for ${bridgeArabic(phAr[2]).text}`;
     } else if (countAr) text = `count ${countAr[1] ? `from ${countAr[1]} ` : ''}to ${countAr[2]}`;
   }
+  // What is said without quote marks ("says look, a swing"): put in quotes, said in a bubble (src/said.js)
+  if (mode === 'scene' || mode === 'comic') text = quoteSpeech(text, opts.lang ?? (isArabicPrompt(text) ? 'ar' : isGermanPrompt(text) ? 'de' : 'en'));
   // An Arabic prompt: the same, from its Arabic words (src/lang-ar.js)
   if (!spelling && (opts.lang === 'ar' || (!opts.lang && isArabicPrompt(text)))) {
     const topic = findArabicDiagram(text);
@@ -162,6 +168,10 @@ export function generate(text, opts = {}) {
     ? matches.filter((m) => (ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary) || (someone && PLACE_WORDS.has(m.word)) || BACKDROP_WORDS.has(m.word))
     : [];
   if (backdrop.length) matches = matches.filter((m) => !backdrop.includes(m));
+  // (a playground with nothing of it named has a swing and a slide)
+  if (mode === 'scene' && parsed.tokens.some((t) => t === 'playground' || t === 'playgrounds') && !matches.some((m) => PLAYGROUND.has(conceptOf(m.id)))) {
+    matches = [...matches, ...['swing', 'playground_slide'].filter((id) => getConcept(id)).map((id) => ({ id, word: 'playground', count: 1 }))];
+  }
   // Several things happening one after another: actors follow a timeline of beats - the prompt's,
   // or the beats as edited in the studio (opts.beats), which can also bring a still scene to life
   let timeline = mode === 'scene' ? parseTimeline(text, { names }) : null;
@@ -196,6 +206,19 @@ export function generate(text, opts = {}) {
       ...timeline.actors.map(({ id, match }) => ({ ...match, id, count: match.count ?? 1, animation: undefined, actor: true })),
       ...timeline.props.filter((m) => !isBackdrop(m)),
     ];
+  }
+  // Things named in what is said without quote marks are drawn too ("look, a swing!" has a swing)
+  if (mode === 'scene') {
+    const have = new Set(matches.map((m) => conceptOf(m.id)));
+    for (const q of takeQuotes(text).quotes.map(markedSaying).filter(Boolean)) {
+      const en = isArabicPrompt(q) ? bridgeArabic(q).text : isGermanPrompt(q) ? bridgeGerman(q).text : q;
+      for (const m of parseText(en.replace(/[!?.,]/g, ' '), { names }).matches) {
+        if (have.has(conceptOf(m.id)) || !getConcept(conceptOf(m.id))) continue;
+        have.add(conceptOf(m.id));
+        matches = [...matches, { id: m.id, word: m.word, count: m.count ?? 1 }];
+        if (timeline) timeline.props = [...timeline.props, { id: m.id, word: m.word, count: m.count ?? 1 }];
+      }
+    }
   }
   const common = { style, seed, vary, width, height, text, identities };
   let svg, diagram = null, mood = null, card = null, endAt = null;
@@ -271,7 +294,9 @@ export function generate(text, opts = {}) {
   const setting = mode === 'scene'
     ? [...backdrop.map((m) => m.word), ...parsed.unknown.filter((w) => SETTING_WORDS.has(w))]
     : [];
-  const unknown = [...parsed.unknown.filter((w) => !setting.includes(w) && !/^qq\d+$/.test(w)), ...leftOut];
+  // (a saying verb with its words in quotes was understood: "says", "shouts")
+  const spoken = /qq\d+/.test(sceneText) || /["“”„«»]/.test(text);
+  const unknown = [...parsed.unknown.filter((w) => !setting.includes(w) && !/^qq\d+$/.test(w) && !(spoken && SAY_WORDS.test(w))), ...leftOut];
   // For each word not drawn, words close to it that can be (the studio offers them)
   const suggestions = Object.fromEntries(unknown.map((w) => [w, suggestWords(w)]).filter(([, list]) => list.length));
   const clip = timeline?.duration

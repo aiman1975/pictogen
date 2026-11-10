@@ -29,6 +29,9 @@ const HELD = {
   artist_palette: { size: 24 }, magnifying_glass_tilted_left: { size: 18 }, key: { size: 12 }, hammer: { size: 22 },
   microphone: { size: 16 }, guitar: { size: 46 }, violin: { size: 34 }, trumpet: { size: 26 }, drum: { size: 28 },
   candle: { size: 16 }, red_paper_lantern: { size: 20, at: [50, 10] }, compass: { size: 14 }, dagger: { size: 22 },
+  lantern: { size: 46, at: [10, 94] }, watering_can: { size: 30, at: [40, 30] }, spade: { size: 46, at: [50, 40] }, doll: { size: 26 },
+  chalk: { size: 14 }, cushion: { size: 26 }, towel: { size: 30, at: [50, 14] }, blanket: { size: 30 }, treasure_chest: { size: 30 },
+  pot_of_food: { size: 26 }, fork_and_knife: { size: 18 }, kitchen_knife: { size: 18 }, cheese_wedge: { size: 16 }, rock: { size: 16 },
   cat: { size: 36, at: [50, 62] }, dog: { size: 40, at: [50, 62] }, rabbit: { size: 32, at: [50, 62] },
   baby: { size: 30, at: [50, 60] }, fish: { size: 26 }, bird: { size: 20 },
 };

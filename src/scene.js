@@ -26,7 +26,7 @@ export const ENV_WORDS = {
   water: ['sea', 'ocean', 'lake', 'river', 'beach', 'pond', 'swim', 'swimming', 'sail', 'sailing', 'water', 'island', 'boat'],
   beach: ['beach', 'sand', 'island', 'shore'],
   room: ['room', 'office', 'indoor', 'inside', 'indoors', 'studio', 'classroom', 'school', 'lesson', 'kitchen', 'bedroom', 'desk', 'home', 'board', 'chalkboard', 'blackboard', 'whiteboard'],
-  forest: ['forest', 'woods', 'park', 'nature', 'jungle', 'garden'],
+  forest: ['forest', 'woods', 'park', 'nature', 'jungle', 'garden', 'playground', 'playgrounds'],
   city: ['city', 'town', 'downtown', 'skyline', 'skyscraper', 'skyscrapers', 'building', 'buildings', 'urban', 'street'],
   parallax: ['walk', 'walking', 'run', 'running', 'jog', 'jogging', 'stroll', 'across', 'drive', 'driving', 'road', 'street', 'cartoon', 'parallax', 'zeichentrick'],
   // More places, each with its own movement (src/places.js)
@@ -106,7 +106,7 @@ function detectEnv(items, words) {
     || (k === 'space' && /\b(outer space|on the moon|in space)\b/.test(words.join(' ')))
     || (k === 'sky' && /\b(up in the sky|high in the sky|high up in the sky|above the clouds|in the clouds|among the clouds|on (?:a|the) clouds?|through the night sky|up into the sky)\b/.test(words.join(' ')));
   const places = Object.fromEntries(Object.keys(PLACE_ENV_WORDS).map((k) => [k, place(k)]));
-  const outdoors = ['park', 'garden', 'outside', 'outdoors', 'yard', 'street', 'meadow'].some((x) => w.has(x)) || any('forest') || any('beach') || Object.values(places).some(Boolean);
+  const outdoors = ['park', 'garden', 'outside', 'outdoors', 'yard', 'street', 'meadow', 'playground', 'playgrounds'].some((x) => w.has(x)) || any('forest') || any('beach') || Object.values(places).some(Boolean);
   const room = !outdoors && (any('room') || tags.has('furniture') || ['chair', 'table', 'window', 'door', 'bed', 'box', 'sofa'].some((id) => ids.has(id)));
   const parallax = any('parallax') || items.some((it) => ['walk', 'run', 'walk-across', 'drive'].includes(it.m?.animation));
   const forest = any('forest') || tags.has('plant') || ids.has('tree');
@@ -130,7 +130,7 @@ function detectEnv(items, words) {
     forest,
     // A place named: trees along the horizon (a park, a forest), buildings (a city)
     woods: any('forest') && !places.jungle,
-    park: w.has('park') || w.has('garden'),
+    park: w.has('park') || w.has('garden') || w.has('playground') || w.has('playgrounds'),
     city: !room && any('city'),
     parallax,
     // (one place drawn: space, then underwater, the desert, a farm, a jungle; mountains and a
@@ -1380,7 +1380,7 @@ export function composeScene(matches, opts = {}) {
     for (const it of items) {
       const by = it.m.carries?.by;
       if (!by || !(it.c.seatTop || it.c.saddle)) continue;
-      const room = it.c.saddle || it.c.id === 'chair' ? 1 : 3;
+      const room = it.c.seats?.length ?? (it.c.saddle || it.c.id === 'chair' ? 1 : 3);
       it.carried = items.filter((o) => o !== it && by.includes(o.aid) && !o.onSeat && !o.carried && isPerson(o)).slice(0, room);
       for (const o of it.carried) o.onSeat = it;
     }
@@ -1584,7 +1584,7 @@ export function composeScene(matches, opts = {}) {
   const heldOf = (it) => (it.holding ? { id: it.holding.c.id, color: it.holding.m.color } : undefined);
   // Whoever sits on a seat or rides a bike, drawn on it in its own units (s: its scale): hips on the
   // seat (spread along a bench) or the saddle, each in its own look and marked for its photo face
-  const carried = (it, s) => (it.carried ?? []).map((o, i, all) => {
+  const sitters = (it, s) => (it.carried ?? []).map((o, i, all) => {
     const k = o.ratio;
     const ride = Boolean(it.c.saddle);
     const shapes = drawConcept(o.c, {
@@ -1592,12 +1592,19 @@ export function composeScene(matches, opts = {}) {
       view: ride ? 'side' : o.m.view, held: heldOf(o), animation: o.m.expression === 'talking' ? 'talk' : undefined,
     });
     const span = it.c.seatSpan ?? [12, 88];
+    // (a seat for each: a swing's, a seesaw's ends)
     const x = ride ? it.c.saddle[0] - (shapes.hipX ?? 50) * k
+      : it.c.seats ? it.c.seats[i % it.c.seats.length] - 50 * k
       : span[0] + ((i + 0.5) * (span[1] - span[0])) / all.length - 50 * k;
     const y = (ride ? it.c.saddle[1] : it.c.seatTop) - (shapes.seatAt ?? 70) * k;
     const svg = shapesToSvg(shapes, style, { olk: clamp(W / 280 / (2.4 * s * k), 0.35, 4) });
     return `<g class="pg-${ride ? 'rider' : 'sitter'}" data-id="${o.c.id}"${who(o)} transform="translate(${r2(x)} ${r2(y)}) scale(${r2(k * 1000) / 1000})">${svg}${thoughtBubble(o, false)}</g>`;
   }).join('');
+  // (on a swing or a seesaw: swinging or rocking with its seat, around the same pivot)
+  const carried = (it, s) => {
+    const svg = sitters(it, s), sway = it.c.sway;
+    return svg && sway ? `<g class="pg-${sway.motion}" style="transform-box: view-box; transform-origin: ${sway.pivot[0]}px ${sway.pivot[1]}px">${svg}</g>` : svg;
+  };
   // At a desk: the chair and its worker behind the desk's drawing, its things on its top (in the
   // desk's own units: s is its scale)
   const atDesk = (it, s) => {

@@ -167,6 +167,14 @@ if (chromium) {
       tries.push(await page.evaluate((w) => ({ marked: !!document.querySelector('#svg-viewport svg .tn-demo-mark'), drawn: window.pictogenStudio.getState().prompt === w, end: !!document.querySelector('.tn-demo-end'), note: document.querySelector('.tn-demo-left')?.textContent ?? '' }), words));
     }
     check(tries.every((t) => t.marked && t.drawn && !t.end) && /Full version|full version/.test(tries[0].note) && /info@toonaro\.com/.test(tries[0].note), `the demo: as often as they like, every picture marked, a note on the full version (${JSON.stringify(tries.map((t) => [t.marked, t.drawn, t.end]))})`);
+    // (words Toonaro does not know: listed under the picture, with an e-mail to send them - if the visitor wants)
+    const tell = await page.evaluate(() => document.querySelector('.tn-demo-missing'));
+    check(!tell, 'no "tell us" row when every word was drawn');
+    await page.fill('#prompt-input', 'a girl flies a zeppelin');
+    await page.click('#btn-generate');
+    await page.waitForTimeout(1500);
+    const miss = await page.evaluate(() => ({ text: document.querySelector('.tn-demo-missing')?.textContent ?? '', href: document.querySelector('.tn-demo-tell')?.href ?? '' }));
+    check(/zeppelin/.test(miss.text) && /^mailto:info@toonaro\.com\?subject=/.test(miss.href) && /zeppelin/.test(decodeURIComponent(miss.href)), `a word Toonaro doesn't know is listed, with an e-mail to tell us (${JSON.stringify(miss)})`);
     check(!errors.length, `no page errors in the demo${errors.length ? ': ' + errors.join('; ') : ''}`);
   } finally {
     await browser.close();

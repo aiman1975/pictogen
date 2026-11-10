@@ -420,6 +420,7 @@ function lookPhrase(toks, i, isThing) {
 
 // Doing things together: sitting on something, riding it, holding hands, hugging
 const SIT_VERBS = new Set(['sit', 'sits', 'sitting', 'sat', 'seated']);
+const SWING_VERBS = new Set(['swings', 'swinging', 'swung']);
 const RIDE_VERBS = new Set(['ride', 'rides', 'riding', 'rode', 'cycle', 'cycles', 'cycling', 'pedal', 'pedals', 'pedalling', 'pedaling']);
 // Thinking of something: it is drawn in a thought bubble over their head
 const THINK_VERBS = new Set(['think', 'thinks', 'thinking', 'thought', 'dream', 'dreams', 'dreaming', 'dreamed', 'dreamt', 'imagine', 'imagines',
@@ -429,8 +430,10 @@ const HUG_VERBS = new Set(['hug', 'hugs', 'hugging', 'hugged', 'cuddle', 'cuddle
 const HAND_HOLD = new Set(['hold', 'holds', 'holding', 'held', 'join', 'joins', 'joining']);
 const CLAUSE_BREAKS = new Set(['then', 'while', 'when', 'but', 'after', 'before', 'because', 'so']);
 // What can be sat on (with the seat's height in its drawing, see the concepts) and ridden
-const SEATS = new Set(['chair', 'bench', 'sofa']);
-const RIDES = new Set(['bike', 'unicorn', 'elephant', 'owl']);
+const SEATS = new Set(['chair', 'bench', 'sofa', 'swing', 'seesaw', 'hammock']);
+// (on a swing, a seesaw or a hammock is sitting on it: "a girl on a swing")
+const ON_SEATS = new Set(['swing', 'seesaw', 'hammock']);
+const RIDES = new Set(['bike', 'tricycle', 'unicorn', 'elephant', 'owl']);
 const isPerson = (m) => /^people/.test(getConcept(m.id.split('~')[0])?.category ?? '');
 
 /**
@@ -461,6 +464,14 @@ function relations(toks, found) {
       const own = people(from, j);
       return own.length ? own : people(-1, j).slice(-2);
     };
+    // ("a girl swings", "is swinging": on a swing - the one there, or one of her own; "two swings" are swings)
+    if (SWING_VERBS.has(t) && !/^(a|an|the|two|three|some|many|\d+)$/.test(toks[j - 1] ?? '') && subjects().length && getConcept('swing')) {
+      let thing = found.find((m) => m.id === 'swing' && !m.carries && (m.at === j || (m.at > j && m.at < to)));
+      if (!thing) found.push(thing = { id: 'swing', word: t, count: 1, at: j });
+      const who = subjects().filter((m) => !m.carries).slice(-1);
+      if (who.length) { thing.carries = { how: 'sit', by: who.map((m) => m.id) }; for (const m of who) m.animation = 'sit'; }
+      continue;
+    }
     if (SIT_VERBS.has(t) || RIDE_VERBS.has(t) || (t === 'on' && j > 0)) {
       const ride = RIDE_VERBS.has(t);
       let thing = found.find((m) => (m.at > j || (ride && m.at === j)) && m.at < Math.min(to, j + 5) && (t === 'on' ? RIDES.has(m.id) || SEATS.has(m.id) : (ride ? RIDES : SEATS).has(m.id)) && !m.carries);
@@ -468,8 +479,8 @@ function relations(toks, found) {
       if (!thing && /^(cycl|pedal)/.test(t) && getConcept('bike') && subjects().length) found.push(thing = { id: 'bike', word: t, count: 1, at: j });
       // "a girl on a bike" rides it; "a cat on a chair" is just there
       const onBike = t === 'on' && thing && RIDES.has(thing.id);
-      if (t === 'on' && !onBike) continue;
-      const who = (t === 'on' ? people(from, j).slice(-1) : subjects()).filter((m) => !m.carries);
+      if (t === 'on' && !onBike && !(thing && ON_SEATS.has(thing.id))) continue;
+      const who = (t === 'on' && !ON_SEATS.has(thing?.id) ? people(from, j).slice(-1) : t === 'on' ? people(from, j) : subjects()).filter((m) => !m.carries);
       if (!thing || !who.length) continue;
       thing.carries = { how: ride || onBike ? 'ride' : 'sit', by: who.map((m) => m.id) };
       for (const m of who) m.animation = 'sit';

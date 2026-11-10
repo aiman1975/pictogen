@@ -115,6 +115,7 @@ lächelt, lächeln, lächelte = smiles
 weint, weinen, weinte = cries
 schläft, schlafen, schlief, schliefen, schlummert = sleeps
 sitzt, sitzen, saß, saßen, setzt = sits
+schaukelt, schaukeln, schaukelte, schaukelten, schaukle = swings
 steht, stehen, stand, standen = stands
 liegt, liegen, lag, lagen = lies
 liest, lesen, las = reads
@@ -341,7 +342,10 @@ küche = kitchen
 schlafzimmer, kinderzimmer = bedroom
 zimmer, raum, wohnzimmer = room
 straße, straßen = street
-spielplatz = playground
+fluss, flüsse, flüssen, bach = river
+see, seen, teich, teiche = lake
+scheune, scheunen, stall = barn
+spielplatz, spielplätze, spielplätzen, spielplatzes = playground
 schloss, burg = castle
 unterwasser = underwater
 wasser = water
@@ -392,6 +396,49 @@ taucher, tauchers = diver
 taucherin, taucherinnen = woman diver
 apfelbaum, apfelbaumes, apfelbaums = apple tree
 apfelbäume, apfelbäumen = apple trees
+schaukel, schaukeln, reifenschaukel = swing
+wippe, wippen = seesaw
+sandkasten, sandkästen, sandkastens, buddelkasten, sandkiste = sandbox
+klettergerüst, klettergerüste, klettergerüsten, klettergerüsts, klettergerüstes, kletterturm, klettertürme = climbing frame
+karussell, karussells, drehscheibe = roundabout
+trampolin, trampoline, trampolins, trampolinen = trampoline
+hängematte, hängematten = hammock
+zaun, zäune, zäunen, zauns, gartenzaun = fence
+tor, tore, toren, tors, gartentor, gartentür, pforte = gate
+ampel, ampeln = traffic light
+laterne, laternen, lampion, lampions = lantern
+straßenlaterne, straßenlaternen, straßenlampe, straßenlampen = street lamp
+zebrastreifen = crosswalk
+spielzeug, spielzeuge, spielsachen = toy
+kreide, kreiden, straßenkreide = chalk
+schaufel, schaufeln, spaten, schippe, schippen = spade
+dreirad, dreiräder, dreirads = tricycle
+schultasche, schultaschen, schulranzen, ranzen = backpack
+gabel, gabeln = fork
+topf, töpfe, töpfen, kochtopf = pot
+saft, säfte, orangensaft, apfelsaft = juice
+lampe, lampen, stehlampe, tischlampe = lamp
+treppe, treppen, stufen, treppenhaus = stairs
+teppich, teppiche, teppichs = rug
+kissen, kopfkissen, sofakissen = cushion
+decke, decken, bettdecke, kuscheldecke, wolldecke = blanket
+schrank, schränke, schränken, kleiderschrank = wardrobe
+handtuch, handtücher, handtüchern = towel
+schatz, schätze, schatztruhe, schatzkiste, schatzkisten = treasure chest
+busch, büsche, büschen, strauch, sträucher, hecke, hecken = bush
+höhle, höhlen = cave
+turm, türme, türmen, turms = tower
+kran, kräne, kranen, baukran = crane
+bagger, baggers = digger
+mülltonne, mülltonnen, mülleimer, abfalleimer, papierkorb = bin
+schubkarre, schubkarren = wheelbarrow
+gießkanne, gießkannen = watering can
+puppe, puppen = doll
+eichhörnchen = squirrel
+brücke, brücken = bridge
+uhr, uhren, wanduhr = clock
+kinderwagen = stroller
+schaf, schafe, schafen, lamm, lämmer = sheep
 `) };
 
 // Adjective endings: rot -> rot, rote, roter, roten, rotes, rotem
@@ -575,7 +622,7 @@ export function bridgeGerman(text, { names = null, story = false } = {}) {
     }).join('');
   });
   // ("fährt Fahrrad", "reitet ein Pferd": a bike, a scooter or a horse is ridden)
-  const en = out.join('').replace(/\b(?:in|into|to) the space\b/g, 'in space').replace(/\b(drives|rides) (?:(a|the) )?(bike|bicycle|scooter|skateboard|horse|pony|motorcycle|motorbike)\b/g, (m, v, art, what) => `rides ${art ?? 'a'} ${what}`);
+  const en = out.join('').replace(/\b(?:in|into|to) the space\b/g, 'in space').replace(/\b(drives|rides) (?:(a|the) )?(bike|bicycle|tricycle|scooter|skateboard|horse|pony|motorcycle|motorbike)\b/g, (m, v, art, what) => `rides ${art ?? 'a'} ${what}`);
   return { text: en.replace(/\s+/g, ' ').replace(/\s+([,.!?;:])/g, '$1').trim(), unknown };
 }
 

@@ -29,7 +29,7 @@ export default [
         d.circle(cx, 75, 3, { fill: metal, kind: 'detail' });
       }
       // The frame: chain stay, seat stay, seat tube, top tube, down tube, fork
-      const bar = (x1, y1, x2, y2, w = 4) => d.line(x1, y1, x2, y2, { stroke: frame, sw: w, strokeLinecap: 'round', kind: 'body' });
+      const bar = (x1, y1, x2, y2, w = 4) => d.bar(x1, y1, x2, y2, w, { fill: frame });
       bar(22, 75, 46, 75);
       bar(22, 75, 40, 47);
       bar(46, 75, 40, 47);

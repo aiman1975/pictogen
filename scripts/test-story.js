@@ -417,5 +417,47 @@ So what should you do? First, stop and do not click anything. Then, hover over t
   assert(seen('a boy says "Hi!" and waves') === 'boy wave' && seen('a boat and waves') === 'boat, water_wavex3' && seen('a boy and a girl dance and jump') === 'boy dance, girl dance', '"and waves" after doing something is waving; after a thing, the sea');
 }
 
+// ---- First feedback from a visitor: "ein mädchen ruft ihre mama und sagt schau ein Schaukel" ----
+{
+  const { generate: g, renderIcon } = await import('../src/index.js');
+  const { quoteSpeech } = await import('../src/said.js');
+  const ids = (t) => g(t, { style: 'flat' }).matches.map((m) => m.id);
+  // The playground: a swing and a seesaw to sit on (and swinging with them), the rest to play on
+  const swing = g('a girl on a swing', { style: 'flat' });
+  assert(swing.matches.find((m) => m.id === 'swing')?.carries?.by?.includes('girl') && /pg-swinging[^>]*>[\s\S]*pg-sitter/.test(swing.svg), 'a girl on a swing sits on it, and swings with its seat');
+  const saw = g('a boy and a girl on a seesaw', { style: 'flat' });
+  assert(saw.matches.find((m) => m.id === 'seesaw')?.carries?.by?.length === 2 && (saw.svg.match(/class="pg-sitter"/g) ?? []).length === 2, 'a boy and a girl sit at the two ends of a seesaw');
+  assert(ids('a girl swings in the park').join() === 'girl,swing', 'a girl who swings is on a swing');
+  assert(ids('children in the playground').includes('swing') && ids('children in the playground').includes('playground_slide'), 'a playground has a swing and a slide');
+  for (const [lang, t, want] of [['de', 'Ein Junge schaukelt auf dem Spielplatz', 'swing'], ['de', 'Zwei Kinder auf der Wippe', 'seesaw'], ['ar', 'بنت على الأرجوحة', 'swing'], ['ar', 'طفلان على السي سو', 'seesaw'],
+    ['de', 'ein Sandkasten, ein Klettergerüst, ein Karussell, ein Trampolin und eine Hängematte', 'sandbox,climbing_frame,roundabout,trampoline,hammock']]) {
+    assert(want.split(',').every((w) => ids(t).includes(w)), `${lang}: "${t}" draws ${want} (${ids(t)})`);
+  }
+  // Everyday things, in three languages
+  const everyday = { fence: ['a fence', 'ein Zaun', 'سياج'], lamp: ['a lamp', 'eine Lampe', 'مصباح'], stairs: ['the stairs', 'eine Treppe', 'درج'], wardrobe: ['a wardrobe', 'ein Schrank', 'خزانة'],
+    spade: ['a spade', 'eine Schaufel', 'مجرفة'], watering_can: ['a watering can', 'eine Gießkanne', 'مرشة'], digger: ['a digger', 'ein Bagger', 'حفارة'], crane: ['a crane', 'ein Kran', 'رافعة'],
+    doll: ['a doll', 'eine Puppe', 'دمية'], treasure_chest: ['a treasure chest', 'ein Schatz', 'كنز'], cave: ['a cave', 'eine Höhle', 'كهف'], bridge: ['a bridge', 'eine Brücke', 'جسر'], stroller: ['a pram', 'ein Kinderwagen', 'عربة أطفال'] };
+  for (const [id, words] of Object.entries(everyday)) assert(words.every((w) => ids(w).includes(id)), `${id}: ${words.join(' / ')} (${words.map((w) => ids(w).join('+')).join(' / ')})`);
+  assert(ids('a sheep and a squirrel').join() === 'ewe,chipmunk' && ids('ein Topf').join() === 'pot_of_food', 'a sheep, a squirrel and a pot are drawn by the nearest picture (not a honey pot)');
+  // (thick bars are filled shapes: a bike's frame shows in the flat look too)
+  assert(/<path[^>]*fill="#e53935"/.test(renderIcon('bike', { style: 'flat' })), 'the bike\'s frame shows in the flat look');
+  // What is said without quote marks
+  assert(quoteSpeech('ein mädchen ruft ihre mama und sagt schau ein Schaukel', 'de').replace(/\u2060/g, '') === 'ein mädchen ruft ihre mama und sagt „Mama! Schau ein Schaukel“', 'calling her mum and saying something: one bubble, "Mama! Schau ein Schaukel"');
+  for (const [lang, t, want] of [['en', 'a boy says hello to his grandma', 'a boy says to his grandma “Hello”'], ['en', 'she says that she is tired', 'she says that she is tired'], ['en', 'a man calls a taxi', 'a man calls a taxi'],
+    ['en', 'Tom says "Hi"', 'Tom says "Hi"'], ['de', 'Dann sagt Mia schau mal', 'Dann sagt Mia „Schau mal“'], ['de', 'Er sagt hallo und sie sagt tschüss', 'Er sagt „Hallo“ und sie sagt „Tschüss“'],
+    ['de', 'Der Junge ruft seinen Hund und sagt komm her', 'Der Junge ruft seinen Hund und sagt „Komm her“'], ['ar', 'نادت البنت أمها وقالت انظري أرجوحة', 'نادت البنت أمها وقالت «ماما! انظري أرجوحة»'], ['ar', 'صرخ الولد النجدة', 'صرخ الولد «النجدة»']]) {
+    const got = quoteSpeech(t, lang).replace(/\u2060/g, '');
+    assert(got === want, `${lang}: "${t}" -> ${got}`);
+  }
+  const friend = g('ein mädchen ruft ihre mama und sagt schau ein Schaukel', { style: 'flat' });
+  assert(friend.matches.map((m) => m.id).join() === 'girl,woman,swing' && !friend.unknown.length && /Mama! Schau ein Schaukel/.test(friend.svg.replace(/<[^>]+>/g, ' ').replace(/[\s\u2060]+/g, ' ')),
+    `the visitor's sentence: a girl, her mum and a swing, "Mama! Schau ein Schaukel" in a bubble (${friend.matches.map((m) => m.id)}; ${friend.unknown})`);
+  const arFriend = g('نادت البنت أمها وقالت انظري أرجوحة', { style: 'flat' });
+  assert(arFriend.matches.map((m) => m.id).join() === 'girl,woman,swing' && arFriend.svg.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').includes('انظري أرجوحة'), 'and in Arabic');
+  const told = composeStory('Mia geht auf den Spielplatz. Sie ruft ihre Mama und sagt schau eine Schaukel! Dann schaukelt Mia.', { style: 'flat' });
+  assert(told.scenes[1].matches.some((m) => m.id === 'swing') && told.scenes[1].svg.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').includes('Schau eine Schaukel!') && !told.scenes[1].caption.includes('\u2060') && told.scenes[2].matches.find((m) => m.id === 'swing')?.carries,
+    `in a story: what Mia says is in a bubble, the swing she sees is there, and then she swings (${told.scenes.map((sc) => sc.prompt).join(' | ')})`);
+}
+
 console.log(`\nStory Engine test suite: ${fails === 0 ? 'ALL PASSED!' : `${fails} FAILS`}`);
 process.exit(fails === 0 ? 0 : 1);

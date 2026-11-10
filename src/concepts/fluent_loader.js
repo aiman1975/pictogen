@@ -18,6 +18,8 @@ const CANONICAL_LAST_WORD = {
   hand: 'raised-hand',
   hands: 'raising-hands',
   circle: 'red-circle',
+  // (a pot is a cooking pot, not the honey pot)
+  pot: 'pot-of-food',
 };
 const MAX_SHARED_LAST_WORD = 1;
 // Backdrop words handled by the scene composer (src/scene.js ENV_WORDS) never become icon aliases.
@@ -28,7 +30,14 @@ const SETTING_LAST_WORDS = new Set(['night', 'rain', 'snow', 'water', 'sea', 'be
 // (and little words: "puts her phone away", "looks up")
 const VERB_LAST_WORDS = new Set(['stop', 'check', 'play', 'pause', 'record', 'repeat', 'shuffle', 'eject', 'away', 'up', 'down', 'out', 'off', 'back', 'over', 'around', 'here', 'there', 'now', 'again']);
 // Phrases for an icon that its name doesn't give ("a warning sign" is one sign, not two things)
-const EXTRA_ALIASES = { warning: ['warning sign', 'warning signs', 'danger sign'], 'game-die': ['dice'], 'money-bag': ['money', 'cash'] };
+const EXTRA_ALIASES = { warning: ['warning sign', 'warning signs', 'danger sign'], 'game-die': ['dice'], 'money-bag': ['money', 'cash'],
+  // (everyday words drawn by the nearest picture: a sheep by the ewe, a squirrel by the chipmunk)
+  ewe: ['sheep', 'lamb', 'lambs'], chipmunk: ['squirrel', 'squirrels'], 'fork-and-knife': ['fork', 'forks', 'cutlery'], 'kitchen-knife': ['knife', 'knives'],
+  'cheese-wedge': ['cheese'], 'mantelpiece-clock': ['clock', 'clocks', 'wall clock'], rock: ['stone', 'stones', 'pebble', 'pebbles', 'boulder'],
+  wastebasket: ['bin', 'bins', 'dustbin', 'trash can', 'garbage can', 'rubbish bin', 'wastebin', 'litter bin'], 'kick-scooter': ['scooter', 'scooters'],
+  'roller-skate': ['roller skates', 'rollerskates', 'roller skate', 'skates'], 'bento-box': ['lunchbox', 'lunch box', 'lunchboxes'],
+  'vertical-traffic-light': ['traffic light', 'traffic lights', 'stoplight'], 'pot-of-food': ['pot', 'cooking pot', 'saucepan', 'soup pot'],
+  'ice-cream': ['ice cream', 'ice creams', 'icecream'] };
 
 const hasWord = (tokens, words) => words.some((w) => tokens.includes(w));
 
