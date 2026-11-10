@@ -534,6 +534,21 @@
     }
 
     .viewport-wrap { position: relative; }
+    .swap-picker { position: fixed; inset: 0; z-index: 120; background: rgba(15,23,42,0.45); display: grid; place-items: center; padding: 16px; }
+    .swap-picker[hidden] { display: none; }
+    .sp-box { background: var(--surface); border-radius: 18px; width: min(560px, 100%); max-height: min(640px, 90vh); display: flex; flex-direction: column; padding: 16px; gap: 10px; box-shadow: 0 20px 60px rgba(15,23,42,0.3); }
+    .sp-head { display: flex; justify-content: space-between; align-items: center; font-size: 1.05rem; }
+    .sp-head button { border: none; background: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted); }
+    .sp-for { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+    #sp-search { font: inherit; padding: 10px 12px; border: 2px solid var(--border); border-radius: 10px; width: 100%; box-sizing: border-box; }
+    #sp-search:focus { outline: none; border-color: #2563eb; }
+    .sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; overflow-y: auto; padding: 2px; }
+    .sp-item { border: 1px solid var(--border); border-radius: 12px; background: #fff; padding: 6px 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; font: inherit; font-size: 0.72rem; color: var(--text); }
+    .sp-item:hover, .sp-item:focus-visible { border-color: #2563eb; background: #eff6ff; outline: none; }
+    .sp-item img { width: 56px; height: 56px; object-fit: contain; }
+    .sp-empty { grid-column: 1 / -1; color: var(--text-muted); font-size: 0.85rem; padding: 12px 0; text-align: center; }
+    .word-help .wh-swap { font: inherit; border: 1px solid #fde68a; background: #fffbeb; border-radius: 999px; padding: 0 10px; margin: 0 2px; cursor: pointer; }
+    .word-help .wh-swap:hover { background: #fef3c7; }
     .mute-btn {
       position: absolute; top: 10px; inset-inline-start: 10px; z-index: 5; width: 42px; height: 42px; border-radius: 50%;
       border: 1px solid var(--border); background: rgba(255,255,255,0.92); font-size: 1.25rem; line-height: 1; cursor: pointer;
@@ -1293,6 +1308,16 @@
           <button type="button" class="mute-btn" id="btn-mute" title="Mute" aria-label="Mute" aria-pressed="false">🔊</button>
         </div>
 
+        <!-- Swap a picture for another: search, then pick (the 🔄 Swap button, or a guess under the prompt) -->
+        <div class="swap-picker" id="swap-picker" hidden role="dialog" aria-modal="true" aria-labelledby="sp-title">
+          <div class="sp-box">
+            <div class="sp-head"><b id="sp-title">Swap the picture</b><button type="button" id="sp-close" aria-label="Close">✕</button></div>
+            <p class="sp-for" id="sp-for"></p>
+            <input id="sp-search" type="search" placeholder="Search pictures… (e.g. parrot)" autocomplete="off" aria-label="Search pictures">
+            <div class="sp-grid" id="sp-grid"></div>
+          </div>
+        </div>
+
         <!-- Floating toolbar for selected movable object -->
         <div class="object-toolbar" id="object-toolbar">
           <div class="object-toolbar-row">
@@ -1302,6 +1327,7 @@
             <button id="tb-flip" title="Flip Horizontally">↔ Flip</button>
             <button id="tb-front" title="Bring to Front">⬆ Front</button>
             <button id="tb-back" title="Send to Back">⬇ Back</button>
+            <button id="tb-swap" title="Swap for another picture">🔄 Swap</button>
             <button id="tb-delete" style="color: #fca5a5;" title="Remove from Scene">🗑 Delete</button>
             <button id="tb-done" class="phone-only" title="Close">✓ Done</button>
           </div>
@@ -1759,7 +1785,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
     function showWordHelp(data) {
       const rows = [];
       const guessed = Object.entries(data.guessed || {}).filter(([, as]) => as);
-      if (guessed.length) rows.push(`<span class="wh-row">🤔 Drawn as a guess: ${guessed.map(([w, as]) => `<span class="wh-word">${escHtml(w)}</span> → <b>${escHtml(as)}</b>`).join(', ')}</span>`);
+      if (guessed.length) rows.push(`<span class="wh-row">🤔 Drawn as a guess: ${guessed.map(([w, as]) => `<button type="button" class="wh-swap" data-word="${escHtml(w)}" title="Pick another picture for ${escHtml(w)}"><span class="wh-word">${escHtml(w)}</span> → <b>${escHtml(as)}</b> 🔄</button>`).join(' ')} <span class="wh-hint">click one to pick another picture</span></span>`);
       const tips = data.suggestions || {};
       for (const w of data.unknown || []) {
         if (!tips[w]?.length) continue;
@@ -1772,6 +1798,9 @@ Scene: a woman puts a coin in a jar | Every coin counts
       wordHelp.classList.toggle('show', rows.length > 0);
     }
     wordHelp.addEventListener('click', (e) => {
+      // (a guess: pick another picture for that word)
+      const sw = e.target.closest('.wh-swap');
+      if (sw) { openSwapPicker({ word: sw.dataset.word }); return; }
       const btn = e.target.closest('.wh-try');
       if (!btn) return;
       const from = btn.dataset.from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1967,6 +1996,8 @@ Scene: a woman puts a coin in a jar | Every coin counts
             seed: state.seed,
             ...(state.mode === 'scene' && state.beats && state.beatsFor === state.prompt ? { beats: state.beats } : {}),
             ...(state.labelsFor === state.prompt ? { labels: state.labels } : {}),
+            // (pictures swapped for this sentence: kept when the look changes or it is drawn again)
+            ...(state.swapsFor === state.prompt && state.swaps ? { swaps: state.swaps } : {}),
             blank: state.blank,
           }),
         });
@@ -2089,7 +2120,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
         objectToolbar.style.display = 'none';
         return;
       }
-      toolbarItemName.textContent = (selectedItem.dataset.id || 'Item').replace(/_/g, ' ');
+      toolbarItemName.textContent = (selectedItem.dataset.label || selectedItem.dataset.id || 'Item').replace(/_/g, ' ');
 
       // Rows first: they change the toolbar's height, which the placement below depends on.
       const isPerson = ['boy', 'girl', 'man', 'woman'].includes(selectedItem.dataset.id) || selectedItem.querySelector('.pg-face-eyes') !== null;
@@ -2288,6 +2319,105 @@ Scene: a woman puts a coin in a jar | Every coin counts
       deselectItem();
       state.svg = svgViewport.innerHTML;
       showToast(`Removed ${name}`);
+    });
+
+    // Swapping a picture for another: 🔄 Swap on a clicked thing (redrawn where it is, at its size),
+    // or a guess under the prompt ("magpie → bird": the word drawn again as the picture picked).
+    // Kept for this sentence (state.swaps: a word or a picture id -> the picture to draw)
+    const swapPicker = document.getElementById('swap-picker');
+    const spSearch = document.getElementById('sp-search');
+    const spGrid = document.getElementById('sp-grid');
+    let swapTarget = null, spTimer = null, spAsk = 0;
+    const labelOf = (id) => (state.concepts?.find((c) => c.id === id)?.label || id).replace(/_/g, ' ');
+    function openSwapPicker(target) {
+      swapTarget = target;
+      const what = target.item ? labelOf(target.item.dataset.id) : target.word;
+      document.getElementById('sp-for').textContent = target.item ? `Instead of: ${what}` : `For the word: ${what}`;
+      // (what it is drawn as now: the others of its kind come first)
+      target.now = target.item?.dataset.id ?? String((state.result?.matches || []).find((m) => m.word === target.word)?.id ?? '').split('~')[0];
+      spSearch.value = '';
+      swapPicker.hidden = false;
+      showSwapChoices();
+      setTimeout(() => spSearch.focus(), 30);
+    }
+    function closeSwapPicker() { swapPicker.hidden = true; swapTarget = null; }
+    document.getElementById('sp-close').addEventListener('click', closeSwapPicker);
+    swapPicker.addEventListener('click', (e) => { if (e.target === swapPicker) closeSwapPicker(); });
+    swapPicker.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSwapPicker(); });
+    spSearch.addEventListener('input', () => { clearTimeout(spTimer); spTimer = setTimeout(showSwapChoices, 180); });
+    // Pictures for what was typed: what Toonaro reads in it (any language, and the nearest pictures),
+    // then names that contain it; with nothing typed, others of the same kind
+    async function showSwapChoices() {
+      const ask = ++spAsk;
+      const q = spSearch.value.trim().toLowerCase();
+      const all = (state.concepts || []).filter((c) => !c.variantOf);
+      let ids = [];
+      if (q) {
+        // (in the studio's language too: "Arzt", "طبيب" - one word alone isn't always known as German or Arabic)
+        const look = async (lang) => {
+          try {
+            const res = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: q, mode: 'icons', style: 'flat', lookup: true, ...(lang ? { lang } : {}) }) });
+            return ((await res.json()).matches || []).map((m) => String(m.id).split('~')[0]);
+          } catch { return []; }
+        };
+        const langs = /[\u0600-\u06FF]/.test(q) ? ['ar'] : [...new Set([studioLang() === 'ar' ? null : studioLang(), 'de', null])].filter((l) => l !== 'en');
+        ids = (await Promise.all(langs.map(look))).flat();
+        const has = (c, f) => f(String(c.label || c.id).toLowerCase()) || (c.aliases || []).some((a) => f(String(a).toLowerCase()));
+        ids.push(...all.filter((c) => has(c, (t) => t.startsWith(q))).map((c) => c.id), ...all.filter((c) => has(c, (t) => t.includes(q))).map((c) => c.id),
+          ...all.filter((c) => (c.tags || []).some((t) => String(t).toLowerCase() === q)).map((c) => c.id));
+      } else {
+        const now = swapTarget?.now;
+        const me = all.find((c) => c.id === now);
+        // (the same kind: Toonaro's own drawings first, then pictures sharing a tag, then the rest of its group)
+        const same = all.filter((c) => me && c.category === me.category && c.id !== now);
+        const tags = new Set(me?.tags || []);
+        // (its relatives first: pictures of the nearest same kind - a bird's other birds, then other
+        // animals; then pictures sharing a tag, then the rest of its group)
+        const myKinds = String(me?.kinds || '').split(' ').filter(Boolean);
+        const kinScore = (c) => { const ks = String(c.kinds || '').split(' '); const i = myKinds.findIndex((k) => ks.includes(k)); return i < 0 ? Infinity : i; };
+        const kin = all.filter((c) => c.id !== now && Number.isFinite(kinScore(c))).sort((a, b) => kinScore(a) - kinScore(b) || Number(a.library) - Number(b.library));
+        ids = [...kin, ...same.filter((c) => (c.tags || []).some((t) => tags.has(t) && !['animal', 'object', 'character', 'story', 'people', 'person'].includes(t))), ...same].map((c) => c.id);
+      }
+      if (ask !== spAsk) return;
+      ids = [...new Set(ids)].filter((id) => id !== swapTarget?.now).slice(0, 48);
+      spGrid.innerHTML = ids.length ? ids.map((id) => `<button type="button" class="sp-item" data-id="${escHtml(id)}"><img loading="lazy" alt="" src="/api/icon?id=${encodeURIComponent(id)}&style=${encodeURIComponent(state.style || 'flat')}"><span>${escHtml(labelOf(id))}</span></button>`).join('')
+        : `<div class="sp-empty">No picture found - try another word.</div>`;
+    }
+    spGrid.addEventListener('click', async (e) => {
+      const pick = e.target.closest('.sp-item');
+      if (!pick || !swapTarget) return;
+      const to = pick.dataset.id, target = swapTarget;
+      closeSwapPicker();
+      if (state.swapsFor !== state.prompt) { state.swaps = {}; state.swapsFor = state.prompt; }
+      if (target.item) {
+        const item = target.item;
+        const from = item.dataset.swapFrom || item.dataset.id;
+        // (by the word it was drawn for, so it stays swapped when drawn again)
+        const word = (state.result?.matches || []).find((m) => String(m.id).split('~')[0] === from)?.word;
+        state.swaps[word || from] = to;
+        if (item.querySelector('.pg-timeline-pose')) { runGenerate(); return; }
+        item.dataset.swapFrom = from;
+        item.dataset.id = to;
+        item.dataset.label = labelOf(to);
+        delete item.dataset.held;
+        try {
+          const cur = item.dataset.animation || 'blink';
+          const markup = await renderItemDrawing(item, { expression: item.dataset.expression, animation: ['walk-across', 'approach', 'recede'].includes(cur) ? 'walk' : cur, view: item.dataset.view });
+          (item.querySelector('.pg-figure') || item).innerHTML = markup;
+          addHitArea(item);
+          state.svg = svgViewport.innerHTML;
+          showToast(`Swapped for ${labelOf(to)}`);
+        } catch { runGenerate(); }
+      } else {
+        state.swaps[target.word] = to;
+        runGenerate();
+      }
+    });
+    document.getElementById('tb-swap').addEventListener('click', () => {
+      if (!selectedItem) return;
+      const item = selectedItem;
+      deselectItem();
+      openSwapPicker({ item });
     });
 
     // Facial expression & motion switching

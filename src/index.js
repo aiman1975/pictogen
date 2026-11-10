@@ -161,6 +161,15 @@ export function generate(text, opts = {}) {
     }
   }
   let { matches } = parsed;
+  // Pictures swapped in the studio (opts.swaps: a word or a picture id -> the picture to draw
+  // instead: "magpie" drawn as a parrot rather than a bird); a character of your own stays itself
+  const swaps = opts.swaps && typeof opts.swaps === 'object' ? opts.swaps : null;
+  const swapOf = (m) => {
+    if (!swaps || !m || String(m.id).includes('~')) return m;
+    const to = (Object.hasOwn(swaps, m.word) ? swaps[m.word] : null) ?? (Object.hasOwn(swaps, conceptOf(m.id)) ? swaps[conceptOf(m.id)] : null);
+    return typeof to === 'string' && getConcept(to) ? { ...m, id: to, nearest: false, swapped: true } : m;
+  };
+  matches = matches.map(swapOf);
   // (a place said with someone in it - "a girl in the forest" - is the backdrop, its trees along the
   // horizon, not one big tree in front of her)
   const someone = matches.some((m) => /^(people|animals|wildlife)/.test(getConcept(conceptOf(m.id))?.category ?? ''));
@@ -201,6 +210,18 @@ export function generate(text, opts = {}) {
   const edited = mode === 'scene' && Array.isArray(opts.beats);
   const isBackdrop = (m) => (ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary) || (someone && PLACE_WORDS.has(m.word)) || BACKDROP_WORDS.has(m.word);
   if (edited) timeline = editTimeline(opts.beats, cast.filter((m) => !isBackdrop(m)), timeline);
+  // (swapped pictures in a timeline too: its actors, what they do and to whom)
+  if (timeline && swaps) {
+    const moved = new Map();
+    timeline.actors = timeline.actors.map((a) => {
+      const sw = swapOf({ ...a.match, id: a.id });
+      if (sw.id === a.id) return a;
+      moved.set(a.id, sw.id);
+      return { ...a, id: sw.id, match: { ...a.match, ...sw } };
+    });
+    timeline.props = timeline.props.map(swapOf);
+    if (moved.size) timeline.beats = timeline.beats.map((b) => ({ ...b, actions: b.actions.map((x) => ({ ...x, actor: moved.get(x.actor) ?? x.actor, ...(x.target ? { target: moved.get(x.target) ?? x.target } : {}) })) }));
+  }
   if (timeline) {
     matches = [
       ...timeline.actors.map(({ id, match }) => ({ ...match, id, count: match.count ?? 1, animation: undefined, actor: true })),
@@ -308,6 +329,6 @@ export function generate(text, opts = {}) {
       .map((m) => ({ id: m.id, label: getConcept(conceptOf(m.id)).label || m.id, person: getConcept(conceptOf(m.id)).category === 'people' }))
     : [];
   // (what was drawn by its nearest picture, for the studio: "magpie" drawn as a bird)
-  const nearestDrawn = Object.fromEntries(parsed.matches.filter((m) => m.nearest).map((m) => [m.word, (getConcept(conceptOf(m.id))?.label ?? m.id).replace(/_/g, ' ')]));
+  const nearestDrawn = Object.fromEntries(parsed.matches.filter((m) => m.nearest && !swapOf(m).swapped).map((m) => [m.word, (getConcept(conceptOf(m.id))?.label ?? m.id).replace(/_/g, ' ')]));
   return { svg, ...parsed, ...(mood ? { mood } : {}), ...(card ? { card } : {}), ...(endAt ? { endAt } : {}), matches, unknown, suggestions, guessed: { ...nearestDrawn, ...(parsed.guessed || {}) }, ...(diagram ? { diagram } : {}), setting, images, ...clip, cast: castOut, ...(edited ? { edited: true } : {}) };
 }

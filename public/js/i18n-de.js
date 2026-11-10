@@ -4,6 +4,13 @@
 // To change a word: change it here.
 export default {
   texts: {
+   "🔄 Swap": "🔄 Tauschen",
+   "Swap for another picture": "Gegen ein anderes Bild tauschen",
+   "Swap the picture": "Bild tauschen",
+   "Search pictures… (e.g. parrot)": "Bilder suchen… (z. B. Papagei)",
+   "Search pictures": "Bilder suchen",
+   "No picture found - try another word.": "Kein Bild gefunden – versuch ein anderes Wort.",
+   "click one to pick another picture": "klicke eins an, um ein anderes Bild zu wählen",
    "Mute": "Stumm schalten",
    "Sound on": "Ton an",
    "Muted": "Ton aus",
@@ -3255,6 +3262,22 @@ export default {
    "This figure follows the timeline: change its steps in the timeline below": "Diese Figur folgt der Zeitleiste: ändere ihre Schritte unten in der Zeitleiste"
   },
   patterns: [
+   [
+    "Instead of: (.+)",
+    "Statt: $1"
+   ],
+   [
+    "For the word: (.+)",
+    "Für das Wort: $1"
+   ],
+   [
+    "Swapped for (.+)",
+    "Getauscht gegen $1"
+   ],
+   [
+    "Pick another picture for (.+)",
+    "Ein anderes Bild für $1 wählen"
+   ],
    [
     "Close on (.+)",
     "Nah auf $1"

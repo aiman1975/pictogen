@@ -74,7 +74,8 @@ const KIND = (c) => {
   if (/food/.test(cat)) return ['food', 'plant', 'artifact'];
   if (/nature|sky/.test(cat)) return ['plant', 'object', 'animal', 'artifact'];
   if (/animals_nature/.test(cat)) return ['animal', 'plant', 'object', 'food', 'artifact'];
-  return ['artifact', 'food', 'object', 'plant', 'animal'];
+  // (a thing is never an animal: "snowflake" is also a small bird)
+  return ['artifact', 'food', 'object', 'plant'];
 };
 // (pictures that would be a poor stand-in for anything else: hands and gestures, signs, flags,
 // marks, a person doing something, tone variants)
@@ -194,12 +195,31 @@ for (const [lemma, offs] of senses) {
 const byPicture = new Map();
 for (const [w, id] of [...out].sort()) byPicture.set(id, [...(byPicture.get(id) ?? []), w]);
 const body = [...byPicture].sort((a, b) => a[0].localeCompare(b[0])).map(([id, ws]) => `  ${JSON.stringify(id)}: ${JSON.stringify(ws.join(' '))},`).join('\n');
+// What kind of thing each picture is, nearest first ("parrot bird"): the studio's 🔄 Swap shows a
+// picture's relatives first (a magpie drawn as a bird: other birds)
+const kindsOf = new Map();
+for (const [off, id] of anchor) {
+  if (kindsOf.has(id)) continue;
+  const chain = [];
+  let level = [syn.get(off)];
+  for (let d = 0; d < 6 && level.length; d++) {
+    for (const x of level) if (!general(x)) chain.push(x.words[0]);
+    level = level.flatMap((x) => x.up.map((o) => syn.get(o)).filter(Boolean)).slice(0, 2);
+  }
+  kindsOf.set(id, [...new Set(chain)].join(' '));
+}
+const kindsBody = [...kindsOf].sort((a, b) => a[0].localeCompare(b[0])).map(([id, k]) => `  ${JSON.stringify(id)}: ${JSON.stringify(k)},`).join('\n');
 writeFileSync(join(root, 'src', 'data', 'nearest-en.js'), `// English nouns Toonaro has no picture of, each drawn by the nearest picture there is: picture id ->
 // the words, by scripts/lang/nearest-build.mjs from WordNet (WordNet 3.0 Copyright 2006 by Princeton
 // University. All rights reserved. Used under the WordNet license: docs/LICENSE_AUDIT.md).
 // ${out.size} words. To change one: move it to another picture here (or take it out).
 export default {
 ${body}
+};
+
+// What kind of thing each picture is, nearest first (for the studio's 🔄 Swap: its relatives first)
+export const KINDS = {
+${kindsBody}
 };
 `);
 console.log(`checked ${checked} nouns of things; ${out.size} drawn by their nearest picture (${byPicture.size} pictures)`);

@@ -5,6 +5,13 @@
 // to left (dir="rtl"). To change a word: change it here.
 export default {
   texts: {
+   "🔄 Swap": "🔄 استبدال",
+   "Swap for another picture": "استبدل بصورة أخرى",
+   "Swap the picture": "استبدال الصورة",
+   "Search pictures… (e.g. parrot)": "ابحث عن صور… (مثلًا ببغاء)",
+   "Search pictures": "ابحث عن صور",
+   "No picture found - try another word.": "لم توجد صورة – جرّب كلمة أخرى.",
+   "click one to pick another picture": "اضغط على واحدة لاختيار صورة أخرى",
    "Mute": "كتم الصوت",
    "Sound on": "تشغيل الصوت",
    "Muted": "الصوت مكتوم",
@@ -3292,6 +3299,22 @@ export default {
    "Zebra": "حمار وحشي"
   },
   patterns: [
+   [
+    "Instead of: (.+)",
+    "بدلًا من: $1"
+   ],
+   [
+    "For the word: (.+)",
+    "للكلمة: $1"
+   ],
+   [
+    "Swapped for (.+)",
+    "تم الاستبدال بـ$1"
+   ],
+   [
+    "Pick another picture for (.+)",
+    "اختر صورة أخرى لـ$1"
+   ],
    [
     "Close on (.+)",
     "لقطة قريبة على $1"

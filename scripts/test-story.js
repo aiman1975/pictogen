@@ -465,6 +465,11 @@ So what should you do? First, stop and do not click anything. Then, hover over t
     assert(ids(t).join() === want, `"${t}" is drawn by the nearest pictures: ${want} (${ids(t)})`);
   }
   assert(g('zwei Elstern', { style: 'flat' }).matches[0]?.count === 2, 'two magpies are two birds (not stars: "Elstern" ends in "Stern")');
+  // Swapped in the studio: a word or a picture drawn as another picture, in a timeline too
+  const sw = (t, swaps) => g(t, { style: 'flat', swaps }).matches.map((m) => m.id).join();
+  assert(sw('an orthodontist and a magpie', { magpie: 'parrot' }) === 'doctor,parrot' && sw('a girl and a dog', { dog: 'cat' }) === 'girl,cat' && sw('a boy walks in, then a magpie flies to him', { magpie: 'parrot' }) === 'boy,parrot',
+    'a swapped picture is drawn instead (by its word or its picture), in a timeline too');
+  assert(!('magpie' in g('a magpie', { style: 'flat', swaps: { magpie: 'parrot' } }).guessed) && sw('a dog', { dog: 'no_such_picture' }) === 'dog', 'a swapped guess is no guess any more; a swap to a picture that does not exist is ignored');
   assert(ids('a constructor and a dog').join() === 'dog', 'a word like "constructor" is just a word (no crash)');
   const friend = g('ein mädchen ruft ihre mama und sagt schau ein Schaukel', { style: 'flat' });
   assert(friend.matches.map((m) => m.id).join() === 'girl,woman,swing' && !friend.unknown.length && /Mama! Schau ein Schaukel/.test(friend.svg.replace(/<[^>]+>/g, ' ').replace(/[\s\u2060]+/g, ' ')),

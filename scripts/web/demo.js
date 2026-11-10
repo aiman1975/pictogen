@@ -105,7 +105,7 @@
   var SMALL = /^(a|an|the|and|or|but|with|without|in|on|at|of|to|for|from|by|is|are|was|were|be|it|he|she|they|his|her|their|its|this|that|then|so|very|too|also|just|some|there|here|out|up|down|says|said|shouts|calls|ein|eine|einen|der|die|das|und|mit|im|in|auf|zu|ist|sind|sie|er|es|dann)$/i;
   var DESCRIBING = /^(old|new|young|empty|full|big|small|little|tiny|huge|tall|short|long|golden|silver|bright|dark|light|soft|loud|quiet|happy|sad|angry|kind|brave|lonely|beautiful|pretty|ugly|nice|good|bad|great|best|last|first|next|other|every|each|one|two|three|across|over|under|through|into|onto|around|away|again|always|never|suddenly|alt|neu|neue|neuer|neues|leer|leere|leeren|groß|große|großer|klein|kleine|kleiner|kleines|jede|jeden|jeder|eines|einem|einer|abends|nachts)$/i;
   var catchMissing = function (v) {
-    if (!v || typeof v !== 'object' || Array.isArray(v) || !Array.isArray(v.unknown) || typeof v.svg !== 'string') return;
+    if (!v || typeof v !== 'object' || Array.isArray(v) || !Array.isArray(v.unknown) || typeof v.svg !== 'string' || v.lookup) return;
     // (things to draw, not how they are or what they do: "old", "empty", "blinked" are left out)
     missing = v.unknown.filter(function (w, i, all) { return typeof w === 'string' && w.length > 2 && !SMALL.test(w) && !DESCRIBING.test(w) && !/(ed|ing|ly)$/i.test(w) && !/^pg[cp]\d+$/i.test(w) && all.indexOf(w) === i; }).slice(0, 8);
     setTimeout(showMissing, 0);

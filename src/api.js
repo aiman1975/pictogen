@@ -1,6 +1,7 @@
 // The studio's API, as one function: the Node server (serve.js) and the static web build (the engine
 // running in the visitor's browser, scripts/build-web.js) answer the same requests the same way.
 
+import { KINDS } from './data/nearest-en.js';
 import { cleanFeatures } from './looks.js';
 import { writeOutline } from './slides.js';
 import { outlineFromNotes } from './writer.js';
@@ -74,6 +75,8 @@ export function handleApi(method, url, payload = {}) {
       placement: c.placement,
       library: Boolean(c.isLibrary),
       variantOf: c.variantOf,
+      // (what kind of thing it is, nearest first: "parrot bird" - for the studio's 🔄 Swap)
+      ...(KINDS[c.id] ? { kinds: KINDS[c.id] } : {}),
     }));
     return json({ concepts: list, styles: STYLE_NAMES }, 200, { 'Cache-Control': 'public, max-age=3600' });
   }
@@ -81,7 +84,9 @@ export function handleApi(method, url, payload = {}) {
   // Generate SVG from text
   if (pathname === '/api/generate' && method === 'POST') {
     const text = payload.text || 'apple';
-    return json(generate(text, {
+    // (a look-up - the studio's picture search - is said so in the answer: no picture asked for)
+    const answer = (r) => json(payload.lookup ? { ...r, lookup: true } : r);
+    return answer(generate(text, {
       style: payload.style || 'flat',
       mode: payload.mode || 'scene',
       width: payload.width || 640,
@@ -89,6 +94,8 @@ export function handleApi(method, url, payload = {}) {
       seed: payload.seed || 1,
       vary: Boolean(payload.vary),
       fuzzy: Boolean(payload.fuzzy),
+      // (the words' language, when the studio says it: 'de' or 'ar')
+      ...(['de', 'ar'].includes(payload.lang) ? { lang: payload.lang } : {}),
       // Steps as edited in the studio's timeline view (checked by generate)
       ...(Array.isArray(payload.beats) ? { beats: payload.beats } : {}),
       // A labelled diagram's renamed labels ({ key: text }), its labels left blank (a quiz), its title
@@ -101,6 +108,10 @@ export function handleApi(method, url, payload = {}) {
       ...(Array.isArray(payload.individuals) ? { individuals: payload.individuals } : {}),
       // "Your places": neutral keys and what they are (src/places.js)
       ...(Array.isArray(payload.places) ? { places: payload.places } : {}),
+      // Pictures swapped in the studio: a word or a picture id -> a picture id (checked by generate)
+      ...(payload.swaps && typeof payload.swaps === 'object' && !Array.isArray(payload.swaps)
+        ? { swaps: Object.fromEntries(Object.entries(payload.swaps).filter(([k, v]) => typeof v === 'string' && k.length <= 60 && v.length <= 80).slice(0, 30)) }
+        : {}),
     }));
   }
 

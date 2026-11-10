@@ -179,6 +179,17 @@ if (chromium) {
     await page.type('#prompt-input', 'Every night, the old lighthouse blinked across an empty sea. One evening, a small boat answered with a golden light. The end of it');
     const full = await page.evaluate(() => ({ len: document.getElementById('prompt-input').value.length, hint: document.querySelector('.tn-demo-long')?.textContent ?? '' }));
     check(full.len === 120 && /Clip/.test(full.hint), `a full picture line says a whole story goes in a clip (${JSON.stringify(full)})`);
+    // (a guess can be swapped for another picture: its relatives first; the swap stays when the look changes)
+    await page.fill('#prompt-input', 'a magpie in the park');
+    await page.click('#btn-generate');
+    await page.waitForTimeout(1500);
+    await page.click('.wh-swap[data-word="magpie"]');
+    await page.waitForTimeout(800);
+    const offered = await page.evaluate(() => [...document.querySelectorAll('.sp-item')].slice(0, 12).map((x) => x.dataset.id));
+    await page.click('.sp-item[data-id="parrot"]');
+    await page.waitForTimeout(1500);
+    const swapped = await page.evaluate(() => window.pictogenStudio.getState().result.matches.map((m) => m.id).join());
+    check(offered.includes('parrot') && offered.includes('eagle') && swapped === 'parrot', `a guess (magpie -> bird) can be swapped: other birds offered first, the parrot drawn (${offered.join(' ')} -> ${swapped})`);
     // (the mute button on the picture: one click and the sound is off, remembered)
     const before = await page.evaluate(() => window.pictogenSound?.isEnabled());
     await page.click('#btn-mute');
