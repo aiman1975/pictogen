@@ -157,16 +157,16 @@ if (chromium) {
     await page.click('#btn-generate');
     await page.waitForTimeout(500);
     const long = await page.evaluate(() => ({ msg: !!document.querySelector('.tn-demo-long'), left: document.querySelector('.tn-demo-left')?.textContent, max: document.getElementById('prompt-input').maxLength }));
-    check(long.msg && /3 free tries/.test(long.left) && long.max === 120, `the demo keeps texts short: a long story is stopped without using a try, a picture's line takes 120 characters (${JSON.stringify(long)})`);
+    check(long.msg && long.max === 120, `the demo keeps texts short: a long story is stopped with a note, a picture's line takes 120 characters (${JSON.stringify(long)})`);
     await page.click('#modes-group .pill-btn[data-mode="scene"]');
     const tries = [];
-    for (const words of ['a cat on a sofa', 'a red car', 'a dragon over a castle', 'a boy reads a book']) {
+    for (const words of ['a cat on a sofa', 'a red car', 'a dragon over a castle', 'a boy reads a book', 'a girl with a kite']) {
       await page.fill('#prompt-input', words);
       await page.click('#btn-generate');
       await page.waitForTimeout(1500);
-      tries.push(await page.evaluate(() => ({ left: document.querySelector('.tn-demo-left')?.textContent, marked: !!document.querySelector('#svg-viewport svg .tn-demo-mark'), end: !!document.querySelector('.tn-demo-end') })));
+      tries.push(await page.evaluate((w) => ({ marked: !!document.querySelector('#svg-viewport svg .tn-demo-mark'), drawn: window.pictogenStudio.getState().prompt === w, end: !!document.querySelector('.tn-demo-end'), note: document.querySelector('.tn-demo-left')?.textContent ?? '' }), words));
     }
-    check(tries.slice(0, 3).every((t) => t.marked && !t.end) && /No free tries/.test(tries[2].left) && tries[3].end, `the demo: every picture marked, ${tries.length - 1} free tries counted down, then Toonaro says how to get the full version (${JSON.stringify(tries.map((t) => t.left))})`);
+    check(tries.every((t) => t.marked && t.drawn && !t.end) && /Full version|full version/.test(tries[0].note) && /info@toonaro\.com/.test(tries[0].note), `the demo: as often as they like, every picture marked, a note on the full version (${JSON.stringify(tries.map((t) => [t.marked, t.drawn, t.end]))})`);
     check(!errors.length, `no page errors in the demo${errors.length ? ': ' + errors.join('; ') : ''}`);
   } finally {
     await browser.close();

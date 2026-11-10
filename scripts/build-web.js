@@ -7,10 +7,11 @@
 //   npm run web:preview                  (build, then serve it at http://localhost:5050)
 //   npm run web:demo                     (the public demo for toonaro.com, in dist-demo/: see below)
 //
-// The demo (--demo): the same studio for anyone to try in the browser, a few times (DEMO_TRIES
-// pictures or clips, from short texts: DEMO_MAX_PROMPT / DEMO_MAX_STORY characters), everything it draws marked "Toonaro · demo" (on screen, in downloads and
-// videos), then a note on how to get the full version. Not installable as an app; open to search
-// engines; with an .htaccess for Apache hosts (STRATO) so /studio and /help open their pages.
+// The demo (--demo): the same studio for anyone to try in the browser - as often as they like, or a
+// few pictures or clips (DEMO_TRIES) - from short texts (DEMO_MAX_PROMPT / DEMO_MAX_STORY characters),
+// everything it draws marked "Toonaro · demo" (on screen, in downloads and videos), with a note on how
+// to get the full version. Not installable as an app; open to search engines; with an .htaccess for
+// Apache hosts (STRATO) so /studio and /help open their pages.
 //
 // How: the site is public/ plus the engine (src/) and three small stand-ins for the Node modules
 // the engine uses (node:fs, node:path, node:url; the files it reads are fetched once at start).
@@ -27,7 +28,8 @@ const args = process.argv.slice(2);
 const demo = args.includes('--demo');
 const out = resolve(args.find((a) => !a.startsWith('--')) || join(root, demo ? 'dist-demo' : 'dist'));
 // The demo's settings: how many pictures or clips a visitor may make, and where to ask for more
-const DEMO_TRIES = 3;
+// (0: as often as they like - the watermark and the length limit keep the full version worth having)
+const DEMO_TRIES = 0;
 const DEMO_CONTACT = 'info@toonaro.com';
 // (and how much a visitor may type: a picture from up to 120 characters, a clip from up to 300)
 const DEMO_MAX_PROMPT = 120, DEMO_MAX_STORY = 300;

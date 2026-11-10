@@ -12,7 +12,9 @@
   var studio = /^\/studio/.test(location.pathname);
   var used = function () { try { return Math.max(0, parseInt(localStorage.getItem(KEY) || '0', 10) || 0); } catch (e) { return 0; } };
   var setUsed = function (n) { try { localStorage.setItem(KEY, String(n)); } catch (e) { /* (not kept) */ } };
-  var left = function () { return Math.max(0, cfg.tries - used()); };
+  // (no number of tries - 0 or none - means as often as they like: the mark and the length limit stay)
+  var unlimited = !cfg.tries;
+  var left = function () { return unlimited ? Infinity : Math.max(0, cfg.tries - used()); };
   var lang = function () { var l = (document.documentElement.lang || 'en').slice(0, 2); return T[l] ? l : 'en'; };
 
   var T = {
@@ -24,6 +26,8 @@
       close: 'Back to my pictures',
       note: function (n) { return 'Try it free in your browser: ' + n + ' pictures or clips (a story of up to ' + cfg.maxStory + ' characters), with a "demo" watermark.'; },
       long: function (n, m) { return 'The demo draws from up to ' + n + ' characters (yours: ' + m + '). Make it a little shorter - the full version has no limit.'; },
+      free: 'Free demo, with a watermark. The full version, without it:',
+      noteFree: function () { return 'Try it free in your browser, as often as you like - with a "demo" watermark, stories of up to ' + cfg.maxStory + ' characters.'; },
     },
     de: {
       left: function (n) { return n === 0 ? 'Keine kostenlosen Versuche mehr' : n === 1 ? 'Noch 1 kostenloser Versuch' : 'Noch ' + n + ' kostenlose Versuche'; },
@@ -33,6 +37,8 @@
       close: 'Zurück zu meinen Bildern',
       note: function (n) { return 'Kostenlos im Browser ausprobieren: ' + n + ' Bilder oder Clips (eine Geschichte mit bis zu ' + cfg.maxStory + ' Zeichen), mit „Demo“-Wasserzeichen.'; },
       long: function (n, m) { return 'Die Demo malt aus bis zu ' + n + ' Zeichen (deine: ' + m + '). Kürze den Text etwas – die Vollversion hat keine Grenze.'; },
+      free: 'Kostenlose Demo, mit Wasserzeichen. Die Vollversion, ohne:',
+      noteFree: function () { return 'Kostenlos im Browser ausprobieren, so oft du willst – mit „Demo“-Wasserzeichen, Geschichten bis ' + cfg.maxStory + ' Zeichen.'; },
     },
     ar: {
       left: function (n) { return n === 0 ? 'لا توجد محاولات مجانية متبقية' : n === 1 ? 'محاولة مجانية واحدة متبقية' : n === 2 ? 'محاولتان مجانيتان متبقيتان' : n + ' محاولات مجانية متبقية'; },
@@ -42,6 +48,8 @@
       close: 'العودة إلى رسوماتي',
       note: function (n) { return 'جرّبه مجانًا في المتصفح: ' + n + ' صور أو مقاطع (قصة حتى ' + cfg.maxStory + ' حرف)، مع علامة «تجريبي».'; },
       long: function (n, m) { return 'النسخة التجريبية ترسم من ' + n + ' حرف كحد أقصى (نصك: ' + m + '). اختصره قليلًا، فالنسخة الكاملة بلا حدود.'; },
+      free: 'نسخة تجريبية مجانية بعلامة مائية. النسخة الكاملة بدونها:',
+      noteFree: function () { return 'جرّبه مجانًا في المتصفح بقدر ما تشاء – مع علامة «تجريبي» وقصص حتى ' + cfg.maxStory + ' حرف.'; },
     },
   };
   var t = function (k) { return T[lang()][k]; };
@@ -91,6 +99,19 @@
   var badge = null;
   var showLeft = function () {
     if (!badge) return;
+    if (unlimited) {
+      // (no tries to count: what the demo is, and where the full version is)
+      badge.textContent = '✨ ' + t('free') + ' ';
+      badge.className = 'tn-demo-left';
+      if (cfg.contact && badge.appendChild) {
+        var a = document.createElement('a');
+        a.textContent = cfg.contact;
+        a.href = 'mailto:' + cfg.contact + '?subject=Toonaro';
+        a.style.cssText = 'color:inherit;font-weight:900';
+        badge.appendChild(a);
+      }
+      return;
+    }
     var n = left();
     badge.textContent = '✨ ' + t('left')(n);
     badge.className = 'tn-demo-left' + (n ? '' : ' none');
@@ -124,7 +145,7 @@
   // that opens the studio with words); changing the style or moving things is free
   if (studio) {
     var q = new URLSearchParams(location.search);
-    if (q.get('text')) {
+    if (q.get('text') && !unlimited) {
       if (left() > 0) setUsed(used() + 1);
       else {
         // (no tries left: the studio opens with its own first picture, and says so)
@@ -155,6 +176,7 @@
         if (w.len > w.max) { stop(e); sayLong(w); return; }
       }
       sayLong(null);
+      if (unlimited) return;
       setUsed(used() + 1);
       showLeft();
     };
@@ -206,7 +228,7 @@
         p.className = 'tn-demo-note';
         ctas.parentElement.insertBefore(p, ctas.nextSibling);
         badge = { set textContent(v) {}, set className(v) {} };
-        var say = function () { p.textContent = '✨ ' + t('note')(cfg.tries); };
+        var say = function () { p.textContent = '✨ ' + (unlimited ? t('noteFree')() : t('note')(cfg.tries)); };
         say();
         new MutationObserver(say).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
       }
