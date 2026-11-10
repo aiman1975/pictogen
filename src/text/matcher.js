@@ -6,6 +6,7 @@ import { COLOR_WORDS } from '../core/color.js';
 import { canHold } from '../held.js';
 import { GEAR_FIGURES } from '../gear.js';
 import { mergeFeatures } from '../looks.js';
+import NEAREST from '../data/nearest-en.js';
 
 export const STOPWORDS = new Set(
   `a an the and or but nor of in on at to with without from by for is are was were be been being am
@@ -195,6 +196,22 @@ export function tokenize(text) {
     .filter(Boolean);
 }
 
+// Nouns Toonaro has no picture of, drawn by the nearest picture there is ("a poodle" is a dog,
+// "a schooner" a sailboat): src/data/nearest-en.js, from WordNet (scripts/lang/nearest-build.mjs)
+let nearestMap = null, nearestOn = true;
+/** Whether nouns without a picture are drawn by their nearest (off while that list is built) */
+export function useNearest(on) { nearestOn = !!on; }
+export function nearestPicture(w) {
+  if (!nearestOn) return null;
+  if (!nearestMap) {
+    nearestMap = new Map();
+    for (const [id, words] of Object.entries(NEAREST)) for (const x of words.split(' ')) nearestMap.set(x, id);
+  }
+  if (nearestMap.has(w)) return { id: nearestMap.get(w), plural: false };
+  for (const cand of singularCandidates(w)) if (nearestMap.has(cand)) return { id: nearestMap.get(cand), plural: true };
+  return null;
+}
+
 function singularCandidates(w) {
   const out = [];
   if (IRREGULAR[w]) out.push(IRREGULAR[w]);
@@ -333,6 +350,8 @@ for (const w of Object.keys(GEAR_WORDS)) FEATURE_PARTS.add(w);
 // Said before someone: their build or beard ("a chubby boy", "a skinny girl", "a bearded man")
 const BUILD_WORDS = { chubby: 'round', plump: 'round', tubby: 'round', fat: 'big', stout: 'big', thin: 'slim', slim: 'slim', skinny: 'slim', slender: 'slim', lanky: 'slim' };
 const HAIR_STYLE_WORDS = { curly: 'curly', wavy: 'curly', frizzy: 'curly', spiky: 'spiky', short: 'short', long: 'long', straight: 'long', afro: 'afro', bob: 'bob' };
+// (word lists looked up by what people type: no inherited names - "constructor" is just a word)
+for (const list of [EXPRESSION_WORDS, MOTION_WORDS, NUMBER_WORDS, GROUP_WORDS, SYNONYMS, SIZE_WORDS, IRREGULAR, HAIR_SHADES, GEAR_WORDS, BUILD_WORDS, HAIR_STYLE_WORDS]) Object.setPrototypeOf(list, null);
 const BIG = new Set(['big', 'large', 'huge', 'giant', 'wide', 'round']), SMALL_WORDS = new Set(['small', 'tiny', 'little', 'thin', 'narrow']);
 function featureWords(adj, part) {
   const has = (set) => adj.some((w) => set.has(w));
@@ -913,8 +932,11 @@ export function parseText(text, { fuzzy = false, names = null, keep = null } = {
       }
     } else if (!STOPWORDS.has(t)) {
       // (words that set the scene - "sea", "space" - are never typos for something to draw)
-      const f = fuzzy && !keep?.has(t) ? fuzzyLookup(t, idx) : null;
-      if (f) push({ id: f.id, word: t, plural: false }, { fuzzy: true });
+      // (a noun with no picture of its own: the nearest there is, said so - "drawn as a dog")
+      const near = !keep?.has(t) && !isModifierAdjective && !afterMover ? nearestPicture(t) : null;
+      const f = near ? null : fuzzy && !keep?.has(t) ? fuzzyLookup(t, idx) : null;
+      if (near && getConcept(near.id)) push({ id: near.id, word: t, plural: near.plural }, { nearest: true });
+      else if (f) push({ id: f.id, word: t, plural: false }, { fuzzy: true });
       else {
         unknown.push(t);
         list = [];

@@ -307,5 +307,7 @@ export function generate(text, opts = {}) {
     ? cast.filter((m) => getConcept(conceptOf(m.id)) && !(ATMOSPHERE_WORDS.has(m.word) && getConcept(m.id)?.isLibrary))
       .map((m) => ({ id: m.id, label: getConcept(conceptOf(m.id)).label || m.id, person: getConcept(conceptOf(m.id)).category === 'people' }))
     : [];
-  return { svg, ...parsed, ...(mood ? { mood } : {}), ...(card ? { card } : {}), ...(endAt ? { endAt } : {}), matches, unknown, suggestions, guessed: parsed.guessed || {}, ...(diagram ? { diagram } : {}), setting, images, ...clip, cast: castOut, ...(edited ? { edited: true } : {}) };
+  // (what was drawn by its nearest picture, for the studio: "magpie" drawn as a bird)
+  const nearestDrawn = Object.fromEntries(parsed.matches.filter((m) => m.nearest).map((m) => [m.word, (getConcept(conceptOf(m.id))?.label ?? m.id).replace(/_/g, ' ')]));
+  return { svg, ...parsed, ...(mood ? { mood } : {}), ...(card ? { card } : {}), ...(endAt ? { endAt } : {}), matches, unknown, suggestions, guessed: { ...nearestDrawn, ...(parsed.guessed || {}) }, ...(diagram ? { diagram } : {}), setting, images, ...clip, cast: castOut, ...(edited ? { edited: true } : {}) };
 }

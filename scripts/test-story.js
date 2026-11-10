@@ -455,6 +455,17 @@ So what should you do? First, stop and do not click anything. Then, hover over t
     `the lighthouse blinks over the sea with the boat; "answered with a golden light" is no speech bubble; no odd suggestions (${light.matches.map((m) => m.id)}; ${JSON.stringify(light.suggestions)})`);
   assert(['ein Leuchtturm', 'منارة'].every((w) => ids(w).includes('lighthouse')), 'a lighthouse in German and Arabic');
   for (const [lang, t] of [['en', 'she replied with a smile'], ['de', 'Er antwortete mit einem Lächeln']]) assert(quoteSpeech(t, lang) === t, `${lang}: "${t}" is no speech`);
+  // Nouns with no picture of their own: the nearest there is (from WordNet), and the studio told
+  const near = g('an orthodontist, three pigeons and a kayak', { style: 'flat' });
+  assert(near.matches.map((m) => m.id + (m.count > 1 ? `x${m.count}` : '')).join() === 'doctor,birdx3,canoe' && near.guessed.orthodontist === 'doctor' && !near.unknown.length,
+    `nouns without a picture are drawn by the nearest one, and said so (${near.matches.map((m) => m.id)}; ${JSON.stringify(near.guessed)})`);
+  for (const [t, want] of [['a schooner', 'sailboat'], ['a walrus', 'seal'], ['a magpie', 'bird'], ['a harpsichord', 'musical_keyboard'], ['a hostess', 'woman'], ['a radiologist', 'doctor']]) assert(ids(t).join() === want, `"${t}" is drawn as ${want} (${ids(t)})`);
+  for (const t of ['a toaster', 'a catholic', 'a zambian']) assert(!ids(t).length, `"${t}" is not drawn as someone it isn't (${ids(t)})`);
+  for (const [t, want] of [['zwei Elstern auf dem Walross', 'bird,seal'], ['ein Wasserkocher in der Küche', 'teapot'], ['Der Junge sitzt im Rollstuhl', 'boy,manual_wheelchair'], ['عقعق وفظ', 'bird,seal'], ['غلاية في المطبخ', 'teapot']]) {
+    assert(ids(t).join() === want, `"${t}" is drawn by the nearest pictures: ${want} (${ids(t)})`);
+  }
+  assert(g('zwei Elstern', { style: 'flat' }).matches[0]?.count === 2, 'two magpies are two birds (not stars: "Elstern" ends in "Stern")');
+  assert(ids('a constructor and a dog').join() === 'dog', 'a word like "constructor" is just a word (no crash)');
   const friend = g('ein mädchen ruft ihre mama und sagt schau ein Schaukel', { style: 'flat' });
   assert(friend.matches.map((m) => m.id).join() === 'girl,woman,swing' && !friend.unknown.length && /Mama! Schau ein Schaukel/.test(friend.svg.replace(/<[^>]+>/g, ' ').replace(/[\s\u2060]+/g, ' ')),
     `the visitor's sentence: a girl, her mum and a swing, "Mama! Schau ein Schaukel" in a bubble (${friend.matches.map((m) => m.id)}; ${friend.unknown})`);

@@ -7,6 +7,7 @@
 // them. Describing words come after their noun ("فتاة صغيرة") and a verb often before who does it
 // ("تمشي الفتاة"): both are put the English way round.
 import NOUNS, { PLURAL, GENDER } from './lang-ar-nouns.js';
+import NEAREST_AR from './data/nearest-ar.js';
 import { normalArabic } from './lang-ar-normal.js';
 import { parseText } from './text/matcher.js';
 import { getConcept } from './concepts/index.js';
@@ -293,9 +294,16 @@ const BOYS = 'محمد أحمد علي عمر يوسف خالد آدم حسن ح
 export const NAMES = Object.fromEntries([...GIRLS.map((n) => [n, 'girl']), ...BOYS.map((n) => [n, 'boy'])]);
 
 // Titles before a name ("الجدة سلمى" is a grandmother called Salma) are nouns here
-const KNOWN = { ...NOUNS, ...OWN, ...NAMES, ...ADJ, ...VERBS, ...NUMBERS, ...GRAMMAR, ...PLACES };
+// (nouns with no picture of their own come last: the English word they are drawn by -
+// src/data/nearest-ar.js; every other word wins over them)
+let nearestAr = true;
+/** Whether Arabic nouns without a picture are read by the nearest-picture list (off while it is built) */
+export function useNearestAr(on) { nearestAr = !!on; }
+const KNOWN_ALL = { ...NEAREST_AR, ...NOUNS, ...OWN, ...NAMES, ...ADJ, ...VERBS, ...NUMBERS, ...GRAMMAR, ...PLACES };
+const KNOWN_OWN = { ...NOUNS, ...OWN, ...NAMES, ...ADJ, ...VERBS, ...NUMBERS, ...GRAMMAR, ...PLACES };
+const KNOWN = new Proxy({}, { get: (t, k) => (nearestAr ? KNOWN_ALL : KNOWN_OWN)[k], has: (t, k) => k in (nearestAr ? KNOWN_ALL : KNOWN_OWN) });
 const kindIn = (lw) => (PLACES[lw] !== undefined ? 'place' : VERBS[lw] !== undefined ? 'verb' : NUMBERS[lw] !== undefined ? 'num' : ADJ[lw] !== undefined ? 'adj'
-  : NOUNS[lw] !== undefined || OWN[lw] !== undefined || NAMES[lw] !== undefined ? 'noun' : /^(هو|هي|هم|هما|هن)$/.test(lw) ? 'pron' : 'other');
+  : NOUNS[lw] !== undefined || OWN[lw] !== undefined || NAMES[lw] !== undefined || (nearestAr && NEAREST_AR[lw] !== undefined) ? 'noun' : /^(هو|هي|هم|هما|هن)$/.test(lw) ? 'pron' : 'other');
 
 // Small words in front of a word ("و" and, "ف" so, "ب" with/in, "ل" to/for, "ك" like, "ال" the) and
 // "his", "her", "their" at its end, the shortest first: a word is looked up as it is, then without them

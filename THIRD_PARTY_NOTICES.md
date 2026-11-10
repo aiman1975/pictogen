@@ -74,3 +74,30 @@ Audio** (dice), **Interface Sounds** (a tick, chimes), **UI Audio** (clicks) and
 each file's pack is in `public/audio/pack/manifest.json`. License: Creative Commons Zero (CC0 1.0),
 public domain: commercial use allowed, no attribution required; credited here as a courtesy. License
 texts: `public/audio/pack/licenses/kenney-*.txt`.
+
+## WordNet — `src/data/nearest-en.js` (and the German and Arabic lists built on it)
+
+Which picture draws a noun Toonaro has no picture of (*a poodle* is a dog, *a schooner* a
+sailboat) was worked out from WordNet's noun hierarchy by `scripts/lang/nearest-build.mjs`; the
+result, a list of words per picture, is in the repository, WordNet itself is not. The German and
+Arabic words for them (`src/data/nearest-de.js`, `src/data/nearest-ar.js`) are Toonaro's own.
+
+WordNet 3.0 Copyright 2006 by Princeton University. All rights reserved.
+
+Permission to use, copy, modify and distribute this software and database and its documentation
+for any purpose and without fee or royalty is hereby granted, provided that you agree to comply
+with the following copyright notice and statements, including the disclaimer, and that the same
+appear on ALL copies of the software, database and documentation, including modifications that you
+make for internal use or for distribution.
+
+THIS SOFTWARE AND DATABASE IS PROVIDED "AS IS" AND PRINCETON UNIVERSITY MAKES NO REPRESENTATIONS OR
+WARRANTIES, EXPRESS OR IMPLIED. BY WAY OF EXAMPLE, BUT NOT LIMITATION, PRINCETON UNIVERSITY MAKES NO
+REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE
+USE OF THE LICENSED SOFTWARE, DATABASE OR DOCUMENTATION WILL NOT INFRINGE ANY THIRD PARTY PATENTS,
+COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
+
+The name of Princeton University or Princeton may not be used in advertising or publicity
+pertaining to distribution of the software and/or database. Title to copyright in this software,
+database and any associated documentation shall at all times remain with Princeton University and
+LICENSEE agrees to preserve same. (From the copy in the npm package `wordnet-db` 3.1.14.)
+

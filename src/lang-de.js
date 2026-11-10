@@ -4,6 +4,7 @@
 // What is said („Hallo!“) and the board's words stay as written. Words not known are left out (a
 // figure of your own, "pgc1", stays). Nouns: src/lang-de-nouns.js (drafted, checked); the rest here.
 import DRAFTED, { PLURAL, GENDER } from './lang-de-nouns.js';
+import NEAREST_DE from './data/nearest-de.js';
 import { isFirstName, isGirlName } from './story-reader.js';
 import { parseText } from './text/matcher.js';
 import { getConcept } from './concepts/index.js';
@@ -454,12 +455,15 @@ const KNOWN_NOUN = { ...ADJ_FORMS, ...VERBS, ...NUMBERS, ...GRAMMAR, ...NOUNS, .
 const TAILS = Object.keys({ ...NOUNS, ...PLACES }).filter((k) => k.length >= 4).sort((a, b) => b.length - a.length);
 
 /** A German word as English: known, else its last part ("Kinderfahrrad" -> "fahrrad"), else nothing */
-export function germanWord(word) {
+export function germanWord(word, { nearest = true, tail = true } = {}) {
   const lw = word.toLowerCase();
   const table = /^\p{Lu}/u.test(word) ? KNOWN_NOUN : KNOWN;
   if (table[lw] !== undefined) return table[lw];
   if (/^(pgc|pgp|qq)\d+$/.test(lw) || /^\d/.test(lw)) return word;
-  if (lw.length >= 6) {
+  // (a noun with no picture of its own: the English word it is drawn by - "Elster" is a magpie,
+  // drawn as a bird; src/data/nearest-de.js)
+  if (nearest && Object.hasOwn(NEAREST_DE, lw)) return NEAREST_DE[lw];
+  if (tail && lw.length >= 6) {
     const tail = TAILS.find((t) => lw.endsWith(t) && lw.length - t.length >= 2);
     if (tail) return KNOWN[tail];
   }

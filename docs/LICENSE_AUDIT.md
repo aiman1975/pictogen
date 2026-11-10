@@ -81,6 +81,13 @@ font, data file or dependency is added.
    added; source and terms are on record in `manifest.json`. Same caveats as (8). On 2026-11-05,
    "wow!", "oh no!" and "hooray!" were added the same way (14 clips).
 
+10. **WordNet (2026-11-10).** The nearest-picture list (`src/data/nearest-en.js`) is derived from
+  Princeton's WordNet 3.0 (license: use, copy, modify and distribute for any purpose, free of
+  charge, with its copyright notice and disclaimer on all copies - commercial use allowed). The
+  notice is in `THIRD_PARTY_NOTICES.md`, which travels with the website. Only the derived list is
+  in the repository. The free German (OdeNet) and Arabic wordnets were not used: their CC-BY-SA
+  share-alike terms would reach into Toonaro; the German and Arabic words are Toonaro's own.
+
 ## Rules for new material
 
 - Prefer MIT, BSD, Apache-2.0, ISC, CC0, CC-BY, or OFL (for fonts). Add each one to
