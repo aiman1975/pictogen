@@ -4,6 +4,8 @@
 // To change a word: change it here.
 export default {
   texts: {
+   "Edit anything": "Alles bearbeiten",
+   "Characters, places, weather, words, camera, look - in a few clicks": "Figuren, Orte, Wetter, Worte, Kamera, Stil – mit wenigen Klicks",
    "For families": "Für Familien",
    "Bedtime stories become cartoons and picture books": "Gutenachtgeschichten werden zu Cartoons und Bilderbüchern",
    "For presentations": "Für Präsentationen",

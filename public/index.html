@@ -80,7 +80,8 @@
 
     /* You type -> you get */
     .pairs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-    .usevids { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+    .usevids { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; max-width: 980px; margin: 0 auto; }
+    @media (max-width: 700px) { .usevids { grid-template-columns: 1fr; } }
     .usevids figure { margin: 0; }
     .usevids video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 16px; background: #0b1020; box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2); }
     .usevids figcaption { margin-top: 10px; color: var(--muted, #5b6474); font-weight: 600; }
@@ -193,6 +194,10 @@
         <figure>
           <video controls playsinline preload="none" poster="/video/toonaro-for-families.jpg" width="1280" height="720"><source src="/video/toonaro-for-families.mp4" type="video/mp4"></video>
           <figcaption><b>For families</b> Bedtime stories become cartoons and picture books</figcaption>
+        </figure>
+        <figure>
+          <video controls playsinline preload="none" poster="/video/toonaro-edit-anything.jpg" width="1280" height="720"><source src="/video/toonaro-edit-anything.mp4" type="video/mp4"></video>
+          <figcaption><b>Edit anything</b> Characters, places, weather, words, camera, look - in a few clicks</figcaption>
         </figure>
       </div>
     </div>

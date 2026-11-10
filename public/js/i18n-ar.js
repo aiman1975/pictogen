@@ -5,6 +5,8 @@
 // to left (dir="rtl"). To change a word: change it here.
 export default {
   texts: {
+   "Edit anything": "عدّل كل شيء",
+   "Characters, places, weather, words, camera, look - in a few clicks": "الشخصيات والأماكن والطقس والكلمات والكاميرا والأسلوب – ببضع نقرات",
    "For families": "للعائلات",
    "Bedtime stories become cartoons and picture books": "قصص ما قبل النوم تصبح رسومًا متحركة وكتبًا مصورة",
    "For presentations": "للعروض التقديمية",
