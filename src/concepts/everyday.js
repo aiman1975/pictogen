@@ -285,6 +285,42 @@ export default [
     },
   },
   {
+    id: 'lighthouse',
+    aliases: ['lighthouses', 'light house', 'beacon'],
+    tags: ['sea', 'beach', 'coast', 'building', 'light', 'night', 'outdoor', 'structure'],
+    category: 'objects',
+    placement: 'ground',
+    scale: 2.4,
+    baseline: 96,
+    width: 0.62,
+    colors: { main: '#e53935', stripe: '#ffffff', light: '#ffe082', roof: '#37474f', rock: '#78909c' },
+    palettes: { main: ['#e53935', '#1e88e5', '#43a047', '#37474f'] },
+    draw(d, p) {
+      const light = p.c('light'), roof = p.c('roof');
+      // Its light, blinking across the sea: a beam each way and a glow round the lamp
+      d.group({ class: 'pg-beam' }, () => {
+        d.poly([[50, 22], [-160, 4], [-160, 40]], { fill: light, opacity: 0.35, kind: 'accent' });
+        d.poly([[50, 22], [260, 4], [260, 40]], { fill: light, opacity: 0.35, kind: 'accent' });
+        d.circle(50, 22, 14, { fill: light, opacity: 0.45, kind: 'accent' });
+      });
+      // A rock under it, the tower in red and white bands, narrower at the top, a door and a window
+      d.path('M8 96 Q10 82 26 80 L74 80 Q90 82 92 96 Z', { fill: p.c('rock'), kind: 'body' });
+      d.path('M33 84 L37 32 L63 32 L67 84 Z', { fill: p.c('stripe'), kind: 'body' });
+      for (const [y0, y1] of [[32, 45], [58, 71]]) {
+        const at = (y) => 4 * ((y - 32) / 52);
+        d.path(`M${37 - at(y0)} ${y0} L${63 + at(y0)} ${y0} L${63 + at(y1)} ${y1} L${37 - at(y1)} ${y1} Z`, { fill: p.c('main'), kind: 'body' });
+      }
+      d.path('M45 84 L45 76 Q50 71 55 76 L55 84 Z', { fill: '#5d4037', kind: 'body' });
+      d.rect(47, 49, 6, 6, { rx: 1, fill: '#37474f', kind: 'detail' });
+      // The gallery round the top, the lamp room with its light, the roof and its tip
+      d.rect(32, 29, 36, 4, { rx: 1, fill: roof, kind: 'body' });
+      d.rect(39, 15, 22, 14, { rx: 1, fill: light, kind: 'body' });
+      for (const x of [39, 46, 53, 60]) d.rect(x, 15, 1.6, 14, { fill: roof, kind: 'detail' });
+      d.path('M36 16 L50 4 L64 16 Z', { fill: roof, kind: 'body' });
+      d.circle(50, 3, 2, { fill: roof, kind: 'detail' });
+    },
+  },
+  {
     id: 'cave',
     aliases: ['caves', 'cavern', 'grotto'],
     tags: ['nature', 'outdoor', 'rock', 'adventure', 'object'],

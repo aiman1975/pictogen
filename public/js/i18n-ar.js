@@ -5,6 +5,9 @@
 // to left (dir="rtl"). To change a word: change it here.
 export default {
   texts: {
+   "Mute": "كتم الصوت",
+   "Sound on": "تشغيل الصوت",
+   "Muted": "الصوت مكتوم",
    "Edit anything": "عدّل كل شيء",
    "Characters, places, weather, words, camera, look - in a few clicks": "الشخصيات والأماكن والطقس والكلمات والكاميرا والأسلوب – ببضع نقرات",
    "For families": "للعائلات",

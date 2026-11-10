@@ -175,6 +175,17 @@ if (chromium) {
     await page.waitForTimeout(1500);
     const miss = await page.evaluate(() => ({ text: document.querySelector('.tn-demo-missing')?.textContent ?? '', href: document.querySelector('.tn-demo-tell')?.href ?? '' }));
     check(/zeppelin/.test(miss.text) && /^mailto:info@toonaro\.com\?subject=/.test(miss.href) && /zeppelin/.test(decodeURIComponent(miss.href)), `a word Toonaro doesn't know is listed, with an e-mail to tell us (${JSON.stringify(miss)})`);
+    await page.fill('#prompt-input', '');
+    await page.type('#prompt-input', 'Every night, the old lighthouse blinked across an empty sea. One evening, a small boat answered with a golden light. The end of it');
+    const full = await page.evaluate(() => ({ len: document.getElementById('prompt-input').value.length, hint: document.querySelector('.tn-demo-long')?.textContent ?? '' }));
+    check(full.len === 120 && /Clip/.test(full.hint), `a full picture line says a whole story goes in a clip (${JSON.stringify(full)})`);
+    // (the mute button on the picture: one click and the sound is off, remembered)
+    const before = await page.evaluate(() => window.pictogenSound?.isEnabled());
+    await page.click('#btn-mute');
+    const muted = await page.evaluate(() => ({ on: window.pictogenSound?.isEnabled(), icon: document.getElementById('btn-mute').textContent, pressed: document.getElementById('btn-mute').getAttribute('aria-pressed'), kept: localStorage.getItem('pictogen.sound.v1') }));
+    await page.click('#btn-mute');
+    const back = await page.evaluate(() => window.pictogenSound?.isEnabled());
+    check(before === true && muted.on === false && muted.icon === '🔇' && muted.pressed === 'true' && muted.kept === 'off' && back === true, `the mute button on the picture turns the sound off and on (${JSON.stringify({ before, muted, back })})`);
     check(!errors.length, `no page errors in the demo${errors.length ? ': ' + errors.join('; ') : ''}`);
   } finally {
     await browser.close();

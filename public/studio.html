@@ -533,6 +533,14 @@
       justify-content: space-between;
     }
 
+    .viewport-wrap { position: relative; }
+    .mute-btn {
+      position: absolute; top: 10px; inset-inline-start: 10px; z-index: 5; width: 42px; height: 42px; border-radius: 50%;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.92); font-size: 1.25rem; line-height: 1; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(15,23,42,0.12); display: grid; place-items: center; padding: 0;
+    }
+    .mute-btn:hover { background: #fff; transform: scale(1.06); }
+    .mute-btn[aria-pressed="true"] { background: #fee2e2; border-color: #fecaca; }
     .svg-viewport {
       padding: 1.5rem;
       background: #f1f5f9;
@@ -965,7 +973,9 @@
       .controls-panel .pill-btn { flex: none; }
       /* The picture first, its buttons in a sideways row under it */
       .canvas-card > * { order: 5; }
-      .svg-viewport { order: 1; min-height: 0; padding: 0.35rem; }
+      .viewport-wrap { order: 1; }
+      .svg-viewport { min-height: 0; padding: 0.35rem; }
+      .mute-btn { top: 6px; inset-inline-start: 6px; width: 36px; height: 36px; font-size: 1.05rem; }
       #story-player-bar { order: 2; }
       .canvas-header { order: 3; padding: 0.45rem 0.5rem; }
       .canvas-header > div:first-child { display: none; }
@@ -1275,8 +1285,12 @@
           <button class="btn-action" id="btn-reset-labels" title="Back to the original labels">↺ Original labels</button>
         </div>
 
-        <div class="svg-viewport" id="svg-viewport" dir="ltr">
-          <div style="color: var(--text-muted); font-weight: 600;">Drawing…</div>
+        <div class="viewport-wrap">
+          <div class="svg-viewport" id="svg-viewport" dir="ltr">
+            <div style="color: var(--text-muted); font-weight: 600;">Drawing…</div>
+          </div>
+          <!-- (the sound switch, always at hand on the picture) -->
+          <button type="button" class="mute-btn" id="btn-mute" title="Mute" aria-label="Mute" aria-pressed="false">🔊</button>
         </div>
 
         <!-- Floating toolbar for selected movable object -->
@@ -2665,16 +2679,22 @@ Scene: a woman puts a coin in a jar | Every coin counts
 
     // Sound: the scenes' voices and effects (public/js/scene-sound.js); one switch for the canvas and the clip
     const btnSound = document.getElementById('btn-sound');
+    const btnMute = document.getElementById('btn-mute');
     function setSound(on) {
       storyState.sound = on;
       storyBtnSound.style.color = on ? '#f59e0b' : '#64748b';
       storyBtnSound.textContent = on ? '🔔' : '🔕';
       btnSound.textContent = on ? '🔊 Sound' : '🔇 Sound';
       btnSound.classList.toggle('active', on);
+      btnMute.textContent = on ? '🔊' : '🔇';
+      btnMute.title = on ? 'Mute' : 'Sound on';
+      btnMute.setAttribute('aria-label', btnMute.title);
+      btnMute.setAttribute('aria-pressed', String(!on));
       window.pictogenSound?.setEnabled(on);
       if (on) window.pictogenSound?.resume(getSvgElement());
     }
     btnSound.addEventListener('click', () => setSound(!storyState.sound));
+    btnMute.addEventListener('click', () => { setSound(!storyState.sound); showToast(storyState.sound ? 'Sound on' : 'Muted'); });
     const soundSetPick = document.getElementById('sound-set');
     soundSetPick.value = window.pictogenSound?.getSoundSet?.() ?? 'auto';
     soundSetPick.addEventListener('change', () => {
@@ -2745,6 +2765,10 @@ Scene: a woman puts a coin in a jar | Every coin counts
       storyBtnSound.style.color = on ? '#f59e0b' : '#64748b';
       storyBtnSound.textContent = on ? '🔔' : '🔕';
       btnSound.textContent = on ? '🔊 Sound' : '🔇 Sound';
+      btnMute.textContent = on ? '🔊' : '🔇';
+      btnMute.title = on ? 'Mute' : 'Sound on';
+      btnMute.setAttribute('aria-label', btnMute.title);
+      btnMute.setAttribute('aria-pressed', String(!on));
       storyState.music = window.pictogenSound ? window.pictogenSound.isMusicOn() : true;
       showMusic(storyState.music);
     });

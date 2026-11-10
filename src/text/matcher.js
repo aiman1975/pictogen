@@ -558,14 +558,15 @@ export function suggestWords(word, limit = 3) {
   if (w.length < 3 || STOPWORDS.has(w)) return [];
   if (GROUP_WORDS[w] || SYNONYMS[w]) return [];
   const scored = [];
-  const max = w.length >= 7 ? 2 : 1;
+  // (a word with an ending - "blinked", "running" - is a verb: only a close typo, not a word two letters off)
+  const max = w.length >= 7 && !/(ed|ing)$/.test(w) ? 2 : 1;
   for (const k of [...idx.singleKeys, ...Object.keys(SYNONYMS), ...Object.keys(GROUP_WORDS)]) {
     if (k.length < 3 || k === w) continue;
     let d = Infinity;
     if (k[0] !== w[0]) continue; // (typos rarely change the first letter)
     if (Math.abs(k.length - w.length) <= max) d = lev(w, k);
     // The same word, longer or shorter ("dino" -> "dinosaur")
-    if (d > max && w.length >= 4 && (k.startsWith(w) || w.startsWith(k)) && Math.abs(k.length - w.length) <= 4) d = max + 0.5;
+    if (d > max && w.length >= 4 && (k.startsWith(w) || w.startsWith(k)) && Math.abs(k.length - w.length) <= 3 && !/(ed|ing)$/.test(w)) d = max + 0.5;
     if (d <= max + 0.5) {
       const c = idx.single.has(k) && getConcept(idx.single.get(k));
       // Hand-drawn concepts and plain words first

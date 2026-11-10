@@ -457,11 +457,16 @@ export function pgSoundTrack(ctx, dest, sound, from = 0, opts = {}) {
   // The place's sound under it all, for as long as the scene plays
   const amb = sound && sound.amb ? pgAmbience(ctx, bus, sound.amb, ctx.currentTime + 0.05, { clean }) : null;
   const loop = sound && sound.loop > 0.5 ? sound.loop : null;
+  // (opts.rounds: how many times a looping scene's sounds play, then it goes quiet - the studio's
+  // picture loops on without them repeating; none: as long as it plays)
+  const rounds = loop && opts.rounds > 0 ? opts.rounds : Infinity;
+  const quietAt = zero + rounds * (loop || 0);
+  let quiet = false;
   let until = ctx.currentTime;
   const ahead = () => {
     const to = ctx.currentTime + 0.6;
     const first = loop ? Math.max(0, Math.floor((until - zero) / loop)) : 0;
-    const last = loop ? Math.floor((to - zero) / loop) : 0;
+    const last = loop ? Math.min(rounds - 1, Math.floor((to - zero) / loop)) : 0;
     for (let k = first; k <= last; k++) {
       for (const c of cues) {
         const at = zero + k * loop + c.t;
@@ -471,7 +476,9 @@ export function pgSoundTrack(ctx, dest, sound, from = 0, opts = {}) {
         }
       }
     }
-    if (amb) amb.events(until, to);
+    if (amb && !quiet) {
+      if (to >= quietAt) { quiet = true; amb.stop(Math.max(ctx.currentTime, quietAt) + 0.3); } else amb.events(until, to);
+    }
     until = to;
   };
   ahead();
@@ -479,7 +486,7 @@ export function pgSoundTrack(ctx, dest, sound, from = 0, opts = {}) {
   return {
     stop() {
       clearInterval(timer);
-      if (amb) amb.stop(ctx.currentTime + 0.3);
+      if (amb && !quiet) amb.stop(ctx.currentTime + 0.3);
       bus.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
       setTimeout(() => bus.disconnect(), 400);
     },

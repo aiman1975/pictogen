@@ -427,6 +427,7 @@ handtuch, handtücher, handtüchern = towel
 schatz, schätze, schatztruhe, schatzkiste, schatzkisten = treasure chest
 busch, büsche, büschen, strauch, sträucher, hecke, hecken = bush
 höhle, höhlen = cave
+leuchtturm, leuchttürme, leuchttürmen, leuchtturms = lighthouse
 turm, türme, türmen, turms = tower
 kran, kräne, kranen, baukran = crane
 bagger, baggers = digger

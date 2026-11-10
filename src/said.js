@@ -37,8 +37,9 @@ const END = {
   de: '(?:([!?]+)|(?=\\.|\\s+dann\\s|\\s+und dann\\s|$))',
   ar: '(?:([!?؟]+)|(?=\\.|\\s+ثم\\s|\\s+وبعدها\\s|$))',
 };
-// Not what is said: "says that...", "says to Tom" (what follows a colon is), "says nothing"
-const NOT_SAID = { en: /^(that|to|nothing|so)\b/i, de: /^(dass|zu|zum|zur|nichts)(?![\p{L}])/iu, ar: /^(ان|انه|انها|انهم|لا شيء)(\s|$)/ };
+// Not what is said: "says that...", "says to Tom" (what follows a colon is), "says nothing", "answered with a
+// golden light" (a boat answers with its light: no words)
+const NOT_SAID = { en: /^(that|to|nothing|so|with|by|in|on|at|back|yes or no)\b/i, de: /^(dass|zu|zum|zur|nichts|mit|mitten|im|in|auf)(?![\p{L}])/iu, ar: /^(ان|انه|انها|انهم|لا شيء|ب|بال\S*|في|على)(\s|$)/ };
 // Who it is said to, at the end, is not said: "says hello to her mum"
 const SAID_TO = { en: /\s+to\s+(?:(?:her|his|their|the|a|an|my|our)\s+)?\S+$/i, de: /\s+zu\s+(?:(?:ihrer|ihrem|seiner|seinem|der|dem)\s+)?\S+$/iu, ar: /\s+ل\S+$/ };
 // Who says it, when they come after the verb ("dann sagt sie", "sagt Mia", "قالت سارة", "صرخ الولد")

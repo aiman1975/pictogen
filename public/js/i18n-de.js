@@ -4,6 +4,9 @@
 // To change a word: change it here.
 export default {
   texts: {
+   "Mute": "Stumm schalten",
+   "Sound on": "Ton an",
+   "Muted": "Ton aus",
    "Edit anything": "Alles bearbeiten",
    "Characters, places, weather, words, camera, look - in a few clicks": "Figuren, Orte, Wetter, Worte, Kamera, Stil – mit wenigen Klicks",
    "For families": "Für Familien",

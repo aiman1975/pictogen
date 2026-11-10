@@ -148,6 +148,9 @@ export const ANIMATION_CSS = `
 /* A swing swings, a seesaw rocks: the moving part around its pivot, and whoever sits on it (src/concepts/playground.js) */
 @keyframes pgSwinging { 0% { transform: rotate(-16deg); } 100% { transform: rotate(16deg); } }
 .pg-swinging { animation: pgSwinging 1.5s ease-in-out infinite alternate; }
+/* A lighthouse's light blinks */
+@keyframes pgBeam { 0%, 100% { opacity: 0.2; } 45%, 60% { opacity: 1; } }
+.pg-beam { animation: pgBeam 2.4s ease-in-out infinite; }
 @keyframes pgSeesawing { 0% { transform: rotate(-8deg); } 100% { transform: rotate(8deg); } }
 .pg-seesawing { animation: pgSeesawing 2.2s ease-in-out infinite alternate; }
 ${EMOTE_CSS}

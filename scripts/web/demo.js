@@ -29,6 +29,7 @@
       long: function (n, m) { return 'The demo draws from up to ' + n + ' characters (yours: ' + m + '). Make it a little shorter - the full version has no limit.'; },
       free: 'Free demo, with a watermark. The full version, without it:',
       noteFree: function () { return 'Try it free in your browser, as often as you like - with a "demo" watermark, stories of up to ' + cfg.maxStory + ' characters.'; },
+      lineFull: function (n) { return 'A picture takes up to ' + n + ' characters. For a whole story, choose 🎬 Clip on the left (up to ' + cfg.maxStory + ').'; },
       missing: 'Toonaro doesn\'t know these words yet:',
       tell: 'Tell us, and we\'ll teach it',
       mailSubject: 'Toonaro: words to learn',
@@ -45,6 +46,7 @@
       long: function (n, m) { return 'Die Demo malt aus bis zu ' + n + ' Zeichen (deine: ' + m + '). Kürze den Text etwas – die Vollversion hat keine Grenze.'; },
       free: 'Kostenlose Demo, mit Wasserzeichen. Die Vollversion, ohne:',
       noteFree: function () { return 'Kostenlos im Browser ausprobieren, so oft du willst – mit „Demo“-Wasserzeichen, Geschichten bis ' + cfg.maxStory + ' Zeichen.'; },
+      lineFull: function (n) { return 'Ein Bild nimmt bis zu ' + n + ' Zeichen. Für eine ganze Geschichte wähle links 🎬 Clip (bis ' + cfg.maxStory + ').'; },
       missing: 'Diese Wörter kennt Toonaro noch nicht:',
       tell: 'Sag es uns – wir bringen sie ihm bei',
       mailSubject: 'Toonaro: Wörter zum Lernen',
@@ -61,6 +63,7 @@
       long: function (n, m) { return 'النسخة التجريبية ترسم من ' + n + ' حرف كحد أقصى (نصك: ' + m + '). اختصره قليلًا، فالنسخة الكاملة بلا حدود.'; },
       free: 'نسخة تجريبية مجانية بعلامة مائية. النسخة الكاملة بدونها:',
       noteFree: function () { return 'جرّبه مجانًا في المتصفح بقدر ما تشاء – مع علامة «تجريبي» وقصص حتى ' + cfg.maxStory + ' حرف.'; },
+      lineFull: function (n) { return 'الصورة تأخذ حتى ' + n + ' حرفًا. لقصة كاملة اختر 🎬 مقطع (حتى ' + cfg.maxStory + ').'; },
       missing: 'تونارو لا يعرف هذه الكلمات بعد:',
       tell: 'أخبرنا وسنعلّمه إياها',
       mailSubject: 'تونارو: كلمات ليتعلمها',
@@ -100,9 +103,11 @@
   // (and the words it could not draw, for "tell us" under the picture: a single picture's)
   var missing = [];
   var SMALL = /^(a|an|the|and|or|but|with|without|in|on|at|of|to|for|from|by|is|are|was|were|be|it|he|she|they|his|her|their|its|this|that|then|so|very|too|also|just|some|there|here|out|up|down|says|said|shouts|calls|ein|eine|einen|der|die|das|und|mit|im|in|auf|zu|ist|sind|sie|er|es|dann)$/i;
+  var DESCRIBING = /^(old|new|young|empty|full|big|small|little|tiny|huge|tall|short|long|golden|silver|bright|dark|light|soft|loud|quiet|happy|sad|angry|kind|brave|lonely|beautiful|pretty|ugly|nice|good|bad|great|best|last|first|next|other|every|each|one|two|three|across|over|under|through|into|onto|around|away|again|always|never|suddenly|alt|neu|neue|neuer|neues|leer|leere|leeren|groß|große|großer|klein|kleine|kleiner|kleines|jede|jeden|jeder|eines|einem|einer|abends|nachts)$/i;
   var catchMissing = function (v) {
     if (!v || typeof v !== 'object' || Array.isArray(v) || !Array.isArray(v.unknown) || typeof v.svg !== 'string') return;
-    missing = v.unknown.filter(function (w, i, all) { return typeof w === 'string' && w.length > 2 && !SMALL.test(w) && !/^pg[cp]\d+$/i.test(w) && all.indexOf(w) === i; }).slice(0, 8);
+    // (things to draw, not how they are or what they do: "old", "empty", "blinked" are left out)
+    missing = v.unknown.filter(function (w, i, all) { return typeof w === 'string' && w.length > 2 && !SMALL.test(w) && !DESCRIBING.test(w) && !/(ed|ing|ly)$/i.test(w) && !/^pg[cp]\d+$/i.test(w) && all.indexOf(w) === i; }).slice(0, 8);
     setTimeout(showMissing, 0);
   };
   if (studio) window.__toonaroMark = function (v) { catchMissing(v); return markAll(v); };
@@ -248,7 +253,17 @@
         showLeft();
       }
       var line = document.getElementById('prompt-input');
-      if (line) line.maxLength = cfg.maxPrompt;
+      if (line) {
+        line.maxLength = cfg.maxPrompt;
+        // (the line is full: a whole story goes in a clip)
+        line.addEventListener('input', function () {
+          var box = document.querySelector('.tn-demo-long');
+          if (line.value.length >= cfg.maxPrompt) {
+            if (!box && badge && badge.parentElement) { box = document.createElement('div'); box.className = 'tn-demo-long'; box.setAttribute('role', 'status'); badge.parentElement.insertBefore(box, badge.nextSibling); }
+            if (box) box.textContent = t('lineFull')(cfg.maxPrompt);
+          } else if (box) box.remove();
+        });
+      }
       // (the studio writes its own word hints anew with each picture: the "tell us" row after them)
       var help = document.getElementById('word-help');
       if (help) new MutationObserver(function () { if (!help.querySelector('.tn-demo-missing') && missing.length) showMissing(); }).observe(help, { childList: true });

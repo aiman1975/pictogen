@@ -449,6 +449,12 @@ So what should you do? First, stop and do not click anything. Then, hover over t
     const got = quoteSpeech(t, lang).replace(/\u2060/g, '');
     assert(got === want, `${lang}: "${t}" -> ${got}`);
   }
+  // (a second visitor: a lighthouse, and a boat that "answered with a golden light" says nothing)
+  const light = g('Every night, the old lighthouse blinked across an empty sea. One evening, a small boat answered with a golden light. The', { style: 'flat' });
+  assert(light.matches.map((m) => m.id).join() === 'lighthouse,boat' && !/<g class="pg-bubbles"/.test(light.svg) && !/golden light/i.test(light.svg.replace(/<style[\s\S]*?<\/style>/g, '')) && /pg-beam/.test(light.svg) && !Object.keys(light.suggestions).length,
+    `the lighthouse blinks over the sea with the boat; "answered with a golden light" is no speech bubble; no odd suggestions (${light.matches.map((m) => m.id)}; ${JSON.stringify(light.suggestions)})`);
+  assert(['ein Leuchtturm', 'منارة'].every((w) => ids(w).includes('lighthouse')), 'a lighthouse in German and Arabic');
+  for (const [lang, t] of [['en', 'she replied with a smile'], ['de', 'Er antwortete mit einem Lächeln']]) assert(quoteSpeech(t, lang) === t, `${lang}: "${t}" is no speech`);
   const friend = g('ein mädchen ruft ihre mama und sagt schau ein Schaukel', { style: 'flat' });
   assert(friend.matches.map((m) => m.id).join() === 'girl,woman,swing' && !friend.unknown.length && /Mama! Schau ein Schaukel/.test(friend.svg.replace(/<[^>]+>/g, ' ').replace(/[\s\u2060]+/g, ' ')),
     `the visitor's sentence: a girl, her mum and a swing, "Mama! Schau ein Schaukel" in a bubble (${friend.matches.map((m) => m.id)}; ${friend.unknown})`);

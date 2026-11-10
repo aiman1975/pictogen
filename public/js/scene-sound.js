@@ -77,6 +77,8 @@ export function stop() {
   if (track) { track.stop(); track = null; }
 }
 
+// (a picture that loops: its sounds twice, then quiet - they don't repeat for as long as it is open)
+const ROUNDS = 2;
 /** Plays the sound of the scene in `svg` from scene time `from` (seconds), if sound is on */
 export function play(svg, from = 0) {
   stop();
@@ -84,7 +86,7 @@ export function play(svg, from = 0) {
   if (!enabled || !(sound?.cues?.length || sound?.amb) || !allowed()) return false;
   const ac = context();
   if (!ac) return false;
-  track = pgSoundTrack(ac, master, sound, from, { bank, onVoice: (at, s) => music?.duck(at, s), set: soundSet, genre: clipKind });
+  track = pgSoundTrack(ac, master, sound, from, { bank, onVoice: (at, s) => music?.duck(at, s), set: soundSet, genre: clipKind, rounds: ROUNDS });
   return true;
 }
 
