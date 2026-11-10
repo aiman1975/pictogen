@@ -24,6 +24,8 @@ import { buildHero } from './hero.js';
 import { buildTeachers } from './teachers.js';
 import { buildPresentations } from './presentations.js';
 import { buildFamilies } from './families.js';
+import { buildEdits } from './edits.js';
+import { captureEdits } from './capture-edits.js';
 import { NARRATION } from './narration.js';
 import { promoPage } from './page.js';
 import { renderAudio } from './audio.js';
@@ -39,6 +41,7 @@ const explainer = flag('--explainer');
 const VIDEOS = {
   hero: { build: buildHero, music: 'explainer-1.mp3', file: 'toonaro-in-45-seconds.mp4', poster: ['hintro', 2.4] },
   teachers: { build: buildTeachers, music: 'focus-1.mp3', file: 'toonaro-for-teachers.mp4', poster: ['tintro', 2.2] },
+  edits: { build: buildEdits, capture: captureEdits, music: 'explainer-1.mp3', file: 'toonaro-edit-anything.mp4', poster: ['eintro', 2.2] },
   families: { build: buildFamilies, music: 'calm-1.mp3', file: 'toonaro-for-families.mp4', poster: ['fintro', 2.2] },
   presentations: { build: buildPresentations, music: 'documentary-1.mp3', file: 'toonaro-for-presentations.mp4', poster: ['pintro', 2.2] },
 };
@@ -66,8 +69,16 @@ mkdirSync(OUT, { recursive: true });
 
 const studioJson = join(OUT, 'studio', 'studio.json');
 let studio;
-if (hero) studio = null;
-else if (reuse && existsSync(studioJson)) studio = JSON.parse(readFileSync(studioJson, 'utf8'));
+if (hero && !VIDEO.capture) studio = null;
+else if (hero) {
+  // (a video of the real studio: filmed once, then again only when asked - not with --reuse-studio)
+  if (reuse && existsSync(studioJson)) studio = JSON.parse(readFileSync(studioJson, 'utf8'));
+  else {
+    log('Filming the studio');
+    studio = await VIDEO.capture(chromium, join(OUT, 'studio'), ROOT);
+    writeFileSync(studioJson, JSON.stringify(studio));
+  }
+} else if (reuse && existsSync(studioJson)) studio = JSON.parse(readFileSync(studioJson, 'utf8'));
 else {
   log('Filming the studio');
   studio = await captureStudio(chromium, join(OUT, 'studio'), ROOT);
@@ -84,7 +95,7 @@ if (explainer) {
     voiceLen[l.id] = +execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim();
   }
 }
-const board = hero ? VIDEO.build() : explainer ? buildExplainer({ studio, voices: voiceLen }) : buildStoryboard({ studio });
+const board = hero ? VIDEO.build({ studio }) : explainer ? buildExplainer({ studio, voices: voiceLen }) : buildStoryboard({ studio });
 copyFileSync(join(ROOT, 'public/fonts/nunito-latin.woff2'), join(OUT, 'nunito.woff2'));
 copyFileSync(join(ROOT, 'public/fonts/baloo-bhaijaan-arabic.woff2'), join(OUT, 'baloo.woff2'));
 writeFileSync(join(OUT, 'promo.html'), promoPage(board, { fontUrl: 'nunito.woff2' }));

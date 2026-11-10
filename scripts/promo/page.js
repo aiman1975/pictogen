@@ -153,6 +153,24 @@ h1.big { font-size: 66px; }
 .card.deck { left: 250px; top: 196px; width: 780px; }
 .deckdots { position: absolute; left: 0; right: 0; top: 650px; display: flex; justify-content: center; gap: 10px; }
 .deckdots i { width: 12px; height: 12px; border-radius: 50%; background: #fdba74; }
+/* "Edit anything" (edits.js): the real studio, the control beside the picture */
+.tour { position: absolute; left: 64px; right: 64px; top: 206px; height: 470px; display: flex; gap: 26px; align-items: center; justify-content: center; }
+.tour .pane { position: relative; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 24px 60px rgb(0 0 0 / .5), 0 0 0 1px rgb(255 255 255 / .12); }
+.tour .scroll { position: relative; }
+.tour .shot { display: block; width: 100%; height: auto; }
+.tour .cursor { position: absolute; left: 0; top: 0; z-index: 2; }
+.tour .cursor svg { filter: drop-shadow(0 2px 3px rgb(0 0 0 / .4)); }
+.tour .ripple { position: absolute; left: -18px; top: -18px; width: 36px; height: 36px; border-radius: 50%; border: 3px solid #f97316; opacity: 0; }
+.tour.side .ctrl { flex: none; width: 520px; }
+.tour.side .pic { flex: none; width: 606px; }
+.tour.stack { flex-direction: column; gap: 16px; }
+.tour.stack .ctrl { width: 1000px; }
+.tour.stack .pic { width: 600px; }
+.tour.pic .pic { width: 800px; }
+.tour.tall .ctrl, .tour.tallside .ctrl { width: 320px; height: 470px; }
+.tour.tallside { gap: 48px; }
+.tour.tallside .pic { width: 420px; }
+.whys.four { grid-template-columns: repeat(4, 250px); }
 /* "Toonaro for families" (families.js) */
 .grid4.portraits { left: 190px; width: 900px; gap: 26px; }
 .steps.fsteps li { font-size: 19px; padding: 10px 14px; margin-bottom: 9px; }
@@ -252,6 +270,66 @@ const HOOKS = {
   },
 };
 
+// An edit in the real studio (edits.js): which filmed frame each pane shows at t, and the pointer
+// travelling to each control just before its click
+async function setShot(img, file) {
+  if (!img || !file || img.dataset.file === file) return;
+  img.dataset.file = file;
+  img.src = 'studio/' + file;
+  await img.decode().catch(() => {});
+}
+async function tour(t, el, d) {
+  const S = d.steps;
+  let k = -1;
+  for (let i = 0; i < S.length; i++) if (S[i].click <= t) k = i;
+  let ctrl = d.pre && d.pre.ctrl, pic = d.pre && d.pre.pic;
+  for (let i = 0; i <= k; i++) {
+    if (S[i].ctrl) ctrl = S[i].ctrl;
+    if (S[i].pic && S[i].pic.length) {
+      const n = i === k ? Math.max(0, Math.min(S[i].pic.length - 1, Math.floor((t - S[i].click - 0.12) * d.fps))) : S[i].pic.length - 1;
+      pic = S[i].pic[i === k && t - S[i].click < 0.12 && i > 0 ? Math.max(0, n) : n];
+    }
+  }
+  await setShot(el.querySelector('.pane.ctrl .shot'), ctrl);
+  await setShot(el.querySelector('.pane.pic .shot'), pic);
+  // The pointer: from where it was to the next thing it clicks
+  const j = S.findIndex((x) => x.click > t);
+  const start = { x: 0.9, y: 0.92 };
+  let pos;
+  if (j < 0) pos = S.length ? S[S.length - 1].target : start;
+  else {
+    const from = j > 0 ? S[j - 1].target : start, to = S[j].target;
+    const travel = d.drag ? (j ? 0.11 : 0.5) : 0.55;
+    const k2 = ease((t - (S[j].click - travel)) / travel);
+    pos = { x: lerp(from.x, to.x, k2), y: lerp(from.y, to.y, k2) };
+  }
+  const paneEl = el.querySelector('.pane.' + d.pane) || el.querySelector('.pane');
+  el.querySelectorAll('.pane .cursor').forEach((c) => { c.style.display = 'none'; });
+  if (!paneEl || !pos) return;
+  const size = d.pane === 'ctrl' ? d.ctrlSize : d.picSize;
+  // (the control seen closer: zoomed in, following the pointer sideways)
+  const z = d.pane === 'ctrl' ? d.zoom || 1 : 1;
+  const W = paneEl.clientWidth, H = W * (size[1] / size[0]) * z;
+  const scroll = paneEl.querySelector('.scroll');
+  scroll.style.width = (W * z) + 'px';
+  if (z > 1) paneEl.style.height = H + 'px';
+  const offX = z > 1 ? Math.max(W - W * z, Math.min(0, W / 2 - pos.x * W * z)) : 0;
+  // (a tall control - the character card - scrolls to keep the pointer in view)
+  const winH = paneEl.clientHeight || H;
+  const off = Math.max(0, Math.min(H - winH, pos.y * H - winH / 2));
+  scroll.style.transform = 'translate(' + offX + 'px,' + (-off) + 'px)';
+  const cur = paneEl.querySelector('.cursor');
+  cur.style.display = 'block';
+  cur.style.transform = 'translate(' + (pos.x * W * z) + 'px,' + (pos.y * H) + 'px)';
+  const last = k >= 0 ? S[k].click : -99;
+  const since = t - last;
+  const rip = cur.querySelector('.ripple');
+  const show = since < 0.4 && !(d.drag && k > 0);
+  rip.style.opacity = show ? 0.85 * (1 - since / 0.4) : 0;
+  rip.style.transform = 'scale(' + (0.3 + since * 4) + ')';
+  cur.querySelector('svg').style.transform = since < 0.12 || (d.drag && k >= 0 && j >= 0) ? 'scale(.85)' : 'none';
+}
+
 function background(t) {
   const b = document.querySelectorAll('.blob');
   const p = [[260, 120, 0.21, 0.17], [900, 80, 0.15, 0.23], [620, 420, 0.12, 0.19]];
@@ -283,6 +361,7 @@ window.seek = async (t) => {
       a.currentTime = Math.max(0, local - off) * 1000;
     }
     if (HOOKS[s.id]) await HOOKS[s.id](local, el);
+    else if (DATA[s.id] && DATA[s.id].tour) await tour(local, el, DATA[s.id]);
   }
 };
 `;
