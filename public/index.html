@@ -351,6 +351,7 @@
         <div class="licence"><div class="ic">💼</div><h3>Business</h3><p>For training and presentations, commercial use included. Confidential: nothing leaves your computer.</p><a class="btn btn-soft btn-small" data-licence="Business" href="mailto:info@toonaro.com?subject=Toonaro%20-%20Business">Ask about Business</a></div>
       </div>
       <p class="price-note">Toonaro is new: write to us and we'll find the right licence and price for you.</p>
+      <p class="price-note"><a href="/nutzungsbedingungen" style="color:var(--brand);font-weight:900">Terms of use</a></p>
     </div>
   </section>
 
@@ -457,5 +458,6 @@
     styles.innerHTML = STYLES.map(([s, name]) => `<a class="style" href="${studioLink({ text: STYLE_TEXT, style: s })}" style="text-decoration:none"><div class="pic" id="st-${s}"></div>${name}</a>`).join('');
     for (const [s] of STYLES) draw(STYLE_TEXT, { style: s, width: 360, height: 360 }).then((svg) => { document.getElementById(`st-${s}`).innerHTML = svg; });
   </script>
+  <script type="module" src="/js/licence.js"></script>
 </body>
 </html>

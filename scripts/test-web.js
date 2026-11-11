@@ -6,7 +6,8 @@ import { createServer } from 'node:net';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { newSigningKey, signLicence, verifyLicence } from '../src/licence.js';
 import { fileURLToPath } from 'node:url';
 
 let fails = 0;
@@ -20,6 +21,8 @@ check(!existsSync(join(dir, 'audio', 'showcase-1.wav')), 'the showcase narration
 check(/data-api-src="\/api\/icon/.test(readFileSync(join(dir, 'studio.html'), 'utf8')) && !/<img[^>]* src="\/api\//.test(readFileSync(join(dir, 'studio.html'), 'utf8')), 'the dictionary\'s pictures are drawn in the page, never fetched from the host');
 check(/importmap/.test(readFileSync(join(dir, 'studio.html'), 'utf8')) && /noindex/.test(readFileSync(join(dir, 'studio.html'), 'utf8')) && existsSync(join(dir, 'robots.txt')), 'pages map node: modules to the stand-ins and ask search engines not to index them');
 check(existsSync(join(dir, 'THIRD_PARTY_NOTICES.txt')) && existsSync(join(dir, 'LICENSE.txt')), 'the licenses travel with the site');
+// (licences: only once the owner's public key is in public/js/licence-key.js - till then the full app is open as it is)
+check(/PUBLIC_KEY = null/.test(readFileSync(join(root, 'public', 'js', 'licence-key.js'), 'utf8')) === !/__toonaroLicensing/.test(readFileSync(join(dir, 'studio.html'), 'utf8')) || !/PUBLIC_KEY = null/.test(readFileSync(join(root, 'public', 'js', 'licence-key.js'), 'utf8')), 'without the owner\'s public key the full app asks for no licence');
 
 let chromium = null;
 try {
@@ -253,6 +256,54 @@ if (chromium) {
   }
 }
 rmSync(demoDir, { recursive: true, force: true });
+check(/Nutzungsbedingungen/.test(readFileSync(join(root, 'public', 'nutzungsbedingungen.html'), 'utf8')) && /nutzungsbedingungen/.test(readFileSync(join(root, 'public', 'datenschutz.html'), 'utf8')), 'the terms of use page, linked from the other legal pages');
+
+// Licences (the full app, once the owner's public key is set): without a key the free version (the
+// demo's mark and limits), a genuine key unlocks it, a changed or foreign key does not
+{
+  const owner = await newSigningKey(), stranger = await newSigningKey();
+  const key = await signLicence({ to: 'Test School', type: 'school', seats: 30 }, owner.privateJwk);
+  const forged = await signLicence({ to: 'Test School', type: 'business' }, stranger.privateJwk);
+  const changed = key.split('.'); changed[1] = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(changed[1], 'base64url')), type: 'business' })).toString('base64url');
+  check((await verifyLicence(key, owner.publicJwk)).ok && (await verifyLicence(forged, owner.publicJwk)).reason === 'not-genuine' && (await verifyLicence(changed.join('.'), owner.publicJwk)).reason === 'not-genuine'
+    && (await verifyLicence(await signLicence({ to: 'Old', type: 'family', until: '2020-01-01' }, owner.privateJwk), owner.publicJwk)).reason === 'expired',
+    'licence keys: genuine ones pass; a key from another signing key, a changed one or an ended one does not');
+  const licDir = mkdtempSync(join(tmpdir(), 'toonaro-lic-'));
+  const pubFile = join(licDir, 'public.json');
+  writeFileSync(pubFile, JSON.stringify(owner.publicJwk));
+  const appDir = join(licDir, 'app');
+  execSync(`node scripts/build-web.js "${appDir}" --public-key "${pubFile}"`, { cwd: root, stdio: 'pipe' });
+  if (chromium) {
+    const port = await new Promise((done) => { const s = createServer().listen(0, () => { const p = s.address().port; s.close(() => done(p)); }); });
+    const server = spawn(process.execPath, ['scripts/preview-web.js', appDir, String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
+    await new Promise((done) => server.stdout.on('data', (d) => { if (String(d).includes('http://')) done(); }));
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+      const errors = [];
+      page.on('pageerror', (e) => errors.push(e.message));
+      await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
+      await page.waitForSelector('#svg-viewport svg .tn-demo-mark', { timeout: 60000 });
+      await page.waitForSelector('.tn-licence-btn');
+      await page.click('.tn-licence-btn');
+      await page.fill('.tn-licence textarea', forged);
+      await page.click('.tn-licence [data-do="activate"]');
+      await page.waitForTimeout(500);
+      const refused = await page.textContent('.tn-licence .msg');
+      await page.fill('.tn-licence textarea', key.match(/.{1,60}/g).join('\n'));
+      await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle' }), page.click('.tn-licence [data-do="activate"]')]);
+      await page.waitForSelector('#svg-viewport svg', { timeout: 60000 });
+      await page.waitForTimeout(1500);
+      const unlocked = await page.evaluate(() => ({ mark: !!document.querySelector('#svg-viewport svg .tn-demo-mark'), demo: !!window.__toonaroDemo, to: window.__toonaroLicence?.to, btn: document.querySelector('.tn-licence-btn')?.textContent }));
+      check(/not genuine/.test(refused) && !unlocked.mark && !unlocked.demo && unlocked.to === 'Test School' && /Licensed/.test(unlocked.btn) && !errors.length,
+        `the full app: the free version until a licence key is pasted; a forged key is refused, a genuine one unlocks it (${JSON.stringify({ refused, unlocked, errors })})`);
+    } finally {
+      await browser.close();
+      server.kill();
+    }
+  }
+  rmSync(licDir, { recursive: true, force: true });
+}
 
 console.log(fails ? `\n${fails} web build check(s) failed` : '\nWeb build test suite: ALL PASSED!');
 process.exit(fails ? 1 : 0);

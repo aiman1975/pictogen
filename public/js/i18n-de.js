@@ -4,6 +4,7 @@
 // To change a word: change it here.
 export default {
   texts: {
+   "Terms of use": "Nutzungsbedingungen",
    "Record your voice for this scene (it stays on this device)": "Nimm deine Stimme für diese Szene auf (sie bleibt auf diesem Gerät)",
    "Record your voice for this scene": "Nimm deine Stimme für diese Szene auf",
    "Record your voice for this scene again": "Nimm deine Stimme für diese Szene neu auf",

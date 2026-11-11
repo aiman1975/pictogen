@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Toonaro licence issuer</title>
+  <!--
+    The owner's tool for Toonaro licence keys. Open this file on your own computer (double-click it);
+    it works offline and sends nothing anywhere. It is NOT part of the website (it is outside public/).
+      1. Once: create your signing key. Keep the downloaded file safe and private (a backup on a USB
+         stick); send only the PUBLIC key to be built into the app (public/js/licence-key.js).
+      2. For each customer: load your signing key file, fill in who the licence is for, and copy the key.
+    The keys are the same as src/licence.js makes and checks (ECDSA P-256, SHA-256).
+  -->
+  <style>
+    :root { --ink: #1e293b; --muted: #64748b; --line: #e2e8f0; --brand: #4f46e5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--ink); background: #f8fafc; line-height: 1.5; }
+    main { max-width: 760px; margin: 0 auto; padding: 28px 16px 60px; }
+    h1 { margin: 0 0 4px; font-size: 1.6rem; }
+    .lead { color: var(--muted); margin: 0 0 24px; }
+    section { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 18px; }
+    h2 { margin: 0 0 8px; font-size: 1.15rem; }
+    p { margin: 0 0 10px; }
+    label { display: block; font-weight: 700; margin: 10px 0 4px; }
+    input, select, textarea { width: 100%; font: inherit; padding: 9px 11px; border: 2px solid var(--line); border-radius: 10px; background: #fff; }
+    textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; min-height: 84px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+    button { font: inherit; font-weight: 800; border: 0; border-radius: 999px; padding: 10px 18px; cursor: pointer; background: var(--brand); color: #fff; margin-top: 12px; }
+    button.soft { background: #fff; color: var(--ink); border: 2px solid var(--line); }
+    .warn { background: #fef3c7; border: 1px solid #fde68a; border-radius: 12px; padding: 10px 12px; font-size: 0.92rem; }
+    .ok { color: #047857; font-weight: 800; }
+    .bad { color: #b91c1c; font-weight: 800; }
+    .out { margin-top: 12px; }
+    .hint { color: var(--muted); font-size: 0.88rem; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>🔑 Toonaro licence issuer</h1>
+  <p class="lead">Make licence keys for your customers. Everything happens on this computer; nothing is sent anywhere.</p>
+
+  <section>
+    <h2>1. Your signing key (once)</h2>
+    <p>Create it once. You get a file <b>toonaro-signing-key.json</b>: it is what makes your licence keys genuine.</p>
+    <p class="warn">⚠️ Keep this file <b>private and safe</b>, with a backup (for example on a USB stick). Whoever has it can make licence keys. If you lose it, keys you make later won't work with the app you sold before. Never send it to anyone.</p>
+    <button type="button" id="create">Create my signing key</button>
+    <div class="out" id="created" hidden>
+      <p class="ok">✅ Saved: toonaro-signing-key.json (look in your Downloads).</p>
+      <p>Your <b>public key</b> - this one is not secret. Send it to be built into the app:</p>
+      <textarea id="public" readonly></textarea>
+      <button type="button" class="soft" data-copy="public">Copy the public key</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. A licence for a customer</h2>
+    <label for="keyfile">Your signing key file</label>
+    <input type="file" id="keyfile" accept=".json,application/json">
+    <p class="hint" id="keystate">Load toonaro-signing-key.json first.</p>
+    <label for="to">Licensed to (person, school or company)</label>
+    <input id="to" maxlength="80" placeholder="e.g. Grundschule am Park, München">
+    <div class="row">
+      <div><label for="type">Licence</label>
+        <select id="type"><option value="family">Family</option><option value="school">School</option><option value="business">Business</option></select></div>
+      <div><label for="seats">Seats (optional)</label><input id="seats" type="number" min="1" placeholder="e.g. 30"></div>
+    </div>
+    <div class="row">
+      <div><label for="until">Valid until (optional)</label><input id="until" type="date"></div>
+      <div><label for="issued">Issued on</label><input id="issued" type="date"></div>
+    </div>
+    <button type="button" id="issue">Create the licence key</button>
+    <p class="bad" id="issueErr"></p>
+    <div class="out" id="issued-out" hidden>
+      <label for="licence">The licence key (send it to the customer)</label>
+      <textarea id="licence" readonly></textarea>
+      <button type="button" class="soft" data-copy="licence">Copy the key</button>
+      <label for="mail">An e-mail to send with it</label>
+      <textarea id="mail" readonly style="min-height:190px;font-family:inherit"></textarea>
+      <button type="button" class="soft" data-copy="mail">Copy the e-mail</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Check a licence key</h2>
+    <p>What a key says, and whether it is genuine (with the signing key file loaded above).</p>
+    <textarea id="check" placeholder="TNR1.…"></textarea>
+    <button type="button" id="checkBtn">Check</button>
+    <p id="checkOut"></p>
+  </section>
+</main>
+
+<script>
+  // (the same as src/licence.js: TNR1.<licence as base64url JSON>.<ECDSA P-256 signature>)
+  const ALG = { name: 'ECDSA', namedCurve: 'P-256' }, SIGN = { name: 'ECDSA', hash: 'SHA-256' }, PREFIX = 'TNR1';
+  const b64url = (bytes) => { let s = ''; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+  const unb64url = (t) => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((t.length + 3) % 4)), (c) => c.charCodeAt(0));
+  const utf8 = (s) => new TextEncoder().encode(s);
+  const $ = (id) => document.getElementById(id);
+  const today = () => new Date().toISOString().slice(0, 10);
+  $('issued').value = today();
+  if (!window.crypto?.subtle) document.querySelector('main').insertAdjacentHTML('afterbegin', '<p class="warn">This browser cannot make keys from this file. Please open it in Chrome, Edge or Firefox.</p>');
+
+  let signing = null; // { privateJwk, publicJwk }
+
+  $('create').addEventListener('click', async () => {
+    if (signing && !confirm('You already have a signing key loaded. Create a NEW one? Keys made with it will not work with an app built with the old public key.')) return;
+    const pair = await crypto.subtle.generateKey(ALG, true, ['sign', 'verify']);
+    const privateJwk = await crypto.subtle.exportKey('jwk', pair.privateKey);
+    const pub = await crypto.subtle.exportKey('jwk', pair.publicKey);
+    const publicJwk = { kty: pub.kty, crv: pub.crv, x: pub.x, y: pub.y };
+    const file = { what: 'Toonaro licence signing key - PRIVATE, keep it safe, never send it to anyone', created: today(), privateJwk, publicJwk };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }));
+    a.download = 'toonaro-signing-key.json';
+    a.click();
+    signing = { privateJwk, publicJwk };
+    $('public').value = JSON.stringify(publicJwk);
+    $('created').hidden = false;
+    $('keystate').innerHTML = '<span class="ok">✅ Signing key ready (the one just created).</span>';
+  });
+
+  $('keyfile').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (!data.privateJwk?.d || !data.publicJwk?.x) throw new Error();
+      await crypto.subtle.importKey('jwk', data.privateJwk, ALG, false, ['sign']);
+      signing = { privateJwk: data.privateJwk, publicJwk: data.publicJwk };
+      $('keystate').innerHTML = `<span class="ok">✅ Signing key loaded${data.created ? ` (created ${data.created})` : ''}.</span>`;
+      $('public').value = JSON.stringify(data.publicJwk);
+    } catch {
+      signing = null;
+      $('keystate').innerHTML = '<span class="bad">That is not a Toonaro signing key file.</span>';
+    }
+  });
+
+  const TYPES = { family: ['Family licence', 'Familienlizenz'], school: ['School licence', 'Schullizenz'], business: ['Business licence', 'Unternehmenslizenz'] };
+  $('issue').addEventListener('click', async () => {
+    $('issueErr').textContent = '';
+    if (!signing) { $('issueErr').textContent = 'Load your signing key file first (step 2, at the top).'; return; }
+    const to = $('to').value.trim();
+    if (!to) { $('issueErr').textContent = 'Who is the licence for?'; return; }
+    const licence = { v: 1, id: b64url(crypto.getRandomValues(new Uint8Array(6))), to: to.slice(0, 80), type: $('type').value, issued: $('issued').value || today() };
+    if (+$('seats').value > 0) licence.seats = Math.round(+$('seats').value);
+    if ($('until').value) licence.until = $('until').value;
+    const body = b64url(utf8(JSON.stringify(licence)));
+    const key = await crypto.subtle.importKey('jwk', signing.privateJwk, ALG, false, ['sign']);
+    const sig = new Uint8Array(await crypto.subtle.sign(SIGN, key, utf8(`${PREFIX}.${body}`)));
+    const text = `${PREFIX}.${body}.${b64url(sig)}`;
+    $('licence').value = text;
+    const [en, de] = TYPES[licence.type];
+    $('mail').value = `Hallo,
+
+vielen Dank! Hier ist Ihr Toonaro-Lizenzschlüssel (${de}${licence.seats ? `, ${licence.seats} Plätze` : ''}${licence.until ? `, gültig bis ${licence.until}` : ''}):
+
+${text}
+
+So schalten Sie die Vollversion frei: Toonaro öffnen, oben auf „🔑 Lizenz“ klicken, den Schlüssel einfügen und „Vollversion freischalten“ wählen.
+
+---
+
+Hello,
+
+thank you! Here is your Toonaro licence key (${en}${licence.seats ? `, ${licence.seats} seats` : ''}${licence.until ? `, valid until ${licence.until}` : ''}):
+
+${text}
+
+To unlock the full version: open Toonaro, click "🔑 Licence" at the top, paste the key and choose "Unlock the full version".
+
+Toonaro · info@toonaro.com`;
+    $('issued-out').hidden = false;
+  });
+
+  $('checkBtn').addEventListener('click', async () => {
+    const out = $('checkOut');
+    const parts = $('check').value.replace(/\s+/g, '').split('.');
+    if (parts.length !== 3 || parts[0] !== PREFIX) { out.innerHTML = '<span class="bad">Not a Toonaro licence key.</span>'; return; }
+    let l;
+    try { l = JSON.parse(new TextDecoder().decode(unb64url(parts[1]))); } catch { out.innerHTML = '<span class="bad">Not a Toonaro licence key.</span>'; return; }
+    const says = `For <b>${l.to.replace(/</g, '&lt;')}</b> · ${TYPES[l.type]?.[0] ?? l.type}${l.seats ? ` · ${l.seats} seats` : ''} · issued ${l.issued}${l.until ? ` · until ${l.until}` : ' · no end date'}`;
+    if (!signing) { out.innerHTML = `${says}<br><span class="hint">Load your signing key file to check that it is genuine.</span>`; return; }
+    const pub = await crypto.subtle.importKey('jwk', { ...signing.publicJwk, ext: true }, ALG, false, ['verify']);
+    const good = await crypto.subtle.verify(SIGN, pub, unb64url(parts[2]), utf8(`${PREFIX}.${parts[1]}`)).catch(() => false);
+    const ended = l.until && new Date(`${l.until}T23:59:59`) < new Date();
+    out.innerHTML = `${says}<br>${good ? (ended ? '<span class="bad">Genuine, but it has ended.</span>' : '<span class="ok">✅ Genuine and valid.</span>') : '<span class="bad">❌ Not genuine (or made with another signing key).</span>'}`;
+  });
+
+  for (const b of document.querySelectorAll('[data-copy]')) {
+    b.addEventListener('click', async () => {
+      const t = $(b.dataset.copy);
+      try { await navigator.clipboard.writeText(t.value); } catch { t.select(); document.execCommand('copy'); }
+      const was = b.textContent; b.textContent = '✓ Copied'; setTimeout(() => { b.textContent = was; }, 1200);
+    });
+  }
+</script>
+</body>
+</html>

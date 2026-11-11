@@ -26,6 +26,9 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
 const demo = args.includes('--demo');
+// (--public-key <file>: build with this public key instead of public/js/licence-key.js's - for tests)
+const keyAt = args.indexOf('--public-key');
+const publicKeyFile = keyAt >= 0 ? args.splice(keyAt, 2)[1] : null;
 const out = resolve(args.find((a) => !a.startsWith('--')) || join(root, demo ? 'dist-demo' : 'dist'));
 // The demo's settings: how many pictures or clips a visitor may make, and where to ask for more
 // (0: as often as they like - the watermark and the length limit keep the full version worth having)
@@ -137,7 +140,17 @@ import { handleApi } from '/src/api.js';
 window.__pictogenApi((method, url, payload) => handleApi(method, url, payload));
 `);
 
-const head = `${demo ? `<script>window.__toonaroDemo = ${JSON.stringify(demoCfg)};</script>\n<script src="/web/demo.js"></script>\n` : ''}<script type="importmap">{"imports":{"node:fs":"/web/fs.js","node:path":"/web/path.js","node:url":"/web/url.js"}}</script>
+// Licences (the full app): once the owner's public key is in public/js/licence-key.js, the app
+// asks for a licence key (public/js/licence.js); without a valid one it is the free version - the
+// demo's mark and limits (/web/demo.js). Until then the full app is open as it is.
+if (publicKeyFile) writeFileSync(join(out, 'js', 'licence-key.js'), `// (built with ${publicKeyFile.split(/[\\/]/).pop()}: scripts/build-web.js --public-key)\nexport const PUBLIC_KEY = ${JSON.stringify(JSON.parse(readFileSync(publicKeyFile, 'utf8')))};\n`);
+const licensing = !demo && !/PUBLIC_KEY\s*=\s*null\b/.test(readFileSync(join(out, 'js', 'licence-key.js'), 'utf8'));
+const unlicensed = `<script>window.__toonaroLicensing = true; (function () { var has = false; try { has = !!localStorage.getItem('toonaro.licence.v1'); } catch (e) { /* */ } if (!has) window.__toonaroDemo = ${JSON.stringify(demoCfg)}; })();</script>\n<script src="/web/demo.js"></script>\n`;
+if (licensing) {
+  mkdirSync(join(out, 'web'), { recursive: true });
+  cpSync(join(root, 'scripts', 'web', 'demo.js'), join(out, 'web', 'demo.js'));
+}
+const head = `${demo ? `<script>window.__toonaroDemo = ${JSON.stringify(demoCfg)};</script>\n<script src="/web/demo.js"></script>\n` : licensing ? unlicensed : ''}<script type="importmap">{"imports":{"node:fs":"/web/fs.js","node:path":"/web/path.js","node:url":"/web/url.js"}}</script>
 ${demo ? '' : '<meta name="robots" content="noindex, nofollow">\n'}<script>
 // The studio's /api/ requests are answered in this page by the engine (/web/engine.js), which
 // starts once its data is loaded; requests made before then wait for it. Pictures pointing at
@@ -206,7 +219,7 @@ const app = `<link rel="manifest" href="/manifest.webmanifest">
 const icons = `<link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <style>[data-install] { display: none !important; }</style>`;
-for (const page of ['index.html', 'studio.html', 'showcase.html', 'help.html', 'impressum.html', 'datenschutz.html']) {
+for (const page of ['index.html', 'studio.html', 'showcase.html', 'help.html', 'impressum.html', 'datenschutz.html', 'nutzungsbedingungen.html']) {
   const f = join(out, page);
   if (existsSync(f)) writeFileSync(f, readFileSync(f, 'utf8').replace(/<head>/i, `<head>\n${demo ? icons : app}`));
 }
@@ -236,7 +249,7 @@ if (demo) {
     if (existsSync(f)) writeFileSync(f, readFileSync(f, 'utf8').replace(/<meta name="robots" content="noindex, nofollow"\s*\/?>\n?/g, ''));
   }
   const home = join(out, 'index.html');
-  writeFileSync(home, readFileSync(home, 'utf8').replace('Toonaro · a preview for friends and family ·', 'Toonaro · <a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz / Privacy</a> ·'));
+  writeFileSync(home, readFileSync(home, 'utf8').replace('Toonaro · a preview for friends and family ·', 'Toonaro · <a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz / Privacy</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen / Terms</a> ·'));
   // Apache (STRATO): /studio opens studio.html, the manifest has its type
   writeFileSync(join(out, '.htaccess'), `# Toonaro demo (scripts/build-web.js --demo): pages by their short addresses
 Options -MultiViews

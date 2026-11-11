@@ -115,3 +115,11 @@ The server and user name default to the access made for Toonaro; repository vari
 `STRATO_SFTP_HOST` / `STRATO_SFTP_USER` change them. The site goes into the web space folder
 `/toonaro`: STRATO points a domain at a folder, not at the main folder (*Domains → toonaro.com → ⚙ →
 Umleitung einrichten → Intern → toonaro*).
+
+## The full version and licences
+
+The full app (`npm run web:build`) is unlocked with a licence key once your public key is in
+`public/js/licence-key.js`; how to make keys: `docs/LICENCES.md` and `tools/licence-issuer.html`
+(the issuer is not part of the website). The terms of use are `/nutzungsbedingungen`, linked from
+the website's footer and the other legal pages.
+

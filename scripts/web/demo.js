@@ -9,7 +9,9 @@
 // page, HD video (here 960x540).
 // Settings: window.__toonaroDemo = { tries, contact, maxPrompt, maxStory }.
 (function () {
-  var cfg = window.__toonaroDemo || { tries: 3, contact: '' };
+  // (the full app with a licence: nothing to do here - public/js/licence.js)
+  if (!window.__toonaroDemo) return;
+  var cfg = window.__toonaroDemo;
   cfg.maxPrompt = cfg.maxPrompt || 120;
   cfg.maxStory = cfg.maxStory || 300;
   var KEY = 'toonaro.demo.v1';

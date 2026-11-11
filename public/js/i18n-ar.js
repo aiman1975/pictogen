@@ -5,6 +5,7 @@
 // to left (dir="rtl"). To change a word: change it here.
 export default {
   texts: {
+   "Terms of use": "شروط الاستخدام",
    "Record your voice for this scene (it stays on this device)": "سجّل صوتك لهذا المشهد (يبقى على هذا الجهاز)",
    "Record your voice for this scene": "سجّل صوتك لهذا المشهد",
    "Record your voice for this scene again": "سجّل صوتك لهذا المشهد من جديد",
