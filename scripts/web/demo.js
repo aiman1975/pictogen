@@ -31,7 +31,8 @@
       note: function (n) { return 'Try it free in your browser: ' + n + ' pictures or clips (a story of up to ' + cfg.maxStory + ' characters), with a "demo" watermark.'; },
       long: function (n, m) { return 'The demo draws from up to ' + n + ' characters (yours: ' + m + '). Make it a little shorter - the full version has no limit.'; },
       free: 'Free demo, with a watermark. The full version, without it:',
-      noteFree: function () { return 'Try it free in your browser, as often as you like - with a "demo" watermark, stories of up to ' + cfg.maxStory + ' characters.'; },
+      noteFree: function () { return 'Free in your browser, as often as you like. What you make carries a small "demo" mark.'; },
+      fullBadge: '⭐ Full version',
       lineFull: function (n) { return 'A picture takes up to ' + n + ' characters. For a whole story, choose 🎬 Clip on the left (up to ' + cfg.maxStory + ').'; },
       missing: 'Toonaro doesn\'t know these words yet:',
       tell: 'Tell us, and we\'ll teach it',
@@ -48,7 +49,8 @@
       note: function (n) { return 'Kostenlos im Browser ausprobieren: ' + n + ' Bilder oder Clips (eine Geschichte mit bis zu ' + cfg.maxStory + ' Zeichen), mit „Demo“-Wasserzeichen.'; },
       long: function (n, m) { return 'Die Demo malt aus bis zu ' + n + ' Zeichen (deine: ' + m + '). Kürze den Text etwas – die Vollversion hat keine Grenze.'; },
       free: 'Kostenlose Demo, mit Wasserzeichen. Die Vollversion, ohne:',
-      noteFree: function () { return 'Kostenlos im Browser ausprobieren, so oft du willst – mit „Demo“-Wasserzeichen, Geschichten bis ' + cfg.maxStory + ' Zeichen.'; },
+      noteFree: function () { return 'Kostenlos im Browser, so oft du willst. Was du machst, trägt ein kleines „Demo“-Zeichen.'; },
+      fullBadge: '⭐ Vollversion',
       lineFull: function (n) { return 'Ein Bild nimmt bis zu ' + n + ' Zeichen. Für eine ganze Geschichte wähle links 🎬 Clip (bis ' + cfg.maxStory + ').'; },
       missing: 'Diese Wörter kennt Toonaro noch nicht:',
       tell: 'Sag es uns – wir bringen sie ihm bei',
@@ -65,7 +67,8 @@
       note: function (n) { return 'جرّبه مجانًا في المتصفح: ' + n + ' صور أو مقاطع (قصة حتى ' + cfg.maxStory + ' حرف)، مع علامة «تجريبي».'; },
       long: function (n, m) { return 'النسخة التجريبية ترسم من ' + n + ' حرف كحد أقصى (نصك: ' + m + '). اختصره قليلًا، فالنسخة الكاملة بلا حدود.'; },
       free: 'نسخة تجريبية مجانية بعلامة مائية. النسخة الكاملة بدونها:',
-      noteFree: function () { return 'جرّبه مجانًا في المتصفح بقدر ما تشاء – مع علامة «تجريبي» وقصص حتى ' + cfg.maxStory + ' حرف.'; },
+      noteFree: function () { return 'مجانًا في المتصفح بقدر ما تشاء. ما تصنعه يحمل علامة «تجريبي» صغيرة.'; },
+      fullBadge: '⭐ النسخة الكاملة',
       lineFull: function (n) { return 'الصورة تأخذ حتى ' + n + ' حرفًا. لقصة كاملة اختر 🎬 مقطع (حتى ' + cfg.maxStory + ').'; },
       missing: 'تونارو لا يعرف هذه الكلمات بعد:',
       tell: 'أخبرنا وسنعلّمه إياها',
@@ -123,7 +126,9 @@
     + '.tn-demo-end img{width:130px;height:auto;margin:-6px auto 4px;display:block}'
     + '.tn-demo-end h2{margin:0 0 8px;font-size:1.4rem;font-weight:900}.tn-demo-end p{margin:0 0 12px;line-height:1.5;font-weight:600;color:#475569}'
     + '.tn-demo-end a.mail{font-weight:900;color:#ea580c;text-decoration:none}.tn-demo-end button{margin-top:6px;border:0;border-radius:999px;padding:10px 20px;font-weight:900;font-size:1rem;font-family:inherit;color:#fff;background:linear-gradient(135deg,#fb923c,#f43f5e);cursor:pointer}'
-    + '.tn-demo-note{margin:10px 0 0;font-weight:800;color:#c2410c;font-size:.95rem}'
+    + '.tn-demo-note{margin:12px 0 0;font-weight:800;color:#6d28d9;font-size:.95rem}'
+    + '.tn-full-badge{display:inline-block;margin-top:8px;padding:2px 10px;border-radius:999px;background:#f5f3ff;color:#6d28d9;border:1px solid #ddd6fe;font:800 .78rem Nunito,"Baloo Bhaijaan 2",sans-serif;white-space:nowrap}'
+    + 'li > .tn-full-badge{margin:0 6px;vertical-align:1px}'
     + '.tn-demo-count{font:700 .8rem Nunito,"Baloo Bhaijaan 2",sans-serif;color:#64748b;margin:4px 0 0}.tn-demo-count.over{color:#b91c1c;font-weight:900}'
     + '.tn-demo-missing{color:#475569}.tn-demo-missing b{color:#b91c1c}.tn-demo-tell{font-weight:900;color:#ea580c;text-decoration:none;white-space:nowrap}.tn-demo-tell:hover{text-decoration:underline}'
     + '#story-btn-export-html{display:none!important}'
@@ -297,9 +302,21 @@
         p.className = 'tn-demo-note';
         ctas.parentElement.insertBefore(p, ctas.nextSibling);
         badge = { set textContent(v) {}, set className(v) {} };
-        var say = function () { p.textContent = '✨ ' + (unlimited ? t('noteFree')() : t('note')(cfg.tries)); };
+        // (what is in the full version only: a small badge on it - not promised for free here)
+        var badges = function () {
+          var marked = document.querySelectorAll('[data-full]');
+          for (var i = 0; i < marked.length; i++) {
+            var b = marked[i].querySelector(':scope > .tn-full-badge');
+            if (!b) { b = document.createElement('span'); b.className = 'tn-full-badge no-i18n'; marked[i].appendChild(b); }
+            b.textContent = t('fullBadge');
+          }
+        };
+        var say = function () { p.textContent = '✨ ' + (unlimited ? t('noteFree')() : t('note')(cfg.tries)); badges(); };
         say();
         new MutationObserver(say).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+        // (free or full version, and how to ask for a licence: on the website)
+        var only = document.querySelectorAll('[data-demo-only]');
+        for (var k = 0; k < only.length; k++) only[k].hidden = false;
       }
     }
     // (the words follow the language switch)

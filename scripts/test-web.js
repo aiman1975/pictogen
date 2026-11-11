@@ -149,6 +149,13 @@ if (chromium) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
+    // (the main page on the website: what is in the full version only is marked, and how to get it is said)
+    await page.goto(`http://localhost:${port}/`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);
+    const landing = await page.evaluate(() => ({ badges: document.querySelectorAll('[data-full] > .tn-full-badge').length, marked: document.querySelectorAll('[data-full]').length, free: !document.getElementById('full-version').hidden,
+      asks: [...document.querySelectorAll('[data-licence]')].map((a) => a.getAttribute('href')).filter((h) => /^mailto:info@toonaro\.com\?subject=/.test(h)).length, doors: document.querySelectorAll('.door').length, tries: [...document.querySelectorAll('[data-try]')].every((a) => /^\/studio\?/.test(a.getAttribute('href'))) }));
+    check(landing.badges === landing.marked && landing.marked >= 4 && landing.free && landing.asks === 3 && landing.doors === 3 && landing.tries,
+      `the website's main page: three doors with one-click examples, full-version-only things marked, the free-or-full table with three ways to ask (${JSON.stringify(landing)})`);
     await page.goto(`http://localhost:${port}/studio`, { waitUntil: 'networkidle' });
     await page.waitForSelector('#svg-viewport svg .tn-demo-mark', { timeout: 60000 });
     // (a story longer than the demo takes is stopped, without using a try)
