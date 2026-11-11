@@ -4,6 +4,16 @@
 // To change a word: change it here.
 export default {
   texts: {
+   "Record your voice for this scene (it stays on this device)": "Nimm deine Stimme für diese Szene auf (sie bleibt auf diesem Gerät)",
+   "Record your voice for this scene": "Nimm deine Stimme für diese Szene auf",
+   "Record your voice for this scene again": "Nimm deine Stimme für diese Szene neu auf",
+   "Delete your voice for this scene": "Deine Stimme für diese Szene löschen",
+   "⏹ Stop": "⏹ Stopp",
+   "Recording…": "Aufnahme…",
+   "Make a clip first: then record your voice for each scene": "Mach zuerst einen Clip: dann nimm deine Stimme für jede Szene auf",
+   "Nothing was recorded": "Es wurde nichts aufgenommen",
+   "No microphone: allow it in your browser to record your voice": "Kein Mikrofon: erlaube es im Browser, um deine Stimme aufzunehmen",
+   "Your voice for this scene is deleted": "Deine Stimme für diese Szene ist gelöscht",
    "Pictures, cartoons, worksheets and explainer videos from one sentence - for the classroom, at home and at work. Drawn in seconds on your own device: private, no AI cloud.": "Bilder, Cartoons, Arbeitsblätter und Erklärvideos aus einem Satz – für den Unterricht, zu Hause und im Job. In Sekunden auf deinem eigenen Gerät gezeichnet: privat, ohne KI-Cloud.",
    "Made for the way you work": "Gemacht für deine Arbeit",
    "Pick yours, watch it for a minute, and try it with one click.": "Such dir deins aus, schau eine Minute zu und probier es mit einem Klick.",
@@ -3332,6 +3342,18 @@ export default {
    "This figure follows the timeline: change its steps in the timeline below": "Diese Figur folgt der Zeitleiste: ändere ihre Schritte unten in der Zeitleiste"
   },
   patterns: [
+   [
+    "Get ready… (\\d+)",
+    "Gleich geht's los… $1"
+   ],
+   [
+    "Recording… (.+) s",
+    "Aufnahme… $1 s"
+   ],
+   [
+    "Your voice for scene (\\d+): (.+) s",
+    "Deine Stimme für Szene $1: $2 s"
+   ],
    [
     "Instead of: (.+)",
     "Statt: $1"

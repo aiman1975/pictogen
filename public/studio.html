@@ -534,6 +534,11 @@
     }
 
     .viewport-wrap { position: relative; }
+    .rec-banner { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px; background: #fff; border: 2px solid #fecaca; border-radius: 999px; padding: 6px 8px 6px 14px; box-shadow: 0 6px 18px rgba(15,23,42,0.18); font-weight: 900; color: #b91c1c; white-space: nowrap; }
+    .rec-banner[hidden], #story-btn-rec-del[hidden] { display: none !important; }
+    .rec-dot { width: 12px; height: 12px; border-radius: 50%; background: #ef4444; animation: recPulse 1s ease-in-out infinite; }
+    @keyframes recPulse { 50% { opacity: 0.25; } }
+    #rec-stop { font: inherit; border: none; background: #ef4444; color: #fff; border-radius: 999px; padding: 5px 14px; cursor: pointer; }
     .swap-picker { position: fixed; inset: 0; z-index: 120; background: rgba(15,23,42,0.45); display: grid; place-items: center; padding: 16px; }
     .swap-picker[hidden] { display: none; }
     .sp-box { background: var(--surface); border-radius: 18px; width: min(560px, 100%); max-height: min(640px, 90vh); display: flex; flex-direction: column; padding: 16px; gap: 10px; box-shadow: 0 20px 60px rgba(15,23,42,0.3); }
@@ -1306,6 +1311,8 @@
           </div>
           <!-- (the sound switch, always at hand on the picture) -->
           <button type="button" class="mute-btn" id="btn-mute" title="Mute" aria-label="Mute" aria-pressed="false">🔊</button>
+          <!-- (recording your voice for a clip's scene: a countdown, then the time, and Stop) -->
+          <div class="rec-banner" id="rec-banner" hidden role="status" aria-live="polite"><span class="rec-dot"></span><span id="rec-text">Recording…</span><button type="button" id="rec-stop">⏹ Stop</button></div>
         </div>
 
         <!-- Swap a picture for another: search, then pick (the 🔄 Swap button, or a guess under the prompt) -->
@@ -1420,6 +1427,8 @@
             <button class="btn-action" id="story-btn-sound" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Sound on or off: chimes, voices and effects">🔔</button>
             <button class="btn-action" id="story-btn-read" style="background:none; border:none; color:#64748b; font-size: 1.1rem; padding: 2px;" title="Read the captions aloud with this device's own voice (in the studio; videos are made without it)" aria-pressed="false">🗣</button>
             <button class="btn-action" id="story-btn-music" style="background:none; border:none; color:#f59e0b; font-size: 1.1rem; padding: 2px;" title="Background music for the clip, on or off">🎵</button>
+            <button class="btn-action" id="story-btn-rec" style="background:none; border:none; color:#ef4444; font-size: 1.1rem; padding: 2px;" title="Record your voice for this scene (it stays on this device)" aria-label="Record your voice for this scene">🎙</button>
+            <button class="btn-action" id="story-btn-rec-del" hidden style="background:none; border:none; color:#94a3b8; font-size: 1rem; padding: 2px;" title="Delete your voice for this scene" aria-label="Delete your voice for this scene">🗑</button>
             <select id="story-tune" title="The clip's music: its genre's, or a mood" aria-label="Music for the clip" style="font: inherit; font-size: 0.75rem; font-weight: 700; padding: 3px 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
               <option value="">Genre's music</option>
               <option value="kids">😊 Happy</option><option value="calm">🌿 Calm</option><option value="adventure">🗺️ Adventure</option>
@@ -2706,13 +2715,84 @@ Scene: a woman puts a coin in a jar | Every coin counts
       else window.pictogenSound?.stop();
       // The genre's background music, across the scenes
       if (storyState.isPlaying) window.pictogenSound?.startMusic(storyState.tune || storyState.clipTune || storyState.genre || 'kids');
-      // The caption read aloud; the scene stays as long as that takes
-      if (narrator.on && storyState.isPlaying) {
-        storyState.duration = Math.max(storyState.duration, narrator.seconds(sc.caption) * 1000);
-        narrator.say(sc.caption);
-      } else narrator.stop();
+      // Your own voice for the scene (public/js/voices.js), else the caption read aloud; the scene
+      // stays as long as that takes
+      const voices = window.pictogenVoices;
+      if (storyState.isPlaying && voices?.has(storyState.curIndex, sc)) {
+        narrator.stop();
+        storyState.duration = Math.max(storyState.duration, (voices.play(storyState.curIndex, sc) + 0.6) * 1000);
+      } else {
+        voices?.stop();
+        if (narrator.on && storyState.isPlaying) {
+          storyState.duration = Math.max(storyState.duration, narrator.seconds(sc.caption) * 1000);
+          narrator.say(sc.caption);
+        } else narrator.stop();
+      }
+      showVoiceButtons();
       startStoryProgress();
     }
+
+    // Recording your voice for the scene shown: 🎙 (a countdown, then the scene from its start while
+    // you speak; ⏹ when done), 🗑 to take it away. Kept on this device only (public/js/voices.js)
+    const btnRec = document.getElementById('story-btn-rec');
+    const btnRecDel = document.getElementById('story-btn-rec-del');
+    const recBanner = document.getElementById('rec-banner');
+    const recText = document.getElementById('rec-text');
+    let recTick = null, recCountdown = null;
+    function showVoiceButtons() {
+      const v = window.pictogenVoices, i = storyState.curIndex, sc = storyState.scenes?.[i];
+      const has = Boolean(sc && v?.has(i, sc));
+      btnRec.textContent = v?.recording() ? '⏹' : '🎙';
+      btnRec.style.color = has ? '#10b981' : '#ef4444';
+      btnRec.title = has ? 'Record your voice for this scene again' : 'Record your voice for this scene (it stays on this device)';
+      btnRecDel.hidden = !has || Boolean(v?.recording());
+    }
+    function endRecordingUi() {
+      clearInterval(recTick); clearInterval(recCountdown);
+      recBanner.hidden = true;
+      showVoiceButtons();
+    }
+    async function recordScene() {
+      const v = window.pictogenVoices;
+      if (!v) return;
+      if (v.recording()) { v.stopRecording(); return; }
+      if (recCountdown) { endRecordingUi(); recCountdown = null; return; }
+      const i = storyState.curIndex, sc = storyState.scenes?.[i];
+      if (!sc) { showToast('Make a clip first: then record your voice for each scene'); return; }
+      // (quiet while you speak: the clip waits, no music, no effects)
+      if (storyState.isPlaying) toggleStoryPlay();
+      v.stop(); narrator.stop(); window.pictogenSound?.stop(); window.pictogenSound?.stopMusic();
+      recBanner.hidden = false;
+      let n = 3;
+      recText.textContent = `Get ready… ${n}`;
+      await new Promise((resolve) => { recCountdown = setInterval(() => { n--; if (n > 0) recText.textContent = `Get ready… ${n}`; else { clearInterval(recCountdown); recCountdown = null; resolve(); } }, 700); });
+      if (recBanner.hidden) return; // (cancelled)
+      try {
+        await v.startRecording(i, sc, { onStop: (secs) => { endRecordingUi(); showToast(secs ? `Your voice for scene ${i + 1}: ${secs.toFixed(1)} s` : 'Nothing was recorded'); } });
+      } catch {
+        endRecordingUi();
+        showToast('No microphone: allow it in your browser to record your voice');
+        return;
+      }
+      // (the scene from its start, as you speak)
+      renderStoryScene(i, false);
+      const t0 = Date.now();
+      const tick = () => { recText.textContent = `Recording… ${((Date.now() - t0) / 1000).toFixed(1)} s`; };
+      tick();
+      recTick = setInterval(tick, 100);
+      showVoiceButtons();
+    }
+    btnRec.addEventListener('click', recordScene);
+    document.getElementById('rec-stop').addEventListener('click', recordScene);
+    btnRecDel.addEventListener('click', async () => {
+      const v = window.pictogenVoices, i = storyState.curIndex, sc = storyState.scenes?.[i];
+      if (!v || !sc) return;
+      await v.remove(i, sc);
+      v.stop();
+      showVoiceButtons();
+      showToast('Your voice for this scene is deleted');
+    });
+    window.pictogenVoices?.loaded?.then(showVoiceButtons);
 
     // Reading the captions aloud with the browser's own voice (the system's voices, offline where it
     // has them): a scene stays until its sentence has been read
@@ -2791,6 +2871,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
         clearInterval(storyState.progressInterval);
         clearTimeout(storyState.timer);
         narrator.stop();
+        window.pictogenVoices?.stop();
         window.pictogenSound?.stop();
         window.pictogenSound?.stopMusic();
       }
@@ -3316,6 +3397,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
   <script type="module" src="/js/puppets.js"></script>
   <script type="module" src="/js/worksheet.js"></script>
   <script type="module" src="/js/book.js"></script>
+  <script type="module" src="/js/voices.js"></script>
   <script type="module" src="/js/i18n.js"></script>
   <script type="module" src="/js/story-review.js"></script>
   <script type="module" src="/js/cards-review.js"></script>
@@ -3371,7 +3453,9 @@ Scene: a woman puts a coin in a jar | Every coin counts
       if (!videoFormat()) throw new Error('this browser cannot record video');
       const mounted = story.scenes.map((sc) => mountOffscreen(sc.svg));
       try {
-        const shots = story.scenes.map((sc, i) => ({ svg: mounted[i].svg, duration: sc.duration || 5, scene: sc }));
+        // (your own voice for a scene goes into the video; the scene lasts as long as you speak)
+        const voices = await Promise.all(story.scenes.map((sc, i) => window.pictogenVoices?.buffer(i, sc) ?? null));
+        const shots = story.scenes.map((sc, i) => ({ svg: mounted[i].svg, duration: Math.max(sc.duration || 5, voices[i] ? voices[i].duration + 0.6 : 0), scene: sc, ...(voices[i] ? { voice: voices[i] } : {}) }));
         // (an explainer from an outline starts with its own title card)
         const blob = await exportVideo(shots, { fps: 30, scale: VIDEO_SCALE, title: story.slides ? undefined : story.title, genre: story.genre, tune: story.tune || story.clipTune, transition: story.transition || 'fade', sound: story.sound, music: story.music, onProgress: progress });
         download(blob, `${slug(story.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);

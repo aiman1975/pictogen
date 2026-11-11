@@ -5,6 +5,16 @@
 // to left (dir="rtl"). To change a word: change it here.
 export default {
   texts: {
+   "Record your voice for this scene (it stays on this device)": "سجّل صوتك لهذا المشهد (يبقى على هذا الجهاز)",
+   "Record your voice for this scene": "سجّل صوتك لهذا المشهد",
+   "Record your voice for this scene again": "سجّل صوتك لهذا المشهد من جديد",
+   "Delete your voice for this scene": "احذف صوتك لهذا المشهد",
+   "⏹ Stop": "⏹ إيقاف",
+   "Recording…": "جارٍ التسجيل…",
+   "Make a clip first: then record your voice for each scene": "أنشئ مقطعًا أولًا: ثم سجّل صوتك لكل مشهد",
+   "Nothing was recorded": "لم يُسجَّل شيء",
+   "No microphone: allow it in your browser to record your voice": "لا يوجد ميكروفون: اسمح به في المتصفح لتسجيل صوتك",
+   "Your voice for this scene is deleted": "تم حذف صوتك لهذا المشهد",
    "Pictures, cartoons, worksheets and explainer videos from one sentence - for the classroom, at home and at work. Drawn in seconds on your own device: private, no AI cloud.": "صور ورسوم متحركة وأوراق عمل وفيديوهات شرح من جملة واحدة – للفصل وللبيت وللعمل. تُرسم في ثوانٍ على جهازك: بخصوصية وبدون سحابة ذكاء اصطناعي.",
    "Made for the way you work": "مصمم لطريقة عملك",
    "Pick yours, watch it for a minute, and try it with one click.": "اختر ما يناسبك، شاهد دقيقة، وجرّبه بنقرة واحدة.",
@@ -3369,6 +3379,18 @@ export default {
    "Zebra": "حمار وحشي"
   },
   patterns: [
+   [
+    "Get ready… (\\d+)",
+    "استعد… $1"
+   ],
+   [
+    "Recording… (.+) s",
+    "جارٍ التسجيل… $1 ث"
+   ],
+   [
+    "Your voice for scene (\\d+): (.+) s",
+    "صوتك للمشهد $1: $2 ث"
+   ],
    [
     "Instead of: (.+)",
     "بدلًا من: $1"

@@ -144,7 +144,8 @@ if (chromium) {
   const port = await new Promise((done) => { const s = createServer().listen(0, () => { const p = s.address().port; s.close(() => done(p)); }); });
   const server = spawn(process.execPath, ['scripts/preview-web.js', demoDir, String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
   await new Promise((done) => server.stdout.on('data', (d) => { if (String(d).includes('http://')) done(); }));
-  const browser = await chromium.launch();
+  // (a pretend microphone, for recording your voice)
+  const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
     const errors = [];
@@ -218,8 +219,26 @@ if (chromium) {
     await page.waitForFunction(() => document.querySelectorAll('.book-dialog .bk-page').length > 0, null, { timeout: 60000 });
     const book = await page.evaluate(() => [...document.querySelectorAll('.book-dialog .bk-page figcaption')].map((f) => f.textContent));
     await page.keyboard.press('Escape');
-    await page.click('#modes-group .pill-btn[data-mode="scene"]');
     check(book.length === 4 && book[0] === 'Cover' && book[3] === '…', `the demo's picture book: the cover, two pages and the page about the full version (${book.join(' | ')})`);
+    // (your own voice for a scene: recorded, kept on the device, in the video's sound, deleted)
+    await page.click('#story-btn-rec');
+    await page.waitForFunction(() => window.pictogenVoices.recording(), null, { timeout: 10000 });
+    await page.waitForTimeout(1500);
+    const trashWhileRec = await page.evaluate(() => getComputedStyle(document.getElementById('story-btn-rec-del')).display);
+    await page.click('#rec-stop');
+    await page.waitForFunction(() => { const st = window.pictogenStudio.getStory(); return window.pictogenVoices.has(st.curIndex, st.scenes[st.curIndex]); }, null, { timeout: 10000 });
+    const voice = await page.evaluate(async () => {
+      const st = window.pictogenStudio.getStory(), i = st.curIndex, sc = st.scenes[i];
+      const buf = await window.pictogenVoices.buffer(i, sc);
+      // (mixed into a clip's sound, as for a video: something is heard where the scene is)
+      const mix = await window.pictogenSound.renderClipSound([{ sound: null, at: 0, duration: 2, voice: buf }], 2.2);
+      const d = mix.getChannelData(0); let e = 0; for (let k = 0; k < d.length; k++) e += d[k] * d[k];
+      const out = { secs: window.pictogenVoices.seconds(i, sc), buf: buf && buf.duration, loud: Math.sqrt(e / d.length) };
+      await window.pictogenVoices.remove(i, sc);
+      return { ...out, gone: !window.pictogenVoices.has(i, sc) };
+    });
+    check(voice.secs > 0.5 && voice.buf > 0.5 && voice.loud > 0.001 && voice.gone && trashWhileRec === 'none', `your voice for a scene: recorded, in the video's sound, deleted (${JSON.stringify({ ...voice, trashWhileRec })})`);
+    await page.click('#modes-group .pill-btn[data-mode="scene"]');
     // (the mute button on the picture: one click and the sound is off, remembered)
     const before = await page.evaluate(() => window.pictogenSound?.isEnabled());
     await page.click('#btn-mute');

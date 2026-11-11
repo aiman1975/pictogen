@@ -369,7 +369,7 @@ export async function clipSound(shots, { fps = 30, title, music = null, genre } 
   let at = title ? Math.round(1.5 * fps) / fps : 0;
   const parts = shots.map((sh) => {
     const duration = Math.max(1, Math.round(sh.duration * fps)) / fps;
-    const part = { sound: soundOf(sh.svg), at, duration };
+    const part = { sound: soundOf(sh.svg), at, duration, ...(sh.voice ? { voice: sh.voice } : {}) };
     at += duration;
     return part;
   });
@@ -387,7 +387,8 @@ export async function exportVideo(shots, { fps = 30, scale = 2, title, genre, tu
   // recorded a few seconds at a time
   const audio = sound || music
     ? await clipSound(sound ? shots : shots.map((sh) => ({ ...sh, svg: null })), { fps, title, genre, music: music ? { genre: tune || genre || 'kids' } : null }).catch(() => null)
-    : null;
+    // (your own voice is always heard, whatever the sound switch says)
+    : shots.some((sh) => sh.voice) ? await clipSound(shots.map((sh) => ({ ...sh, svg: null })), { fps, title, genre }).catch(() => null) : null;
   const { width, height } = svgSize(shots[0].svg);
   const rec = await openRecorder({ fps, width: Math.round(width * scale), height: Math.round(height * scale), audio });
   try {

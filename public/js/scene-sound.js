@@ -135,6 +135,11 @@ export function startMusic(genre) {
   return true;
 }
 
+/** The music quieter for `seconds` from now (someone's own recorded voice: public/js/voices.js) */
+export function duckMusic(seconds) {
+  if (music && ctx) music.duck(ctx.currentTime, seconds);
+}
+
 export function stopMusic() {
   if (music) { music.stop(); music = null; }
 }
@@ -164,7 +169,7 @@ export function setMusic(on) {
 export async function renderClipSound(parts, total, { music: withMusic = null, genre = clipKind } = {}) {
   await packReady;
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-  if (!OAC || (!withMusic && !parts.some((p) => p.sound?.cues?.length || p.sound?.amb))) return null;
+  if (!OAC || (!withMusic && !parts.some((p) => p.sound?.cues?.length || p.sound?.amb || p.voice))) return null;
   const rate = 44100;
   const oc = new OAC(2, Math.max(1, Math.ceil(total * rate)), rate);
   const comp = oc.createDynamicsCompressor();
@@ -183,6 +188,18 @@ export async function renderClipSound(parts, total, { music: withMusic = null, g
       ducks.push(pgMusicRender(oc, bus, seg.tune, await withTune(seg.tune), from, to - from));
     }
     duck = (at, s) => ducks.forEach((d) => d(at, s));
+  }
+  // (your own voice for a scene, from where the scene starts; the music quieter under it)
+  for (const { voice, at } of parts) {
+    if (!voice) continue;
+    const src = oc.createBufferSource();
+    src.buffer = voice;
+    const g = oc.createGain();
+    g.gain.value = 1.1;
+    src.connect(g);
+    g.connect(comp);
+    src.start(at + 0.15);
+    if (duck) duck(at + 0.15, voice.duration);
   }
   for (const { sound, at, duration } of parts) {
     if (!sound) continue;
@@ -207,4 +224,4 @@ export async function renderClipSound(parts, total, { music: withMusic = null, g
   return oc.startRendering();
 }
 
-window.pictogenSound = { setSoundSet, getSoundSet, setClipKind, play, resume, stop, startMusic, stopMusic, isEnabled, isMusicOn, isMusicPlaying, setEnabled, setMusic, soundOf, renderClipSound, packSize, packReady };
+window.pictogenSound = { setSoundSet, getSoundSet, setClipKind, play, resume, stop, startMusic, stopMusic, duckMusic, isEnabled, isMusicOn, isMusicPlaying, setEnabled, setMusic, soundOf, renderClipSound, packSize, packReady };
