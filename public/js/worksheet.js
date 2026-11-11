@@ -50,7 +50,8 @@ function request() {
     kind: $('ws-kind').value === 'auto' ? undefined : $('ws-kind').value,
     title: $('ws-title').value.trim() || undefined,
     instructions: $('ws-instructions').value.trim() || undefined,
-    answers: $('ws-answers').checked,
+    // (the website demo: the worksheet without its answer key)
+    answers: !window.__toonaroDemo && $('ws-answers').checked,
   };
 }
 
@@ -116,8 +117,21 @@ $('ws-print').addEventListener('click', (e) => busy(e.currentTarget, async () =>
   setTimeout(() => frame.remove(), 60000);
 }));
 
+// (the website demo: the answer key is in the full version, said in the page's language)
+function demoNote() {
+  if (!window.__toonaroDemo) return;
+  const box = $('ws-answers');
+  box.checked = false;
+  box.disabled = true;
+  let note = dialog.querySelector('.ws-demo-note');
+  if (!note) { note = document.createElement('span'); note.className = 'ws-demo-note no-i18n'; box.parentElement.append(note); }
+  const l = (document.documentElement.lang || 'en').slice(0, 2);
+  note.textContent = { de: ' – in der Vollversion', ar: ' – في النسخة الكاملة' }[l] ?? ' - in the full version';
+}
+
 /** Opens the worksheet dialog for the picture on the canvas */
 export function openWorksheet() {
+  demoNote();
   const st = studio.getState();
   $('ws-title').value = '';
   $('ws-kind').value = 'auto';

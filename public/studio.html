@@ -2808,6 +2808,8 @@ Scene: a woman puts a coin in a jar | Every coin counts
     });
 
     // Sound: the scenes' voices and effects (public/js/scene-sound.js); one switch for the canvas and the clip
+    // Videos in HD (1280x720); on the website demo 960x540 (scripts/build-web.js --demo)
+    const VIDEO_SCALE = window.__toonaroDemo ? 1.5 : 2;
     const btnSound = document.getElementById('btn-sound');
     const btnMute = document.getElementById('btn-mute');
     function setSound(on) {
@@ -3357,7 +3359,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
 
     document.getElementById('btn-download-video').addEventListener('click', (e) => run(e.currentTarget, async (progress) => {
       if (!videoFormat()) throw new Error('this browser cannot record video; try the GIF');
-      const blob = await exportVideo(sceneShot(), { fps: 30, sound: studio.getStory().sound, onProgress: progress });
+      const blob = await exportVideo(sceneShot(), { fps: 30, scale: VIDEO_SCALE, sound: studio.getStory().sound, onProgress: progress });
       download(blob, `${slug(studio.getState().prompt)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
       studio.showToast(`Video saved (${Math.round(blob.size / 1024)} KB)`);
     }));
@@ -3371,7 +3373,7 @@ Scene: a woman puts a coin in a jar | Every coin counts
       try {
         const shots = story.scenes.map((sc, i) => ({ svg: mounted[i].svg, duration: sc.duration || 5, scene: sc }));
         // (an explainer from an outline starts with its own title card)
-        const blob = await exportVideo(shots, { fps: 30, title: story.slides ? undefined : story.title, genre: story.genre, tune: story.tune || story.clipTune, transition: story.transition || 'fade', sound: story.sound, music: story.music, onProgress: progress });
+        const blob = await exportVideo(shots, { fps: 30, scale: VIDEO_SCALE, title: story.slides ? undefined : story.title, genre: story.genre, tune: story.tune || story.clipTune, transition: story.transition || 'fade', sound: story.sound, music: story.music, onProgress: progress });
         download(blob, `${slug(story.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
         studio.showToast(`Clip video saved (${Math.round(blob.size / 1024)} KB)`);
       } finally {

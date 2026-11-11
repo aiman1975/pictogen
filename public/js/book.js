@@ -250,17 +250,45 @@ function endPage(book) {
   return canvas;
 }
 
+// The website demo (scripts/build-web.js --demo): the cover and the first two pages, then a page
+// saying the whole book is in the full version
+const DEMO = Boolean(window.__toonaroDemo);
+const DEMO_PAGES = 2;
+const DEMO_TEXT = {
+  en: ['The whole book', 'is in the full version of Toonaro'],
+  de: ['Das ganze Buch', 'gibt es in der Vollversion von Toonaro'],
+  ar: ['الكتاب كاملًا', 'في النسخة الكاملة من تونارو'],
+};
+const pageLang = () => { const l = (document.documentElement.lang || 'en').slice(0, 2); return DEMO_TEXT[l] ? l : 'en'; };
+function fullVersionPage(book) {
+  const theme = THEMES[book.theme];
+  const { canvas, ctx } = newPage(theme);
+  sprinkle(ctx, theme, 777, [[160, 200, W - 160, 380, 10], [160, 760, W - 160, 940, 10]]);
+  const [big, small] = DEMO_TEXT[pageLang()];
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = theme.ink;
+  ctx.font = `900 96px ${FONT}`;
+  ctx.fillText(big, W / 2, H / 2 - 60);
+  ctx.font = `800 48px ${FONT}`;
+  ctx.fillText(small, W / 2, H / 2 + 40);
+  const contact = window.__toonaroDemo?.contact;
+  if (contact) { ctx.fillStyle = theme.accent; ctx.font = `800 44px ${FONT}`; ctx.fillText(contact, W / 2, H / 2 + 130); }
+  return canvas;
+}
+
 /**
  * The book's pages as canvases. book: { title, author, theme, cover (scene index), end }; scenes:
  * [{ svg, duration, caption }]; pictures: a cache of stills by scene index.
  */
 async function makePages(book, scenes, pictures) {
   if (document.fonts?.load) await Promise.all([document.fonts.load(`900 40px Nunito`), document.fonts.load(`800 40px Nunito`)]).catch(() => {});
-  for (let i = 0; i < scenes.length; i++) if (!pictures[i]) pictures[i] = await still(scenes[i]);
+  for (let i = 0; i < scenes.length; i++) if (!pictures[i] && (!DEMO || i < DEMO_PAGES || i === book.cover)) pictures[i] = await still(scenes[i]);
+  const shown = DEMO ? scenes.slice(0, DEMO_PAGES) : scenes;
   return [
     coverPage(book, pictures[book.cover] ?? pictures[0]),
-    ...scenes.map((sc, i) => storyPage(book, pictures[i], sc.caption, i + 1)),
-    ...(book.end ? [endPage(book)] : []),
+    ...shown.map((sc, i) => storyPage(book, pictures[i], sc.caption, i + 1)),
+    ...(DEMO ? [fullVersionPage(book)] : book.end ? [endPage(book)] : []),
   ];
 }
 
@@ -307,7 +335,7 @@ async function refresh() {
     const made = await makePages(settings(), scenes, pictures);
     if (n !== making) return;
     pages = made;
-    $('bk-preview').innerHTML = pages.map((c, i) => `<figure class="ws-page bk-page"><img class="ws-paper" src="${c.toDataURL('image/jpeg', 0.7)}" alt="Page ${i + 1}"><figcaption>${i === 0 ? 'Cover' : i <= scenes.length ? `Page ${i}` : 'The End'}</figcaption></figure>`).join('');
+    $('bk-preview').innerHTML = pages.map((c, i) => `<figure class="ws-page bk-page"><img class="ws-paper" src="${c.toDataURL('image/jpeg', 0.7)}" alt="Page ${i + 1}"><figcaption>${i === 0 ? 'Cover' : i < pages.length - 1 || (!DEMO && !settings().end) ? `Page ${i}` : DEMO ? '…' : 'The End'}</figcaption></figure>`).join('');
   } catch (err) {
     if (n === making) $('bk-preview').innerHTML = `<div class="ws-wait">Could not draw the book: ${esc(err.message)}</div>`;
   }
@@ -365,6 +393,8 @@ export function openBook() {
   $('bk-title').placeholder = story.title && !/^(Kids Animated Story Clip|My Clip)$/.test(story.title) ? story.title : 'My Story';
   $('bk-cover').innerHTML = scenes.map((sc, i) => `<option value="${i}">Scene ${i + 1}${sc.caption ? `: ${esc(sc.caption.slice(0, 28))}${sc.caption.length > 28 ? '…' : ''}` : ''}</option>`).join('');
   $('bk-preview').innerHTML = '<div class="ws-wait">Drawing the pages…</div>';
+  // (the website demo ends with the page about the full version, not "The End")
+  if (DEMO) $('bk-end').closest('label').hidden = true;
   dialog.showModal();
   refresh();
 }

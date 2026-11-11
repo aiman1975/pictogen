@@ -190,6 +190,29 @@ if (chromium) {
     await page.waitForTimeout(1500);
     const swapped = await page.evaluate(() => window.pictogenStudio.getState().result.matches.map((m) => m.id).join());
     check(offered.includes('parrot') && offered.includes('eagle') && swapped === 'parrot', `a guess (magpie -> bird) can be swapped: other birds offered first, the parrot drawn (${offered.join(' ')} -> ${swapped})`);
+    // (what is only in the full version: the whole book, the answer key, photo faces, the web page, HD)
+    await page.fill('#prompt-input', 'a girl with a balloon');
+    await page.click('#btn-generate');
+    await page.waitForTimeout(1200);
+    await page.click('#btn-worksheet');
+    await page.waitForTimeout(2500);
+    const sheet = await page.evaluate(() => ({ pages: document.querySelectorAll('.worksheet-dialog:not(.book-dialog) .ws-page').length, key: document.getElementById('ws-answers').disabled && !document.getElementById('ws-answers').checked, note: document.querySelector('.ws-demo-note')?.textContent ?? '' }));
+    await page.keyboard.press('Escape');
+    const answerKey = await page.evaluate(async () => (await (await fetch('/api/worksheet', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: 'a girl with a balloon', answers: true }) })).json()).pages.length);
+    const htmlRoute = await page.evaluate(async () => (await fetch('/api/story/export-html', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"text":"a cat"}' })).status);
+    const shown = await page.evaluate(() => ({ photo: [...document.querySelectorAll('[data-do="add"]')].some((b) => /photo/i.test(b.textContent + b.title)), html: getComputedStyle(document.getElementById('story-btn-export-html')).display }));
+    check(sheet.pages === 1 && sheet.key && /full version/.test(sheet.note) && answerKey === 1 && htmlRoute === 404 && !shown.photo && shown.html === 'none',
+      `the demo: a worksheet without its answer key (not even asked for by hand), no clip as a web page, no faces from photos (${JSON.stringify({ sheet, answerKey, htmlRoute, shown })})`);
+    await page.click('#modes-group .pill-btn[data-mode="story"]');
+    await page.fill('#story-text', 'Mia found a puppy.\nMia waved.\nThe puppy jumped.\nThey played in the park.');
+    await page.click('#btn-generate');
+    await page.waitForFunction(() => (window.pictogenStudio.getStory().scenes || []).length >= 4, null, { timeout: 60000 });
+    await page.evaluate(() => window.pictogenBook.open());
+    await page.waitForFunction(() => document.querySelectorAll('.book-dialog .bk-page').length > 0, null, { timeout: 60000 });
+    const book = await page.evaluate(() => [...document.querySelectorAll('.book-dialog .bk-page figcaption')].map((f) => f.textContent));
+    await page.keyboard.press('Escape');
+    await page.click('#modes-group .pill-btn[data-mode="scene"]');
+    check(book.length === 4 && book[0] === 'Cover' && book[3] === '…', `the demo's picture book: the cover, two pages and the page about the full version (${book.join(' | ')})`);
     // (the mute button on the picture: one click and the sound is off, remembered)
     const before = await page.evaluate(() => window.pictogenSound?.isEnabled());
     await page.click('#btn-mute');

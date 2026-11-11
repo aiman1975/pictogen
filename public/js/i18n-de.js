@@ -4,6 +4,7 @@
 // To change a word: change it here.
 export default {
   texts: {
+   "Make a character (a boy, a grandma, a dog...) with a name and their own clothes and colours, and use the name in your prompts: they look the same in every scene.": "Erstelle eine Figur (einen Jungen, eine Oma, einen Hund …) mit einem Namen, eigener Kleidung und Farben. Verwende den Namen in deinen Prompts: Sie sieht in jeder Szene gleich aus.",
    "🔄 Swap": "🔄 Tauschen",
    "Swap for another picture": "Gegen ein anderes Bild tauschen",
    "Swap the picture": "Bild tauschen",

@@ -198,7 +198,7 @@ function render() {
     <div class="tl-head">
       <span class="tl-title">🙂 Your characters</span>
       <button class="tl-btn primary" data-do="new" ${full} title="A character with a name and a look of their own">＋ New character</button>
-      <button class="tl-btn" data-do="add" ${full} title="Put a face from a photo on a character">📷 From a photo</button>
+      ${window.__toonaroDemo ? '' : `<button class="tl-btn" data-do="add" ${full} title="Put a face from a photo on a character">📷 From a photo</button>`}
       <input type="file" accept="image/*" hidden>
     </div>
     ${characters.length ? `<ul class="char-list">${characters.map((c, i) => `
@@ -206,7 +206,7 @@ function render() {
         <button class="tl-btn" data-edit="${i}" aria-label="Change ${esc(c.name)}" title="Change the look">✎</button>
         <button class="tl-btn danger" data-remove="${i}" aria-label="Remove ${esc(c.name)}" title="Remove">✕</button></li>`).join('')}</ul>
       <div class="tl-empty">Use the names in prompts: ${example}. They look the same in every scene, clip and comic.</div>`
-    : '<div class="tl-empty">Make a character (a boy, a grandma, a dog...) with a name and their own clothes and colours, and use the name in your prompts: they look the same in every scene. Add a face from a photo if you like; it stays in this browser.</div>'}`;
+    : `<div class="tl-empty">Make a character (a boy, a grandma, a dog...) with a name and their own clothes and colours, and use the name in your prompts: they look the same in every scene.${window.__toonaroDemo ? '' : ' Add a face from a photo if you like; it stays in this browser.'}</div>`}`;
   // Each character without a photo is shown as drawn
   panel.querySelectorAll('[data-pic]').forEach(async (el) => {
     const c = characters[+el.dataset.pic];
@@ -341,7 +341,8 @@ function openEditor(existing = null) {
 panel.addEventListener('click', (e) => {
   const el = e.target.closest('button');
   if (!el) return;
-  if (el.dataset.do === 'add') panel.querySelector('input[type=file]').click();
+  // (faces from photos: not on the website demo - in the full version, on your own device)
+  if (el.dataset.do === 'add' && !window.__toonaroDemo) panel.querySelector('input[type=file]').click();
   else if (el.dataset.do === 'new') openEditor();
   else if (el.dataset.edit !== undefined) openEditor(characters[+el.dataset.edit]);
   else if (el.dataset.remove !== undefined) {

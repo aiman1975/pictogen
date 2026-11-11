@@ -5,6 +5,7 @@
 // to left (dir="rtl"). To change a word: change it here.
 export default {
   texts: {
+   "Make a character (a boy, a grandma, a dog...) with a name and their own clothes and colours, and use the name in your prompts: they look the same in every scene.": "أنشئ شخصية (ولد، جدة، كلب...) باسم وملابس وألوان خاصة، واستخدم الاسم في أوامرك: ستظهر بنفس الشكل في كل مشهد.",
    "🔄 Swap": "🔄 استبدال",
    "Swap for another picture": "استبدل بصورة أخرى",
    "Swap the picture": "استبدال الصورة",

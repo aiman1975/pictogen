@@ -4,6 +4,9 @@
 // Toonaro says how to get the full version. What a visitor types is kept short: a picture from up to
 // maxPrompt characters, a clip from up to maxStory. Words Toonaro did not know are listed under the
 // picture, with an e-mail to send them to us (only if the visitor wants to: their own mail app opens).
+// In the full version only (the studio and the build check window.__toonaroDemo): the whole picture
+// book (here the cover and two pages), a worksheet's answer key, faces from photos, a clip as a web
+// page, HD video (here 960x540).
 // Settings: window.__toonaroDemo = { tries, contact, maxPrompt, maxStory }.
 (function () {
   var cfg = window.__toonaroDemo || { tries: 3, contact: '' };
@@ -123,6 +126,7 @@
     + '.tn-demo-note{margin:10px 0 0;font-weight:800;color:#c2410c;font-size:.95rem}'
     + '.tn-demo-count{font:700 .8rem Nunito,"Baloo Bhaijaan 2",sans-serif;color:#64748b;margin:4px 0 0}.tn-demo-count.over{color:#b91c1c;font-weight:900}'
     + '.tn-demo-missing{color:#475569}.tn-demo-missing b{color:#b91c1c}.tn-demo-tell{font-weight:900;color:#ea580c;text-decoration:none;white-space:nowrap}.tn-demo-tell:hover{text-decoration:underline}'
+    + '#story-btn-export-html{display:none!important}'
     + '.tn-demo-long{margin:8px 0 0;padding:8px 12px;border-radius:12px;background:#fef2f2;color:#b91c1c;font:800 .9rem Nunito,"Baloo Bhaijaan 2",sans-serif}';
   var addCss = function () { var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); };
 

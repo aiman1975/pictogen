@@ -78,7 +78,13 @@ with a note. It costs nothing per visitor: everything is drawn in the visitor's
 browser, the web space only sends the files (about 24 MB, once per visitor). No login: it would need
 a server, consent texts and more privacy rules, for little gain. Everything the studio draws carries the mark "Toonaro · demo", on screen
 and so in every download, print and video. A small note in the studio shows how to get the full
-version, without the mark (the address in `DEMO_CONTACT`). Words Toonaro did not know are listed under the
+version, without the mark (the address in `DEMO_CONTACT`). **Only in the full version** (the demo build leaves them out or limits them; `window.__toonaroDemo`
+in the studio, and the website's copy of `src/api.js` is cut by `scripts/build-web.js`): the whole
+picture book (the demo: the cover, two pages and a page about the full version), a worksheet's answer
+key (not even made on request), faces from photos, a clip as a web page (`/api/story/export-html`
+is gone), HD video (the demo records 960x540, the full version 1280x720), long texts, no watermark,
+installing and working offline. Note that everything on a website can be copied: the limits stop
+visitors, the licence protects the product. Words Toonaro did not know are listed under the
 picture, with a link that opens the visitor's own mail app with them filled in (nothing is sent by
 itself, nothing is logged): the list of what to teach Toonaro next. (With a number of tries, they are counted
 in the visitor's browser: a visitor who clears their browser data gets new ones.) The demo is a website: it can't be installed as an app, search engines may list it,

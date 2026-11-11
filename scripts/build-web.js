@@ -212,6 +212,19 @@ for (const page of ['index.html', 'studio.html', 'showcase.html', 'help.html', '
 }
 if (demo) {
   cpSync(join(root, 'scripts', 'web', 'demo.js'), join(out, 'web', 'demo.js'));
+  // What is only in the full version is left out of the website's copy of the engine: a clip as a
+  // web page (no route), a worksheet's answer key (never made) - not just hidden in the studio
+  const apiFile = join(out, 'src', 'api.js');
+  let api = readFileSync(apiFile, 'utf8');
+  const cut = [
+    ["if (pathname === '/api/story/export-html' && method === 'POST') {", "if (false && pathname === '/api/story/export-html') { // (the full version only)"],
+    ['answers: payload.answers !== false,', 'answers: false, // (the full version only)'],
+  ];
+  for (const [from, to] of cut) {
+    if (!api.includes(from)) throw new Error(`build-web --demo: could not find "${from}" in src/api.js`);
+    api = api.replace(from, to);
+  }
+  writeFileSync(apiFile, api);
   // (the help page too: its example links count as tries; the studio, the landing page and the show have it with the engine)
   for (const page of ['help.html']) {
     const f = join(out, page);
